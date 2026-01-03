@@ -33,13 +33,15 @@ interface HeadspaceMapProps {
     setMembers: (members: any[]) => void;
 }
 
-export function HeadspaceMap({ members, setMembers }: HeadspaceMapProps) {
+export function HeadspaceMap({ members = [], setMembers }: HeadspaceMapProps) {
   // State for customizable rooms
   const [rooms, setRooms] = useState(DEFAULT_ROOMS);
   const [isEditingRooms, setIsEditingRooms] = useState(false);
 
   // Initialize members with locations if not present
   useEffect(() => {
+    if (!members) return;
+    
     const initializedMembers = members.map(m => ({ 
         ...m, 
         location: m.location || (m.role.includes('Daily') ? 'front' : m.role.includes('Trauma') ? 'inner' : 'meeting') 
@@ -247,7 +249,7 @@ export function HeadspaceMap({ members, setMembers }: HeadspaceMapProps) {
          
          {rooms.map(room => {
             const RoomIcon = room.icon;
-            const roomMembers = members.filter(m => m.location === room.id);
+            const roomMembers = (members || []).filter(m => m.location === room.id);
 
             return (
                 <div key={room.id} className={cn("rounded-xl border-2 border-dashed p-4 flex flex-col gap-4 transition-colors relative group", room.color)}>
