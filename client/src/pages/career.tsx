@@ -173,6 +173,24 @@ export default function CareerPage() {
   const [selectedProject, setSelectedProject] = useState<typeof MOCK_PROJECTS[0] | null>(null);
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
   const [isProjectDetailsOpen, setIsProjectDetailsOpen] = useState(false);
+  
+  // Vision State
+  const [isVisionDialogOpen, setIsVisionDialogOpen] = useState(false);
+  const [editingVision, setEditingVision] = useState<typeof MOCK_VISION>([]);
+
+  const openEditVision = () => {
+    setEditingVision([...vision]);
+    setIsVisionDialogOpen(true);
+  };
+
+  const saveVision = () => {
+    setVision(editingVision);
+    setIsVisionDialogOpen(false);
+  };
+
+  const updateVisionItem = (id: number, field: keyof typeof MOCK_VISION[0], value: string) => {
+    setEditingVision(editingVision.map(v => v.id === id ? { ...v, [field]: value } : v));
+  };
 
   const toggleTask = (id: number) => {
     setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
@@ -281,28 +299,55 @@ export default function CareerPage() {
 
         {/* HUD / Vision Strip */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 shrink-0">
-           <div className="md:col-span-8 p-4 rounded-xl border border-border/50 bg-gradient-to-r from-muted/30 to-background flex items-center justify-between shadow-sm">
-              <div className="flex items-center gap-4">
-                 <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                    <Sparkles className="w-5 h-5 text-amber-500" />
-                 </div>
-                 <div>
-                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">North Star</div>
-                    <div className="flex flex-wrap gap-2">
-                       {vision.map((item, i) => (
-                          <div key={item.id} className="flex items-center text-sm font-medium">
-                             <span className={cn("w-1.5 h-1.5 rounded-full mr-2", item.color)} />
-                             {item.title}
-                             {i < vision.length - 1 && <span className="mx-3 text-muted-foreground/30">/</span>}
-                          </div>
-                       ))}
+           <Card className="md:col-span-8 relative overflow-hidden border-border/50 shadow-sm group">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-transparent opacity-50" />
+              <CardContent className="p-5 flex items-center justify-between relative h-full">
+                 <div className="flex items-start gap-5">
+                    <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 shrink-0 mt-1">
+                       <Sparkles className="w-6 h-6 text-amber-500" />
+                    </div>
+                    <div className="space-y-1">
+                       <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">North Star</h3>
+                          <Badge variant="secondary" className="text-[10px] h-4 px-1 font-normal bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                             Guiding Principles
+                          </Badge>
+                       </div>
+                       
+                       <div className="flex flex-col gap-1 pt-1">
+                          {vision.length > 0 && (
+                             <div className="text-lg font-medium leading-tight text-foreground flex items-center gap-2">
+                                {vision[0].title}
+                                <span className="text-xs font-normal text-muted-foreground border-l border-border/50 pl-2 ml-2">
+                                   {vision[0].timeframe}
+                                </span>
+                             </div>
+                          )}
+                          
+                          {vision.length > 1 && (
+                             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                                {vision.slice(1).map((item) => (
+                                   <div key={item.id} className="flex items-center text-xs text-muted-foreground">
+                                      <div className={cn("w-1.5 h-1.5 rounded-full mr-2 opacity-70", item.color)} />
+                                      {item.title}
+                                   </div>
+                                ))}
+                             </div>
+                          )}
+                       </div>
                     </div>
                  </div>
-              </div>
-              <Button variant="ghost" size="sm" className="hidden md:flex text-xs text-muted-foreground hover:text-foreground">
-                 Edit
-              </Button>
-           </div>
+                 
+                 <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="shrink-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={openEditVision}
+                 >
+                    <MoreHorizontal className="w-5 h-5" />
+                 </Button>
+              </CardContent>
+           </Card>
            
            <div className="md:col-span-4 grid grid-cols-2 gap-4">
               <div className="p-4 rounded-xl border border-border/50 bg-background flex flex-col justify-center shadow-sm">
@@ -892,6 +937,61 @@ export default function CareerPage() {
                    </div>
                 </div>
              )}
+          </DialogContent>
+        </Dialog>
+        {/* Edit Vision Dialog */}
+        <Dialog open={isVisionDialogOpen} onOpenChange={setIsVisionDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Define Your North Star</DialogTitle>
+              <DialogDescription>
+                 Set your primary career goals and guiding principles.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+               {editingVision.map((item, index) => (
+                  <div key={item.id} className="grid gap-3 p-4 border rounded-lg bg-muted/20">
+                     <div className="flex justify-between items-center">
+                        <Label className="text-xs uppercase font-bold text-muted-foreground">
+                           {index === 0 ? "Primary Goal (North Star)" : `Secondary Goal ${index}`}
+                        </Label>
+                        {index === 0 && <Sparkles className="w-3 h-3 text-amber-500" />}
+                     </div>
+                     <div className="grid gap-2">
+                        <Input 
+                           value={item.title} 
+                           onChange={(e) => updateVisionItem(item.id, "title", e.target.value)}
+                           placeholder="Goal title..."
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                           <Input 
+                              value={item.timeframe} 
+                              onChange={(e) => updateVisionItem(item.id, "timeframe", e.target.value)}
+                              placeholder="Timeframe..."
+                           />
+                           <Select 
+                              value={item.color} 
+                              onValueChange={(val) => updateVisionItem(item.id, "color", val)}
+                           >
+                              <SelectTrigger>
+                                 <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                 <SelectItem value="text-blue-500">Blue</SelectItem>
+                                 <SelectItem value="text-purple-500">Purple</SelectItem>
+                                 <SelectItem value="text-amber-500">Amber</SelectItem>
+                                 <SelectItem value="text-emerald-500">Emerald</SelectItem>
+                                 <SelectItem value="text-rose-500">Rose</SelectItem>
+                              </SelectContent>
+                           </Select>
+                        </div>
+                     </div>
+                  </div>
+               ))}
+            </div>
+            <DialogFooter>
+              <Button onClick={saveVision}>Save Vision</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
