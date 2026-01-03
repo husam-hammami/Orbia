@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Smile, Frown, Meh, Zap, BatteryLow, BatteryFull, Activity, HeartPulse, UserCircle2, CloudFog, Moon, BedDouble, AlertCircle, Sparkles, Flame, MessageSquare, MicOff, Mic, Pill, Plus } from "lucide-react";
+import { Smile, Frown, Meh, Zap, BatteryLow, BatteryFull, Activity, HeartPulse, UserCircle2, CloudFog, Moon, BedDouble, AlertCircle, Sparkles, Flame, MessageSquare, MicOff, Mic, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,6 @@ export function MoodTracker() {
   const [urges, setUrges] = useState([1]); 
   const [sleep, setSleep] = useState([7]); 
   const [systemComm, setSystemComm] = useState([5]); // System Communication
-  const [meds, setMeds] = useState<{am: boolean, noon: boolean, pm: boolean}>({am: false, noon: false, pm: false});
   const [whoIsFronting, setWhoIsFronting] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [note, setNote] = useState("");
@@ -53,9 +52,9 @@ export function MoodTracker() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
-        {/* Left Column: Mental & Emotional */}
+        {/* Left Column: Mental & System */}
         <div className="space-y-8">
-            {/* Mood Selector */}
+            {/* Mood Selector - Moved to top of left column */}
             <div>
               <label className="text-sm text-muted-foreground font-medium mb-3 block">Mental State</label>
               <div className="flex justify-between gap-2">
@@ -81,7 +80,21 @@ export function MoodTracker() {
               </div>
             </div>
 
-            {/* Dissociation Scale (New) */}
+            {/* Fronting Input - Moved up for visibility */}
+            <div>
+                <label className="text-sm text-muted-foreground font-medium mb-2 block flex items-center gap-2">
+                   <UserCircle2 className="w-4 h-4" />
+                   Who is fronting?
+                </label>
+                <Input 
+                   placeholder="Name or role (optional)..." 
+                   value={whoIsFronting}
+                   onChange={(e) => setWhoIsFronting(e.target.value)}
+                   className="bg-muted/30 border-muted-foreground/20"
+                />
+            </div>
+
+            {/* Dissociation Scale */}
             <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -109,37 +122,8 @@ export function MoodTracker() {
                   <span>Switched / Lost Time</span>
                 </div>
             </div>
-
-            {/* Intrusive Urges (New) */}
-            <div className="bg-red-50/50 dark:bg-red-900/10 p-4 rounded-xl border border-red-100 dark:border-red-900/30">
-               <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Flame className="w-4 h-4 text-orange-500" />
-                    <label className="text-sm font-medium">Intrusive Urges</label>
-                  </div>
-                  <span className={cn(
-                    "text-xs font-bold px-2 py-0.5 rounded-full",
-                    urges[0] < 3 ? "bg-slate-100 text-slate-700" :
-                    urges[0] < 7 ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"
-                  )}>
-                    {urges[0] < 3 ? "Quiet" : urges[0] < 7 ? "Present" : "Intense"}
-                  </span>
-               </div>
-               
-               <Slider
-                  value={urges}
-                  onValueChange={setUrges}
-                  max={10}
-                  step={1}
-                  className="cursor-pointer mb-2 [&_.bg-primary]:bg-orange-500"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                  <span>Manageable</span>
-                  <span>Overwhelming</span>
-                </div>
-            </div>
-
-            {/* System Communication (New) */}
+            
+             {/* System Communication */}
             <div className="bg-indigo-50/50 dark:bg-indigo-900/10 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -167,20 +151,6 @@ export function MoodTracker() {
                   <span className="flex items-center gap-1">Fluid <Mic className="w-3 h-3" /></span>
                 </div>
             </div>
-
-            {/* Fronting Input */}
-            <div>
-                <label className="text-sm text-muted-foreground font-medium mb-2 block flex items-center gap-2">
-                   <UserCircle2 className="w-4 h-4" />
-                   Who is fronting?
-                </label>
-                <Input 
-                   placeholder="Name or role (optional)..." 
-                   value={whoIsFronting}
-                   onChange={(e) => setWhoIsFronting(e.target.value)}
-                   className="bg-muted/30 border-muted-foreground/20"
-                />
-            </div>
         </div>
 
         {/* Right Column: Physical & Factors */}
@@ -204,7 +174,7 @@ export function MoodTracker() {
                </div>
             </div>
 
-            {/* Sleep Quality (New) */}
+            {/* Sleep Quality */}
             <div>
                <div className="flex items-center justify-between mb-3">
                   <label className="text-sm text-muted-foreground font-medium">Sleep Quality</label>
@@ -241,35 +211,34 @@ export function MoodTracker() {
                   <span className="flex items-center gap-1"><BatteryFull className="w-3 h-3" /> High</span>
                </div>
             </div>
-
-            {/* Medication Tracker (New) */}
-            <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
-               <div className="flex items-center gap-2 mb-3">
-                  <Pill className="w-4 h-4 text-emerald-600" />
-                  <label className="text-sm font-medium">Medication Adherence</label>
+            
+            {/* Intrusive Urges (Moved here to balance) */}
+            <div className="bg-red-50/50 dark:bg-red-900/10 p-4 rounded-xl border border-red-100 dark:border-red-900/30">
+               <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Flame className="w-4 h-4 text-orange-500" />
+                    <label className="text-sm font-medium">Intrusive Urges</label>
+                  </div>
+                  <span className={cn(
+                    "text-xs font-bold px-2 py-0.5 rounded-full",
+                    urges[0] < 3 ? "bg-slate-100 text-slate-700" :
+                    urges[0] < 7 ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"
+                  )}>
+                    {urges[0] < 3 ? "Quiet" : urges[0] < 7 ? "Present" : "Intense"}
+                  </span>
                </div>
                
-               <div className="flex justify-between gap-2">
-                  {[
-                    { key: 'am', label: 'Morning' },
-                    { key: 'noon', label: 'Midday' },
-                    { key: 'pm', label: 'Night' }
-                  ].map((time) => (
-                    <button
-                      key={time.key}
-                      onClick={() => setMeds({...meds, [time.key]: !meds[time.key as keyof typeof meds]})}
-                      className={cn(
-                        "flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border transition-all text-xs font-medium",
-                        meds[time.key as keyof typeof meds]
-                          ? "bg-emerald-100 border-emerald-200 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100"
-                          : "bg-background border-border text-muted-foreground hover:bg-muted"
-                      )}
-                    >
-                       <div className={cn("w-3 h-3 rounded-full border", meds[time.key as keyof typeof meds] ? "bg-emerald-500 border-emerald-500" : "border-slate-300")} />
-                       {time.label}
-                    </button>
-                  ))}
-               </div>
+               <Slider
+                  value={urges}
+                  onValueChange={setUrges}
+                  max={10}
+                  step={1}
+                  className="cursor-pointer mb-2 [&_.bg-primary]:bg-orange-500"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                  <span>Manageable</span>
+                  <span>Overwhelming</span>
+                </div>
             </div>
         </div>
       </div>
