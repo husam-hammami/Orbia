@@ -15,7 +15,7 @@ export function MoodTracker() {
   const { data: trackerEntries } = useTrackerEntries(5);
   const createEntryMutation = useCreateTrackerEntry();
 
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [mood, setMood] = useState<string | null>(null);
   const [motivation, setMotivation] = useState([5]);
   const [comfort, setComfort] = useState([5]); 

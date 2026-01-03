@@ -1,6 +1,7 @@
 import { Layout } from "@/components/layout";
 import { MoodTracker } from "@/components/mood-tracker";
 import { RoutineTimeline } from "@/components/routine-timeline";
+import { RoutineEditor } from "@/components/routine-editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { Activity, Calendar } from "lucide-react";
@@ -32,7 +33,10 @@ export default function TrackerPage() {
             <MoodTracker />
           </TabsContent>
           
-          <TabsContent value="routine" className="mt-6" data-testid="content-routine">
+          <TabsContent value="routine" className="mt-6 space-y-4" data-testid="content-routine">
+            <div className="flex justify-end">
+              <RoutineEditor />
+            </div>
             <RoutineTimeline />
           </TabsContent>
         </Tabs>

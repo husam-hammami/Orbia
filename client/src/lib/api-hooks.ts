@@ -365,3 +365,92 @@ export function useToggleRoutineActivity() {
     },
   });
 }
+
+// Routine Block CRUD
+export function useCreateRoutineBlock() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; emoji: string; startTime: string; endTime: string; purpose: string; color: string; order: number }) =>
+      fetchAPI("/api/routine-blocks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["routineBlocks"] });
+    },
+  });
+}
+
+export function useUpdateRoutineBlock() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; name: string; emoji: string; startTime: string; endTime: string; purpose: string; color: string; order: number }) =>
+      fetchAPI(`/api/routine-blocks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["routineBlocks"] });
+    },
+  });
+}
+
+export function useDeleteRoutineBlock() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchAPI(`/api/routine-blocks/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["routineBlocks"] });
+      queryClient.invalidateQueries({ queryKey: ["routineActivities"] });
+    },
+  });
+}
+
+// Routine Activity CRUD
+export function useCreateRoutineActivity() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { blockId: string; name: string; time: string | null; description: string | null; habitId: string | null; order: number }) =>
+      fetchAPI("/api/routine-activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["routineActivities"] });
+    },
+  });
+}
+
+export function useUpdateRoutineActivity() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; blockId: string; name: string; time: string | null; description: string | null; habitId: string | null; order: number }) =>
+      fetchAPI(`/api/routine-activities/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["routineActivities"] });
+    },
+  });
+}
+
+export function useDeleteRoutineActivity() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchAPI(`/api/routine-activities/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["routineActivities"] });
+    },
+  });
+}
