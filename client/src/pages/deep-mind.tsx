@@ -358,6 +358,13 @@ export default function DeepMind() {
                             <CardDescription>AI-detected correlations between triggers and system responses.</CardDescription>
                         </CardHeader>
                         <CardContent>
+                            <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-600 dark:text-blue-400 flex items-start gap-2">
+                                <Activity className="w-4 h-4 shrink-0 mt-0.5" />
+                                <div>
+                                    <strong>High-Resolution Analysis Active:</strong> Deep Mind is analyzing intra-day variance. 
+                                    Fluctuations in stress and dissociation throughout the day are weighted heavily to prevent data flattening.
+                                </div>
+                            </div>
                             <div className="space-y-4">
                                 {PREDICTIVE_PATTERNS.map((pattern, i) => (
                                     <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-muted/10 hover:bg-muted/30 transition-colors">

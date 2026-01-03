@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Smile, Frown, Meh, Zap, BatteryLow, BatteryFull, Activity, HeartPulse, UserCircle2, CloudFog, Moon, BedDouble, AlertCircle, Sparkles, Flame, MessageSquare, MicOff, Mic, ChevronDown, ChevronUp, Utensils, Coffee, Sun, MoonStar, Cookie } from "lucide-react";
+import { Smile, Frown, Meh, Zap, BatteryLow, BatteryFull, Activity, HeartPulse, UserCircle2, CloudFog, Moon, BedDouble, AlertCircle, Sparkles, Flame, MessageSquare, MicOff, Mic, ChevronDown, ChevronUp, Utensils, Coffee, Sun, MoonStar, Cookie, Clock, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,11 @@ export function MoodTracker() {
   const [stressCauses, setStressCauses] = useState<string[]>([]);
   const [note, setNote] = useState("");
   const [meals, setMeals] = useState({ breakfast: false, lunch: false, dinner: false, snack: false });
+  const [entryTime, setEntryTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  const [entriesToday, setEntriesToday] = useState([
+    { time: "09:00", mood: "neutral" },
+    { time: "12:30", mood: "bad" }
+  ]);
 
   const toggleMeal = (meal: keyof typeof meals) => {
     setMeals(prev => ({ ...prev, [meal]: !prev[meal] }));
@@ -67,7 +72,12 @@ export function MoodTracker() {
       {/* Compact Header - Always Visible */}
       <div className="p-4 flex items-center justify-between gap-4">
          <div className="flex items-center gap-4 flex-1">
-            <h3 className="font-display font-semibold text-lg hidden sm:block">Input Metrics</h3>
+            <div>
+                <h3 className="font-display font-semibold text-lg hidden sm:block">Input Metrics</h3>
+                <p className="text-[10px] text-muted-foreground hidden sm:block">
+                    {entriesToday.length} entries today • Last at {entriesToday[entriesToday.length-1]?.time}
+                </p>
+            </div>
             
             {/* Quick Mood Select */}
             <div className="flex gap-1 bg-muted/30 p-1 rounded-full">
@@ -101,7 +111,19 @@ export function MoodTracker() {
             </div>
          </div>
 
-         <Button 
+            {isExpanded && (
+                <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-md border border-border/50">
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                    <input 
+                        type="time" 
+                        value={entryTime}
+                        onChange={(e) => setEntryTime(e.target.value)}
+                        className="bg-transparent text-xs font-mono focus:outline-none w-16"
+                    />
+                </div>
+            )}
+
+            <Button 
             variant={isExpanded ? "secondary" : "default"} 
             size="sm" 
             onClick={() => setIsExpanded(!isExpanded)}
@@ -310,24 +332,30 @@ export function MoodTracker() {
               </div>
 
               {/* Tags Footer */}
-              <div className="pt-4 border-t border-border flex flex-wrap gap-2">
-                 {tags.map(tag => (
-                    <button
-                      key={tag}
-                      onClick={() => toggleTag(tag)}
-                      className={cn(
-                        "text-[10px] px-2.5 py-1 rounded-full border transition-all",
-                        selectedTags.includes(tag)
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background border-border hover:border-primary/50 text-muted-foreground"
-                      )}
-                    >
-                      {tag}
+              <div className="pt-4 border-t border-border flex flex-col sm:flex-row justify-between gap-4">
+                 <div className="flex flex-wrap gap-2 flex-1">
+                    {tags.map(tag => (
+                        <button
+                        key={tag}
+                        onClick={() => toggleTag(tag)}
+                        className={cn(
+                            "text-[10px] px-2.5 py-1 rounded-full border transition-all",
+                            selectedTags.includes(tag)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-border hover:border-primary/50 text-muted-foreground"
+                        )}
+                        >
+                        {tag}
+                        </button>
+                    ))}
+                    <button className="text-[10px] px-2.5 py-1 rounded-full border border-dashed border-muted-foreground/30 text-muted-foreground hover:text-foreground">
+                        + Add
                     </button>
-                 ))}
-                 <button className="text-[10px] px-2.5 py-1 rounded-full border border-dashed border-muted-foreground/30 text-muted-foreground hover:text-foreground">
-                    + Add
-                 </button>
+                 </div>
+                 
+                 <Button size="sm" className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700">
+                    Add Entry at {entryTime}
+                 </Button>
               </div>
             </div>
           </motion.div>
