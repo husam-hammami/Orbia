@@ -1,21 +1,21 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Smile, Frown, Meh, Zap, BatteryLow, BatteryFull, Activity, HeartPulse, UserCircle2, CloudFog, Moon, BedDouble, AlertCircle, Sparkles, Flame, MessageSquare, MicOff, Mic, Plus } from "lucide-react";
+import { Smile, Frown, Meh, Zap, BatteryLow, BatteryFull, Activity, HeartPulse, UserCircle2, CloudFog, Moon, BedDouble, AlertCircle, Sparkles, Flame, MessageSquare, MicOff, Mic, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 
 export function MoodTracker() {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [mood, setMood] = useState<string | null>(null);
   const [motivation, setMotivation] = useState([5]);
   const [comfort, setComfort] = useState([5]); 
   const [dissociation, setDissociation] = useState([2]); 
   const [urges, setUrges] = useState([1]); 
   const [sleep, setSleep] = useState([7]); 
-  const [systemComm, setSystemComm] = useState([5]); // System Communication
+  const [systemComm, setSystemComm] = useState([5]); 
   const [whoIsFronting, setWhoIsFronting] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [note, setNote] = useState("");
@@ -42,247 +42,198 @@ export function MoodTracker() {
   };
 
   return (
-    <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="font-display font-semibold text-lg">Daily Check-in</h3>
-        <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">
-           {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        
-        {/* Left Column: Mental & System */}
-        <div className="space-y-8">
-            {/* Mood Selector - Moved to top of left column */}
-            <div>
-              <label className="text-sm text-muted-foreground font-medium mb-3 block">Mental State</label>
-              <div className="flex justify-between gap-2">
+    <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden transition-all duration-300">
+      {/* Compact Header - Always Visible */}
+      <div className="p-4 flex items-center justify-between gap-4">
+         <div className="flex items-center gap-4 flex-1">
+            <h3 className="font-display font-semibold text-lg hidden sm:block">Check-in</h3>
+            
+            {/* Quick Mood Select */}
+            <div className="flex gap-1 bg-muted/30 p-1 rounded-full">
                 {moods.map((m) => {
                   const Icon = m.icon;
                   const isSelected = mood === m.value;
                   return (
                     <button
                       key={m.value}
-                      onClick={() => setMood(m.value)}
+                      onClick={(e) => { e.stopPropagation(); setMood(m.value); }}
                       title={m.label}
                       className={cn(
-                        "flex flex-col items-center gap-2 p-3 rounded-xl transition-all w-full relative group",
+                        "p-2 rounded-full transition-all",
                         isSelected 
-                          ? `${m.bg} ring-2 ring-offset-2 ring-${m.color.split('-')[1]}-500` 
-                          : "hover:bg-muted/50"
+                          ? `${m.bg} ${m.color} shadow-sm ring-1 ring-inset ring-black/5` 
+                          : "text-muted-foreground hover:bg-muted"
                       )}
                     >
-                      <Icon className={cn("w-6 h-6 transition-transform", isSelected ? `scale-110 ${m.color}` : "text-muted-foreground")} />
+                      <Icon className={cn("w-5 h-5", isSelected && "scale-110")} />
                     </button>
                   );
                 })}
-              </div>
             </div>
 
-            {/* Fronting Input - Moved up for visibility */}
-            <div>
-                <label className="text-sm text-muted-foreground font-medium mb-2 block flex items-center gap-2">
-                   <UserCircle2 className="w-4 h-4" />
-                   Who is fronting?
-                </label>
-                <Input 
-                   placeholder="Name or role (optional)..." 
+            {/* Quick Fronting Input */}
+            <div className="hidden md:flex items-center gap-2 flex-1 max-w-[200px]">
+               <UserCircle2 className="w-4 h-4 text-muted-foreground" />
+               <Input 
+                   placeholder="Fronting?" 
                    value={whoIsFronting}
                    onChange={(e) => setWhoIsFronting(e.target.value)}
-                   className="bg-muted/30 border-muted-foreground/20"
+                   className="h-9 bg-transparent border-transparent hover:border-border focus:bg-background focus:border-input transition-all px-2"
                 />
             </div>
+         </div>
 
-            {/* Dissociation Scale */}
-            <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-               <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <CloudFog className="w-4 h-4 text-purple-500" />
-                    <label className="text-sm font-medium">Dissociation Level</label>
-                  </div>
-                  <span className={cn(
-                    "text-xs font-bold px-2 py-0.5 rounded-full",
-                    dissociation[0] < 3 ? "bg-green-100 text-green-700" :
-                    dissociation[0] < 7 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"
-                  )}>
-                    {dissociation[0] < 3 ? "Grounded" : dissociation[0] < 7 ? "Blurry" : "Dissociated"}
-                  </span>
-               </div>
-               
-               <Slider
-                  value={dissociation}
-                  onValueChange={setDissociation}
-                  max={10}
-                  step={1}
-                  className="cursor-pointer mb-2"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                  <span>Present</span>
-                  <span>Switched / Lost Time</span>
-                </div>
-            </div>
-            
-             {/* System Communication */}
-            <div className="bg-indigo-50/50 dark:bg-indigo-900/10 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
-               <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-indigo-500" />
-                    <label className="text-sm font-medium">System Communication</label>
-                  </div>
-                  <span className={cn(
-                    "text-xs font-bold px-2 py-0.5 rounded-full",
-                    systemComm[0] < 3 ? "bg-slate-100 text-slate-700" :
-                    systemComm[0] < 7 ? "bg-indigo-100 text-indigo-700" : "bg-green-100 text-green-700"
-                  )}>
-                    {systemComm[0] < 3 ? "Blocked" : systemComm[0] < 7 ? "Chatter" : "Harmonious"}
-                  </span>
-               </div>
-               
-               <Slider
-                  value={systemComm}
-                  onValueChange={setSystemComm}
-                  max={10}
-                  step={1}
-                  className="cursor-pointer mb-2 [&_.bg-primary]:bg-indigo-500"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                  <span className="flex items-center gap-1"><MicOff className="w-3 h-3" /> Silent</span>
-                  <span className="flex items-center gap-1">Fluid <Mic className="w-3 h-3" /></span>
-                </div>
-            </div>
-        </div>
-
-        {/* Right Column: Physical & Factors */}
-        <div className="space-y-8">
-            {/* Physical Comfort */}
-            <div>
-               <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm text-muted-foreground font-medium">Physical Comfort (Pain)</label>
-                  <span className="text-sm font-mono font-bold text-primary">{comfort[0]}/10</span>
-               </div>
-               <Slider
-                  value={comfort}
-                  onValueChange={setComfort}
-                  max={10}
-                  step={1}
-                  className="cursor-pointer"
-               />
-               <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                  <span className="flex items-center gap-1 text-red-400"><Activity className="w-3 h-3" /> High Pain</span>
-                  <span className="flex items-center gap-1 text-green-600">Comfortable <HeartPulse className="w-3 h-3" /></span>
-               </div>
-            </div>
-
-            {/* Sleep Quality */}
-            <div>
-               <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm text-muted-foreground font-medium">Sleep Quality</label>
-                  <span className="text-sm font-mono font-bold text-primary">{sleep[0]}/10</span>
-               </div>
-               <Slider
-                  value={sleep}
-                  onValueChange={setSleep}
-                  max={10}
-                  step={1}
-                  className="cursor-pointer"
-               />
-               <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                  <span className="flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Restless</span>
-                  <span className="flex items-center gap-1"><BedDouble className="w-3 h-3" /> Rested</span>
-               </div>
-            </div>
-
-            {/* Energy Level */}
-            <div>
-               <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm text-muted-foreground font-medium">Energy Level</label>
-                  <span className="text-sm font-mono font-bold">{motivation[0]}/10</span>
-               </div>
-               <Slider
-                  value={motivation}
-                  onValueChange={setMotivation}
-                  max={10}
-                  step={1}
-                  className="cursor-pointer"
-               />
-               <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                  <span className="flex items-center gap-1"><BatteryLow className="w-3 h-3" /> Low</span>
-                  <span className="flex items-center gap-1"><BatteryFull className="w-3 h-3" /> High</span>
-               </div>
-            </div>
-            
-            {/* Intrusive Urges (Moved here to balance) */}
-            <div className="bg-red-50/50 dark:bg-red-900/10 p-4 rounded-xl border border-red-100 dark:border-red-900/30">
-               <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Flame className="w-4 h-4 text-orange-500" />
-                    <label className="text-sm font-medium">Intrusive Urges</label>
-                  </div>
-                  <span className={cn(
-                    "text-xs font-bold px-2 py-0.5 rounded-full",
-                    urges[0] < 3 ? "bg-slate-100 text-slate-700" :
-                    urges[0] < 7 ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"
-                  )}>
-                    {urges[0] < 3 ? "Quiet" : urges[0] < 7 ? "Present" : "Intense"}
-                  </span>
-               </div>
-               
-               <Slider
-                  value={urges}
-                  onValueChange={setUrges}
-                  max={10}
-                  step={1}
-                  className="cursor-pointer mb-2 [&_.bg-primary]:bg-orange-500"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                  <span>Manageable</span>
-                  <span>Overwhelming</span>
-                </div>
-            </div>
-        </div>
+         <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-muted-foreground hover:text-foreground shrink-0"
+         >
+            {isExpanded ? "Close" : "Details"}
+            {isExpanded ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
+         </Button>
       </div>
 
-      {/* Daily Note (New) */}
-      <div className="mt-8 pt-6 border-t border-border">
-          <label className="text-sm text-muted-foreground font-medium mb-3 block flex items-center gap-2">
-             <MessageSquare className="w-3.5 h-3.5" />
-             Daily Note / Intention
-          </label>
-          <Textarea 
-             placeholder="What's one thing you're grateful for? Or a gentle reminder for tomorrow..."
-             className="bg-muted/30 resize-none min-h-[80px]"
-             value={note}
-             onChange={(e) => setNote(e.target.value)}
-          />
-      </div>
+      {/* Expanded Content */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="border-t border-border"
+          >
+            <div className="p-6 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                {/* 1. Headspace & System */}
+                <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Internal System</h4>
+                    
+                    {/* Dissociation */}
+                    <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                       <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-1.5 text-purple-600">
+                             <CloudFog className="w-3.5 h-3.5" />
+                             <span className="text-xs font-semibold">Dissociation</span>
+                          </div>
+                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border">
+                             {dissociation[0]}/10
+                          </span>
+                       </div>
+                       <Slider value={dissociation} onValueChange={setDissociation} max={10} step={1} className="h-4" />
+                    </div>
 
-      {/* Tags Section (New) */}
-      <div className="mt-8 pt-6 border-t border-border">
-          <label className="text-sm text-muted-foreground font-medium mb-3 block flex items-center gap-2">
-             <Sparkles className="w-3.5 h-3.5" />
-             Factors & Triggers
-          </label>
-          <div className="flex flex-wrap gap-2">
-             {tags.map(tag => (
-                <button
-                  key={tag}
-                  onClick={() => toggleTag(tag)}
-                  className={cn(
-                    "text-xs px-3 py-1.5 rounded-full border transition-all",
-                    selectedTags.includes(tag)
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background border-border hover:border-primary/50 text-muted-foreground"
-                  )}
-                >
-                  {tag}
-                </button>
-             ))}
-             <button className="text-xs px-3 py-1.5 rounded-full border border-dashed border-muted-foreground/30 text-muted-foreground hover:text-foreground transition-colors">
-                + Add Custom
-             </button>
-          </div>
-      </div>
+                    {/* System Comm */}
+                    <div className="bg-indigo-50/50 dark:bg-indigo-900/10 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900/30">
+                       <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-1.5 text-indigo-600">
+                             <MessageSquare className="w-3.5 h-3.5" />
+                             <span className="text-xs font-semibold">Communication</span>
+                          </div>
+                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border">
+                             {systemComm[0]}/10
+                          </span>
+                       </div>
+                       <Slider value={systemComm} onValueChange={setSystemComm} max={10} step={1} className="h-4 [&_.bg-primary]:bg-indigo-500" />
+                    </div>
+                    
+                    {/* Mobile Fronting Input (visible if hidden in header) */}
+                    <div className="md:hidden">
+                        <label className="text-xs text-muted-foreground font-medium mb-1 block">Who is fronting?</label>
+                        <Input 
+                           value={whoIsFronting}
+                           onChange={(e) => setWhoIsFronting(e.target.value)}
+                           className="h-8 bg-muted/30"
+                        />
+                    </div>
+                </div>
+
+                {/* 2. Physical Body */}
+                <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Body Vitals</h4>
+                    
+                    {/* Pain */}
+                    <div>
+                       <div className="flex justify-between text-xs mb-1.5">
+                          <span className="text-muted-foreground">Pain Level</span>
+                          <span className="font-mono">{comfort[0]}/10</span>
+                       </div>
+                       <Slider value={comfort} onValueChange={setComfort} max={10} step={1} />
+                    </div>
+
+                    {/* Sleep */}
+                    <div>
+                       <div className="flex justify-between text-xs mb-1.5">
+                          <span className="text-muted-foreground">Sleep Quality</span>
+                          <span className="font-mono">{sleep[0]}/10</span>
+                       </div>
+                       <Slider value={sleep} onValueChange={setSleep} max={10} step={1} />
+                    </div>
+
+                    {/* Energy */}
+                    <div>
+                       <div className="flex justify-between text-xs mb-1.5">
+                          <span className="text-muted-foreground">Energy</span>
+                          <span className="font-mono">{motivation[0]}/10</span>
+                       </div>
+                       <Slider value={motivation} onValueChange={setMotivation} max={10} step={1} />
+                    </div>
+                </div>
+
+                {/* 3. Intensity & Notes */}
+                <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Intensity & Context</h4>
+
+                    {/* Urges */}
+                    <div className="bg-red-50/50 dark:bg-red-900/10 p-3 rounded-lg border border-red-100 dark:border-red-900/30">
+                       <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-1.5 text-orange-600">
+                             <Flame className="w-3.5 h-3.5" />
+                             <span className="text-xs font-semibold">Intrusive Urges</span>
+                          </div>
+                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-orange-700">
+                             {urges[0] < 3 ? "Quiet" : urges[0] < 7 ? "Present" : "Intense"}
+                          </span>
+                       </div>
+                       <Slider value={urges} onValueChange={setUrges} max={10} step={1} className="h-4 [&_.bg-primary]:bg-orange-500" />
+                    </div>
+
+                    {/* Note */}
+                    <Textarea 
+                         placeholder="Daily Note..."
+                         className="bg-muted/30 resize-none h-[88px] text-xs"
+                         value={note}
+                         onChange={(e) => setNote(e.target.value)}
+                    />
+                </div>
+              </div>
+
+              {/* Tags Footer */}
+              <div className="pt-4 border-t border-border flex flex-wrap gap-2">
+                 {tags.map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className={cn(
+                        "text-[10px] px-2.5 py-1 rounded-full border transition-all",
+                        selectedTags.includes(tag)
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background border-border hover:border-primary/50 text-muted-foreground"
+                      )}
+                    >
+                      {tag}
+                    </button>
+                 ))}
+                 <button className="text-[10px] px-2.5 py-1 rounded-full border border-dashed border-muted-foreground/30 text-muted-foreground hover:text-foreground">
+                    + Add
+                 </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
