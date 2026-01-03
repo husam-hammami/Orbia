@@ -105,6 +105,29 @@ export default function Analytics() {
 
         {/* Top Level KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+           <Card className="bg-indigo-500/5 border-indigo-500/20 md:col-span-2">
+              <CardContent className="p-4 flex flex-col justify-between h-full">
+                 <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                        <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                            <BrainCircuit className="w-3.5 h-3.5" /> Mental Stability
+                        </span>
+                        <div className="text-3xl font-mono font-bold flex items-baseline gap-2">
+                            92% <span className="text-sm font-normal text-muted-foreground">Baseline</span>
+                        </div>
+                    </div>
+                    <Badge variant="outline" className="bg-indigo-500/10 text-indigo-600 border-indigo-200">Optimal</Badge>
+                 </div>
+                 <div className="space-y-1 mt-4">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Anxiety</span>
+                        <span>Low (2/10)</span>
+                    </div>
+                    <Progress value={20} className="h-1.5 bg-indigo-500/10" indicatorClassName="bg-indigo-500" />
+                 </div>
+              </CardContent>
+           </Card>
+
            <Card className="bg-emerald-500/5 border-emerald-500/20">
               <CardContent className="p-4 flex flex-col gap-2">
                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
@@ -114,15 +137,7 @@ export default function Analytics() {
                  <Progress value={82} className="h-1 bg-emerald-500/20" indicatorClassName="bg-emerald-500" />
               </CardContent>
            </Card>
-           <Card className="bg-indigo-500/5 border-indigo-500/20">
-              <CardContent className="p-4 flex flex-col gap-2">
-                 <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-                    <Briefcase className="w-3.5 h-3.5" /> Career Focus
-                 </span>
-                 <div className="text-2xl font-mono font-bold">5.2h</div>
-                 <div className="text-xs text-muted-foreground">Avg. Deep Work / Day</div>
-              </CardContent>
-           </Card>
+
            <Card className="bg-rose-500/5 border-rose-500/20">
               <CardContent className="p-4 flex flex-col gap-2">
                  <span className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1">
@@ -138,147 +153,192 @@ export default function Analytics() {
                  </div>
               </CardContent>
            </Card>
-           <Card className="bg-amber-500/5 border-amber-500/20">
-              <CardContent className="p-4 flex flex-col gap-2">
-                 <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                    <Utensils className="w-3.5 h-3.5" /> Adherence
-                 </span>
-                 <div className="text-2xl font-mono font-bold">94%</div>
-                 <div className="text-xs text-muted-foreground">Nutrition Plan</div>
-              </CardContent>
-           </Card>
         </div>
 
-        {/* Mental & Mood Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-           <Card className="lg:col-span-2 border-border/50 shadow-sm">
-              <CardHeader>
-                 <CardTitle className="flex items-center gap-2">
-                    <BrainCircuit className="w-5 h-5 text-indigo-500" />
-                    Mental Telemetry
-                 </CardTitle>
-                 <CardDescription>Mood stability vs. Anxiety & Focus levels</CardDescription>
-              </CardHeader>
-              <CardContent>
-                 <div className="h-[300px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                       <AreaChart data={MOOD_DATA}>
-                          <defs>
-                             <linearGradient id="colorMood" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                             </linearGradient>
-                             <linearGradient id="colorFocus" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                             </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} dy={10} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                          <Tooltip 
-                             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--background))' }}
-                          />
-                          <Area type="monotone" dataKey="mood" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorMood)" strokeWidth={2} name="Mood" />
-                          <Area type="monotone" dataKey="focus" stroke="#10b981" fillOpacity={1} fill="url(#colorFocus)" strokeWidth={2} name="Focus" />
-                          <Line type="monotone" dataKey="anxiety" stroke="#ef4444" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Anxiety" />
-                       </AreaChart>
-                    </ResponsiveContainer>
-                 </div>
-              </CardContent>
-           </Card>
-
-           <Card className="border-border/50 shadow-sm">
-              <CardHeader>
-                 <CardTitle className="flex items-center gap-2">
-                    <Smile className="w-5 h-5 text-rose-500" />
-                    Mood Distribution
-                 </CardTitle>
-                 <CardDescription>Weekly emotional summary</CardDescription>
-              </CardHeader>
-              <CardContent className="flex justify-center items-center">
-                 <div className="h-[250px] w-full relative">
-                    <ResponsiveContainer width="100%" height="100%">
-                       <PieChart>
-                          <Pie
-                             data={[
-                                { name: 'Great', value: 30, color: '#10b981' },
-                                { name: 'Good', value: 45, color: '#3b82f6' },
-                                { name: 'Okay', value: 15, color: '#f59e0b' },
-                                { name: 'Low', value: 10, color: '#ef4444' },
-                             ]}
-                             cx="50%"
-                             cy="50%"
-                             innerRadius={60}
-                             outerRadius={80}
-                             paddingAngle={5}
-                             dataKey="value"
-                          >
-                             {[
-                                { name: 'Great', value: 30, color: '#10b981' },
-                                { name: 'Good', value: 45, color: '#3b82f6' },
-                                { name: 'Okay', value: 15, color: '#f59e0b' },
-                                { name: 'Low', value: 10, color: '#ef4444' },
-                             ].map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                             ))}
-                          </Pie>
-                          <Tooltip />
-                       </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                       <div className="text-center">
-                          <div className="text-2xl font-bold">4.2</div>
-                          <div className="text-xs text-muted-foreground uppercase tracking-wide">Avg Score</div>
-                       </div>
+        {/* Mental & Mood Section (Primary Focus) */}
+        <div className="space-y-6">
+            <h2 className="text-xl font-semibold flex items-center gap-2 border-b border-border/40 pb-2">
+                <BrainCircuit className="w-5 h-5 text-indigo-500" />
+                Mental State & Metrics
+            </h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-2 border-border/50 shadow-sm">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        Mental Telemetry
+                    </CardTitle>
+                    <CardDescription>Mood stability vs. Anxiety & Focus levels</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="h-[350px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={MOOD_DATA}>
+                            <defs>
+                                <linearGradient id="colorMood" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                                </linearGradient>
+                                <linearGradient id="colorFocus" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} dy={10} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                            <Tooltip 
+                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--background))' }}
+                            />
+                            <Area type="monotone" dataKey="mood" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorMood)" strokeWidth={2} name="Mood" />
+                            <Area type="monotone" dataKey="focus" stroke="#10b981" fillOpacity={1} fill="url(#colorFocus)" strokeWidth={2} name="Focus" />
+                            <Line type="monotone" dataKey="anxiety" stroke="#ef4444" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Anxiety" />
+                        </AreaChart>
+                        </ResponsiveContainer>
                     </div>
+                </CardContent>
+            </Card>
+
+            <div className="space-y-6">
+                <Card className="border-border/50 shadow-sm flex-1">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            Mood Distribution
+                        </CardTitle>
+                        <CardDescription>Weekly emotional summary</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex justify-center items-center">
+                        <div className="h-[200px] w-full relative">
+                            <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={[
+                                        { name: 'Great', value: 30, color: '#10b981' },
+                                        { name: 'Good', value: 45, color: '#3b82f6' },
+                                        { name: 'Okay', value: 15, color: '#f59e0b' },
+                                        { name: 'Low', value: 10, color: '#ef4444' },
+                                    ]}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={50}
+                                    outerRadius={70}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                >
+                                    {[
+                                        { name: 'Great', value: 30, color: '#10b981' },
+                                        { name: 'Good', value: 45, color: '#3b82f6' },
+                                        { name: 'Okay', value: 15, color: '#f59e0b' },
+                                        { name: 'Low', value: 10, color: '#ef4444' },
+                                    ].map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip />
+                            </PieChart>
+                            </ResponsiveContainer>
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="text-center">
+                                    <div className="text-2xl font-bold">4.2</div>
+                                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Avg Score</div>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                
+                <Card className="bg-muted/10 border-border/50">
+                    <CardContent className="p-4">
+                        <h4 className="font-semibold text-sm mb-3">Key Insights</h4>
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                            <li className="flex gap-2 items-start">
+                                <Zap className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                                <span>Focus peaks on <strong>Tuesday</strong> mornings.</span>
+                            </li>
+                            <li className="flex gap-2 items-start">
+                                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                                <span>High anxiety correlates with missed meals on <strong>Wednesday</strong>.</span>
+                            </li>
+                        </ul>
+                    </CardContent>
+                </Card>
+            </div>
+            </div>
+        </div>
+        
+        {/* Habit Tracking (Secondary Focus) */}
+        <div className="space-y-6">
+            <h2 className="text-xl font-semibold flex items-center gap-2 border-b border-border/40 pb-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                Habit Tracking
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="col-span-2 border-border/50 shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Habit Consistency</CardTitle>
+                        <CardDescription>Daily completion vs Total habits</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[250px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={HABIT_DATA} barGap={0} barSize={32}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} dy={10} />
+                                <Tooltip 
+                                    cursor={{ fill: 'hsl(var(--muted)/0.2)' }}
+                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--background))' }}
+                                />
+                                <Bar dataKey="completed" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Completed" />
+                                <Bar dataKey="total" fill="hsl(var(--muted)/0.3)" radius={[4, 4, 0, 0]} name="Total Target" />
+                            </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+                
+                 {/* Mini Stats for Habits */}
+                 <div className="space-y-4">
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="text-sm font-medium text-muted-foreground mb-1">Longest Streak</div>
+                            <div className="text-2xl font-bold flex items-center gap-2">
+                                12 Days <TrendingUp className="w-4 h-4 text-emerald-500" />
+                            </div>
+                            <div className="text-xs text-emerald-600 mt-1">Personal Best!</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="text-sm font-medium text-muted-foreground mb-1">Completion Rate</div>
+                            <div className="text-2xl font-bold">82%</div>
+                            <Progress value={82} className="h-1 mt-2" />
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="text-sm font-medium text-muted-foreground mb-1">Total Habits</div>
+                            <div className="text-2xl font-bold">6 Active</div>
+                        </CardContent>
+                    </Card>
                  </div>
-              </CardContent>
-           </Card>
+            </div>
         </div>
 
-        {/* Habits & Career Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Other Metrics (Tertiary) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 opacity-80 hover:opacity-100 transition-opacity">
            <Card className="border-border/50 shadow-sm">
               <CardHeader>
-                 <CardTitle className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                    Habit Consistency
-                 </CardTitle>
-                 <CardDescription>Daily completion vs Total habits</CardDescription>
-              </CardHeader>
-              <CardContent>
-                 <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                       <BarChart data={HABIT_DATA} barGap={0} barSize={20}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} dy={10} />
-                          <Tooltip 
-                             cursor={{ fill: 'hsl(var(--muted)/0.2)' }}
-                             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--background))' }}
-                          />
-                          <Bar dataKey="completed" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Completed" />
-                          <Bar dataKey="total" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} name="Total Target" />
-                       </BarChart>
-                    </ResponsiveContainer>
-                 </div>
-              </CardContent>
-           </Card>
-
-           <Card className="border-border/50 shadow-sm">
-              <CardHeader>
-                 <CardTitle className="flex items-center gap-2">
-                    <Briefcase className="w-5 h-5 text-blue-500" />
+                 <CardTitle className="flex items-center gap-2 text-base">
+                    <Briefcase className="w-4 h-4 text-blue-500" />
                     Career Performance
                  </CardTitle>
-                 <CardDescription>Skill focus and output distribution</CardDescription>
               </CardHeader>
               <CardContent>
-                 <div className="h-[250px] w-full">
+                 <div className="h-[200px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                       <RadarChart cx="50%" cy="50%" outerRadius="80%" data={CAREER_DATA}>
+                       <RadarChart cx="50%" cy="50%" outerRadius="70%" data={CAREER_DATA}>
                           <PolarGrid stroke="hsl(var(--border))" />
-                          <PolarAngleAxis dataKey="subject" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                          <PolarAngleAxis dataKey="subject" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
                           <PolarRadiusAxis angle={30} domain={[0, 150]} tick={false} axisLine={false} />
                           <Radar
                              name="Performance"
@@ -295,49 +355,31 @@ export default function Analytics() {
                  </div>
               </CardContent>
            </Card>
-        </div>
 
-        {/* Nutrition Section */}
-        <Card className="border-border/50 shadow-sm">
-           <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                 <Utensils className="w-5 h-5 text-amber-500" />
-                 Nutritional Intake
-              </CardTitle>
-              <CardDescription>Calorie and macro tracking</CardDescription>
-           </CardHeader>
-           <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                 <div className="lg:col-span-2 h-[250px]">
+           <Card className="border-border/50 shadow-sm">
+              <CardHeader>
+                 <CardTitle className="flex items-center gap-2 text-base">
+                    <Utensils className="w-4 h-4 text-amber-500" />
+                    Nutrition (Calories & Protein)
+                 </CardTitle>
+              </CardHeader>
+              <CardContent>
+                 <div className="h-[200px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                        <LineChart data={FOOD_DATA}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                           <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} dy={10} />
-                          <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
-                          <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
                           <Tooltip 
                              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--background))' }}
                           />
-                          <Line yAxisId="left" type="monotone" dataKey="cals" stroke="#f59e0b" strokeWidth={3} dot={{r:4}} activeDot={{r:6}} name="Calories" />
-                          <Line yAxisId="right" type="monotone" dataKey="protein" stroke="#10b981" strokeWidth={2} dot={false} name="Protein (g)" />
+                          <Line type="monotone" dataKey="cals" stroke="#f59e0b" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="protein" stroke="#10b981" strokeWidth={2} dot={false} />
                        </LineChart>
                     </ResponsiveContainer>
                  </div>
-                 <div className="h-[250px] flex flex-col justify-center gap-4">
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Macro Distribution</h4>
-                    {NUTRITION_DISTRIBUTION.map(item => (
-                       <div key={item.name} className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                             <span className="font-medium">{item.name}</span>
-                             <span>{item.value}%</span>
-                          </div>
-                          <Progress value={item.value} className="h-2" indicatorClassName={`bg-[${item.color}]`} style={{ '--indicator-color': item.color } as any} />
-                       </div>
-                    ))}
-                 </div>
-              </div>
-           </CardContent>
-        </Card>
+              </CardContent>
+           </Card>
+        </div>
 
       </div>
     </Layout>

@@ -51,7 +51,7 @@ export function MoodTracker() {
       {/* Compact Header - Always Visible */}
       <div className="p-4 flex items-center justify-between gap-4">
          <div className="flex items-center gap-4 flex-1">
-            <h3 className="font-display font-semibold text-lg hidden sm:block">Check-in</h3>
+            <h3 className="font-display font-semibold text-lg hidden sm:block">Input Metrics</h3>
             
             {/* Quick Mood Select */}
             <div className="flex gap-1 bg-muted/30 p-1 rounded-full">
@@ -78,23 +78,20 @@ export function MoodTracker() {
 
             {/* Quick Fronting Input */}
             <div className="hidden md:flex items-center gap-2 flex-1 max-w-[200px]">
-               <UserCircle2 className="w-4 h-4 text-muted-foreground" />
-               <Input 
-                   placeholder="Fronting?" 
-                   value={whoIsFronting}
-                   onChange={(e) => setWhoIsFronting(e.target.value)}
-                   className="h-9 bg-transparent border-transparent hover:border-border focus:bg-background focus:border-input transition-all px-2"
-                />
+               <Activity className="w-4 h-4 text-muted-foreground" />
+               <div className="text-xs text-muted-foreground truncate">
+                  {isExpanded ? "Recording..." : "Daily check-in required"}
+               </div>
             </div>
          </div>
 
          <Button 
-            variant="ghost" 
+            variant={isExpanded ? "secondary" : "default"} 
             size="sm" 
             onClick={() => setIsExpanded(!isExpanded)}
-            className="text-muted-foreground hover:text-foreground shrink-0"
+            className="shrink-0"
          >
-            {isExpanded ? "Close" : "Details"}
+            {isExpanded ? "Close Entry" : "Log Metrics"}
             {isExpanded ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
          </Button>
       </div>
