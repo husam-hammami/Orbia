@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { User, Shield, Baby, Brain, Zap, Plus, MoreHorizontal, UserCog } from "lucide-react";
+import { User, Shield, Ghost, Brain, Zap, Plus, MoreHorizontal, UserCog, Crown, Eye, Mic, Armchair, DoorOpen, Coffee } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -19,154 +18,116 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SYSTEM_MEMBERS } from "@/lib/mock-data";
 
-// Types for our Headspace
-export type AlterRole = "Host" | "Protector" | "Little" | "Trauma Holder" | "Gatekeeper" | "Unknown";
-
-export interface SystemMember {
-  id: string;
-  name: string;
-  role: AlterRole;
-  color: string;
-  isFronting: boolean;
-  avatar?: string; // Emoji or simple visual
-}
-
-const DEFAULT_MEMBERS: SystemMember[] = [
-  { id: "1", name: "Host", role: "Host", color: "hsl(200 60% 60%)", isFronting: true, avatar: "👤" },
-  { id: "2", name: "Protector", role: "Protector", color: "hsl(142 40% 45%)", isFronting: false, avatar: "🛡️" },
-  { id: "3", name: "Little", role: "Little", color: "hsl(32 60% 60%)", isFronting: false, avatar: "🧸" },
+// --- Headspace Rooms ---
+const ROOMS = [
+  { id: 'front', name: 'Front Room', icon: Armchair, description: "Direct control of the body", color: "border-indigo-500/50 bg-indigo-500/5" },
+  { id: 'meeting', name: 'Meeting Room', icon: Coffee, description: "Internal communication", color: "border-amber-500/50 bg-amber-500/5" },
+  { id: 'inner', name: 'Inner World', icon: DoorOpen, description: "Deep resting place", color: "border-purple-500/50 bg-purple-500/5" },
 ];
 
 export function HeadspaceMap() {
-  const [members, setMembers] = useState<SystemMember[]>(DEFAULT_MEMBERS);
-  const [isAdding, setIsAdding] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newRole, setNewRole] = useState<AlterRole>("Unknown");
+  // Initialize members with locations
+  const [members, setMembers] = useState(SYSTEM_MEMBERS.map(m => ({ 
+    ...m, 
+    location: m.role.includes('Daily') ? 'front' : m.role.includes('Trauma') ? 'inner' : 'meeting' 
+  })));
 
-  const toggleFront = (id: string) => {
-    setMembers(members.map(m => 
-      m.id === id ? { ...m, isFronting: !m.isFronting } : m
-    ));
-  };
-
-  const addMember = () => {
-    if (!newName) return;
-    const newMember: SystemMember = {
-      id: Math.random().toString(),
-      name: newName,
-      role: newRole,
-      color: "hsl(260 20% 60%)",
-      isFronting: false,
-      avatar: "✨"
-    };
-    setMembers([...members, newMember]);
-    setIsAdding(false);
-    setNewName("");
+  const moveMember = (memberId: string, roomId: string) => {
+    setMembers(members.map(m => m.id === memberId ? { ...m, location: roomId } : m));
   };
 
   return (
-    <div className="bg-card rounded-2xl border border-border p-6 shadow-sm min-h-[400px] flex flex-col relative overflow-hidden">
-      <div className="flex items-center justify-between z-10 mb-6">
+    <div className="bg-card rounded-2xl border border-border shadow-sm min-h-[500px] flex flex-col relative overflow-hidden">
+      <div className="p-6 border-b border-border flex justify-between items-center bg-muted/10">
         <div className="flex items-center gap-2">
-           <Brain className="w-5 h-5 text-primary" />
-           <h3 className="font-display font-semibold text-lg">Headspace Map</h3>
+           <Brain className="w-5 h-5 text-indigo-500" />
+           <div>
+             <h3 className="font-display font-semibold text-lg leading-none">Visual Headspace</h3>
+             <p className="text-xs text-muted-foreground">Drag & Drop Simulation (Click to move)</p>
+           </div>
         </div>
-        
-        <Dialog open={isAdding} onOpenChange={setIsAdding}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline" className="gap-2">
-              <Plus className="w-4 h-4" /> Add Member
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Welcome a new member</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Name</label>
-                <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Name or identifier..." />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Role (Optional)</label>
-                <Select value={newRole} onValueChange={(v: AlterRole) => setNewRole(v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Host">Host</SelectItem>
-                    <SelectItem value="Protector">Protector</SelectItem>
-                    <SelectItem value="Little">Little</SelectItem>
-                    <SelectItem value="Trauma Holder">Trauma Holder</SelectItem>
-                    <SelectItem value="Gatekeeper">Gatekeeper</SelectItem>
-                    <SelectItem value="Unknown">Unknown / Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={addMember}>Add to System</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Active</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-400"></span> Resting</span>
+        </div>
       </div>
 
       {/* Visualization Area */}
-      <div className="flex-1 relative bg-muted/10 rounded-xl border border-dashed border-border/50 p-8 flex items-center justify-center">
-         {/* Center "Front" Zone */}
-         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-48 h-48 rounded-full border-2 border-primary/10 flex items-center justify-center">
-               <div className="text-xs font-bold text-primary/20 uppercase tracking-widest mt-32">The Front</div>
-            </div>
-         </div>
+      <div className="flex-1 bg-slate-50/50 dark:bg-slate-950/50 p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+         
+         {ROOMS.map(room => {
+            const RoomIcon = room.icon;
+            const roomMembers = members.filter(m => m.location === room.id);
 
-         {/* Members */}
-         <div className="flex flex-wrap justify-center gap-8 z-10 w-full">
-            <AnimatePresence>
-              {members.map((member) => (
-                <motion.div
-                  key={member.id}
-                  layout
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="relative group cursor-pointer"
-                  onClick={() => toggleFront(member.id)}
-                >
-                   {/* Avatar Bubble */}
-                   <div 
-                      className={cn(
-                        "w-16 h-16 rounded-full flex items-center justify-center text-2xl shadow-sm border-2 transition-all duration-300 relative bg-card",
-                        member.isFronting 
-                          ? "border-primary shadow-[0_0_20px_-5px_var(--glow-color)] scale-110" 
-                          : "border-border hover:border-primary/50 grayscale hover:grayscale-0 opacity-70 hover:opacity-100"
-                      )}
-                      style={{ "--glow-color": member.color } as any}
-                   >
-                      {member.avatar}
-                      
-                      {/* Active Indicator */}
-                      {member.isFronting && (
-                        <div className="absolute -bottom-1 w-full flex justify-center">
-                           <span className="bg-primary text-primary-foreground text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm">FRONT</span>
+            return (
+                <div key={room.id} className={cn("rounded-xl border-2 border-dashed p-4 flex flex-col gap-4 transition-colors relative group", room.color)}>
+                    {/* Room Label */}
+                    <div className="flex items-center justify-between text-muted-foreground group-hover:text-foreground transition-colors">
+                        <div className="flex items-center gap-2">
+                            <RoomIcon className="w-4 h-4" />
+                            <span className="font-semibold text-sm">{room.name}</span>
                         </div>
-                      )}
-                   </div>
-                   
-                   {/* Name Label */}
-                   <div className="text-center mt-3">
-                      <p className="font-semibold text-sm leading-tight">{member.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{member.role}</p>
-                   </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-         </div>
+                        <span className="text-[10px] uppercase tracking-wider opacity-50">{roomMembers.length}</span>
+                    </div>
+
+                    {/* Drop Zone */}
+                    <div className="flex-1 flex flex-wrap content-start gap-3 min-h-[100px]">
+                        <AnimatePresence>
+                            {roomMembers.map(member => (
+                                <motion.div
+                                    key={member.id}
+                                    layoutId={member.id}
+                                    initial={{ scale: 0.8, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0.5, opacity: 0 }}
+                                    className="relative group/avatar"
+                                >
+                                    {/* Action Menu (Hover) */}
+                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-[10px] px-2 py-1 rounded shadow-md opacity-0 group-hover/avatar:opacity-100 transition-opacity z-20 pointer-events-none whitespace-nowrap">
+                                        {member.role}
+                                    </div>
+
+                                    {/* Avatar */}
+                                    <div 
+                                        className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-background shadow-sm cursor-grab active:cursor-grabbing hover:scale-110 transition-transform"
+                                        style={{ borderColor: member.color }}
+                                        // Simple click-to-move logic for prototype
+                                        onClick={() => {
+                                            const nextRoomIndex = (ROOMS.findIndex(r => r.id === room.id) + 1) % ROOMS.length;
+                                            moveMember(member.id, ROOMS[nextRoomIndex].id);
+                                        }}
+                                    >
+                                        <User className="w-6 h-6" style={{ color: member.color }} />
+                                        
+                                        {/* Crown for Front */}
+                                        {room.id === 'front' && (
+                                            <div className="absolute -top-2 -right-1 text-yellow-500 drop-shadow-sm">
+                                                <Crown className="w-4 h-4 fill-yellow-500" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="text-[10px] text-center font-medium mt-1 truncate max-w-[60px]">{member.name}</div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                        
+                        {roomMembers.length === 0 && (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground/20 text-xs italic">
+                                Empty
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )
+         })}
+
       </div>
       
-      <p className="text-xs text-muted-foreground mt-4 text-center">
-        Tap a member to move them to the front. This helps track who is active.
-      </p>
+      <div className="p-4 border-t border-border bg-muted/10 text-xs text-center text-muted-foreground">
+        Click on an alter to move them to the next room. (Front → Meeting → Inner → Front)
+      </div>
     </div>
   );
 }
