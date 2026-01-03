@@ -234,146 +234,167 @@ export default function CareerPage() {
     setIsProjectDialogOpen(false);
   };
 
+  // Derived state
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const todayTasks = tasks.filter(t => !t.completed && (t.due === "Today" || t.due === todayStr));
+  const upcomingTasks = tasks.filter(t => !t.completed && t.due !== "Today" && t.due !== todayStr);
+
   return (
     <Layout>
-      <div className="space-y-6 animate-in fade-in duration-500 pb-12 h-full flex flex-col">
+      <div className="space-y-8 animate-in fade-in duration-500 pb-12 h-full flex flex-col max-w-[1600px] mx-auto w-full">
         
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border/40 shrink-0">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-               <span className="px-2 py-1 rounded-md bg-muted text-xs font-medium uppercase tracking-wider">Professional Workspace</span>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-muted-foreground">
+               <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider border border-primary/20">Professional Workspace</span>
             </div>
-            <h1 className="text-3xl md:text-5xl font-display font-bold text-foreground tracking-tight">
+            <h1 className="text-4xl md:text-5xl font-display font-bold text-foreground tracking-tight">
               Career & Vision
             </h1>
           </div>
           
           <div className="flex gap-3">
-             <Button 
-               variant={viewMode === "board" ? "secondary" : "outline"} 
-               className="gap-2 h-10 px-4"
-               onClick={() => setViewMode(viewMode === "list" ? "board" : "list")}
-             >
-                {viewMode === "list" ? <LayoutTemplate className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
-                {viewMode === "list" ? "Board View" : "List View"}
-             </Button>
-             <Button className="gap-2 h-10 px-4 bg-primary text-primary-foreground shadow-sm hover:shadow transition-all">
-                <Plus className="w-4 h-4" /> New Initiative
+             <div className="hidden md:flex bg-muted/50 p-1 rounded-lg border border-border/50">
+               <Button 
+                 variant={viewMode === "list" ? "secondary" : "ghost"} 
+                 size="sm"
+                 className="gap-2 h-8"
+                 onClick={() => setViewMode("list")}
+               >
+                  <LayoutTemplate className="w-4 h-4" /> List
+               </Button>
+               <Button 
+                 variant={viewMode === "board" ? "secondary" : "ghost"} 
+                 size="sm"
+                 className="gap-2 h-8"
+                 onClick={() => setViewMode("board")}
+               >
+                  <TrendingUp className="w-4 h-4" /> Board
+               </Button>
+             </div>
+             <Button className="h-10 px-5 bg-foreground text-background hover:bg-foreground/90 font-medium shadow-lg shadow-foreground/10 transition-all">
+                <Plus className="w-4 h-4 mr-2" /> New Initiative
              </Button>
           </div>
         </div>
 
-        {/* Minimal Vision Section */}
-        <div className="flex flex-wrap gap-4 shrink-0">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mr-2">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>North Star:</span>
-          </div>
-          {vision.map((item) => (
-            <Badge key={item.id} variant="outline" className="px-3 py-1.5 gap-2 text-sm font-normal bg-background/50 hover:bg-background transition-colors cursor-default">
-              <span className={cn("w-2 h-2 rounded-full bg-current opacity-70", item.color)} />
-              {item.title}
-              <span className="text-muted-foreground text-xs ml-1 border-l pl-2 border-border/50">{item.timeframe}</span>
-            </Badge>
-          ))}
-          <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground">
-             Edit Vision
-          </Button>
+        {/* HUD / Vision Strip */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 shrink-0">
+           <div className="md:col-span-8 p-4 rounded-xl border border-border/50 bg-gradient-to-r from-muted/30 to-background flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-4">
+                 <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                    <Sparkles className="w-5 h-5 text-amber-500" />
+                 </div>
+                 <div>
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">North Star</div>
+                    <div className="flex flex-wrap gap-2">
+                       {vision.map((item, i) => (
+                          <div key={item.id} className="flex items-center text-sm font-medium">
+                             <span className={cn("w-1.5 h-1.5 rounded-full mr-2", item.color)} />
+                             {item.title}
+                             {i < vision.length - 1 && <span className="mx-3 text-muted-foreground/30">/</span>}
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+              </div>
+              <Button variant="ghost" size="sm" className="hidden md:flex text-xs text-muted-foreground hover:text-foreground">
+                 Edit
+              </Button>
+           </div>
+           
+           <div className="md:col-span-4 grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl border border-border/50 bg-background flex flex-col justify-center shadow-sm">
+                 <div className="text-2xl font-bold">{projects.filter(p => p.status === "In Progress").length}</div>
+                 <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Active Projects</div>
+              </div>
+              <div className="p-4 rounded-xl border border-border/50 bg-background flex flex-col justify-center shadow-sm">
+                 <div className="text-2xl font-bold text-rose-500">{todayTasks.length}</div>
+                 <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Due Today</div>
+              </div>
+           </div>
         </div>
 
-        <Separator className="shrink-0" />
+        <Separator className="shrink-0 bg-border/40" />
 
         {/* Main Content Area */}
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
            
            {/* Projects Column (Main Focus) */}
            <div className="lg:col-span-8 flex flex-col min-h-0 space-y-6">
               <div className="flex items-center justify-between shrink-0">
-                 <h2 className="text-xl font-display font-semibold flex items-center gap-2">
+                 <h2 className="text-lg font-semibold flex items-center gap-2">
                     <Rocket className="w-5 h-5 text-indigo-500" />
-                    Active Projects
+                    Projects & Initiatives
                  </h2>
                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" className="text-muted-foreground">
-                       <Filter className="w-4 h-4 mr-2" /> Filter
+                    <Button variant="ghost" size="sm" className="text-muted-foreground h-8 text-xs">
+                       <Filter className="w-3.5 h-3.5 mr-2" /> Filter View
                     </Button>
                  </div>
               </div>
 
               {viewMode === "list" ? (
-                <ScrollArea className="flex-1 -mr-4 pr-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
+                <div className="space-y-4">
                      {projects.map(project => {
                         const daysLeft = project.deadline ? differenceInDays(new Date(project.deadline), new Date()) : null;
                         const isUrgent = daysLeft !== null && daysLeft < 7;
 
                         return (
-                           <Card key={project.id} className="group hover:shadow-lg transition-all duration-300 border-border/50">
-                              <CardHeader className="pb-3">
-                                 <div className="flex justify-between items-start mb-2">
+                           <div 
+                              key={project.id} 
+                              onClick={() => openViewProject(project)}
+                              className="group relative flex flex-col md:flex-row md:items-center gap-4 p-5 rounded-xl border border-border/40 bg-card hover:border-indigo-500/30 hover:shadow-md transition-all cursor-pointer overflow-hidden"
+                           >
+                              <div className={cn("absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b", project.color.replace('bg-', 'from-').replace('500', '500').concat(' to-transparent opacity-50'))} />
+                              
+                              <div className="flex-1 min-w-0 space-y-1">
+                                 <div className="flex items-center gap-3 mb-1">
+                                    <h3 className="font-semibold text-base tracking-tight">{project.title}</h3>
                                     <Badge 
                                        variant="outline" 
-                                       className={cn("font-normal", 
-                                          project.status === "In Progress" ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800" : 
-                                          project.status === "Planning" ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800" :
-                                          "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800"
+                                       className={cn("text-[10px] px-2 py-0 h-5 font-normal border-0", 
+                                          project.status === "In Progress" ? "bg-blue-500/10 text-blue-500" : 
+                                          project.status === "Planning" ? "bg-purple-500/10 text-purple-500" :
+                                          "bg-emerald-500/10 text-emerald-500"
                                        )}
                                     >
                                        {project.status}
                                     </Badge>
-                                    <DropdownMenu>
-                                       <DropdownMenuTrigger asChild>
-                                          <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                                             <MoreHorizontal className="w-4 h-4" />
-                                          </Button>
-                                       </DropdownMenuTrigger>
-                                       <DropdownMenuContent align="end">
-                                          <DropdownMenuItem onClick={() => openEditProject(project)}>Edit Project</DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => openViewProject(project)}>View Details</DropdownMenuItem>
-                                          <DropdownMenuSeparator />
-                                          <DropdownMenuItem className="text-destructive">Archive</DropdownMenuItem>
-                                       </DropdownMenuContent>
-                                    </DropdownMenu>
                                  </div>
-                                 <CardTitle className="text-lg font-semibold tracking-tight">{project.title}</CardTitle>
-                              </CardHeader>
-                              
-                              <CardContent className="pb-4">
-                                 <div className="mb-4">
-                                    <div className="flex justify-between text-xs mb-1.5 font-medium text-muted-foreground">
+                                 <p className="text-sm text-muted-foreground line-clamp-1 pr-4">{project.description}</p>
+                              </div>
+
+                              <div className="flex flex-col md:flex-row gap-6 md:items-center min-w-[240px]">
+                                 <div className="flex-1 space-y-1.5 min-w-[120px]">
+                                    <div className="flex justify-between text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                                        <span>Progress</span>
                                        <span>{project.progress}%</span>
                                     </div>
-                                    <Progress value={project.progress} className="h-2" indicatorClassName={project.color} />
+                                    <Progress value={project.progress} className="h-1.5 bg-muted" indicatorClassName={project.color} />
                                  </div>
-                                 
+
                                  {project.nextAction && (
-                                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg text-xs text-muted-foreground">
-                                       <ArrowRight className="w-3.5 h-3.5" />
-                                       <span className="truncate">Next: <span className="font-medium text-foreground">{project.nextAction}</span></span>
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/40 border border-border/50 text-xs text-muted-foreground w-full md:w-auto max-w-[200px]">
+                                       <ArrowRight className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                                       <span className="truncate">{project.nextAction}</span>
                                     </div>
                                  )}
-                              </CardContent>
+                              </div>
                               
-                              <CardFooter className="pt-0 text-xs text-muted-foreground flex justify-between items-center">
-                                 {project.deadline ? (
-                                    <div className={cn("flex items-center gap-1.5", isUrgent && "text-rose-500 font-medium")}>
-                                       <Calendar className="w-3.5 h-3.5" />
-                                       {daysLeft} days left
-                                    </div>
-                                 ) : (
-                                    <div className="flex items-center gap-1.5">
-                                       <TrendingUp className="w-3.5 h-3.5" />
-                                       Ongoing
-                                    </div>
-                                 )}
-                              </CardFooter>
-                           </Card>
+                              <div className="absolute right-4 top-4 md:relative md:right-auto md:top-auto">
+                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); openEditProject(project); }}>
+                                    <MoreHorizontal className="w-4 h-4" />
+                                 </Button>
+                              </div>
+                           </div>
                         );
                      })}
-                  </div>
-                </ScrollArea>
+                     <Button variant="outline" className="w-full py-8 border-dashed text-muted-foreground hover:text-foreground hover:border-indigo-500/50 hover:bg-indigo-500/5 group">
+                        <Plus className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" /> Add New Project
+                     </Button>
+                </div>
               ) : (
                 <div className="flex-1 overflow-hidden">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full overflow-hidden">
@@ -459,103 +480,93 @@ export default function CareerPage() {
            {/* Tasks Column (Expanded Utility) */}
            <div className="lg:col-span-4 flex flex-col min-h-0 space-y-6">
               <div className="flex items-center justify-between shrink-0">
-                 <h2 className="text-xl font-display font-semibold flex items-center gap-2">
+                 <h2 className="text-lg font-semibold flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                     Priority Actions
                  </h2>
               </div>
 
-              <Card className="border-border/50 shadow-sm h-full flex flex-col overflow-hidden">
-                 <CardHeader className="pb-3 border-b border-border/50 bg-muted/20 shrink-0">
-                    <form onSubmit={handleAddTask} className="flex gap-2">
-                       <Input 
-                          placeholder="Add a quick task..." 
-                          className="h-9 bg-background" 
-                          value={newTask}
-                          onChange={(e) => setNewTask(e.target.value)}
-                       />
-                       <Button size="sm" type="submit" disabled={!newTask.trim()}>
-                          <Plus className="w-4 h-4" />
-                       </Button>
-                    </form>
-                 </CardHeader>
-                 
-                 <ScrollArea className="flex-1">
-                    <div className="divide-y divide-border/50">
-                       {tasks.map(task => (
+              <div className="flex flex-col gap-6">
+                 {/* Today's Focus */}
+                 <Card className="border-emerald-500/20 bg-emerald-500/5 shadow-sm overflow-hidden">
+                    <CardHeader className="pb-3 pt-4 px-4 border-b border-emerald-500/10">
+                       <CardTitle className="text-sm font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                          <Target className="w-4 h-4" /> Focus Today
+                       </CardTitle>
+                    </CardHeader>
+                    <div className="divide-y divide-emerald-500/10">
+                       {todayTasks.length > 0 ? todayTasks.map(task => (
                           <div 
                              key={task.id} 
-                             className={cn(
-                                "p-3 flex items-start gap-3 hover:bg-muted/30 transition-colors group relative cursor-pointer",
-                                task.completed && "bg-muted/10"
-                             )}
+                             className="p-3 flex items-start gap-3 hover:bg-emerald-500/10 transition-colors cursor-pointer"
                              onClick={() => openTaskDetails(task)}
                           >
                              <button 
-                                onClick={(e) => {
-                                   e.stopPropagation();
-                                   toggleTask(task.id);
-                                }}
-                                className={cn(
-                                   "mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 shrink-0",
-                                   task.completed 
-                                      ? "bg-emerald-500 border-emerald-500 text-white shadow-sm" 
-                                      : "border-muted-foreground/40 hover:border-emerald-500 hover:text-emerald-500"
-                                )}
+                                onClick={(e) => { e.stopPropagation(); toggleTask(task.id); }}
+                                className="mt-0.5 w-4 h-4 rounded border border-emerald-500/40 flex items-center justify-center hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all shrink-0 bg-background"
                              >
-                                {task.completed && <CheckSquare className="w-3.5 h-3.5" />}
                              </button>
-                             
                              <div className="flex-1 min-w-0">
-                                <p className={cn(
-                                   "text-sm font-medium leading-none truncate transition-all", 
-                                   task.completed && "line-through text-muted-foreground"
-                                )}>
-                                   {task.title}
-                                </p>
-                                
-                                {task.description && (
-                                   <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{task.description}</p>
-                                )}
-                                
-                                <div className="flex flex-wrap items-center gap-2 mt-2">
-                                   <span className={cn(
-                                      "text-[10px] px-1.5 py-0.5 rounded font-medium border",
-                                      task.priority === "High" ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-300" : 
-                                      task.priority === "Medium" ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300" : 
-                                      "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900/20 dark:text-slate-300"
-                                   )}>
-                                      {task.priority}
-                                   </span>
-                                   
-                                   {task.tags && task.tags.map(tag => (
-                                      <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/50">
-                                         #{tag}
-                                      </span>
-                                   ))}
+                                <p className="text-sm font-medium leading-tight text-foreground">{task.title}</p>
+                                <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-1 truncate">{task.project}</p>
+                             </div>
+                             <Badge variant="outline" className="text-[10px] h-5 border-emerald-500/20 text-emerald-700 bg-emerald-500/10">{task.priority}</Badge>
+                          </div>
+                       )) : (
+                          <div className="p-8 text-center text-sm text-muted-foreground">
+                             <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                             No priority tasks for today.
+                          </div>
+                       )}
+                    </div>
+                    <div className="p-2 bg-emerald-500/5">
+                        <form onSubmit={handleAddTask} className="flex gap-2">
+                           <Input 
+                              placeholder="Add task for today..." 
+                              className="h-8 text-xs bg-background border-emerald-500/20 focus-visible:ring-emerald-500/30" 
+                              value={newTask}
+                              onChange={(e) => setNewTask(e.target.value)}
+                           />
+                           <Button size="sm" type="submit" variant="secondary" className="h-8 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 border border-emerald-500/20" disabled={!newTask.trim()}>
+                              <Plus className="w-3.5 h-3.5" />
+                           </Button>
+                        </form>
+                    </div>
+                 </Card>
 
-                                   <span className="text-[10px] text-muted-foreground flex items-center gap-1 ml-auto">
-                                      <Briefcase className="w-3 h-3" /> {task.project.split(' ')[0]}
+                 {/* Upcoming / Inbox */}
+                 <Card className="border-border/50 shadow-sm flex flex-col overflow-hidden bg-card/50">
+                    <CardHeader className="pb-3 pt-4 px-4 border-b border-border/50">
+                       <CardTitle className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                          <CalendarDays className="w-4 h-4" /> Upcoming & Backlog
+                       </CardTitle>
+                    </CardHeader>
+                    <div className="divide-y divide-border/50 max-h-[400px] overflow-y-auto">
+                       {upcomingTasks.map(task => (
+                          <div 
+                             key={task.id} 
+                             className="p-3 flex items-start gap-3 hover:bg-muted/50 transition-colors cursor-pointer group"
+                             onClick={() => openTaskDetails(task)}
+                          >
+                             <button 
+                                onClick={(e) => { e.stopPropagation(); toggleTask(task.id); }}
+                                className="mt-0.5 w-4 h-4 rounded border border-muted-foreground/30 flex items-center justify-center hover:border-primary hover:text-primary transition-all shrink-0"
+                             >
+                             </button>
+                             <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium leading-tight text-muted-foreground group-hover:text-foreground transition-colors">{task.title}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                   <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                      <Calendar className="w-2.5 h-2.5" /> {task.due}
                                    </span>
                                 </div>
                              </div>
-
-                             {task.due === "Today" && !task.completed && (
-                                <div className="absolute top-3 right-3">
-                                   <span className="text-[10px] font-semibold text-rose-500 bg-rose-50 dark:bg-rose-900/20 px-1.5 py-0.5 rounded">
-                                      Today
-                                   </span>
-                                </div>
-                             )}
+                             <Badge variant="secondary" className="text-[10px] h-5 font-normal">{task.priority}</Badge>
                           </div>
                        ))}
                     </div>
-                 </ScrollArea>
-                 
-                 <CardFooter className="pt-3 pb-3 border-t border-border/50 bg-muted/20 text-xs text-muted-foreground justify-center shrink-0">
-                    {tasks.filter(t => t.completed).length} of {tasks.length} tasks completed
-                 </CardFooter>
-              </Card>
+                 </Card>
+              </div>
            </div>
         </div>
 
