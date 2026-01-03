@@ -80,7 +80,7 @@ export function MoodTracker() {
   };
 
   const handleAddEntry = () => {
-    const moodValue = mood === "terrible" ? 1 : mood === "bad" ? 2 : mood === "neutral" ? 3 : mood === "good" ? 4 : mood === "excellent" ? 5 : 3;
+    const moodValue = mood === "terrible" ? 1 : mood === "bad" ? 3 : mood === "neutral" ? 5 : mood === "good" ? 7 : mood === "excellent" ? 10 : 5;
     
     const noteParts = [];
     if (note) noteParts.push(note);
@@ -88,6 +88,10 @@ export function MoodTracker() {
     if (stressCauses.length > 0) noteParts.push(`Stress triggers: ${stressCauses.join(", ")}`);
     const mealsEaten = Object.entries(meals).filter(([_, eaten]) => eaten).map(([meal]) => meal);
     if (mealsEaten.length > 0) noteParts.push(`Meals: ${mealsEaten.join(", ")}`);
+    noteParts.push(`Comfort: ${comfort[0]}/10`);
+    noteParts.push(`System Comm: ${systemComm[0]}/10`);
+    noteParts.push(`Sleep: ${sleep[0]}h`);
+    noteParts.push(`Urges: ${urges[0]}/10`);
 
     createEntryMutation.mutate({
       frontingMemberId: selectedFronter?.id || null,

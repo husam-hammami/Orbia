@@ -63,6 +63,7 @@ export interface IStorage {
   deleteHabit(id: string): Promise<boolean>;
 
   // Habit Completions
+  getAllHabitCompletions(): Promise<HabitCompletion[]>;
   getHabitCompletions(habitId: string): Promise<HabitCompletion[]>;
   addHabitCompletion(completion: InsertHabitCompletion): Promise<HabitCompletion>;
   removeHabitCompletion(habitId: string, date: string): Promise<boolean>;
@@ -207,6 +208,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Habit Completions
+  async getAllHabitCompletions(): Promise<HabitCompletion[]> {
+    return await db.select().from(habitCompletions);
+  }
+
   async getHabitCompletions(habitId: string): Promise<HabitCompletion[]> {
     return await db.select().from(habitCompletions).where(eq(habitCompletions.habitId, habitId));
   }

@@ -247,6 +247,15 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/habit-completions", async (req, res) => {
+    try {
+      const allCompletions = await storage.getAllHabitCompletions();
+      res.json(allCompletions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch habit completions" });
+    }
+  });
+
   app.get("/api/habits/:id", async (req, res) => {
     try {
       const habit = await storage.getHabit(req.params.id);

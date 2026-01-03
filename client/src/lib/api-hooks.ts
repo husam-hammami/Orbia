@@ -256,6 +256,13 @@ export function useHabitCompletions(habitId: string) {
   });
 }
 
+export function useAllHabitCompletions() {
+  return useQuery<HabitCompletion[]>({
+    queryKey: ["allHabitCompletions"],
+    queryFn: () => fetchAPI("/api/habit-completions"),
+  });
+}
+
 export function useAddHabitCompletion() {
   const queryClient = useQueryClient();
   return useMutation({

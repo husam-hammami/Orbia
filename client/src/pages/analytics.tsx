@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,77 +48,105 @@ import {
   Battery,
   Lightbulb,
   Users,
-  Clock
+  Clock,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// --- Mock Data ---
-
-const TRIGGER_HEATMAP_DATA: any[] = [];
-
-const SOCIAL_BATTERY_DATA: any[] = [];
-
-const CORRELATION_INSIGHTS = [
-    { 
-        id: 1, 
-        title: "Sleep & Dissociation", 
-        finding: "Sleep < 6h increases dissociation by 40%.",
-        confidence: 92,
-        trend: "negative"
-    },
-    { 
-        id: 3, 
-        title: "Productivity Zone", 
-        finding: "Highest focus occurs 2h after protein-heavy meals.",
-        confidence: 78,
-        trend: "positive"
-    }
-];
-
-
-const HABIT_DATA = [
-  { name: "Mon", completed: 4, total: 6 },
-  { name: "Tue", completed: 3, total: 6 },
-  { name: "Wed", completed: 5, total: 6 },
-  { name: "Thu", completed: 2, total: 6 },
-  { name: "Fri", completed: 6, total: 6 },
-  { name: "Sat", completed: 4, total: 6 },
-  { name: "Sun", completed: 5, total: 6 },
-];
-
-const DETAILED_METRICS = [
-  { name: "Mon", dissociation: 3, communication: 6, pain: 2, sleep: 7, energy: 6, urges: 1 },
-  { name: "Tue", dissociation: 2, communication: 7, pain: 3, sleep: 6, energy: 7, urges: 2 },
-  { name: "Wed", dissociation: 5, communication: 4, pain: 4, sleep: 5, energy: 4, urges: 5 },
-  { name: "Thu", dissociation: 2, communication: 8, pain: 2, sleep: 8, energy: 8, urges: 1 },
-  { name: "Fri", dissociation: 4, communication: 5, pain: 5, sleep: 4, energy: 5, urges: 3 },
-  { name: "Sat", dissociation: 1, communication: 9, pain: 1, sleep: 9, energy: 9, urges: 1 },
-  { name: "Sun", dissociation: 2, communication: 8, pain: 2, sleep: 8, energy: 7, urges: 2 },
-];
-
-const MOOD_DATA = [
-  { name: "Mon", mood: 3, anxiety: 2, focus: 4 },
-  { name: "Tue", mood: 4, anxiety: 1, focus: 5 },
-  { name: "Wed", mood: 2, anxiety: 4, focus: 2 },
-  { name: "Thu", mood: 3, anxiety: 3, focus: 3 },
-  { name: "Fri", mood: 5, anxiety: 1, focus: 5 },
-  { name: "Sat", mood: 4, anxiety: 2, focus: 4 },
-  { name: "Sun", mood: 5, anxiety: 1, focus: 3 },
-];
-
-const FOOD_DATA = []; // Removed
-
-const PROJECT_STATUS_DATA = [
-  { name: 'In Progress', value: 3, color: '#3b82f6' },
-  { name: 'Planning', value: 2, color: '#8b5cf6' },
-  { name: 'Completed', value: 4, color: '#10b981' },
-  { name: 'On Hold', value: 1, color: '#f59e0b' },
-];
-
-const NUTRITION_DISTRIBUTION = []; // Removed
+import { useTrackerEntries, useHabits, useAllHabitCompletions } from "@/lib/api-hooks";
+import { format, subDays, startOfDay, isSameDay } from "date-fns";
 
 export default function Analytics() {
   const [timeRange, setTimeRange] = useState("weekly");
+  
+  const { data: trackerEntries, isLoading: entriesLoading } = useTrackerEntries(100);
+  const { data: habits, isLoading: habitsLoading } = useHabits();
+  const { data: allCompletions, isLoading: completionsLoading } = useAllHabitCompletions();
+  
+  const isLoading = entriesLoading || habitsLoading || completionsLoading;
+  const hasData = (trackerEntries?.length || 0) > 0;
+  
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  
+  const chartData = useMemo(() => {
+    if (!trackerEntries || trackerEntries.length === 0) return { moodData: [], detailedMetrics: [], habitData: [], moodDistribution: [] };
+    
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = subDays(new Date(), 6 - i);
+      return { date, name: dayNames[date.getDay()] };
+    });
+    
+    const moodData = last7Days.map(({ date, name }) => {
+      const dayEntries = trackerEntries.filter(e => isSameDay(new Date(e.timestamp), date));
+      const avgMood = dayEntries.length ? dayEntries.reduce((sum, e) => sum + e.mood, 0) / dayEntries.length : 0;
+      const avgEnergy = dayEntries.length ? dayEntries.reduce((sum, e) => sum + e.energy, 0) / dayEntries.length : 0;
+      const avgStress = dayEntries.length ? dayEntries.reduce((sum, e) => sum + e.stress, 0) / dayEntries.length : 0;
+      return { 
+        name, 
+        mood: Math.round(avgMood / 2),
+        focus: Math.round(avgEnergy / 2),
+        anxiety: Math.round(avgStress / 20)
+      };
+    });
+    
+    const detailedMetrics = last7Days.map(({ date, name }) => {
+      const dayEntries = trackerEntries.filter(e => isSameDay(new Date(e.timestamp), date));
+      const avgDissociation = dayEntries.length ? dayEntries.reduce((sum, e) => sum + e.dissociation, 0) / dayEntries.length : 0;
+      const avgEnergy = dayEntries.length ? dayEntries.reduce((sum, e) => sum + e.energy, 0) / dayEntries.length : 0;
+      return { 
+        name, 
+        dissociation: Math.round(avgDissociation / 10),
+        communication: Math.round(avgEnergy),
+        energy: Math.round(avgEnergy),
+        urges: 0
+      };
+    });
+    
+    const habitData = last7Days.map(({ date, name }) => {
+      const dateStr = format(date, "yyyy-MM-dd");
+      const completedCount = (allCompletions || []).filter(c => c.completedDate === dateStr).length;
+      return {
+        name,
+        completed: completedCount,
+        total: habits?.length || 0
+      };
+    });
+
+    const moodCounts = { great: 0, good: 0, okay: 0, low: 0 };
+    trackerEntries.forEach(e => {
+      if (e.mood >= 8) moodCounts.great++;
+      else if (e.mood >= 6) moodCounts.good++;
+      else if (e.mood >= 4) moodCounts.okay++;
+      else moodCounts.low++;
+    });
+    const moodDistribution = [
+      { name: 'Great', value: moodCounts.great, color: '#10b981' },
+      { name: 'Good', value: moodCounts.good, color: '#3b82f6' },
+      { name: 'Okay', value: moodCounts.okay, color: '#f59e0b' },
+      { name: 'Low', value: moodCounts.low, color: '#ef4444' },
+    ].filter(d => d.value > 0);
+    
+    return { moodData, detailedMetrics, habitData, moodDistribution };
+  }, [trackerEntries, habits, allCompletions]);
+  
+  const avgMood = useMemo(() => {
+    if (!trackerEntries || trackerEntries.length === 0) return null;
+    const total = trackerEntries.reduce((sum, e) => sum + e.mood, 0);
+    return (total / trackerEntries.length / 2).toFixed(1);
+  }, [trackerEntries]);
+  
+  const avgStress = useMemo(() => {
+    if (!trackerEntries || trackerEntries.length === 0) return null;
+    const total = trackerEntries.reduce((sum, e) => sum + e.stress, 0);
+    return Math.round(total / trackerEntries.length / 10);
+  }, [trackerEntries]);
+  
+  const habitRate = useMemo(() => {
+    if (!habits || habits.length === 0 || !allCompletions) return null;
+    const last7Days = Array.from({ length: 7 }, (_, i) => format(subDays(new Date(), i), "yyyy-MM-dd"));
+    const totalOpportunities = habits.length * 7;
+    const completionsInRange = allCompletions.filter(c => last7Days.includes(c.completedDate)).length;
+    return totalOpportunities > 0 ? Math.round((completionsInRange / totalOpportunities) * 100) : 0;
+  }, [habits, allCompletions]);
 
   return (
     <Layout>
@@ -157,17 +185,20 @@ export default function Analytics() {
                             <BrainCircuit className="w-3.5 h-3.5" /> Mental Stability
                         </span>
                         <div className="text-3xl font-mono font-bold flex items-baseline gap-2">
-                            92% <span className="text-sm font-normal text-muted-foreground">Baseline</span>
+                            {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : avgStress !== null ? `${100 - avgStress * 10}%` : "—"} 
+                            <span className="text-sm font-normal text-muted-foreground">Baseline</span>
                         </div>
                     </div>
-                    <Badge variant="outline" className="bg-indigo-500/10 text-indigo-600 border-indigo-200">Optimal</Badge>
+                    <Badge variant="outline" className="bg-indigo-500/10 text-indigo-600 border-indigo-200">
+                      {hasData ? (avgStress !== null && avgStress < 3 ? "Optimal" : avgStress !== null && avgStress < 6 ? "Moderate" : "Elevated") : "Awaiting Data"}
+                    </Badge>
                  </div>
                  <div className="space-y-1 mt-4">
                     <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Anxiety</span>
-                        <span>Low (2/10)</span>
+                        <span>Stress</span>
+                        <span>{avgStress !== null ? `${avgStress}/10` : "—"}</span>
                     </div>
-                    <Progress value={20} className="h-1.5 bg-indigo-500/10" indicatorClassName="bg-indigo-500" />
+                    <Progress value={avgStress ? avgStress * 10 : 0} className="h-1.5 bg-indigo-500/10" indicatorClassName="bg-indigo-500" />
                  </div>
               </CardContent>
            </Card>
@@ -177,8 +208,10 @@ export default function Analytics() {
                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" /> Habit Rate
                  </span>
-                 <div className="text-2xl font-mono font-bold">82%</div>
-                 <Progress value={82} className="h-1 bg-emerald-500/20" indicatorClassName="bg-emerald-500" />
+                 <div className="text-2xl font-mono font-bold">
+                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : habitRate !== null ? `${habitRate}%` : "—"}
+                 </div>
+                 <Progress value={habitRate || 0} className="h-1 bg-emerald-500/20" indicatorClassName="bg-emerald-500" />
               </CardContent>
            </Card>
 
@@ -188,11 +221,12 @@ export default function Analytics() {
                     <Activity className="w-3.5 h-3.5" /> Avg Mood
                  </span>
                  <div className="text-2xl font-mono font-bold flex items-center gap-2">
-                    3.8 <span className="text-sm font-normal text-muted-foreground">/ 5.0</span>
+                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : avgMood ?? "—"} 
+                    <span className="text-sm font-normal text-muted-foreground">/ 5.0</span>
                  </div>
                  <div className="flex gap-1">
                     {[1,2,3,4,5].map(n => (
-                       <div key={n} className={`h-1.5 flex-1 rounded-full ${n <= 4 ? 'bg-rose-500' : 'bg-rose-500/20'}`} />
+                       <div key={n} className={`h-1.5 flex-1 rounded-full ${avgMood && n <= Math.round(Number(avgMood)) ? 'bg-rose-500' : 'bg-rose-500/20'}`} />
                     ))}
                  </div>
               </CardContent>
@@ -216,8 +250,16 @@ export default function Analytics() {
                 </CardHeader>
                 <CardContent>
                     <div className="h-[350px] w-full">
+                        {!hasData ? (
+                          <div className="h-full flex items-center justify-center text-muted-foreground">
+                            <div className="text-center">
+                              <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                              <p>Log entries to see mental telemetry</p>
+                            </div>
+                          </div>
+                        ) : (
                         <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={MOOD_DATA}>
+                        <AreaChart data={chartData.moodData}>
                             <defs>
                                 <linearGradient id="colorMood" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
@@ -239,6 +281,7 @@ export default function Analytics() {
                             <Line type="monotone" dataKey="anxiety" stroke="#ef4444" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Anxiety" />
                         </AreaChart>
                         </ResponsiveContainer>
+                        )}
                     </div>
                 </CardContent>
             </Card>
@@ -253,15 +296,16 @@ export default function Analytics() {
                     </CardHeader>
                     <CardContent className="flex justify-center items-center">
                         <div className="h-[200px] w-full relative">
+                            {chartData.moodDistribution.length === 0 ? (
+                              <div className="h-full flex items-center justify-center text-muted-foreground">
+                                <p className="text-sm">No mood data yet</p>
+                              </div>
+                            ) : (
+                            <>
                             <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
-                                    data={[
-                                        { name: 'Great', value: 30, color: '#10b981' },
-                                        { name: 'Good', value: 45, color: '#3b82f6' },
-                                        { name: 'Okay', value: 15, color: '#f59e0b' },
-                                        { name: 'Low', value: 10, color: '#ef4444' },
-                                    ]}
+                                    data={chartData.moodDistribution}
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={50}
@@ -269,12 +313,7 @@ export default function Analytics() {
                                     paddingAngle={5}
                                     dataKey="value"
                                 >
-                                    {[
-                                        { name: 'Great', value: 30, color: '#10b981' },
-                                        { name: 'Good', value: 45, color: '#3b82f6' },
-                                        { name: 'Okay', value: 15, color: '#f59e0b' },
-                                        { name: 'Low', value: 10, color: '#ef4444' },
-                                    ].map((entry, index) => (
+                                    {chartData.moodDistribution.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}
                                 </Pie>
@@ -283,10 +322,12 @@ export default function Analytics() {
                             </ResponsiveContainer>
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <div className="text-center">
-                                    <div className="text-2xl font-bold">4.2</div>
+                                    <div className="text-2xl font-bold">{avgMood ?? "—"}</div>
                                     <div className="text-xs text-muted-foreground uppercase tracking-wide">Avg Score</div>
                                 </div>
                             </div>
+                            </>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -294,16 +335,20 @@ export default function Analytics() {
                 <Card className="bg-muted/10 border-border/50">
                     <CardContent className="p-4">
                         <h4 className="font-semibold text-sm mb-3">Key Insights</h4>
-                        <ul className="space-y-2 text-sm text-muted-foreground">
+                        {!hasData ? (
+                          <p className="text-sm text-muted-foreground">Log more entries to generate insights.</p>
+                        ) : (
+                          <ul className="space-y-2 text-sm text-muted-foreground">
                             <li className="flex gap-2 items-start">
                                 <Zap className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                                <span>Focus peaks on <strong>Tuesday</strong> mornings.</span>
+                                <span>You have logged <strong>{trackerEntries?.length || 0}</strong> entries total.</span>
                             </li>
                             <li className="flex gap-2 items-start">
-                                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                                <span>High anxiety correlates with missed meals on <strong>Wednesday</strong>.</span>
+                                <Smile className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                                <span>Your average mood is <strong>{avgMood ?? "—"}/5</strong>.</span>
                             </li>
-                        </ul>
+                          </ul>
+                        )}
                     </CardContent>
                 </Card>
             </div>
@@ -329,7 +374,7 @@ export default function Analytics() {
                   <CardContent>
                      <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                           <LineChart data={DETAILED_METRICS}>
+                           <LineChart data={chartData.detailedMetrics}>
                               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} dy={10} />
                               <YAxis domain={[0, 10]} axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
@@ -357,7 +402,7 @@ export default function Analytics() {
                   <CardContent>
                      <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                           <BarChart data={DETAILED_METRICS}>
+                           <BarChart data={chartData.detailedMetrics}>
                               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} dy={10} />
                               <YAxis domain={[0, 10]} axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
@@ -424,7 +469,7 @@ export default function Analytics() {
                     <CardContent>
                         <div className="h-[250px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={HABIT_DATA} barGap={0} barSize={32}>
+                            <BarChart data={chartData.habitData} barGap={0} barSize={32}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} dy={10} />
                                 <Tooltip 
@@ -453,36 +498,42 @@ export default function Analytics() {
                     <Card>
                         <CardContent className="p-4">
                             <div className="text-sm font-medium text-muted-foreground mb-1">Completion Rate</div>
-                            <div className="text-2xl font-bold">82%</div>
-                            <Progress value={82} className="h-1 mt-2" />
+                            <div className="text-2xl font-bold">{habitRate !== null ? `${habitRate}%` : "—"}</div>
+                            <Progress value={habitRate || 0} className="h-1 mt-2" />
                         </CardContent>
                     </Card>
                     <Card>
                         <CardContent className="p-4">
                             <div className="text-sm font-medium text-muted-foreground mb-1">Total Habits</div>
-                            <div className="text-2xl font-bold">6 Active</div>
+                            <div className="text-2xl font-bold">{habits?.length || 0} Active</div>
                         </CardContent>
                     </Card>
                  </div>
             </div>
         </div>
 
-        {/* Other Metrics (Tertiary) */}
+        {/* Data Summary (Tertiary) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 opacity-80 hover:opacity-100 transition-opacity">
            <Card className="border-border/50 shadow-sm">
               <CardHeader>
                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Briefcase className="w-4 h-4 text-blue-500" />
-                    Career Project Portfolio
+                    <Calendar className="w-4 h-4 text-blue-500" />
+                    Entry Summary
                  </CardTitle>
-                 <CardDescription>Project Status Overview</CardDescription>
+                 <CardDescription>Total logged entries breakdown</CardDescription>
               </CardHeader>
               <CardContent>
                  <div className="h-[200px] w-full relative">
+                    {chartData.moodDistribution.length === 0 ? (
+                      <div className="h-full flex items-center justify-center text-muted-foreground">
+                        <p className="text-sm">No entries logged yet</p>
+                      </div>
+                    ) : (
+                    <>
                     <ResponsiveContainer width="100%" height="100%">
                        <PieChart>
                           <Pie
-                             data={PROJECT_STATUS_DATA}
+                             data={chartData.moodDistribution}
                              cx="50%"
                              cy="50%"
                              innerRadius={60}
@@ -490,7 +541,7 @@ export default function Analytics() {
                              paddingAngle={5}
                              dataKey="value"
                           >
-                             {PROJECT_STATUS_DATA.map((entry, index) => (
+                             {chartData.moodDistribution.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={entry.color} />
                              ))}
                           </Pie>
@@ -502,10 +553,12 @@ export default function Analytics() {
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none -ml-24">
                         <div className="text-center">
-                            <div className="text-2xl font-bold">10</div>
-                            <div className="text-xs text-muted-foreground uppercase tracking-wide">Projects</div>
+                            <div className="text-2xl font-bold">{trackerEntries?.length || 0}</div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wide">Entries</div>
                         </div>
                     </div>
+                    </>
+                    )}
                  </div>
               </CardContent>
            </Card>
