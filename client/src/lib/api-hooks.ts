@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion } from "@shared/schema";
+import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog } from "@shared/schema";
 
 // Helper to handle API calls
 async function fetchAPI(url: string, options?: RequestInit) {
@@ -289,6 +289,59 @@ export function useRemoveHabitCompletion() {
     onSuccess: (_, { habitId }) => {
       queryClient.invalidateQueries({ queryKey: ["habitCompletions", habitId] });
       queryClient.invalidateQueries({ queryKey: ["habits"] });
+    },
+  });
+}
+
+// Routine Blocks Hooks
+export function useRoutineBlocks() {
+  return useQuery<RoutineBlock[]>({
+    queryKey: ["routineBlocks"],
+    queryFn: () => fetchAPI("/api/routine-blocks"),
+  });
+}
+
+// Routine Activities Hooks
+export function useRoutineActivities() {
+  return useQuery<RoutineActivity[]>({
+    queryKey: ["routineActivities"],
+    queryFn: () => fetchAPI("/api/routine-activities"),
+  });
+}
+
+// Routine Activity Logs Hooks
+export function useRoutineLogs(date: string) {
+  return useQuery<RoutineActivityLog[]>({
+    queryKey: ["routineLogs", date],
+    queryFn: () => fetchAPI(`/api/routine-logs/${date}`),
+    enabled: !!date,
+  });
+}
+
+export function useAddRoutineLog() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { activityId: string; completedDate: string; notes?: string }) =>
+      fetchAPI("/api/routine-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (_, { completedDate }) => {
+      queryClient.invalidateQueries({ queryKey: ["routineLogs", completedDate] });
+    },
+  });
+}
+
+export function useRemoveRoutineLog() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ activityId, date }: { activityId: string; date: string }) =>
+      fetchAPI(`/api/routine-logs/${activityId}/${date}`, {
+        method: "DELETE",
+      }),
+    onSuccess: (_, { date }) => {
+      queryClient.invalidateQueries({ queryKey: ["routineLogs", date] });
     },
   });
 }

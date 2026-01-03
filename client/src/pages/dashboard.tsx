@@ -8,6 +8,7 @@ import { SystemJournal } from "@/components/system-journal";
 import { HeadspaceMap } from "@/components/headspace-map";
 import { GroundingAnchor } from "@/components/grounding-anchor";
 import { HabitForm } from "@/components/habit-form";
+import { RoutineTimeline } from "@/components/routine-timeline";
 import { Habit } from "@/lib/types";
 import { format } from "date-fns";
 import { Plus, LayoutGrid, List, Flower2, NotebookPen, BrainCircuit, Loader2 } from "lucide-react";
@@ -187,7 +188,10 @@ export default function Dashboard() {
            </div>
         )}
 
-        <MoodTracker />
+        <div className="grid lg:grid-cols-2 gap-6">
+          <MoodTracker />
+          <RoutineTimeline />
+        </div>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
