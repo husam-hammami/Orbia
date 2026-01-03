@@ -67,6 +67,19 @@ export const MOCK_HABITS: Habit[] = [
     unit: "min"
   },
   {
+    id: "7",
+    title: "Morning Stretch",
+    description: "Gentle back stretches",
+    category: "Recovery",
+    frequency: "daily",
+    streak: 15,
+    completedToday: false,
+    history: generateHistory(45, 0.8),
+    color: "hsl(180 30% 50%)", // Teal
+    target: 10,
+    unit: "min"
+  },
+  {
     id: "5",
     title: "Evening Walk",
     description: "Clear the head after work",

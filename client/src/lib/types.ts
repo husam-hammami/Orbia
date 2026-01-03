@@ -1,4 +1,4 @@
-export type Category = "Health" | "Work" | "Mindfulness" | "Creativity" | "Social" | "Finance";
+export type Category = "Health" | "Work" | "Mindfulness" | "Creativity" | "Social" | "Finance" | "Recovery";
 
 export type Frequency = "daily" | "weekly";
 

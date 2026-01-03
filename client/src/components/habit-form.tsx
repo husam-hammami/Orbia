@@ -34,7 +34,7 @@ import { Plus } from "lucide-react";
 const formSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters"),
   description: z.string().optional(),
-  category: z.enum(["Health", "Work", "Mindfulness", "Creativity", "Social", "Finance"] as [string, ...string[]]),
+  category: z.enum(["Health", "Work", "Mindfulness", "Creativity", "Social", "Finance", "Recovery"] as [string, ...string[]]),
   frequency: z.enum(["daily", "weekly"] as [string, ...string[]]),
   target: z.coerce.number().min(1, "Target must be at least 1"),
   unit: z.string().min(1, "Unit is required"),
@@ -135,6 +135,7 @@ export function HabitForm({ onSubmit, trigger }: HabitFormProps) {
                         <SelectItem value="Creativity">Creativity</SelectItem>
                         <SelectItem value="Social">Social</SelectItem>
                         <SelectItem value="Finance">Finance</SelectItem>
+                        <SelectItem value="Recovery">Recovery & Mobility</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

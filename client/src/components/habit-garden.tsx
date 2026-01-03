@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Wind, Droplets, Sun, Sparkles, Trash2, Heart, Briefcase, Brain, Palette, Users, PiggyBank } from "lucide-react";
+import { Check, Wind, Droplets, Sun, Sparkles, Trash2, Heart, Briefcase, Brain, Palette, Users, PiggyBank, Accessibility } from "lucide-react";
 
 interface HabitGardenProps {
   habits: Habit[];
@@ -17,7 +17,8 @@ const CategoryIcons: Record<string, any> = {
   Mindfulness: Brain,
   Creativity: Palette,
   Social: Users,
-  Finance: PiggyBank
+  Finance: PiggyBank,
+  Recovery: Accessibility
 };
 
 // Procedural plant generator based on habit data

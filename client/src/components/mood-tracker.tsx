@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Smile, Frown, Meh, Zap, Battery, BatteryLow, BatteryMedium, BatteryFull } from "lucide-react";
+import { Smile, Frown, Meh, Zap, Battery, BatteryLow, BatteryMedium, BatteryFull, Activity, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
 export function MoodTracker() {
   const [mood, setMood] = useState<string | null>(null);
   const [motivation, setMotivation] = useState([5]);
+  const [comfort, setComfort] = useState([5]); // Physical comfort/pain level
 
   const moods = [
     { value: "terrible", icon: Frown, color: "text-red-500", bg: "bg-red-100" },
@@ -21,10 +22,10 @@ export function MoodTracker() {
     <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
       <h3 className="font-display font-semibold text-lg mb-4">Daily Check-in</h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {/* Mood Section */}
         <div>
-          <label className="text-sm text-muted-foreground font-medium mb-3 block">How are you feeling today?</label>
+          <label className="text-sm text-muted-foreground font-medium mb-3 block">Mental State</label>
           <div className="flex justify-between gap-2">
             {moods.map((m) => {
               const Icon = m.icon;
@@ -47,10 +48,33 @@ export function MoodTracker() {
           </div>
         </div>
 
+        {/* Physical Comfort Section (New) */}
+        <div>
+           <div className="flex items-center justify-between mb-3">
+              <label className="text-sm text-muted-foreground font-medium">Physical Comfort</label>
+              <span className="text-sm font-mono font-bold text-primary">{comfort[0]}/10</span>
+           </div>
+           
+           <div className="px-1 py-4">
+              <Slider
+                value={comfort}
+                onValueChange={setComfort}
+                max={10}
+                step={1}
+                className="cursor-pointer"
+              />
+           </div>
+           
+           <div className="flex justify-between text-xs text-muted-foreground mt-1 px-1">
+              <span className="flex items-center gap-1"><Activity className="w-3 h-3 text-red-400" /> Pain</span>
+              <span className="flex items-center gap-1 text-green-600">Comfort <HeartPulse className="w-3 h-3" /></span>
+           </div>
+        </div>
+
         {/* Motivation Section */}
         <div>
            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm text-muted-foreground font-medium">Motivation Level</label>
+              <label className="text-sm text-muted-foreground font-medium">Energy Level</label>
               <span className="text-sm font-mono font-bold">{motivation[0]}/10</span>
            </div>
            
@@ -66,7 +90,6 @@ export function MoodTracker() {
            
            <div className="flex justify-between text-xs text-muted-foreground mt-1 px-1">
               <span className="flex items-center gap-1"><BatteryLow className="w-3 h-3" /> Low</span>
-              <span className="flex items-center gap-1"><BatteryMedium className="w-3 h-3" /> Medium</span>
               <span className="flex items-center gap-1"><BatteryFull className="w-3 h-3" /> High</span>
            </div>
         </div>
