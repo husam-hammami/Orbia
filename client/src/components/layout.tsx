@@ -14,11 +14,11 @@ function Sidebar({ className }: SidebarProps) {
 
   const links = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/headspace", label: "Headspace", icon: BrainCircuit },
+    { href: "/deep-mind", label: "Deep Mind", icon: Sparkles },
     { href: "/career", label: "Career & Vision", icon: Briefcase },
     { href: "/finance", label: "Finance", icon: Wallet },
     { href: "/analytics", label: "Analytics", icon: BarChart2 },
-    { href: "/headspace", label: "Headspace", icon: BrainCircuit },
-    { href: "/deep-mind", label: "Deep Mind", icon: Sparkles },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
 
