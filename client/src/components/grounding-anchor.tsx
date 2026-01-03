@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Anchor, Wind, Eye, Ear, Hand, Coffee, Music, Play, Square } from "lucide-react";
+import { Anchor, Wind, Eye, Ear, Hand, Coffee, Music, Play, Square, Zap, Snowflake, Citrus, Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +13,7 @@ import {
 
 export function GroundingAnchor() {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeExercise, setActiveExercise] = useState<"breathing" | "54321" | null>(null);
+  const [activeExercise, setActiveExercise] = useState<"breathing" | "54321" | "intense" | null>(null);
 
   // Breathing logic
   const [breathPhase, setBreathPhase] = useState<"inhale" | "hold" | "exhale">("inhale");
@@ -84,6 +84,19 @@ export function GroundingAnchor() {
           {!activeExercise ? (
             <div className="grid grid-cols-1 gap-4 w-full">
               <button
+                onClick={() => setActiveExercise("intense")}
+                className="flex items-center gap-4 p-4 rounded-xl bg-red-950/30 hover:bg-red-900/40 border border-red-900/50 transition-colors text-left group"
+              >
+                <div className="h-12 w-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Zap className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg text-red-100">Intense Reset</h3>
+                  <p className="text-red-300/70 text-sm">Strong sensory shock for high distress.</p>
+                </div>
+              </button>
+
+              <button
                 onClick={() => setActiveExercise("54321")}
                 className="flex items-center gap-4 p-4 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors text-left group"
               >
@@ -108,6 +121,43 @@ export function GroundingAnchor() {
                   <p className="text-slate-400 text-sm">Regulate your nervous system with breath.</p>
                 </div>
               </button>
+            </div>
+          ) : activeExercise === "intense" ? (
+             <div className="flex flex-col gap-6 w-full px-2 animate-in fade-in zoom-in-95 duration-300">
+               <div className="text-center mb-2">
+                 <h3 className="text-xl font-bold text-red-200 mb-2">High Intensity TIPP Skills</h3>
+                 <p className="text-slate-400 text-sm">Choose one to shock your system safely.</p>
+               </div>
+
+               <div className="space-y-4">
+                  <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                     <div className="flex items-center gap-3 text-cyan-200 mb-2">
+                        <Snowflake className="w-5 h-5" />
+                        <span className="font-bold">The Dive Reflex</span>
+                     </div>
+                     <p className="text-sm text-slate-300">Splash ice-cold water on your face or hold an ice cube tightly. This forces your heart rate to slow down immediately.</p>
+                  </div>
+
+                  <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                     <div className="flex items-center gap-3 text-yellow-200 mb-2">
+                        <Citrus className="w-5 h-5" />
+                        <span className="font-bold">Sensory Shock</span>
+                     </div>
+                     <p className="text-sm text-slate-300">Bite into a whole lemon, eat something very spicy, or smell strong peppermint oil. The intense sensation disrupts dissociation.</p>
+                  </div>
+
+                  <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                     <div className="flex items-center gap-3 text-orange-200 mb-2">
+                        <Dumbbell className="w-5 h-5" />
+                        <span className="font-bold">Intense Release</span>
+                     </div>
+                     <p className="text-sm text-slate-300">Squeeze all your muscles as hard as you can for 5 seconds, then release. Or do wall pushes until your arms are tired.</p>
+                  </div>
+               </div>
+               
+               <Button variant="ghost" onClick={() => setActiveExercise(null)} className="mt-4 text-slate-500 hover:text-slate-300 self-center">
+                 Back to Menu
+               </Button>
             </div>
           ) : activeExercise === "breathing" ? (
             <div className="flex flex-col items-center w-full">
