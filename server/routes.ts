@@ -1,16 +1,239 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { 
+  insertSystemMemberSchema, 
+  insertTrackerEntrySchema, 
+  insertSystemMessageSchema,
+  insertHeadspaceRoomSchema,
+  insertSystemSettingsSchema 
+} from "@shared/schema";
+import { fromError } from "zod-validation-error";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  
+  // System Members Routes
+  app.get("/api/members", async (req, res) => {
+    try {
+      const members = await storage.getAllMembers();
+      res.json(members);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch members" });
+    }
+  });
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  app.get("/api/members/:id", async (req, res) => {
+    try {
+      const member = await storage.getMember(req.params.id);
+      if (!member) {
+        return res.status(404).json({ error: "Member not found" });
+      }
+      res.json(member);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch member" });
+    }
+  });
+
+  app.post("/api/members", async (req, res) => {
+    try {
+      const validatedData = insertSystemMemberSchema.parse(req.body);
+      const member = await storage.createMember(validatedData);
+      res.status(201).json(member);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.patch("/api/members/:id", async (req, res) => {
+    try {
+      const validatedData = insertSystemMemberSchema.partial().parse(req.body);
+      const member = await storage.updateMember(req.params.id, validatedData);
+      if (!member) {
+        return res.status(404).json({ error: "Member not found" });
+      }
+      res.json(member);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/members/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteMember(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Member not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete member" });
+    }
+  });
+
+  // Tracker Entries Routes
+  app.get("/api/tracker", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const entries = limit 
+        ? await storage.getRecentTrackerEntries(limit)
+        : await storage.getAllTrackerEntries();
+      res.json(entries);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch tracker entries" });
+    }
+  });
+
+  app.get("/api/tracker/:id", async (req, res) => {
+    try {
+      const entry = await storage.getTrackerEntry(req.params.id);
+      if (!entry) {
+        return res.status(404).json({ error: "Tracker entry not found" });
+      }
+      res.json(entry);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch tracker entry" });
+    }
+  });
+
+  app.post("/api/tracker", async (req, res) => {
+    try {
+      const validatedData = insertTrackerEntrySchema.parse(req.body);
+      const entry = await storage.createTrackerEntry(validatedData);
+      res.status(201).json(entry);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  // System Messages Routes
+  app.get("/api/messages", async (req, res) => {
+    try {
+      const messages = await storage.getAllMessages();
+      res.json(messages);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+
+  app.get("/api/messages/:id", async (req, res) => {
+    try {
+      const message = await storage.getMessage(req.params.id);
+      if (!message) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+      res.json(message);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch message" });
+    }
+  });
+
+  app.post("/api/messages", async (req, res) => {
+    try {
+      const validatedData = insertSystemMessageSchema.parse(req.body);
+      const message = await storage.createMessage(validatedData);
+      res.status(201).json(message);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/messages/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteMessage(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete message" });
+    }
+  });
+
+  // Headspace Rooms Routes
+  app.get("/api/rooms", async (req, res) => {
+    try {
+      const rooms = await storage.getAllRooms();
+      res.json(rooms);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch rooms" });
+    }
+  });
+
+  app.get("/api/rooms/:id", async (req, res) => {
+    try {
+      const room = await storage.getRoom(req.params.id);
+      if (!room) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+      res.json(room);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch room" });
+    }
+  });
+
+  app.post("/api/rooms", async (req, res) => {
+    try {
+      const validatedData = insertHeadspaceRoomSchema.parse(req.body);
+      const room = await storage.createRoom(validatedData);
+      res.status(201).json(room);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.patch("/api/rooms/:id", async (req, res) => {
+    try {
+      const validatedData = insertHeadspaceRoomSchema.partial().parse(req.body);
+      const room = await storage.updateRoom(req.params.id, validatedData);
+      if (!room) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+      res.json(room);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/rooms/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteRoom(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete room" });
+    }
+  });
+
+  // System Settings Routes
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.patch("/api/settings", async (req, res) => {
+    try {
+      const validatedData = insertSystemSettingsSchema.partial().parse(req.body);
+      const settings = await storage.updateSettings(validatedData);
+      res.json(settings);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
 
   return httpServer;
 }
