@@ -110,8 +110,8 @@ export default function SystemInsight() {
                     <Users className="w-3 h-3" /> 4 Active Alters
                 </Badge>
              </div>
-            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">System Insight Engine</h1>
-            <p className="text-muted-foreground text-lg">Deep diagnostic telemetry for Dissociative Identity & System coherence.</p>
+            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">Headspace & Alters</h1>
+            <p className="text-muted-foreground text-lg">Deep diagnostic telemetry for your System & Alter Egos.</p>
           </div>
         </div>
 

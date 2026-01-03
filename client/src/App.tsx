@@ -15,7 +15,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/career" component={CareerPage} />
       <Route path="/analytics" component={Analytics} />
-      <Route path="/system-insight" component={SystemInsight} />
+      <Route path="/headspace" component={SystemInsight} />
       <Route path="/settings" component={() => <div className="p-8 text-center text-muted-foreground">Settings Page (Coming Soon)</div>} />
       <Route component={NotFound} />
     </Switch>

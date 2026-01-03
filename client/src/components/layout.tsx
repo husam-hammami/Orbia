@@ -16,7 +16,7 @@ function Sidebar({ className }: SidebarProps) {
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/career", label: "Career & Vision", icon: Briefcase },
     { href: "/analytics", label: "Analytics", icon: BarChart2 },
-    { href: "/system-insight", label: "System Insight", icon: BrainCircuit },
+    { href: "/headspace", label: "Headspace", icon: BrainCircuit },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
 
