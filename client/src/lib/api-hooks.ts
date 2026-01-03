@@ -272,9 +272,34 @@ export function useAddHabitCompletion() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ completedDate: date }),
       }),
-    onSuccess: (_, { habitId }) => {
+    onMutate: async ({ habitId, date }) => {
+      await queryClient.cancelQueries({ predicate: (q) => q.queryKey[0] === "allCompletions" });
+      const queries = queryClient.getQueriesData<Record<string, string[]>>({ predicate: (q) => q.queryKey[0] === "allCompletions" });
+      const previousMap = new Map(queries);
+      queries.forEach(([key, data]) => {
+        if (data && data[habitId] !== undefined) {
+          const existing = data[habitId] || [];
+          if (!existing.includes(date)) {
+            queryClient.setQueryData<Record<string, string[]>>(key, {
+              ...data,
+              [habitId]: [...existing, date]
+            });
+          }
+        }
+      });
+      return { previousMap };
+    },
+    onError: (_, __, context) => {
+      if (context?.previousMap) {
+        context.previousMap.forEach((data, key) => {
+          queryClient.setQueryData(key, data);
+        });
+      }
+    },
+    onSettled: (_, __, { habitId }) => {
       queryClient.invalidateQueries({ queryKey: ["habitCompletions", habitId] });
       queryClient.invalidateQueries({ queryKey: ["habits"] });
+      queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] === "allCompletions" });
     },
   });
 }
@@ -286,9 +311,31 @@ export function useRemoveHabitCompletion() {
       fetchAPI(`/api/habits/${habitId}/completions/${date}`, {
         method: "DELETE",
       }),
-    onSuccess: (_, { habitId }) => {
+    onMutate: async ({ habitId, date }) => {
+      await queryClient.cancelQueries({ predicate: (q) => q.queryKey[0] === "allCompletions" });
+      const queries = queryClient.getQueriesData<Record<string, string[]>>({ predicate: (q) => q.queryKey[0] === "allCompletions" });
+      const previousMap = new Map(queries);
+      queries.forEach(([key, data]) => {
+        if (data && data[habitId] !== undefined) {
+          queryClient.setQueryData<Record<string, string[]>>(key, {
+            ...data,
+            [habitId]: (data[habitId] || []).filter(d => d !== date)
+          });
+        }
+      });
+      return { previousMap };
+    },
+    onError: (_, __, context) => {
+      if (context?.previousMap) {
+        context.previousMap.forEach((data, key) => {
+          queryClient.setQueryData(key, data);
+        });
+      }
+    },
+    onSettled: (_, __, { habitId }) => {
       queryClient.invalidateQueries({ queryKey: ["habitCompletions", habitId] });
       queryClient.invalidateQueries({ queryKey: ["habits"] });
+      queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] === "allCompletions" });
     },
   });
 }
