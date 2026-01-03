@@ -1,58 +1,82 @@
+import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   ResponsiveContainer, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
+  PieChart, 
+  Pie, 
   Cell,
-  PieChart,
-  Pie,
+  Tooltip,
   Legend
 } from "recharts";
 import { 
   Wallet, 
   TrendingUp, 
-  TrendingDown, 
-  CreditCard, 
   Home, 
   Landmark, 
   Zap, 
-  AlertCircle,
   CheckCircle2,
-  ArrowRight,
+  Plus,
+  Pencil,
+  Trash2,
+  MoreHorizontal,
   DollarSign
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-// --- Mock Data ---
+// --- Types & Mock Data ---
+
+type ExpenseCategory = "Fixed" | "Variable" | "Savings" | "Debt";
+type ExpenseStatus = "paid" | "pending" | "variable";
+
+interface Expense {
+  id: string;
+  name: string;
+  amount: number;
+  budget: number;
+  category: ExpenseCategory;
+  status: ExpenseStatus;
+  date: string;
+}
 
 const MONTHLY_BUDGET = 4500;
-const TOTAL_SPENT = 3120;
 const DAYS_LEFT = 12;
 
-const EXPENSES = [
-  { id: 1, name: "Rent & Utilities", amount: 1800, budget: 1800, icon: Home, status: "paid", date: "Jan 1" },
-  { id: 2, name: "Student Loan", amount: 450, budget: 450, icon: Landmark, status: "paid", date: "Jan 5" },
-  { id: 3, name: "Groceries & Food", amount: 420, budget: 600, icon: ShoppingBagIcon, status: "variable", date: "Multiple" },
-  { id: 4, name: "Transport", amount: 120, budget: 200, icon: CarIcon, status: "variable", date: "Multiple" },
-  { id: 5, name: "Entertainment", amount: 180, budget: 300, icon: TicketIcon, status: "variable", date: "Multiple" },
-  { id: 6, name: "Subscriptions", amount: 150, budget: 150, icon: Zap, status: "pending", date: "Jan 25" },
-];
-
-// Helper icons
-function ShoppingBagIcon(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> }
-function CarIcon(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg> }
-function TicketIcon(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="8" x="2" y="8" rx="2" ry="2"/><path d="M7 8v8"/><path d="M17 8v8"/><path d="M2 12h20"/></svg> }
-
-const SPENDING_DATA = [
-    { name: 'Fixed', value: 2400, color: '#6366f1' }, // Rent, Loans, Subs
-    { name: 'Variable', value: 720, color: '#f59e0b' }, // Food, Fun
-    { name: 'Remaining', value: 1380, color: '#10b981' }, // Savings/Buffer
+const INITIAL_EXPENSES: Expense[] = [
+  { id: "1", name: "Rent & Utilities", amount: 1800, budget: 1800, category: "Fixed", status: "paid", date: "Jan 1" },
+  { id: "2", name: "Student Loan", amount: 450, budget: 450, category: "Debt", status: "paid", date: "Jan 5" },
+  { id: "3", name: "Groceries & Food", amount: 420, budget: 600, category: "Variable", status: "variable", date: "Multiple" },
+  { id: "4", name: "Transport", amount: 120, budget: 200, category: "Variable", status: "variable", date: "Multiple" },
+  { id: "5", name: "Entertainment", amount: 180, budget: 300, category: "Variable", status: "variable", date: "Multiple" },
+  { id: "6", name: "Subscriptions", amount: 150, budget: 150, category: "Fixed", status: "pending", date: "Jan 25" },
 ];
 
 const LOAN_PROGRESS = {
@@ -62,8 +86,107 @@ const LOAN_PROGRESS = {
     remainingMonths: 36
 };
 
+// Helper icons map
+const getCategoryIcon = (category: ExpenseCategory) => {
+  switch (category) {
+    case "Fixed": return Home;
+    case "Debt": return Landmark;
+    case "Variable": return Zap; // Using Zap as generic for variable/shopping
+    case "Savings": return Wallet;
+    default: return DollarSign;
+  }
+};
+
+const COLORS = {
+  Fixed: '#6366f1',
+  Variable: '#f59e0b',
+  Debt: '#ef4444',
+  Savings: '#10b981',
+};
+
 export default function FinancePage() {
-  const percentSpent = (TOTAL_SPENT / MONTHLY_BUDGET) * 100;
+  const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+
+  // Form State
+  const [formData, setFormData] = useState<Partial<Expense>>({
+    name: "",
+    amount: 0,
+    budget: 0,
+    category: "Variable",
+    status: "pending",
+    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  });
+
+  // Calculations
+  const totalSpent = useMemo(() => expenses.reduce((acc, curr) => acc + curr.amount, 0), [expenses]);
+  const percentSpent = (totalSpent / MONTHLY_BUDGET) * 100;
+  
+  const spendingData = useMemo(() => {
+    const data: Record<string, number> = { Fixed: 0, Variable: 0, Debt: 0, Savings: 0 };
+    expenses.forEach(e => {
+      if (data[e.category] !== undefined) {
+        data[e.category] += e.amount;
+      }
+    });
+    // Add remaining budget as "Savings/Buffer" if under budget
+    const remaining = Math.max(0, MONTHLY_BUDGET - totalSpent);
+    
+    return [
+      { name: 'Fixed', value: data.Fixed, color: COLORS.Fixed },
+      { name: 'Variable', value: data.Variable, color: COLORS.Variable },
+      { name: 'Debt', value: data.Debt, color: COLORS.Debt },
+      { name: 'Remaining', value: remaining, color: COLORS.Savings },
+    ].filter(item => item.value > 0);
+  }, [expenses, totalSpent]);
+
+  // Handlers
+  const handleOpenAdd = () => {
+    setEditingExpense(null);
+    setFormData({
+      name: "",
+      amount: 0,
+      budget: 0,
+      category: "Variable",
+      status: "pending",
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenEdit = (expense: Expense) => {
+    setEditingExpense(expense);
+    setFormData({ ...expense });
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setExpenses(prev => prev.filter(e => e.id !== id));
+    toast.success("Expense removed");
+  };
+
+  const handleSave = () => {
+    if (!formData.name || formData.amount === undefined) return;
+
+    if (editingExpense) {
+      setExpenses(prev => prev.map(e => e.id === editingExpense.id ? { ...e, ...formData } as Expense : e));
+      toast.success("Expense updated");
+    } else {
+      const newExpense: Expense = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: formData.name || "Expense",
+        amount: formData.amount || 0,
+        budget: formData.budget || 0,
+        category: formData.category || "Variable",
+        status: formData.status || "pending",
+        date: formData.date || new Date().toLocaleDateString()
+      };
+      setExpenses(prev => [...prev, newExpense]);
+      toast.success("Expense added");
+    }
+    setIsDialogOpen(false);
+  };
 
   return (
     <Layout>
@@ -74,9 +197,9 @@ export default function FinancePage() {
             <p className="text-muted-foreground text-lg">Track your monthly flow and loan progress.</p>
           </div>
           <div className="flex gap-2">
-            <Badge variant="outline" className="px-3 py-1 h-8 text-sm font-normal gap-2 border-emerald-500/20 bg-emerald-500/5 text-emerald-600">
-               <CheckCircle2 className="w-3.5 h-3.5" /> All Bills Paid
-            </Badge>
+            <Button onClick={handleOpenAdd} className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white">
+              <Plus className="w-4 h-4" /> Add Expense
+            </Button>
           </div>
         </div>
 
@@ -93,7 +216,7 @@ export default function FinancePage() {
                     </div>
                     <div className="mt-4 space-y-2">
                         <div className="flex justify-between text-sm">
-                            <span>Spent: ${TOTAL_SPENT.toLocaleString()}</span>
+                            <span>Spent: ${totalSpent.toLocaleString()}</span>
                             <span className="text-muted-foreground">{percentSpent.toFixed(0)}%</span>
                         </div>
                         <Progress value={percentSpent} className={cn("h-2", percentSpent > 90 ? "bg-rose-100" : "bg-muted")} indicatorClassName={percentSpent > 90 ? "bg-rose-500" : percentSpent > 75 ? "bg-amber-500" : "bg-emerald-500"} />
@@ -108,13 +231,13 @@ export default function FinancePage() {
                 <CardContent>
                     <div className="text-3xl font-bold flex items-baseline gap-1 text-emerald-600">
                         <span className="text-base text-emerald-600/60 align-top mt-1">$</span>
-                        {(MONTHLY_BUDGET - TOTAL_SPENT).toLocaleString()}
+                        {(MONTHLY_BUDGET - totalSpent).toLocaleString()}
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
                         With {DAYS_LEFT} days left in the month.
                     </p>
                     <div className="mt-4 text-xs font-medium text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded inline-block">
-                        Safe daily spend: ${((MONTHLY_BUDGET - TOTAL_SPENT) / DAYS_LEFT).toFixed(0)}
+                        Safe daily spend: ${Math.max(0, (MONTHLY_BUDGET - totalSpent) / DAYS_LEFT).toFixed(0)}
                     </div>
                 </CardContent>
             </Card>
@@ -153,10 +276,10 @@ export default function FinancePage() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {EXPENSES.map((expense) => {
-                                const Icon = expense.icon;
-                                const isOverBudget = expense.amount > expense.budget;
-                                const percent = Math.min((expense.amount / expense.budget) * 100, 100);
+                            {expenses.map((expense) => {
+                                const Icon = getCategoryIcon(expense.category);
+                                const isOverBudget = expense.amount > expense.budget && expense.budget > 0;
+                                const percent = expense.budget > 0 ? Math.min((expense.amount / expense.budget) * 100, 100) : 100;
                                 
                                 return (
                                     <div key={expense.id} className="group p-3 rounded-lg border border-border/40 hover:border-indigo-500/30 hover:bg-muted/30 transition-all">
@@ -170,9 +293,28 @@ export default function FinancePage() {
                                                     <div className="text-xs text-muted-foreground capitalize">{expense.status} • {expense.date}</div>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <div className="font-bold font-mono">${expense.amount}</div>
-                                                <div className="text-xs text-muted-foreground">of ${expense.budget}</div>
+                                            
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-right">
+                                                    <div className="font-bold font-mono">${expense.amount}</div>
+                                                    {expense.budget > 0 && <div className="text-xs text-muted-foreground">of ${expense.budget}</div>}
+                                                </div>
+                                                
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <MoreHorizontal className="w-4 h-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => handleOpenEdit(expense)}>
+                                                            <Pencil className="w-4 h-4 mr-2" /> Edit
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleDelete(expense.id)} className="text-rose-600">
+                                                            <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
                                         </div>
                                         {/* Simple bar for visual budget tracking */}
@@ -185,6 +327,12 @@ export default function FinancePage() {
                                     </div>
                                 )
                             })}
+                            
+                            {expenses.length === 0 && (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    No expenses added yet. Click "Add Expense" to get started.
+                                </div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -201,7 +349,7 @@ export default function FinancePage() {
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
-                                        data={SPENDING_DATA}
+                                        data={spendingData}
                                         cx="50%"
                                         cy="50%"
                                         innerRadius={60}
@@ -209,12 +357,12 @@ export default function FinancePage() {
                                         paddingAngle={5}
                                         dataKey="value"
                                     >
-                                        {SPENDING_DATA.map((entry, index) => (
+                                        {spendingData.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" />
                                         ))}
                                     </Pie>
                                     <Tooltip 
-                                        formatter={(value: number) => `$${value}`}
+                                        formatter={(value: number) => `$${value.toLocaleString()}`}
                                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--background))' }}
                                     />
                                     <Legend verticalAlign="bottom" height={36}/>
@@ -223,7 +371,7 @@ export default function FinancePage() {
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <div className="text-center">
                                     <div className="text-sm font-medium text-muted-foreground">Total</div>
-                                    <div className="text-xl font-bold text-foreground">${TOTAL_SPENT}</div>
+                                    <div className="text-xl font-bold text-foreground">${totalSpent.toLocaleString()}</div>
                                 </div>
                             </div>
                         </div>
@@ -245,6 +393,88 @@ export default function FinancePage() {
                 </Card>
             </div>
         </div>
+
+        {/* Add/Edit Dialog */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>{editingExpense ? "Edit Expense" : "Add New Expense"}</DialogTitle>
+                    <DialogDescription>
+                        Track your spending to stay on top of your goals.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="name" className="text-right">Name</Label>
+                        <Input 
+                            id="name" 
+                            value={formData.name} 
+                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                            className="col-span-3" 
+                            placeholder="e.g. Groceries"
+                        />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="amount" className="text-right">Amount ($)</Label>
+                        <Input 
+                            id="amount" 
+                            type="number"
+                            value={formData.amount} 
+                            onChange={(e) => setFormData({...formData, amount: parseFloat(e.target.value) || 0})}
+                            className="col-span-3" 
+                        />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="budget" className="text-right">Budget ($)</Label>
+                        <Input 
+                            id="budget" 
+                            type="number"
+                            value={formData.budget} 
+                            onChange={(e) => setFormData({...formData, budget: parseFloat(e.target.value) || 0})}
+                            className="col-span-3" 
+                            placeholder="Optional"
+                        />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="category" className="text-right">Category</Label>
+                        <Select 
+                            value={formData.category} 
+                            onValueChange={(val: ExpenseCategory) => setFormData({...formData, category: val})}
+                        >
+                            <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Fixed">Fixed Bill</SelectItem>
+                                <SelectItem value="Variable">Variable Spending</SelectItem>
+                                <SelectItem value="Debt">Debt Repayment</SelectItem>
+                                <SelectItem value="Savings">Savings</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="status" className="text-right">Status</Label>
+                         <Select 
+                            value={formData.status} 
+                            onValueChange={(val: ExpenseStatus) => setFormData({...formData, status: val})}
+                        >
+                            <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="paid">Paid</SelectItem>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="variable">Variable</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="submit" onClick={handleSave}>Save Expense</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
       </div>
     </Layout>
   );
