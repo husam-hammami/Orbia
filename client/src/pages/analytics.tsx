@@ -76,30 +76,16 @@ const MOOD_DATA = [
   { name: "Sun", mood: 5, anxiety: 1, focus: 3 },
 ];
 
-const FOOD_DATA = [
-  { name: "Mon", cals: 2100, protein: 140 },
-  { name: "Tue", cals: 1950, protein: 135 },
-  { name: "Wed", cals: 2300, protein: 120 },
-  { name: "Thu", cals: 1800, protein: 150 },
-  { name: "Fri", cals: 2500, protein: 110 },
-  { name: "Sat", cals: 2200, protein: 130 },
-  { name: "Sun", cals: 2000, protein: 145 },
+const FOOD_DATA = []; // Removed
+
+const PROJECT_STATUS_DATA = [
+  { name: 'In Progress', value: 3, color: '#3b82f6' },
+  { name: 'Planning', value: 2, color: '#8b5cf6' },
+  { name: 'Completed', value: 4, color: '#10b981' },
+  { name: 'On Hold', value: 1, color: '#f59e0b' },
 ];
 
-const CAREER_DATA = [
-  { subject: 'Coding', A: 120, fullMark: 150 },
-  { subject: 'Design', A: 98, fullMark: 150 },
-  { subject: 'Writing', A: 86, fullMark: 150 },
-  { subject: 'Networking', A: 99, fullMark: 150 },
-  { subject: 'Learning', A: 85, fullMark: 150 },
-  { subject: 'Planning', A: 65, fullMark: 150 },
-];
-
-const NUTRITION_DISTRIBUTION = [
-  { name: 'Protein', value: 30, color: '#10b981' }, // Emerald
-  { name: 'Carbs', value: 45, color: '#f59e0b' },   // Amber
-  { name: 'Fats', value: 25, color: '#6366f1' },    // Indigo
-];
+const NUTRITION_DISTRIBUTION = []; // Removed
 
 export default function Analytics() {
   return (
@@ -411,52 +397,39 @@ export default function Analytics() {
               <CardHeader>
                  <CardTitle className="flex items-center gap-2 text-base">
                     <Briefcase className="w-4 h-4 text-blue-500" />
-                    Career Performance
+                    Career Project Portfolio
                  </CardTitle>
+                 <CardDescription>Project Status Overview</CardDescription>
               </CardHeader>
               <CardContent>
-                 <div className="h-[200px] w-full">
+                 <div className="h-[200px] w-full relative">
                     <ResponsiveContainer width="100%" height="100%">
-                       <RadarChart cx="50%" cy="50%" outerRadius="70%" data={CAREER_DATA}>
-                          <PolarGrid stroke="hsl(var(--border))" />
-                          <PolarAngleAxis dataKey="subject" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-                          <PolarRadiusAxis angle={30} domain={[0, 150]} tick={false} axisLine={false} />
-                          <Radar
-                             name="Performance"
-                             dataKey="A"
-                             stroke="#3b82f6"
-                             fill="#3b82f6"
-                             fillOpacity={0.3}
-                          />
+                       <PieChart>
+                          <Pie
+                             data={PROJECT_STATUS_DATA}
+                             cx="50%"
+                             cy="50%"
+                             innerRadius={60}
+                             outerRadius={80}
+                             paddingAngle={5}
+                             dataKey="value"
+                          >
+                             {PROJECT_STATUS_DATA.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                             ))}
+                          </Pie>
                           <Tooltip 
                              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--background))' }}
                           />
-                       </RadarChart>
+                          <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" />
+                       </PieChart>
                     </ResponsiveContainer>
-                 </div>
-              </CardContent>
-           </Card>
-
-           <Card className="border-border/50 shadow-sm">
-              <CardHeader>
-                 <CardTitle className="flex items-center gap-2 text-base">
-                    <Utensils className="w-4 h-4 text-amber-500" />
-                    Nutrition (Calories & Protein)
-                 </CardTitle>
-              </CardHeader>
-              <CardContent>
-                 <div className="h-[200px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                       <LineChart data={FOOD_DATA}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} dy={10} />
-                          <Tooltip 
-                             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--background))' }}
-                          />
-                          <Line type="monotone" dataKey="cals" stroke="#f59e0b" strokeWidth={2} dot={false} />
-                          <Line type="monotone" dataKey="protein" stroke="#10b981" strokeWidth={2} dot={false} />
-                       </LineChart>
-                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none -ml-24">
+                        <div className="text-center">
+                            <div className="text-2xl font-bold">10</div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wide">Projects</div>
+                        </div>
+                    </div>
                  </div>
               </CardContent>
            </Card>
