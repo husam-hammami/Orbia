@@ -13,7 +13,7 @@ function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
 
   const links = [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/", label: "Daily", icon: LayoutDashboard },
     { href: "/headspace", label: "Headspace", icon: BrainCircuit },
     { href: "/deep-mind", label: "Deep Mind", icon: Sparkles },
     { href: "/career", label: "Career & Vision", icon: Briefcase },
