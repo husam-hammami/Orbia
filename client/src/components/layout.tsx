@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, BarChart2, Settings, Menu, CheckCircle2, Briefcase, BrainCircuit, Sparkles, Wallet, Users } from "lucide-react";
+import { LayoutDashboard, BarChart2, Settings, Menu, CheckCircle2, Briefcase, BrainCircuit, Sparkles, Wallet, Users, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -170,7 +170,8 @@ function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
 
   const links = [
-    { href: "/", label: "Daily Tracker", icon: LayoutDashboard },
+    { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/tracker", label: "Daily Tracker", icon: ClipboardList },
     { href: "/headspace", label: "Headspace", icon: BrainCircuit },
     { href: "/deep-mind", label: "Deep Mind", icon: Sparkles },
     { href: "/career", label: "Career & Vision", icon: Briefcase },
