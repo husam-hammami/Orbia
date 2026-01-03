@@ -344,6 +344,77 @@ export default function Analytics() {
                      </div>
                   </CardContent>
                </Card>
+               
+               {/* Headspace Visualization */}
+                <Card className="border-border/50 shadow-sm">
+                  <CardHeader>
+                     <CardTitle className="flex items-center gap-2 text-base">
+                        <BrainCircuit className="w-4 h-4 text-pink-500" />
+                        Headspace Dynamics
+                     </CardTitle>
+                     <CardDescription>Fronting Frequency & System Activity</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                     <div className="h-[250px] w-full">
+                         <ResponsiveContainer width="100%" height="100%">
+                            <BarChart layout="vertical" data={[
+                                { name: "Primary", value: 65, fill: "#ec4899" },
+                                { name: "Protector", value: 20, fill: "#8b5cf6" },
+                                { name: "Little", value: 10, fill: "#f59e0b" },
+                                { name: "Unknown", value: 5, fill: "#94a3b8" }
+                            ]}>
+                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
+                                <XAxis type="number" hide />
+                                <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                                <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--background))' }} />
+                                <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24} name="% Fronting Time" />
+                            </BarChart>
+                         </ResponsiveContainer>
+                     </div>
+                  </CardContent>
+               </Card>
+
+               {/* Urge Heatmap (Simulated) */}
+               <Card className="border-border/50 shadow-sm">
+                   <CardHeader>
+                       <CardTitle className="flex items-center gap-2 text-base">
+                           <Flame className="w-4 h-4 text-orange-500" />
+                           Urge Intensity Patterns
+                       </CardTitle>
+                       <CardDescription>Heatmap of urge intensity by time of day</CardDescription>
+                   </CardHeader>
+                   <CardContent>
+                       <div className="grid grid-cols-7 gap-1 h-[250px]">
+                           {["M", "T", "W", "T", "F", "S", "S"].map((day, dIndex) => (
+                               <div key={dIndex} className="flex flex-col gap-1">
+                                   <div className="text-[10px] text-center text-muted-foreground font-medium mb-1">{day}</div>
+                                   {[...Array(5)].map((_, tIndex) => {
+                                       // Mock intensity pattern
+                                       const intensity = Math.floor(Math.random() * 5); 
+                                       const colors = [
+                                           "bg-muted/20", 
+                                           "bg-orange-200 dark:bg-orange-900/30", 
+                                           "bg-orange-300 dark:bg-orange-800/50", 
+                                           "bg-orange-400 dark:bg-orange-700/70", 
+                                           "bg-orange-500 dark:bg-orange-600"
+                                       ];
+                                       return (
+                                           <div 
+                                               key={tIndex} 
+                                               className={`flex-1 rounded-sm ${colors[intensity]} transition-all hover:opacity-80`} 
+                                               title={`Intensity: ${intensity}/5`}
+                                           />
+                                       )
+                                   })}
+                               </div>
+                           ))}
+                           <div className="col-span-7 flex justify-between text-[10px] text-muted-foreground mt-1 px-1">
+                               <span>Morning</span>
+                               <span>Night</span>
+                           </div>
+                       </div>
+                   </CardContent>
+               </Card>
             </div>
         </div>
         
