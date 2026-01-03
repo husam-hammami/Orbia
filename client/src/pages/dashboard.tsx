@@ -26,7 +26,7 @@ import {
 
 export default function Dashboard() {
   const [habits, setHabits] = useState(MOCK_HABITS);
-  const [viewMode, setViewMode] = useState<"grid" | "list" | "garden">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "garden">("garden");
   const [showHeadspace, setShowHeadspace] = useState(false);
   
   const handleToggle = (id: string) => {
