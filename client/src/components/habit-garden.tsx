@@ -124,9 +124,20 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
                        <p className="text-xs font-bold uppercase tracking-wider opacity-60">Done</p>
                     </motion.div>
                  ) : (
-                    <div className="text-muted-foreground/40">
+                    <div className="text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">
+                       {stage === "seed" ? (
+                          <Droplets className="w-8 h-8 mx-auto mb-1" />
+                       ) : (
+                          <CategoryIcon 
+                              className={cn(
+                                "mx-auto mb-1 grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500", 
+                                stage === "sprout" ? "w-8 h-8" : "w-10 h-10",
+                                stage === "thrive" || stage === "master" ? "w-12 h-12" : ""
+                              )}
+                              style={{ color: 'currentColor' }} 
+                          />
+                       )}
                        <p className="text-xs font-medium uppercase tracking-widest mb-1">Grow</p>
-                       <div className="w-2 h-2 rounded-full bg-current mx-auto animate-pulse" />
                     </div>
                  )}
               </div>
