@@ -21,7 +21,8 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  Radar
+  Radar,
+  Legend // Added Legend
 } from "recharts";
 import { MOCK_HABITS } from "@/lib/mock-data";
 import { 
