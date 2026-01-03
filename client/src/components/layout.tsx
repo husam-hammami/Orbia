@@ -9,7 +9,7 @@ interface SidebarProps {
   className?: string;
 }
 
-import logoUrl from '@assets/generated_images/neurozen_logo_with_text.png';
+import logoUrl from '@assets/image_1767461776887.png';
 
 function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
