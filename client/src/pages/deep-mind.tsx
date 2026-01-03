@@ -1,468 +1,492 @@
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   ResponsiveContainer, 
-  ScatterChart, 
-  Scatter, 
+  LineChart, 
+  Line, 
   XAxis, 
   YAxis, 
-  ZAxis, 
+  CartesianGrid, 
   Tooltip, 
-  Cell,
-  LineChart,
-  Line,
-  CartesianGrid,
-  RadarChart,
+  AreaChart, 
+  Area, 
+  RadarChart, 
+  PolarGrid, 
+  PolarAngleAxis, 
+  PolarRadiusAxis, 
   Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis
+  ScatterChart,
+  Scatter,
+  ZAxis,
+  Cell
 } from "recharts";
 import { 
   Brain, 
-  Sparkles, 
+  Activity, 
+  Radio, 
+  Signal, 
+  Database, 
+  Users, 
   Zap, 
+  AlertTriangle, 
+  Fingerprint, 
   Network, 
-  GitBranch, 
-  Lightbulb, 
-  Microscope,
-  Bot,
-  AlertTriangle,
-  Fingerprint,
+  Mic2, 
+  Eye, 
+  Ghost,
   Cpu,
+  Save,
+  History,
+  Sparkles,
   ArrowRight,
-  TrendingUp,
-  Activity
+  Wifi,
+  Layers,
+  Search,
+  Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// --- Mock Data ---
+// --- Advanced Mock Data ---
 
-const NEURAL_NODES = [
-  // Input Layer (Sensory/State) - X: 10-20
-  { id: 'n1', x: 15, y: 20, z: 50, name: "Sleep Quality", type: "Input", cluster: "bio" },
-  { id: 'n2', x: 15, y: 50, z: 60, name: "Work Stress", type: "Input", cluster: "env" },
-  { id: 'n3', x: 15, y: 80, z: 40, name: "Nutrition", type: "Input", cluster: "bio" },
-  
-  // Hidden Layer (Processing) - X: 45-55
-  { id: 'n4', x: 50, y: 30, z: 90, name: "Amygdala", type: "Hidden", cluster: "brain" },
-  { id: 'n5', x: 50, y: 70, z: 85, name: "Prefrontal Cortex", type: "Hidden", cluster: "brain" },
-
-  // Output Layer (System State) - X: 80-90
-  { id: 'n6', x: 85, y: 20, z: 100, name: "Dissociation", type: "Output", cluster: "result" },
-  { id: 'n7', x: 85, y: 50, z: 90, name: "Switch Risk", type: "Output", cluster: "result" },
-  { id: 'n8', x: 85, y: 80, z: 80, name: "Urge Intensity", type: "Output", cluster: "result" },
+const SYSTEM_MEMBERS = [
+  { id: 'm1', name: 'Host', role: 'Daily Life', traits: ['Logical', 'Anxious'], color: '#6366f1' },
+  { id: 'm2', name: 'Protector', role: 'Safety', traits: ['Vigilant', 'Strong'], color: '#ef4444' },
+  { id: 'm3', name: 'Little', role: 'Trauma Holder', traits: ['Creative', 'Sensitive'], color: '#ec4899' },
+  { id: 'm4', name: 'Manager', role: 'Organization', traits: ['Strict', 'Efficient'], color: '#10b981' },
+  { id: 'm5', name: 'Gatekeeper', role: 'Memory', traits: ['Calm', 'Detached'], color: '#8b5cf6' },
 ];
 
-const NEURAL_EDGES = [
-    { source: 'n1', target: 'n5', strength: 0.8, type: 'positive' }, // Sleep -> Cortex
-    { source: 'n2', target: 'n4', strength: 0.9, type: 'positive' }, // Stress -> Amygdala
-    { source: 'n2', target: 'n5', strength: 0.7, type: 'negative' }, // Stress -> Cortex (neg)
-    { source: 'n3', target: 'n4', strength: 0.4, type: 'positive' }, // Nutrition -> Amygdala
-    { source: 'n3', target: 'n5', strength: 0.6, type: 'positive' }, // Nutrition -> Cortex
-    
-    { source: 'n4', target: 'n6', strength: 0.9, type: 'positive' }, // Amygdala -> Dissociation
-    { source: 'n4', target: 'n7', strength: 0.8, type: 'positive' }, // Amygdala -> Switch
-    { source: 'n4', target: 'n8', strength: 0.7, type: 'positive' }, // Amygdala -> Urge
-    
-    { source: 'n5', target: 'n7', strength: 0.6, type: 'negative' }, // Cortex -> Switch (Inhibits)
-    { source: 'n5', target: 'n8', strength: 0.8, type: 'negative' }, // Cortex -> Urge (Inhibits)
+const HEADSPACE_LOCATIONS = [
+  "Fronting Room", "Inner World", "Library", "Control Room", "Dormant", "Unknown"
 ];
 
-const PREDICTION_DATA = [
-  { time: "Now", risk: 20, confidence: 95 },
-  { time: "+1h", risk: 25, confidence: 92 },
-  { time: "+2h", risk: 45, confidence: 88 }, // Rising risk
-  { time: "+3h", risk: 75, confidence: 85 }, // High risk
-  { time: "+4h", risk: 85, confidence: 80 }, // Peak
-  { time: "+5h", risk: 60, confidence: 75 },
+const RECENT_LOGS = [
+  { time: "10:30 AM", dissociation: 30, stress: 45, front: "Host", note: "Meeting preparation" },
+  { time: "12:15 PM", dissociation: 65, stress: 80, front: "Protector", note: "Triggered by loud noise" },
+  { time: "02:45 PM", dissociation: 40, stress: 30, front: "Host", note: "Calming down" },
+  { time: "05:00 PM", dissociation: 20, stress: 25, front: "Manager", note: "Wrapping up work" },
 ];
 
-const PATTERN_RECOGNITION = [
-  { 
-    id: 1, 
-    pattern: "Sleep Deprivation Loop", 
-    trigger: "Sleep < 5h", 
-    outcome: "Dissociation +40%", 
-    confidence: 94,
-    severity: "high"
-  },
-  { 
-    id: 2, 
-    pattern: "Caffeine Sensitivity", 
-    trigger: "Coffee > 2 cups", 
-    outcome: "Anxiety +30%", 
-    confidence: 88,
-    severity: "medium"
-  },
-  { 
-    id: 3, 
-    pattern: "Protector Trigger", 
-    trigger: "Work Conflict", 
-    outcome: "Protector Fronting", 
-    confidence: 91,
-    severity: "high"
-  }
+const SYSTEM_WAVEFORM = Array.from({ length: 50 }, (_, i) => ({
+  time: i,
+  noise: 30 + Math.random() * 40 + (Math.sin(i / 5) * 20),
+  coherence: 50 + Math.cos(i / 8) * 30
+}));
+
+const SYSTEM_STATS = [
+  { subject: 'Dissociation', A: 65, fullMark: 100 },
+  { subject: 'Communication', A: 40, fullMark: 100 },
+  { subject: 'Memory Access', A: 55, fullMark: 100 },
+  { subject: 'Emotional Reg', A: 30, fullMark: 100 },
+  { subject: 'Physical Grounding', A: 70, fullMark: 100 },
+  { subject: 'Co-con', A: 45, fullMark: 100 },
 ];
 
-const SUGGESTIONS = [
-  {
-    type: "Immediate",
-    action: "Box Breathing",
-    duration: "5 min",
-    reason: "Predicted anxiety spike in 30 mins based on current heart rate variability.",
-    icon: Activity
-  },
-  {
-    type: "Preventative",
-    action: "Protein Snack",
-    duration: "10 min",
-    reason: "Blood sugar instability detected as a recurring trigger for afternoon dissociation.",
-    icon: Zap
-  },
-  {
-    type: "System",
-    action: "Journal Check-in",
-    duration: "15 min",
-    reason: "Communication gap detected between Host and Little alters over last 48h.",
-    icon: Network
-  }
+const ALTER_POSITIONS = [
+    { x: 50, y: 10, z: 100, name: 'Host', status: 'Fronting' },
+    { x: 30, y: 40, z: 60, name: 'Protector', status: 'Co-con' },
+    { x: 70, y: 40, z: 50, name: 'Manager', status: 'Watching' },
+    { x: 20, y: 80, z: 20, name: 'Little', status: 'Deep Internal' },
+    { x: 80, y: 80, z: 10, name: 'Gatekeeper', status: 'Deep Internal' },
 ];
 
-const CustomNeuralNode = (props: any) => {
-    const { cx, cy, payload } = props;
-    const isOutput = payload.type === 'Output';
-    const isHidden = payload.type === 'Hidden';
-    
-    const color = isOutput ? '#ef4444' : isHidden ? '#a855f7' : '#6366f1';
-    const radius = isOutput ? 12 : isHidden ? 10 : 8; // Slightly larger for better readability
-    
-    return (
-        <g className="cursor-pointer group">
-            {/* Glow Effect */}
-            <circle cx={cx} cy={cy} r={radius * 2.5} fill={color} opacity={0.15} className="animate-pulse" />
-            <circle cx={cx} cy={cy} r={radius * 1.2} fill={color} opacity={0.3} />
-            
-            {/* Core Node */}
-            <circle cx={cx} cy={cy} r={radius} fill={color} stroke="hsl(var(--background))" strokeWidth={2} className="group-hover:stroke-white transition-colors" />
-            
-            {/* Label always visible for clarity */}
-            <text x={cx} y={cy + radius + 15} textAnchor="middle" fill={color} fontSize={10} fontWeight="bold" className="opacity-70 group-hover:opacity-100 transition-opacity pointer-events-none uppercase tracking-wider">
-                {payload.name}
-            </text>
-        </g>
-    );
-};
+const PREDICTIVE_PATTERNS = [
+    { trigger: "High Caffeine", effect: "Rapid Switching", probability: 85 },
+    { trigger: "Sleep < 5h", effect: "Amnesia Barriers Up", probability: 92 },
+    { trigger: "Social Stress", effect: "Protector Fronting", probability: 78 },
+];
 
 export default function DeepMind() {
+  const [activeTab, setActiveTab] = useState("monitor");
+  
+  // Input States
+  const [dissociation, setDissociation] = useState([30]);
+  const [stress, setStress] = useState([40]);
+  const [communication, setCommunication] = useState([60]);
+  const [urges, setUrges] = useState([10]);
+  const [selectedAlter, setSelectedAlter] = useState(SYSTEM_MEMBERS[0]);
+  const [location, setLocation] = useState("Fronting Room");
+  const [isRecording, setIsRecording] = useState(false);
+
+  // Simulated live data effect
+  const [waveform, setWaveform] = useState(SYSTEM_WAVEFORM);
+  useEffect(() => {
+    const interval = setInterval(() => {
+        setWaveform(prev => {
+            const next = [...prev.slice(1), {
+                time: prev[prev.length - 1].time + 1,
+                noise: 30 + Math.random() * 40 + (Math.sin(Date.now() / 1000) * 20),
+                coherence: 50 + Math.cos(Date.now() / 2000) * 30
+            }];
+            return next;
+        });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <Layout>
-      <div className="space-y-8 animate-in fade-in duration-500 pb-12">
-        {/* Header with AI Status */}
-        <div className="flex flex-col md:flex-row justify-between gap-6 border-b border-border/40 pb-6">
-          <div className="space-y-2">
-             <div className="flex items-center gap-2">
-                <Badge variant="outline" className="border-indigo-500/30 text-indigo-400 bg-indigo-500/10 gap-1.5 px-3 py-1">
-                    <Bot className="w-3.5 h-3.5" /> Deep Mind Engine v3.0
-                </Badge>
-                <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 gap-1.5 px-3 py-1 animate-pulse">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    Live Monitoring
-                </Badge>
-             </div>
-            <h1 className="text-4xl md:text-5xl font-display font-bold text-foreground tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              Deep Mind Analysis
-            </h1>
-            <p className="text-muted-foreground text-lg max-w-2xl">
-              Neural network processing of your biometric and psychological data to predict system changes and optimize mental health.
-            </p>
-          </div>
-          
-          <div className="flex flex-col gap-3 min-w-[200px] bg-muted/20 p-4 rounded-xl border border-border/50">
-             <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground flex items-center gap-2">
-                    <Cpu className="w-4 h-4" /> Processing
-                </span>
-                <span className="font-mono text-indigo-400">2.4 TFLOPS</span>
-             </div>
-             <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground flex items-center gap-2">
-                    <DatabaseIcon className="w-4 h-4" /> Data Points
-                </span>
-                <span className="font-mono text-emerald-400">14,203</span>
-             </div>
-             <Progress value={78} className="h-1 bg-indigo-500/10" indicatorClassName="bg-indigo-500" />
-          </div>
+      <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+        
+        {/* Deep Mind Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border/40 pb-6">
+            <div>
+                <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="outline" className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 px-2 py-0.5 text-xs font-mono uppercase tracking-wider">
+                        Deep Mind v4.0
+                    </Badge>
+                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-2 py-0.5 text-xs font-mono uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                        </span>
+                        System Online
+                    </Badge>
+                </div>
+                <h1 className="text-3xl font-display font-bold tracking-tight">Cortex Interface</h1>
+                <p className="text-muted-foreground text-sm">Advanced system telemetry and headspace mapping.</p>
+            </div>
+
+            <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-lg border border-border/50">
+                <div className="text-right px-2 border-r border-border/50">
+                    <div className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">System Noise</div>
+                    <div className="text-lg font-mono font-bold text-rose-400">42%</div>
+                </div>
+                <div className="text-right px-2">
+                    <div className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Coherence</div>
+                    <div className="text-lg font-mono font-bold text-indigo-400">89%</div>
+                </div>
+            </div>
         </div>
 
-        {/* Main Neural Graph Visualization */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-2 bg-gradient-to-br from-background via-background to-indigo-950/20 border-indigo-500/20 shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-32 bg-indigo-500/5 blur-[100px] rounded-full pointer-events-none" />
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-xl">
-                        <Network className="w-5 h-5 text-indigo-400" />
-                        Neural Correlation Graph
-                    </CardTitle>
-                    <CardDescription>
-                        Interactive Map: <span className="text-indigo-400">Inputs</span> (Left) → <span className="text-purple-400">Processing</span> (Center) → <span className="text-rose-400">Outcomes</span> (Right). 
-                        Thicker lines indicate stronger influence.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="h-[500px] w-full bg-slate-950 rounded-xl border border-indigo-500/10 shadow-inner p-4 relative overflow-hidden group">
-                        {/* Dynamic Background Pattern */}
-                        <div className="absolute inset-0 opacity-20" 
-                             style={{ 
-                                 backgroundImage: 'radial-gradient(circle at 50% 50%, #6366f1 1px, transparent 1px)', 
-                                 backgroundSize: '40px 40px' 
-                             }} 
-                        />
-                        
-                        {/* Data-Driven Edge Layer */}
-                        <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                            <defs>
-                                <linearGradient id="edge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stopColor="#6366f1" stopOpacity="0.4" />
-                                    <stop offset="100%" stopColor="#ef4444" stopOpacity="0.4" />
-                                </linearGradient>
-                            </defs>
+        <Tabs defaultValue="monitor" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="bg-muted/30 border border-border/50 p-1">
+                <TabsTrigger value="monitor" className="gap-2"><Activity className="w-4 h-4" /> Live Monitor</TabsTrigger>
+                <TabsTrigger value="analysis" className="gap-2"><Brain className="w-4 h-4" /> Analysis & Patterns</TabsTrigger>
+                <TabsTrigger value="map" className="gap-2"><Network className="w-4 h-4" /> Headspace Map</TabsTrigger>
+            </TabsList>
+
+            {/* LIVE MONITOR TAB */}
+            <TabsContent value="monitor" className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    {/* LEFT COLUMN: Input Console */}
+                    <Card className="lg:col-span-4 border-l-4 border-l-indigo-500 shadow-lg">
+                        <CardHeader className="bg-muted/10 pb-4">
+                            <CardTitle className="flex items-center justify-between text-lg">
+                                <span>Neural Logger</span>
+                                <Cpu className="w-4 h-4 text-indigo-500 animate-pulse" />
+                            </CardTitle>
+                            <CardDescription>Log current system parameters</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6 pt-6">
                             
-                            {NEURAL_EDGES.map((edge, i) => {
-                                const sourceNode = NEURAL_NODES.find(n => n.id === edge.source);
-                                const targetNode = NEURAL_NODES.find(n => n.id === edge.target);
-                                
-                                if (!sourceNode || !targetNode) return null;
+                            {/* Who is Fronting? */}
+                            <div className="space-y-3">
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                    <Users className="w-3.5 h-3.5" /> Active Front
+                                </label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {SYSTEM_MEMBERS.slice(0, 6).map(member => (
+                                        <button
+                                            key={member.id}
+                                            onClick={() => setSelectedAlter(member)}
+                                            className={cn(
+                                                "text-xs p-2 rounded border transition-all text-center font-medium truncate",
+                                                selectedAlter.id === member.id 
+                                                    ? "bg-indigo-500 text-white border-indigo-600 shadow-md transform scale-105" 
+                                                    : "bg-background border-border hover:bg-muted text-muted-foreground"
+                                            )}
+                                            style={{ 
+                                                borderColor: selectedAlter.id === member.id ? member.color : undefined,
+                                                backgroundColor: selectedAlter.id === member.id ? member.color : undefined
+                                            }}
+                                        >
+                                            {member.name}
+                                        </button>
+                                    ))}
+                                    <button className="text-xs p-2 rounded border border-dashed border-border text-muted-foreground hover:bg-muted flex items-center justify-center">
+                                        <Plus className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            </div>
 
-                                // Convert logical coordinates (0-100) to percentage for SVG
-                                const x1 = `${sourceNode.x}%`;
-                                const y1 = `${100 - sourceNode.y}%`; // Recharts flips Y axis? No, Scatterchart Y is bottom-up usually. Let's assume standard logical coords
-                                const x2 = `${targetNode.x}%`;
-                                const y2 = `${100 - targetNode.y}%`;
+                            {/* Sliders */}
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-xs font-medium">
+                                        <span className="flex items-center gap-1.5"><Ghost className="w-3.5 h-3.5 text-purple-500" /> Dissociation</span>
+                                        <span className="font-mono">{dissociation}%</span>
+                                    </div>
+                                    <Slider value={dissociation} onValueChange={setDissociation} max={100} step={1} className="[&>span:first-child]:bg-purple-500/20 [&_[role=slider]]:bg-purple-500" />
+                                </div>
 
-                                return (
-                                    <g key={i}>
-                                        <path 
-                                            d={`M ${x1} ${y1} C ${parseFloat(x1)+15}% ${y1}, ${parseFloat(x2)-15}% ${y2}, ${x2} ${y2}`} 
-                                            stroke="url(#edge-gradient)" 
-                                            strokeWidth={edge.strength * 3} 
-                                            fill="none" 
-                                            opacity={0.6}
-                                            className="transition-all duration-500"
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-xs font-medium">
+                                        <span className="flex items-center gap-1.5"><Mic2 className="w-3.5 h-3.5 text-blue-500" /> Communication</span>
+                                        <span className="font-mono">{communication}%</span>
+                                    </div>
+                                    <Slider value={communication} onValueChange={setCommunication} max={100} step={1} className="[&>span:first-child]:bg-blue-500/20 [&_[role=slider]]:bg-blue-500" />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-xs font-medium">
+                                        <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-amber-500" /> System Stress</span>
+                                        <span className="font-mono">{stress}%</span>
+                                    </div>
+                                    <Slider value={stress} onValueChange={setStress} max={100} step={1} className="[&>span:first-child]:bg-amber-500/20 [&_[role=slider]]:bg-amber-500" />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-xs font-medium">
+                                        <span className="flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-rose-500" /> Intrusive Urges</span>
+                                        <span className="font-mono">{urges}%</span>
+                                    </div>
+                                    <Slider value={urges} onValueChange={setUrges} max={100} step={1} className="[&>span:first-child]:bg-rose-500/20 [&_[role=slider]]:bg-rose-500" />
+                                </div>
+                            </div>
+                            
+                            <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20" size="lg">
+                                <Save className="w-4 h-4 mr-2" /> Commit System Log
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    {/* RIGHT COLUMN: Visualizations */}
+                    <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        {/* Live Waveform */}
+                        <Card className="md:col-span-2 bg-slate-950 border-slate-800 shadow-2xl overflow-hidden relative group">
+                            <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f46e520_1px,transparent_1px),linear-gradient(to_bottom,#4f46e520_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+                            <CardHeader className="relative z-10 pb-2">
+                                <CardTitle className="text-slate-100 flex items-center gap-2 text-base font-mono">
+                                    <Activity className="w-4 h-4 text-emerald-400" /> Real-time System Coherence
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="h-[250px] relative z-10 pl-0">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={waveform}>
+                                        <defs>
+                                            <linearGradient id="colorNoise" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
+                                                <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                                            </linearGradient>
+                                            <linearGradient id="colorCoherence" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                        <XAxis dataKey="time" hide />
+                                        <YAxis hide domain={[0, 100]} />
+                                        <Tooltip 
+                                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
+                                            itemStyle={{ fontSize: '12px' }}
                                         />
-                                        {/* Animated particle for flow */}
-                                        <circle r="2" fill="#fff">
-                                            <animateMotion 
-                                                dur={`${2 / edge.strength}s`} 
-                                                repeatCount="indefinite"
-                                                path={`M ${sourceNode.x * 10} ${1000 - sourceNode.y * 10} C ${(sourceNode.x + 15) * 10} ${1000 - sourceNode.y * 10}, ${(targetNode.x - 15) * 10} ${1000 - targetNode.y * 10}, ${targetNode.x * 10} ${1000 - targetNode.y * 10}`}
-                                                // Note: coordinate mapping for animateMotion is tricky with percentages. 
-                                                // Simplifying: we'll use CSS animation on the path instead if possible, or skip particles for robust SVG lines.
-                                                // Actually, let's just use a pulsing opacity on the line itself.
-                                            />
-                                        </circle>
-                                    </g>
-                                );
-                            })}
-                        </svg>
+                                        <Area type="monotone" dataKey="noise" stroke="#f43f5e" strokeWidth={2} fillOpacity={1} fill="url(#colorNoise)" name="Noise/Chaos" isAnimationActive={false} />
+                                        <Area type="monotone" dataKey="coherence" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorCoherence)" name="Stability" isAnimationActive={false} />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
 
+                        {/* Recent History List */}
+                        <Card className="flex flex-col">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <History className="w-4 h-4 text-muted-foreground" />
+                                    Recent Logs
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex-1 p-0">
+                                <ScrollArea className="h-[250px] px-4">
+                                    <div className="space-y-4 pb-4">
+                                        {RECENT_LOGS.map((log, i) => (
+                                            <div key={i} className="flex gap-3 items-start p-3 rounded-lg bg-muted/30 border border-border/50 text-sm">
+                                                <div className="min-w-[60px] font-mono text-xs text-muted-foreground pt-0.5">{log.time}</div>
+                                                <div className="space-y-1 flex-1">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="font-semibold text-indigo-500">{log.front}</span>
+                                                        <Badge variant="outline" className="text-[10px] h-4 px-1">Dis: {log.dissociation}%</Badge>
+                                                    </div>
+                                                    <p className="text-muted-foreground text-xs leading-snug">{log.note}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
+
+                        {/* System Radar Chart */}
+                        <Card>
+                             <CardHeader className="pb-2">
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <Layers className="w-4 h-4 text-muted-foreground" />
+                                    System Balance
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="h-[250px] flex items-center justify-center">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={SYSTEM_STATS}>
+                                        <PolarGrid stroke="#e2e8f0" strokeOpacity={0.5} />
+                                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                                        <Radar
+                                            name="System State"
+                                            dataKey="A"
+                                            stroke="#8b5cf6"
+                                            strokeWidth={2}
+                                            fill="#8b5cf6"
+                                            fillOpacity={0.3}
+                                        />
+                                    </RadarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+
+                    </div>
+                </div>
+            </TabsContent>
+
+            {/* ANALYSIS TAB */}
+            <TabsContent value="analysis" className="animate-in slide-in-from-bottom-4 duration-500">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                     <Card className="md:col-span-2">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Search className="w-5 h-5 text-indigo-500" />
+                                Pattern Recognition Engine
+                            </CardTitle>
+                            <CardDescription>AI-detected correlations between triggers and system responses.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {PREDICTIVE_PATTERNS.map((pattern, i) => (
+                                    <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-muted/10 hover:bg-muted/30 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-10 w-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-500 font-bold text-xs">
+                                                {pattern.probability}%
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold text-sm flex items-center gap-2">
+                                                    {pattern.trigger} 
+                                                    <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                                                    <span className="text-indigo-600 dark:text-indigo-400">{pattern.effect}</span>
+                                                </div>
+                                                <div className="text-xs text-muted-foreground mt-0.5">Confidence Level: High</div>
+                                            </div>
+                                        </div>
+                                        <Badge variant="outline">Detected</Badge>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Fingerprint className="w-5 h-5 text-purple-500" />
+                                Identity Fragment Analysis
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="p-4 rounded-lg bg-purple-500/5 border border-purple-500/10">
+                                <div className="text-xs font-bold text-purple-500 uppercase mb-2">Most Active (7 Days)</div>
+                                <div className="flex items-center gap-3">
+                                    <div className="h-12 w-12 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
+                                        <Users className="w-6 h-6 text-slate-400" />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold">The Protector</div>
+                                        <div className="text-xs text-muted-foreground">Fronting 45% of time</div>
+                                    </div>
+                                </div>
+                            </div>
+                             <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/10">
+                                <div className="text-xs font-bold text-amber-500 uppercase mb-2">Needs Attention</div>
+                                <div className="flex items-center gap-3">
+                                    <div className="h-12 w-12 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
+                                        <Ghost className="w-6 h-6 text-slate-400" />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold">Little</div>
+                                        <div className="text-xs text-muted-foreground">High stress signals detected</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </TabsContent>
+
+            {/* HEADSPACE MAP TAB */}
+            <TabsContent value="map" className="animate-in slide-in-from-bottom-4 duration-500">
+                <Card className="bg-slate-950 border-slate-800 overflow-hidden relative min-h-[500px]">
+                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
+                    <CardHeader className="relative z-10 border-b border-slate-800/50 bg-slate-900/50 backdrop-blur-sm">
+                        <div className="flex justify-between items-center">
+                            <CardTitle className="text-slate-100 flex items-center gap-2">
+                                <Network className="w-5 h-5 text-indigo-400" /> 
+                                Topographical System Map
+                            </CardTitle>
+                            <div className="flex gap-4 text-xs text-slate-400 font-mono">
+                                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> Front</div>
+                                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-slate-600"></span> Deep Internal</div>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0 relative h-[500px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#6366f1" opacity={0.05} vertical={false} horizontal={false} />
-                                <XAxis type="number" dataKey="x" hide domain={[0, 100]} />
-                                <YAxis type="number" dataKey="y" hide domain={[0, 100]} />
-                                <ZAxis type="number" dataKey="z" range={[100, 600]} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.3} />
+                                <XAxis type="number" dataKey="x" name="stiffness" hide domain={[0, 100]} />
+                                <YAxis type="number" dataKey="y" name="stiffness" hide domain={[0, 100]} />
+                                <ZAxis type="number" dataKey="z" range={[60, 400]} name="score" />
                                 <Tooltip 
-                                    cursor={{ strokeDasharray: '3 3', stroke: '#6366f1', strokeOpacity: 0.5 }}
+                                    cursor={{ strokeDasharray: '3 3' }} 
                                     content={({ active, payload }) => {
                                         if (active && payload && payload.length) {
                                             const data = payload[0].payload;
                                             return (
-                                                <div className="bg-slate-900/95 backdrop-blur-md border border-indigo-500/30 p-4 rounded-xl shadow-2xl text-white min-w-[200px]">
-                                                    <p className="font-bold text-lg flex items-center gap-2 mb-2">
-                                                        {data.type === 'Output' ? <Sparkles className="w-5 h-5 text-rose-500" /> : 
-                                                         data.type === 'Hidden' ? <Cpu className="w-5 h-5 text-purple-500" /> :
-                                                         <Activity className="w-5 h-5 text-indigo-500" />}
-                                                        {data.name}
-                                                    </p>
-                                                    <div className="flex flex-col gap-2">
-                                                        <div className="flex items-center justify-between text-xs text-slate-400 uppercase tracking-wider font-semibold">
-                                                            <span>Activation Level</span>
-                                                            <span className="text-white">{data.z}%</span>
-                                                        </div>
-                                                        <Progress value={data.z} className="h-1.5 bg-slate-700" indicatorClassName={
-                                                            data.type === 'Output' ? "bg-rose-500" : 
-                                                            data.type === 'Hidden' ? "bg-purple-500" : "bg-indigo-500"
-                                                        } />
-                                                        
-                                                        <div className="mt-2 pt-2 border-t border-slate-800 text-xs text-slate-300">
-                                                            {data.type === 'Input' && "Primary environmental driver."}
-                                                            {data.type === 'Hidden' && "Internal processing node."}
-                                                            {data.type === 'Output' && "Predicted system state."}
-                                                        </div>
-                                                    </div>
+                                                <div className="bg-slate-900 border border-indigo-500/50 p-3 rounded shadow-xl text-slate-100">
+                                                    <p className="font-bold mb-1">{data.name}</p>
+                                                    <p className="text-xs text-indigo-300">{data.status}</p>
+                                                    <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wide">Proximity: {data.z}%</p>
                                                 </div>
                                             );
                                         }
                                         return null;
                                     }}
                                 />
-                                <Scatter name="Nodes" data={NEURAL_NODES} shape={<CustomNeuralNode />} />
+                                <Scatter name="Alters" data={ALTER_POSITIONS} fill="#8884d8">
+                                    {ALTER_POSITIONS.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.status === 'Fronting' ? '#6366f1' : entry.status === 'Co-con' ? '#a855f7' : '#64748b'} />
+                                    ))}
+                                </Scatter>
                             </ScatterChart>
                         </ResponsiveContainer>
                         
-                        <div className="absolute bottom-4 left-4 text-xs text-slate-500 font-mono">
-                            Graph Logic v4.2<br/>
-                            {NEURAL_EDGES.length} Active Correlations
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Predictive Dashboard */}
-            <div className="space-y-6">
-                <Card className="border-l-4 border-l-amber-500 border-border/50 shadow-md">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <Lightbulb className="w-5 h-5 text-amber-500" />
-                            Next 4 Hours
-                        </CardTitle>
-                        <CardDescription>System State Forecast</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold mb-1 flex items-baseline gap-2">
-                            Switch Risk
-                            <span className="text-sm font-normal text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full">High</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-4">
-                            Probability of switching to <strong className="text-foreground">Protector</strong> increases to 85% by 4 PM.
-                        </p>
-                        
-                        <div className="h-[150px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={PREDICTION_DATA}>
-                                    <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', backgroundColor: 'hsl(var(--background))' }} />
-                                    <Line type="monotone" dataKey="risk" stroke="#ef4444" strokeWidth={3} dot={{r: 3}} />
-                                </LineChart>
-                            </ResponsiveContainer>
+                        {/* Overlay concentric rings for 'Fronting' visualization */}
+                        <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-10">
+                            <div className="w-[200px] h-[200px] rounded-full border border-indigo-500"></div>
+                            <div className="absolute w-[400px] h-[400px] rounded-full border border-indigo-500"></div>
+                            <div className="absolute w-[600px] h-[600px] rounded-full border border-indigo-500"></div>
                         </div>
                     </CardContent>
                 </Card>
+            </TabsContent>
 
-                <Card className="border-border/50 bg-muted/5">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                            <Microscope className="w-4 h-4" /> Root Cause Analysis
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex justify-between items-center text-sm">
-                            <span>Stress Level</span>
-                            <Progress value={85} className="w-24 h-2 bg-muted" indicatorClassName="bg-rose-500" />
-                        </div>
-                         <div className="flex justify-between items-center text-sm">
-                            <span>Sleep Debt</span>
-                            <Progress value={60} className="w-24 h-2 bg-muted" indicatorClassName="bg-amber-500" />
-                        </div>
-                         <div className="flex justify-between items-center text-sm">
-                            <span>Social Battery</span>
-                            <Progress value={20} className="w-24 h-2 bg-muted" indicatorClassName="bg-slate-500" />
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
-
-        {/* Deep Learning Insights & Suggestions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Pattern Recognition */}
-            <div className="space-y-4">
-                 <h2 className="text-2xl font-semibold flex items-center gap-2">
-                    <Fingerprint className="w-6 h-6 text-purple-500" />
-                    Recognized Patterns
-                </h2>
-                <div className="space-y-3">
-                    {PATTERN_RECOGNITION.map((pattern) => (
-                        <div key={pattern.id} className="group p-4 rounded-xl border border-border/50 bg-background hover:border-purple-500/50 transition-all shadow-sm">
-                            <div className="flex justify-between items-start mb-2">
-                                <h3 className="font-bold text-lg group-hover:text-purple-500 transition-colors">{pattern.pattern}</h3>
-                                <Badge variant={pattern.severity === 'high' ? 'destructive' : 'secondary'}>
-                                    {pattern.confidence}% Confidence
-                                </Badge>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm">
-                                <span className="bg-muted px-2 py-1 rounded text-muted-foreground">{pattern.trigger}</span>
-                                <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                                <span className="font-medium text-foreground">{pattern.outcome}</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Smart Interventions */}
-            <div className="space-y-4">
-                 <h2 className="text-2xl font-semibold flex items-center gap-2">
-                    <Sparkles className="w-6 h-6 text-indigo-500" />
-                    AI Prescriptions
-                </h2>
-                <div className="space-y-3">
-                    {SUGGESTIONS.map((suggestion, i) => {
-                        const Icon = suggestion.icon;
-                        return (
-                            <div key={i} className="flex gap-4 p-4 rounded-xl border border-border/50 bg-indigo-500/5 hover:bg-indigo-500/10 transition-colors">
-                                <div className="mt-1 bg-background p-2 rounded-full border border-indigo-500/20 shadow-sm h-fit">
-                                    <Icon className="w-5 h-5 text-indigo-500" />
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="font-bold text-base">{suggestion.action}</h3>
-                                        <span className="text-xs text-muted-foreground bg-background px-1.5 py-0.5 rounded border border-border/50">{suggestion.duration}</span>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground leading-relaxed">
-                                        {suggestion.reason}
-                                    </p>
-                                    <div className="pt-2">
-                                        <button className="text-xs font-medium text-indigo-500 hover:text-indigo-400 flex items-center gap-1">
-                                            Accept Suggestion <ArrowRight className="w-3 h-3" />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )
-                    })}
-                </div>
-            </div>
-        </div>
-
+        </Tabs>
       </div>
     </Layout>
   );
-}
-
-function DatabaseIcon(props: any) {
-    return (
-        <svg
-        {...props}
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        >
-        <ellipse cx="12" cy="5" rx="9" ry="3" />
-        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-        </svg>
-    )
 }
