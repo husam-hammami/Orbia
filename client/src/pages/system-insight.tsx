@@ -107,8 +107,8 @@ export default function SystemInsight() {
                                             <div className={cn(
                                                 "h-10 w-10 rounded-full flex items-center justify-center border",
                                                 isActive ? "shadow-md" : "shadow-sm"
-                                            )} style={{ backgroundColor: member.color + '20', borderColor: member.color + '40' }}>
-                                                <Icon className="w-5 h-5" style={{ color: member.color }} />
+                                            )} style={{ backgroundColor: (member.color || "#6366f1") + '20', borderColor: (member.color || "#6366f1") + '40' }}>
+                                                <Icon className="w-5 h-5" style={{ color: member.color || "#6366f1" }} />
                                             </div>
                                             <div className="flex-1">
                                                 <div className="font-semibold text-sm flex justify-between">
@@ -127,13 +127,13 @@ export default function SystemInsight() {
                     {/* Main Content: Member Profile */}
                     <div className="lg:col-span-8 space-y-6">
                         {activeMember && (
-                        <Card className="border-t-4 shadow-md" style={{ borderTopColor: activeMember.color }}>
+                        <Card className="border-t-4 shadow-md" style={{ borderTopColor: activeMember.color || "#6366f1" }}>
                             <CardHeader>
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <CardTitle className="text-3xl font-bold flex items-center gap-3">
                                             {activeMember.name}
-                                            <Badge className="text-white border-0" style={{ backgroundColor: activeMember.color }}>
+                                            <Badge className="text-white border-0" style={{ backgroundColor: activeMember.color || "#6366f1" }}>
                                                 {activeMember.role}
                                             </Badge>
                                         </CardTitle>
@@ -141,10 +141,10 @@ export default function SystemInsight() {
                                             {activeMember.description}
                                         </CardDescription>
                                     </div>
-                                    <div className="h-16 w-16 rounded-full flex items-center justify-center bg-muted border-2 border-border" style={{ borderColor: activeMember.color }}>
+                                    <div className="h-16 w-16 rounded-full flex items-center justify-center bg-muted border-2 border-border" style={{ borderColor: activeMember.color || "#6366f1" }}>
                                         {(() => {
                                             const Icon = getIcon(activeMember.avatar || 'user');
-                                            return <Icon className="w-8 h-8 opacity-80" style={{ color: activeMember.color }} />
+                                            return <Icon className="w-8 h-8 opacity-80" style={{ color: activeMember.color || "#6366f1" }} />
                                         })()}
                                     </div>
                                 </div>
@@ -154,7 +154,7 @@ export default function SystemInsight() {
                                 <div>
                                     <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Personality Traits</h3>
                                     <div className="flex flex-wrap gap-2">
-                                        {activeMember.traits.map(trait => (
+                                        {activeMember.traits?.map(trait => (
                                             <Badge key={trait} variant="outline" className="px-3 py-1 bg-background">
                                                 {trait}
                                             </Badge>
@@ -168,14 +168,14 @@ export default function SystemInsight() {
                                         <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
                                             <Activity className="w-3.5 h-3.5" /> Activity Level
                                         </div>
-                                        <div className="text-2xl font-bold">{activeMember.stats?.activity ? `${activeMember.stats.activity}%` : "--"}</div>
-                                        <Progress value={activeMember.stats?.activity || 0} className="h-1 mt-2" style={{ color: activeMember.color }} />
+                                        <div className="text-2xl font-bold">{activeMember.stats?.activity ? `${activeMember.stats.activity}%` : "Await Data"}</div>
+                                        <Progress value={activeMember.stats?.activity || 0} className="h-1 mt-2" style={{ color: activeMember.color || "#6366f1" }} />
                                     </div>
                                     <div className="p-4 rounded-xl bg-muted/20 border border-border/50">
                                         <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
                                             <BrainCircuit className="w-3.5 h-3.5" /> Avg Stress
                                         </div>
-                                        <div className="text-2xl font-bold">{activeMember.stats?.stress ? `${activeMember.stats.stress}/10` : "--"}</div>
+                                        <div className="text-2xl font-bold">{activeMember.stats?.stress ? `${activeMember.stats.stress}/10` : "Await Data"}</div>
                                         <div className="flex gap-0.5 mt-2 h-1">
                                             {[...Array(10)].map((_, i) => (
                                                 <div key={i} className={cn("flex-1 rounded-full", i < (activeMember.stats?.stress || 0) ? "bg-rose-500" : "bg-muted")} />

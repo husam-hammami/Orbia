@@ -47,8 +47,13 @@ export function HeadspaceMap() {
     });
   };
 
-  const handleUpdateRoom = (id: string, field: string, value: string) => {
-    setRooms(rooms.map(r => r.id === id ? { ...r, [field]: value } : r));
+  const roomOrder = ['front', 'meeting', 'inner'];
+
+  const getNextRoomId = (currentRoomId: string | null) => {
+    if (!currentRoomId) return 'front';
+    const currentIndex = roomOrder.indexOf(currentRoomId);
+    if (currentIndex === -1) return 'front';
+    return roomOrder[(currentIndex + 1) % roomOrder.length];
   };
   
   // Manage Member State
@@ -305,14 +310,14 @@ export function HeadspaceMap() {
                                     {/* Avatar */}
                                     <div 
                                         className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-background shadow-sm cursor-grab active:cursor-grabbing hover:scale-110 transition-transform relative"
-                                        style={{ borderColor: member.color }}
+                                        style={{ borderColor: member.color || "#6366f1" }}
                                         // Simple click-to-move logic for prototype
                                         onClick={() => {
-                                            const nextRoomIndex = (rooms.findIndex(r => r.id === room.id) + 1) % rooms.length;
-                                            moveMember(member.id, rooms[nextRoomIndex].id);
+                                            const nextRoomId = getNextRoomId(member.location);
+                                            moveMember(member.id, nextRoomId);
                                         }}
                                     >
-                                        <User className="w-6 h-6" style={{ color: member.color }} />
+                                        <User className="w-6 h-6" style={{ color: member.color || "#6366f1" }} />
                                         
                                         {/* Crown for Front */}
                                         {room.id === 'front' && (
