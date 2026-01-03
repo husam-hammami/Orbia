@@ -441,18 +441,18 @@ export default function CareerPage() {
                      </Button>
                 </div>
               ) : (
-                <div className="flex-1 overflow-hidden">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full overflow-hidden">
+                <div className="flex-1">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                      {["Planning", "In Progress", "Ongoing"].map((status) => (
-                        <div key={status} className="flex flex-col h-full bg-muted/10 rounded-xl border border-border/50">
-                           <div className="p-4 border-b border-border/50 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-sm z-10 rounded-t-xl shrink-0">
+                        <div key={status} className="flex flex-col bg-muted/10 rounded-xl border border-border/50 overflow-hidden">
+                           <div className="p-3 border-b border-border/50 flex items-center justify-between bg-muted/20">
                               <div className="flex items-center gap-2">
                                  <div className={cn("w-2 h-2 rounded-full", 
                                     status === "Planning" ? "bg-purple-500" : 
                                     status === "In Progress" ? "bg-blue-500" : "bg-emerald-500"
                                  )} />
                                  <span className="font-semibold text-sm">{status}</span>
-                                 <span className="px-2 py-0.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                                 <span className="px-1.5 py-0.5 rounded-md bg-background text-[10px] font-bold text-muted-foreground border border-border/50">
                                     {projects.filter(p => p.status === status).length}
                                  </span>
                               </div>
@@ -461,60 +461,46 @@ export default function CareerPage() {
                               </Button>
                            </div>
                            
-                           <ScrollArea className="flex-1">
-                              <div className="p-3 space-y-3">
+                           <div className="p-3 space-y-3 min-h-[200px]">
                                 {projects.filter(p => p.status === status).map(project => (
-                                   <Card key={project.id} className="cursor-pointer hover:shadow-md transition-all border-l-4" style={{ borderLeftColor: project.color.replace('bg-', '') }}>
-                                      <CardContent className="p-3">
-                                         <div className="flex justify-between items-start mb-2">
-                                            <h4 className="font-semibold text-sm line-clamp-1">{project.title}</h4>
-                                            <DropdownMenu>
-                                               <DropdownMenuTrigger asChild>
-                                                  <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-1 text-muted-foreground">
-                                                     <MoreHorizontal className="w-3 h-3" />
-                                                  </Button>
-                                               </DropdownMenuTrigger>
-                                               <DropdownMenuContent align="end">
-                                                  <DropdownMenuItem onClick={() => openEditProject(project)}>Edit Project</DropdownMenuItem>
-                                                  <DropdownMenuItem onClick={() => openViewProject(project)}>View Details</DropdownMenuItem>
-                                                  <DropdownMenuSeparator />
-                                                  <DropdownMenuItem className="text-destructive">Archive</DropdownMenuItem>
-                                               </DropdownMenuContent>
-                                            </DropdownMenu>
+                                   <Card key={project.id} className="cursor-pointer hover:shadow-md transition-all border-l-4 group bg-background" style={{ borderLeftColor: project.color.replace('bg-', '') }} onClick={() => openViewProject(project)}>
+                                      <CardContent className="p-3 space-y-3">
+                                         <div className="flex justify-between items-start">
+                                            <h4 className="font-medium text-sm leading-tight line-clamp-2">{project.title}</h4>
+                                            <Button variant="ghost" size="icon" className="h-5 w-5 -mr-1 -mt-1 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" onClick={(e) => { e.stopPropagation(); openEditProject(project); }}>
+                                                <MoreHorizontal className="w-3 h-3" />
+                                            </Button>
                                          </div>
                                          
-                                         <div className="space-y-3">
-                                            <div className="space-y-1">
-                                               <div className="flex justify-between text-[10px] text-muted-foreground">
-                                                  <span>Progress</span>
-                                                  <span>{project.progress}%</span>
-                                               </div>
-                                               <Progress value={project.progress} className="h-1.5" indicatorClassName={project.color} />
+                                         <div className="space-y-1.5">
+                                            <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                                               <span>Progress</span>
+                                               <span>{project.progress}%</span>
                                             </div>
-                                            
-                                            {project.nextAction && (
-                                               <div className="text-xs bg-muted/50 p-1.5 rounded text-muted-foreground truncate flex items-center gap-1.5">
-                                                  <ArrowRight className="w-3 h-3 shrink-0" />
-                                                  {project.nextAction}
-                                               </div>
-                                            )}
-          
-                                            {project.deadline && (
-                                               <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-2">
-                                                  <Calendar className="w-3 h-3" />
-                                                  {project.deadline}
-                                               </div>
-                                            )}
+                                            <Progress value={project.progress} className="h-1" indicatorClassName={project.color} />
                                          </div>
+                                         
+                                         {project.nextAction && (
+                                            <div className="text-[10px] bg-muted/50 px-2 py-1.5 rounded text-muted-foreground truncate flex items-center gap-1.5 border border-border/30">
+                                               <ArrowRight className="w-2.5 h-2.5 shrink-0 text-foreground/50" />
+                                               {project.nextAction}
+                                            </div>
+                                         )}
+        
+                                         {project.deadline && (
+                                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                               <Calendar className="w-3 h-3" />
+                                               {project.deadline}
+                                            </div>
+                                         )}
                                       </CardContent>
                                    </Card>
                                 ))}
                                 
-                                <button className="w-full py-2 text-xs font-medium text-muted-foreground border border-dashed border-border rounded-lg hover:bg-muted/50 transition-colors">
-                                   + Add Project
-                                </button>
-                              </div>
-                           </ScrollArea>
+                                <Button variant="ghost" className="w-full py-6 text-xs font-medium text-muted-foreground border border-dashed border-border/60 rounded-lg hover:bg-muted/30 hover:text-foreground hover:border-border transition-all">
+                                   <Plus className="w-3.5 h-3.5 mr-2" /> Add Project
+                                </Button>
+                           </div>
                         </div>
                      ))}
                   </div>
