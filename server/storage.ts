@@ -9,14 +9,20 @@ import {
   type InsertHeadspaceRoom,
   type SystemSettings,
   type InsertSystemSettings,
+  type Habit,
+  type InsertHabit,
+  type HabitCompletion,
+  type InsertHabitCompletion,
   systemMembers,
   trackerEntries,
   systemMessages,
   headspaceRooms,
-  systemSettings
+  systemSettings,
+  habits,
+  habitCompletions
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
   // System Members
@@ -48,6 +54,18 @@ export interface IStorage {
   // System Settings
   getSettings(): Promise<SystemSettings | undefined>;
   updateSettings(settings: Partial<InsertSystemSettings>): Promise<SystemSettings>;
+
+  // Habits
+  getAllHabits(): Promise<Habit[]>;
+  getHabit(id: string): Promise<Habit | undefined>;
+  createHabit(habit: InsertHabit): Promise<Habit>;
+  updateHabit(id: string, habit: Partial<InsertHabit>): Promise<Habit | undefined>;
+  deleteHabit(id: string): Promise<boolean>;
+
+  // Habit Completions
+  getHabitCompletions(habitId: string): Promise<HabitCompletion[]>;
+  addHabitCompletion(completion: InsertHabitCompletion): Promise<HabitCompletion>;
+  removeHabitCompletion(habitId: string, date: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -160,6 +178,49 @@ export class DatabaseStorage implements IStorage {
       .where(eq(systemSettings.id, existing.id))
       .returning();
     return result[0];
+  }
+
+  // Habits
+  async getAllHabits(): Promise<Habit[]> {
+    return await db.select().from(habits).orderBy(habits.createdAt);
+  }
+
+  async getHabit(id: string): Promise<Habit | undefined> {
+    const result = await db.select().from(habits).where(eq(habits.id, id));
+    return result[0];
+  }
+
+  async createHabit(habit: InsertHabit): Promise<Habit> {
+    const result = await db.insert(habits).values(habit).returning();
+    return result[0];
+  }
+
+  async updateHabit(id: string, habit: Partial<InsertHabit>): Promise<Habit | undefined> {
+    const result = await db.update(habits).set(habit).where(eq(habits.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteHabit(id: string): Promise<boolean> {
+    await db.delete(habitCompletions).where(eq(habitCompletions.habitId, id));
+    const result = await db.delete(habits).where(eq(habits.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Habit Completions
+  async getHabitCompletions(habitId: string): Promise<HabitCompletion[]> {
+    return await db.select().from(habitCompletions).where(eq(habitCompletions.habitId, habitId));
+  }
+
+  async addHabitCompletion(completion: InsertHabitCompletion): Promise<HabitCompletion> {
+    const result = await db.insert(habitCompletions).values(completion).returning();
+    return result[0];
+  }
+
+  async removeHabitCompletion(habitId: string, date: string): Promise<boolean> {
+    const result = await db.delete(habitCompletions)
+      .where(and(eq(habitCompletions.habitId, habitId), eq(habitCompletions.completedDate, date)))
+      .returning();
+    return result.length > 0;
   }
 }
 

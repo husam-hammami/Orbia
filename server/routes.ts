@@ -6,7 +6,9 @@ import {
   insertTrackerEntrySchema, 
   insertSystemMessageSchema,
   insertHeadspaceRoomSchema,
-  insertSystemSettingsSchema 
+  insertSystemSettingsSchema,
+  insertHabitSchema,
+  insertHabitCompletionSchema
 } from "@shared/schema";
 import { fromError } from "zod-validation-error";
 
@@ -232,6 +234,101 @@ export async function registerRoutes(
     } catch (error) {
       const validationError = fromError(error);
       res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  // Habits Routes
+  app.get("/api/habits", async (req, res) => {
+    try {
+      const allHabits = await storage.getAllHabits();
+      res.json(allHabits);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch habits" });
+    }
+  });
+
+  app.get("/api/habits/:id", async (req, res) => {
+    try {
+      const habit = await storage.getHabit(req.params.id);
+      if (!habit) {
+        return res.status(404).json({ error: "Habit not found" });
+      }
+      res.json(habit);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch habit" });
+    }
+  });
+
+  app.post("/api/habits", async (req, res) => {
+    try {
+      const validatedData = insertHabitSchema.parse(req.body);
+      const habit = await storage.createHabit(validatedData);
+      res.status(201).json(habit);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.patch("/api/habits/:id", async (req, res) => {
+    try {
+      const validatedData = insertHabitSchema.partial().parse(req.body);
+      const habit = await storage.updateHabit(req.params.id, validatedData);
+      if (!habit) {
+        return res.status(404).json({ error: "Habit not found" });
+      }
+      res.json(habit);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/habits/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteHabit(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Habit not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete habit" });
+    }
+  });
+
+  // Habit Completions Routes
+  app.get("/api/habits/:id/completions", async (req, res) => {
+    try {
+      const completions = await storage.getHabitCompletions(req.params.id);
+      res.json(completions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch completions" });
+    }
+  });
+
+  app.post("/api/habits/:id/completions", async (req, res) => {
+    try {
+      const validatedData = insertHabitCompletionSchema.parse({
+        ...req.body,
+        habitId: req.params.id
+      });
+      const completion = await storage.addHabitCompletion(validatedData);
+      res.status(201).json(completion);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/habits/:id/completions/:date", async (req, res) => {
+    try {
+      const success = await storage.removeHabitCompletion(req.params.id, req.params.date);
+      if (!success) {
+        return res.status(404).json({ error: "Completion not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete completion" });
     }
   });
 

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings } from "@shared/schema";
+import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion } from "@shared/schema";
 
 // Helper to handle API calls
 async function fetchAPI(url: string, options?: RequestInit) {
@@ -192,6 +192,96 @@ export function useUpdateSettings() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+  });
+}
+
+// Habits Hooks
+export function useHabits() {
+  return useQuery<Habit[]>({
+    queryKey: ["habits"],
+    queryFn: () => fetchAPI("/api/habits"),
+  });
+}
+
+export function useCreateHabit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Omit<Habit, "id" | "createdAt">) =>
+      fetchAPI("/api/habits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["habits"] });
+    },
+  });
+}
+
+export function useUpdateHabit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Omit<Habit, "id" | "createdAt">> }) =>
+      fetchAPI(`/api/habits/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["habits"] });
+    },
+  });
+}
+
+export function useDeleteHabit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchAPI(`/api/habits/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["habits"] });
+    },
+  });
+}
+
+// Habit Completions Hooks
+export function useHabitCompletions(habitId: string) {
+  return useQuery<HabitCompletion[]>({
+    queryKey: ["habitCompletions", habitId],
+    queryFn: () => fetchAPI(`/api/habits/${habitId}/completions`),
+    enabled: !!habitId,
+  });
+}
+
+export function useAddHabitCompletion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ habitId, date }: { habitId: string; date: string }) =>
+      fetchAPI(`/api/habits/${habitId}/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completedDate: date }),
+      }),
+    onSuccess: (_, { habitId }) => {
+      queryClient.invalidateQueries({ queryKey: ["habitCompletions", habitId] });
+      queryClient.invalidateQueries({ queryKey: ["habits"] });
+    },
+  });
+}
+
+export function useRemoveHabitCompletion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ habitId, date }: { habitId: string; date: string }) =>
+      fetchAPI(`/api/habits/${habitId}/completions/${date}`, {
+        method: "DELETE",
+      }),
+    onSuccess: (_, { habitId }) => {
+      queryClient.invalidateQueries({ queryKey: ["habitCompletions", habitId] });
+      queryClient.invalidateQueries({ queryKey: ["habits"] });
     },
   });
 }

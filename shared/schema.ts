@@ -101,3 +101,41 @@ export const insertSystemSettingsSchema = createInsertSchema(systemSettings).omi
 
 export type SystemSettings = typeof systemSettings.$inferSelect;
 export type InsertSystemSettings = z.infer<typeof insertSystemSettingsSchema>;
+
+// Habits for daily tracking
+export const habits = pgTable("habits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  category: text("category").notNull(),
+  frequency: text("frequency").notNull().default("daily"),
+  streak: integer("streak").notNull().default(0),
+  color: text("color").notNull(),
+  target: integer("target").notNull().default(1),
+  unit: text("unit"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertHabitSchema = createInsertSchema(habits).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Habit = typeof habits.$inferSelect;
+export type InsertHabit = z.infer<typeof insertHabitSchema>;
+
+// Habit completions (tracks which dates a habit was completed)
+export const habitCompletions = pgTable("habit_completions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  habitId: varchar("habit_id").notNull().references(() => habits.id),
+  completedDate: text("completed_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertHabitCompletionSchema = createInsertSchema(habitCompletions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type HabitCompletion = typeof habitCompletions.$inferSelect;
+export type InsertHabitCompletion = z.infer<typeof insertHabitCompletionSchema>;

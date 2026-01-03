@@ -1,22 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Layout } from "@/components/layout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   ResponsiveContainer, 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  AreaChart, 
-  Area, 
   RadarChart, 
   PolarGrid, 
   PolarAngleAxis, 
@@ -24,48 +15,35 @@ import {
   Radar,
   ScatterChart,
   Scatter,
+  CartesianGrid,
+  XAxis,
+  YAxis,
   ZAxis,
-  Cell
+  Cell,
+  Tooltip
 } from "recharts";
 import { 
   Brain, 
   Activity, 
-  Radio, 
-  Signal, 
-  Database, 
   Users, 
   Zap, 
   AlertTriangle, 
   Fingerprint, 
   Network, 
   Mic2, 
-  Eye, 
   Ghost,
   Cpu,
   Save,
   History,
-  Sparkles,
-  ArrowRight,
-  Wifi,
   Layers,
   Search,
-  Plus
+  Plus,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-import { SYSTEM_MEMBERS, HEADSPACE_LOCATIONS } from "@/lib/mock-data";
-
-// --- Advanced Mock Data ---
-
-const RECENT_LOGS = [
-  { time: "10:30 AM", dissociation: 30, stress: 45, front: "Host", note: "Meeting preparation" },
-  { time: "12:15 PM", dissociation: 65, stress: 80, front: "Protector", note: "Triggered by loud noise" },
-  { time: "02:45 PM", dissociation: 40, stress: 30, front: "Host", note: "Calming down" },
-  { time: "05:00 PM", dissociation: 20, stress: 25, front: "Manager", note: "Wrapping up work" },
-];
-
-// Replaced simulated waveform with placeholder
-const SYSTEM_WAVEFORM = []; 
+import { useMembers, useTrackerEntries, useCreateTrackerEntry } from "@/lib/api-hooks";
+import { format } from "date-fns";
+import { toast } from "sonner";
 
 const SYSTEM_STATS: any[] = [
   { subject: 'Dissociation', A: 0, fullMark: 100 },
@@ -76,31 +54,65 @@ const SYSTEM_STATS: any[] = [
   { subject: 'Co-con', A: 0, fullMark: 100 },
 ];
 
-const ALTER_POSITIONS: any[] = [];
-
-const PREDICTIVE_PATTERNS: any[] = [];
-
 export default function DeepMind() {
   const [activeTab, setActiveTab] = useState("monitor");
   
-  // Input States
+  const { data: members, isLoading: membersLoading } = useMembers();
+  const { data: trackerEntries, isLoading: entriesLoading } = useTrackerEntries(10);
+  const createEntryMutation = useCreateTrackerEntry();
+
   const [dissociation, setDissociation] = useState([30]);
   const [stress, setStress] = useState([40]);
   const [communication, setCommunication] = useState([60]);
   const [urges, setUrges] = useState([10]);
-  const [selectedAlter, setSelectedAlter] = useState(SYSTEM_MEMBERS[0]);
-  const [location, setLocation] = useState("Fronting Room");
-  const [isRecording, setIsRecording] = useState(false);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  
+  const selectedMember = members?.find(m => m.id === selectedMemberId) || members?.[0];
 
-  // Removed simulated live data effect
-  const [waveform, setWaveform] = useState([]);
+  const handleCommitLog = () => {
+    if (!selectedMember) {
+      toast.error("Please select who is fronting");
+      return;
+    }
 
+    createEntryMutation.mutate({
+      memberId: selectedMember.id,
+      mood: Math.round((100 - stress[0]) / 20),
+      energy: Math.round(communication[0] / 20),
+      clarity: Math.round((100 - dissociation[0]) / 20),
+      anxiety: Math.round(stress[0] / 20),
+      dissociation: Math.round(dissociation[0] / 20),
+      notes: `Dissociation: ${dissociation[0]}%, Communication: ${communication[0]}%, Stress: ${stress[0]}%, Urges: ${urges[0]}%`,
+      timestamp: new Date().toISOString(),
+    }, {
+      onSuccess: () => toast.success("System log committed"),
+      onError: () => toast.error("Failed to commit log"),
+    });
+  };
+
+  const recentLogs = (trackerEntries || []).slice(0, 5).map(entry => {
+    const member = members?.find(m => m.id === entry.memberId);
+    return {
+      time: format(new Date(entry.timestamp), "h:mm a"),
+      dissociation: (entry.dissociation || 0) * 20,
+      stress: (entry.anxiety || 0) * 20,
+      front: member?.name || "Unknown",
+      note: entry.notes || "",
+    };
+  });
+
+  const alterPositions = (members || []).map((member, i) => ({
+    name: member.name,
+    x: 30 + (i % 3) * 25,
+    y: 30 + Math.floor(i / 3) * 25,
+    z: member.location === "front" ? 90 : 50,
+    status: member.location === "front" ? "Fronting" : member.location || "Internal",
+  }));
 
   return (
     <Layout>
       <div className="space-y-6 animate-in fade-in duration-500 pb-20">
         
-        {/* Deep Mind Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border/40 pb-6">
             <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -133,16 +145,14 @@ export default function DeepMind() {
 
         <Tabs defaultValue="monitor" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="bg-muted/30 border border-border/50 p-1">
-                <TabsTrigger value="monitor" className="gap-2"><Activity className="w-4 h-4" /> Live Monitor</TabsTrigger>
-                <TabsTrigger value="analysis" className="gap-2"><Brain className="w-4 h-4" /> Analysis & Patterns</TabsTrigger>
-                <TabsTrigger value="map" className="gap-2"><Network className="w-4 h-4" /> Headspace Map</TabsTrigger>
+                <TabsTrigger value="monitor" className="gap-2" data-testid="tab-monitor"><Activity className="w-4 h-4" /> Live Monitor</TabsTrigger>
+                <TabsTrigger value="analysis" className="gap-2" data-testid="tab-analysis"><Brain className="w-4 h-4" /> Analysis & Patterns</TabsTrigger>
+                <TabsTrigger value="map" className="gap-2" data-testid="tab-map"><Network className="w-4 h-4" /> Headspace Map</TabsTrigger>
             </TabsList>
 
-            {/* LIVE MONITOR TAB */}
             <TabsContent value="monitor" className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     
-                    {/* LEFT COLUMN: Input Console */}
                     <Card className="lg:col-span-4 border-l-4 border-l-indigo-500 shadow-lg">
                         <CardHeader className="bg-muted/10 pb-4">
                             <CardTitle className="flex items-center justify-between text-lg">
@@ -153,37 +163,46 @@ export default function DeepMind() {
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
                             
-                            {/* Who is Fronting? */}
                             <div className="space-y-3">
                                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                                     <Users className="w-3.5 h-3.5" /> Active Front
                                 </label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {SYSTEM_MEMBERS.slice(0, 6).map(member => (
-                                        <button
-                                            key={member.id}
-                                            onClick={() => setSelectedAlter(member)}
-                                            className={cn(
-                                                "text-xs p-2 rounded border transition-all text-center font-medium truncate",
-                                                selectedAlter.id === member.id 
-                                                    ? "bg-indigo-500 text-white border-indigo-600 shadow-md transform scale-105" 
-                                                    : "bg-background border-border hover:bg-muted text-muted-foreground"
-                                            )}
-                                            style={{ 
-                                                borderColor: selectedAlter.id === member.id ? member.color : undefined,
-                                                backgroundColor: selectedAlter.id === member.id ? member.color : undefined
-                                            }}
-                                        >
-                                            {member.name}
-                                        </button>
-                                    ))}
-                                    <button className="text-xs p-2 rounded border border-dashed border-border text-muted-foreground hover:bg-muted flex items-center justify-center">
-                                        <Plus className="w-3 h-3" />
-                                    </button>
-                                </div>
+                                {membersLoading ? (
+                                  <div className="flex items-center justify-center py-4">
+                                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                                  </div>
+                                ) : members && members.length > 0 ? (
+                                  <div className="grid grid-cols-3 gap-2">
+                                      {members.slice(0, 6).map(member => (
+                                          <button
+                                              key={member.id}
+                                              onClick={() => setSelectedMemberId(member.id)}
+                                              data-testid={`button-select-member-${member.id}`}
+                                              className={cn(
+                                                  "text-xs p-2 rounded border transition-all text-center font-medium truncate",
+                                                  selectedMember?.id === member.id 
+                                                      ? "bg-indigo-500 text-white border-indigo-600 shadow-md transform scale-105" 
+                                                      : "bg-background border-border hover:bg-muted text-muted-foreground"
+                                              )}
+                                              style={{ 
+                                                  borderColor: selectedMember?.id === member.id ? member.color : undefined,
+                                                  backgroundColor: selectedMember?.id === member.id ? member.color : undefined
+                                              }}
+                                          >
+                                              {member.name}
+                                          </button>
+                                      ))}
+                                      <button className="text-xs p-2 rounded border border-dashed border-border text-muted-foreground hover:bg-muted flex items-center justify-center">
+                                          <Plus className="w-3 h-3" />
+                                      </button>
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-4 text-muted-foreground text-sm">
+                                    No members yet. Add members in System Insight.
+                                  </div>
+                                )}
                             </div>
 
-                            {/* Sliders */}
                             <div className="space-y-6">
                                 <div className="space-y-2">
                                     <div className="flex justify-between text-xs font-medium">
@@ -218,16 +237,25 @@ export default function DeepMind() {
                                 </div>
                             </div>
                             
-                            <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20" size="lg">
-                                <Save className="w-4 h-4 mr-2" /> Commit System Log
+                            <Button 
+                              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20" 
+                              size="lg"
+                              onClick={handleCommitLog}
+                              disabled={createEntryMutation.isPending || !selectedMember}
+                              data-testid="button-commit-log"
+                            >
+                                {createEntryMutation.isPending ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Save className="w-4 h-4 mr-2" />
+                                )}
+                                Commit System Log
                             </Button>
                         </CardContent>
                     </Card>
 
-                    {/* RIGHT COLUMN: Visualizations */}
                     <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                         
-                        {/* Live Waveform */}
                         <Card className="md:col-span-2 bg-slate-950 border-slate-800 shadow-2xl overflow-hidden relative group">
                             <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f46e520_1px,transparent_1px),linear-gradient(to_bottom,#4f46e520_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
                             <CardHeader className="relative z-10 pb-2">
@@ -244,7 +272,6 @@ export default function DeepMind() {
                             </CardContent>
                         </Card>
 
-                        {/* Recent History List */}
                         <Card className="flex flex-col">
                             <CardHeader className="pb-2">
                                 <CardTitle className="flex items-center gap-2 text-base">
@@ -254,25 +281,35 @@ export default function DeepMind() {
                             </CardHeader>
                             <CardContent className="flex-1 p-0">
                                 <ScrollArea className="h-[250px] px-4">
-                                    <div className="space-y-4 pb-4">
-                                        {RECENT_LOGS.map((log, i) => (
-                                            <div key={i} className="flex gap-3 items-start p-3 rounded-lg bg-muted/30 border border-border/50 text-sm">
-                                                <div className="min-w-[60px] font-mono text-xs text-muted-foreground pt-0.5">{log.time}</div>
-                                                <div className="space-y-1 flex-1">
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="font-semibold text-indigo-500">{log.front}</span>
-                                                        <Badge variant="outline" className="text-[10px] h-4 px-1">Dis: {log.dissociation}%</Badge>
-                                                    </div>
-                                                    <p className="text-muted-foreground text-xs leading-snug">{log.note}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                    {entriesLoading ? (
+                                      <div className="flex items-center justify-center py-8">
+                                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                                      </div>
+                                    ) : recentLogs.length > 0 ? (
+                                      <div className="space-y-4 pb-4">
+                                          {recentLogs.map((log, i) => (
+                                              <div key={i} className="flex gap-3 items-start p-3 rounded-lg bg-muted/30 border border-border/50 text-sm">
+                                                  <div className="min-w-[60px] font-mono text-xs text-muted-foreground pt-0.5">{log.time}</div>
+                                                  <div className="space-y-1 flex-1">
+                                                      <div className="flex justify-between items-center">
+                                                          <span className="font-semibold text-indigo-500">{log.front}</span>
+                                                          <Badge variant="outline" className="text-[10px] h-4 px-1">Dis: {log.dissociation}%</Badge>
+                                                      </div>
+                                                      {log.note && <p className="text-muted-foreground text-xs leading-snug">{log.note}</p>}
+                                                  </div>
+                                              </div>
+                                          ))}
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                                        <History className="w-8 h-8 mb-2 opacity-30" />
+                                        <p className="text-sm">No logs yet</p>
+                                      </div>
+                                    )}
                                 </ScrollArea>
                             </CardContent>
                         </Card>
 
-                        {/* System Radar Chart */}
                         <Card>
                              <CardHeader className="pb-2">
                                 <CardTitle className="flex items-center gap-2 text-base">
@@ -303,7 +340,6 @@ export default function DeepMind() {
                 </div>
             </TabsContent>
 
-            {/* ANALYSIS TAB */}
             <TabsContent value="analysis" className="animate-in slide-in-from-bottom-4 duration-500">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                      <Card className="md:col-span-2">
@@ -353,7 +389,6 @@ export default function DeepMind() {
                 </div>
             </TabsContent>
 
-            {/* HEADSPACE MAP TAB */}
             <TabsContent value="map" className="animate-in slide-in-from-bottom-4 duration-500">
                 <Card className="bg-slate-950 border-slate-800 overflow-hidden relative min-h-[500px]">
                     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
@@ -370,46 +405,55 @@ export default function DeepMind() {
                         </div>
                     </CardHeader>
                     <CardContent className="p-0 relative h-[500px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.3} />
-                                <XAxis type="number" dataKey="x" name="stiffness" hide domain={[0, 100]} />
-                                <YAxis type="number" dataKey="y" name="stiffness" hide domain={[0, 100]} />
-                                <ZAxis type="number" dataKey="z" range={[60, 400]} name="score" />
-                                <Tooltip 
-                                    cursor={{ strokeDasharray: '3 3' }} 
-                                    content={({ active, payload }) => {
-                                        if (active && payload && payload.length) {
-                                            const data = payload[0].payload;
-                                            return (
-                                                <div className="bg-slate-900 border border-indigo-500/50 p-3 rounded shadow-xl text-slate-100">
-                                                    <p className="font-bold mb-1">{data.name}</p>
-                                                    <p className="text-xs text-indigo-300">{data.status}</p>
-                                                    <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wide">Proximity: {data.z}%</p>
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    }}
-                                />
-                                <Scatter name="Alters" data={ALTER_POSITIONS} fill="#8884d8">
-                                    {ALTER_POSITIONS.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.status === 'Fronting' ? '#6366f1' : entry.status === 'Co-con' ? '#a855f7' : '#64748b'} />
-                                    ))}
-                                </Scatter>
-                            </ScatterChart>
-                        </ResponsiveContainer>
+                        {membersLoading ? (
+                          <div className="flex items-center justify-center h-full">
+                            <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
+                          </div>
+                        ) : alterPositions.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                            <Users className="w-12 h-12 mb-3 opacity-30" />
+                            <p>No members to display</p>
+                            <p className="text-xs text-slate-600 mt-1">Add members in System Insight to see them here</p>
+                          </div>
+                        ) : (
+                          <ResponsiveContainer width="100%" height="100%">
+                              <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.3} />
+                                  <XAxis type="number" dataKey="x" name="stiffness" hide domain={[0, 100]} />
+                                  <YAxis type="number" dataKey="y" name="stiffness" hide domain={[0, 100]} />
+                                  <ZAxis type="number" dataKey="z" range={[60, 400]} name="score" />
+                                  <Tooltip 
+                                      cursor={{ strokeDasharray: '3 3' }} 
+                                      content={({ active, payload }) => {
+                                          if (active && payload && payload.length) {
+                                              const data = payload[0].payload;
+                                              return (
+                                                  <div className="bg-slate-900 border border-indigo-500/50 p-3 rounded shadow-xl text-slate-100">
+                                                      <p className="font-bold mb-1">{data.name}</p>
+                                                      <p className="text-xs text-indigo-300">{data.status}</p>
+                                                      <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wide">Proximity: {data.z}%</p>
+                                                  </div>
+                                              );
+                                          }
+                                          return null;
+                                      }}
+                                  />
+                                  <Scatter name="Alters" data={alterPositions} fill="#8884d8">
+                                      {alterPositions.map((entry, index) => (
+                                          <Cell key={`cell-${index}`} fill={entry.status === 'Fronting' ? '#6366f1' : entry.status === 'Co-con' ? '#a855f7' : '#64748b'} />
+                                      ))}
+                                  </Scatter>
+                              </ScatterChart>
+                          </ResponsiveContainer>
+                        )}
                         
-                        {/* Overlay concentric rings for 'Fronting' visualization */}
                         <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-10">
                             <div className="w-[200px] h-[200px] rounded-full border border-indigo-500"></div>
                             <div className="absolute w-[400px] h-[400px] rounded-full border border-indigo-500"></div>
-                            <div className="absolute w-[600px] h-[600px] rounded-full border border-indigo-500"></div>
                         </div>
                     </CardContent>
                 </Card>
             </TabsContent>
-
         </Tabs>
       </div>
     </Layout>

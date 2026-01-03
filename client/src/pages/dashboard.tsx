@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { HabitGrid } from "@/components/habit-grid";
 import { HabitGarden } from "@/components/habit-garden";
@@ -8,12 +8,10 @@ import { SystemJournal } from "@/components/system-journal";
 import { HeadspaceMap } from "@/components/headspace-map";
 import { GroundingAnchor } from "@/components/grounding-anchor";
 import { HabitForm } from "@/components/habit-form";
-import { MOCK_HABITS, MOCK_STATS } from "@/lib/mock-data";
 import { Habit } from "@/lib/types";
 import { format } from "date-fns";
-import { Plus, LayoutGrid, List, Flower2, NotebookPen, BrainCircuit } from "lucide-react";
+import { Plus, LayoutGrid, List, Flower2, NotebookPen, BrainCircuit, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
 import {
   Sheet,
@@ -23,63 +21,126 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useHabits, useCreateHabit, useDeleteHabit, useAddHabitCompletion, useRemoveHabitCompletion } from "@/lib/api-hooks";
+import { useQuery } from "@tanstack/react-query";
+
+async function fetchAllCompletions(habitIds: string[]): Promise<Record<string, string[]>> {
+  const results: Record<string, string[]> = {};
+  await Promise.all(
+    habitIds.map(async (id) => {
+      try {
+        const response = await fetch(`/api/habits/${id}/completions`);
+        if (response.ok) {
+          const completions = await response.json();
+          results[id] = completions.map((c: any) => c.completedDate);
+        } else {
+          results[id] = [];
+        }
+      } catch {
+        results[id] = [];
+      }
+    })
+  );
+  return results;
+}
 
 export default function Dashboard() {
-  const [habits, setHabits] = useState(MOCK_HABITS);
+  const { data: dbHabits, isLoading: habitsLoading, error: habitsError } = useHabits();
   const [viewMode, setViewMode] = useState<"grid" | "list" | "garden">("garden");
   const [showHeadspace, setShowHeadspace] = useState(false);
   
+  const habitIds = dbHabits?.map(h => h.id) || [];
+  
+  const { data: allCompletions, isLoading: completionsLoading } = useQuery({
+    queryKey: ["allCompletions", habitIds.join(",")],
+    queryFn: () => fetchAllCompletions(habitIds),
+    enabled: habitIds.length > 0,
+  });
+
+  const createHabitMutation = useCreateHabit();
+  const deleteHabitMutation = useDeleteHabit();
+  const addCompletionMutation = useAddHabitCompletion();
+  const removeCompletionMutation = useRemoveHabitCompletion();
+
+  const today = format(new Date(), "yyyy-MM-dd");
+
+  const habits: Habit[] = (dbHabits || []).map(dbHabit => {
+    const history = allCompletions?.[dbHabit.id] || [];
+    const completedToday = history.includes(today);
+    return {
+      id: dbHabit.id,
+      title: dbHabit.title,
+      description: dbHabit.description || undefined,
+      category: dbHabit.category as Habit["category"],
+      frequency: dbHabit.frequency as Habit["frequency"],
+      streak: dbHabit.streak,
+      completedToday,
+      history,
+      color: dbHabit.color,
+      target: dbHabit.target,
+      unit: dbHabit.unit || undefined,
+    };
+  });
+  
   const handleToggle = (id: string) => {
-    setHabits(habits.map(h => {
-      if (h.id === id) {
-        const newCompleted = !h.completedToday;
-        return {
-          ...h,
-          completedToday: newCompleted,
-          streak: newCompleted ? h.streak + 1 : Math.max(0, h.streak - 1)
-        };
-      }
-      return h;
-    }));
+    const habit = habits.find(h => h.id === id);
+    if (!habit) return;
+
+    if (habit.completedToday) {
+      removeCompletionMutation.mutate({ habitId: id, date: today }, {
+        onError: () => toast.error("Failed to update habit"),
+      });
+    } else {
+      addCompletionMutation.mutate({ habitId: id, date: today }, {
+        onSuccess: () => toast.success("Great job!"),
+        onError: () => toast.error("Failed to update habit"),
+      });
+    }
   };
 
   const handleAddHabit = (data: Omit<Habit, "id" | "streak" | "completedToday" | "history">) => {
-    const newHabit: Habit = {
-      ...data,
-      id: Math.random().toString(36).substr(2, 9),
+    createHabitMutation.mutate({
+      title: data.title,
+      description: data.description || null,
+      category: data.category,
+      frequency: data.frequency,
       streak: 0,
-      completedToday: false,
-      history: []
-    };
-    setHabits([...habits, newHabit]);
-    toast.success("New habit planted!");
+      color: data.color,
+      target: data.target,
+      unit: data.unit || null,
+    }, {
+      onSuccess: () => toast.success("New habit planted!"),
+      onError: () => toast.error("Failed to create habit"),
+    });
   };
 
   const handleDelete = (id: string) => {
-    setHabits(habits.filter(h => h.id !== id));
-    toast.success("Habit removed");
+    deleteHabitMutation.mutate(id, {
+      onSuccess: () => toast.success("Habit removed"),
+      onError: () => toast.error("Failed to delete habit"),
+    });
   };
 
-  const today = new Date();
+  const isLoading = habitsLoading || (habitIds.length > 0 && completionsLoading);
 
   return (
     <Layout>
       <div className="space-y-8 animate-in fade-in duration-500">
-        {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <p className="text-muted-foreground font-medium mb-1">{format(today, "EEEE, MMMM do")}</p>
+            <p className="text-muted-foreground font-medium mb-1">{format(new Date(), "EEEE, MMMM do")}</p>
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
               Mindful Tracking
             </h1>
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
-             {/* Compact Daily Progress */}
              <div className="hidden lg:flex items-center gap-3 bg-muted/30 px-4 py-2 rounded-full border border-border/50 mr-2">
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Progress</span>
                 <div className="flex items-center gap-3">
-                   <span className="text-sm font-bold text-primary font-mono">{habits.filter(h => h.completedToday).length} <span className="text-muted-foreground font-normal">/ {habits.length}</span></span>
+                   <span className="text-sm font-bold text-primary font-mono">
+                     {habits.filter(h => h.completedToday).length} <span className="text-muted-foreground font-normal">/ {habits.length}</span>
+                   </span>
                    <div className="w-24 h-2 bg-background rounded-full overflow-hidden border border-border/50">
                       <div 
                         className="h-full bg-primary transition-all duration-500 ease-out"
@@ -94,6 +155,7 @@ export default function Dashboard() {
                size="sm" 
                className="gap-2 hidden md:flex"
                onClick={() => setShowHeadspace(!showHeadspace)}
+               data-testid="button-toggle-headspace"
             >
                <BrainCircuit className="w-4 h-4" />
                {showHeadspace ? "Hide Headspace" : "Show Headspace"}
@@ -101,7 +163,7 @@ export default function Dashboard() {
 
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-primary/20 text-primary hover:bg-primary/5" title="System Journal">
+                <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-primary/20 text-primary hover:bg-primary/5" title="System Journal" data-testid="button-open-journal">
                   <NotebookPen className="w-5 h-5" />
                 </Button>
               </SheetTrigger>
@@ -119,17 +181,14 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Headspace Map (Collapsible) */}
         {showHeadspace && (
            <div className="animate-in slide-in-from-top-4 duration-300">
               <HeadspaceMap />
            </div>
         )}
 
-        {/* Mood Tracker (Full Width) */}
         <MoodTracker />
 
-        {/* Habits Grid */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-display font-semibold">Your Habits</h2>
@@ -139,6 +198,7 @@ export default function Dashboard() {
                   onClick={() => setViewMode("grid")}
                   className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                   title="Weekly Grid"
+                  data-testid="button-view-grid"
                >
                   <LayoutGrid className="w-4 h-4" />
                </button>
@@ -146,6 +206,7 @@ export default function Dashboard() {
                   onClick={() => setViewMode("list")}
                   className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                   title="Compact List"
+                  data-testid="button-view-list"
                >
                   <List className="w-4 h-4" />
                </button>
@@ -153,22 +214,37 @@ export default function Dashboard() {
                   onClick={() => setViewMode("garden")}
                   className={`p-2 rounded-md transition-all ${viewMode === 'garden' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                   title="Zen Garden"
+                  data-testid="button-view-garden"
                >
                   <Flower2 className="w-4 h-4" />
                </button>
             </div>
           </div>
           
-          {viewMode === "grid" && (
-             <HabitGrid habits={habits} onToggle={handleToggle} onDelete={handleDelete} />
-          )}
-          
-          {viewMode === "list" && (
-             <HabitListCompact habits={habits} onToggle={handleToggle} onDelete={handleDelete} />
-          )}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+              <Loader2 className="w-6 h-6 animate-spin mr-2" />
+              Loading habits...
+            </div>
+          ) : habits.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <p className="text-lg mb-2">No habits yet</p>
+              <p className="text-sm">Add your first habit to start tracking!</p>
+            </div>
+          ) : (
+            <>
+              {viewMode === "grid" && (
+                 <HabitGrid habits={habits} onToggle={handleToggle} onDelete={handleDelete} />
+              )}
+              
+              {viewMode === "list" && (
+                 <HabitListCompact habits={habits} onToggle={handleToggle} onDelete={handleDelete} />
+              )}
 
-          {viewMode === "garden" && (
-             <HabitGarden habits={habits} onToggle={handleToggle} onDelete={handleDelete} />
+              {viewMode === "garden" && (
+                 <HabitGarden habits={habits} onToggle={handleToggle} onDelete={handleDelete} />
+              )}
+            </>
           )}
         </div>
       </div>
