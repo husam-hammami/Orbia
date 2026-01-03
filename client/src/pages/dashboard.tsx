@@ -19,6 +19,7 @@ import {
 import { useHabits, useTrackerEntries, useRoutineLogs, useRoutineActivities, useRoutineBlocks } from "@/lib/api-hooks";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { parseTrackerNotes } from "@/lib/parse-notes";
 
 async function fetchAllCompletions(habitIds: string[]): Promise<Record<string, string[]>> {
   const results: Record<string, string[]> = {};
@@ -255,36 +256,7 @@ export default function Dashboard() {
                   ) : (
                     <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                       {(trackerEntries || []).slice(0, 10).map((entry) => {
-                        const parseNotes = (notes: string | null): { text: string | null; tags: string[]; triggers: string[]; meals: string[]; metrics: Record<string, string> } => {
-                          if (!notes) return { text: null, tags: [], triggers: [], meals: [], metrics: {} };
-                          const parts = notes.split(" | ");
-                          const tags: string[] = [];
-                          const triggers: string[] = [];
-                          const meals: string[] = [];
-                          const metrics: Record<string, string> = {};
-                          let text: string | null = "";
-                          
-                          parts.forEach(part => {
-                            if (part.startsWith("Tags:")) {
-                              tags.push(...part.replace("Tags: ", "").split(", "));
-                            } else if (part.startsWith("Stress triggers:")) {
-                              triggers.push(...part.replace("Stress triggers: ", "").split(", "));
-                            } else if (part.startsWith("Meals:")) {
-                              meals.push(...part.replace("Meals: ", "").split(", "));
-                            } else if (part.includes(":") && part.includes("/")) {
-                              const [key, val] = part.split(": ");
-                              metrics[key] = val;
-                            } else if (part.includes(":") && part.endsWith("h")) {
-                              const [key, val] = part.split(": ");
-                              metrics[key] = val;
-                            } else if (part.trim()) {
-                              text = part;
-                            }
-                          });
-                          return { text, tags, triggers, meals, metrics };
-                        };
-                        
-                        const parsed = parseNotes(entry.notes);
+                        const parsed = parseTrackerNotes(entry.notes);
                         const fronter = members?.find(m => m.id === entry.frontingMemberId);
                         
                         return (

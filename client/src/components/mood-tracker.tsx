@@ -10,6 +10,7 @@ import { useMembers, useTrackerEntries, useCreateTrackerEntry } from "@/lib/api-
 import { toast } from "sonner";
 import { format, subDays } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { parseTrackerNotes } from "@/lib/parse-notes";
 
 export function MoodTracker() {
   const { data: members, isLoading: membersLoading } = useMembers();
@@ -455,36 +456,7 @@ export function MoodTracker() {
               const moodColor = moodValue <= 3 ? "text-red-500" : moodValue <= 5 ? "text-yellow-500" : moodValue <= 7 ? "text-green-500" : "text-blue-500";
               const fronter = members?.find(m => m.id === entry.frontingMemberId);
               
-              const parseNotes = (notes: string | null): { text: string | null; tags: string[]; triggers: string[]; meals: string[]; metrics: Record<string, string> } => {
-                if (!notes) return { text: null, tags: [], triggers: [], meals: [], metrics: {} };
-                const parts = notes.split(" | ");
-                const tags: string[] = [];
-                const triggers: string[] = [];
-                const meals: string[] = [];
-                const metrics: Record<string, string> = {};
-                let text: string | null = "";
-                
-                parts.forEach(part => {
-                  if (part.startsWith("Tags:")) {
-                    tags.push(...part.replace("Tags: ", "").split(", "));
-                  } else if (part.startsWith("Stress triggers:")) {
-                    triggers.push(...part.replace("Stress triggers: ", "").split(", "));
-                  } else if (part.startsWith("Meals:")) {
-                    meals.push(...part.replace("Meals: ", "").split(", "));
-                  } else if (part.includes(":") && part.includes("/")) {
-                    const [key, val] = part.split(": ");
-                    metrics[key] = val;
-                  } else if (part.includes(":") && part.endsWith("h")) {
-                    const [key, val] = part.split(": ");
-                    metrics[key] = val;
-                  } else if (part.trim()) {
-                    text = part;
-                  }
-                });
-                return { text, tags, triggers, meals, metrics };
-              };
-              
-              const parsed = parseNotes(entry.notes);
+              const parsed = parseTrackerNotes(entry.notes);
               
               return (
                 <div 
