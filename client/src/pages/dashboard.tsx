@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
-import { HabitCard } from "@/components/habit-card";
+import { HabitGrid } from "@/components/habit-grid";
+import { MoodTracker } from "@/components/mood-tracker";
 import { MOCK_HABITS, MOCK_STATS } from "@/lib/mock-data";
 import { format } from "date-fns";
-import { Plus } from "lucide-react";
+import { Plus, LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Dashboard() {
@@ -34,7 +35,7 @@ export default function Dashboard() {
           <div>
             <p className="text-muted-foreground font-medium mb-1">{format(today, "EEEE, MMMM do")}</p>
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
-              Ready to grow?
+              Mindful Tracking
             </h1>
           </div>
           
@@ -44,44 +45,39 @@ export default function Dashboard() {
           </Button>
         </div>
 
-        {/* Overview Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-           <div className="bg-card p-4 rounded-2xl border shadow-sm">
-             <p className="text-sm text-muted-foreground">Focus</p>
-             <p className="text-2xl font-display font-bold mt-1">{MOCK_STATS.completedToday}/{MOCK_STATS.totalHabits}</p>
+        {/* Mood & Stats Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+           <div className="lg:col-span-2">
+              <MoodTracker />
            </div>
-           <div className="bg-card p-4 rounded-2xl border shadow-sm">
-             <p className="text-sm text-muted-foreground">Streak</p>
-             <div className="flex items-center gap-2 mt-1">
-                <p className="text-2xl font-display font-bold">{MOCK_STATS.currentStreak}</p>
-                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">days</span>
-             </div>
-           </div>
-           <div className="bg-card p-4 rounded-2xl border shadow-sm col-span-2 md:col-span-2 flex items-center justify-between relative overflow-hidden">
-              <div className="z-10">
-                  <p className="text-sm text-muted-foreground">Completion Rate</p>
-                  <p className="text-2xl font-display font-bold mt-1">{MOCK_STATS.completionRate}%</p>
+           
+           <div className="bg-primary/5 rounded-2xl border border-primary/10 p-6 flex flex-col justify-center gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground font-medium">Daily Progress</p>
+                <div className="flex items-end gap-2 mt-1">
+                   <p className="text-4xl font-display font-bold text-primary">{habits.filter(h => h.completedToday).length}</p>
+                   <p className="text-xl text-muted-foreground mb-1">/ {habits.length}</p>
+                </div>
               </div>
-              <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-primary/10 to-transparent" />
-              {/* Decorative circle */}
-              <div className="w-16 h-16 rounded-full border-[6px] border-primary/20 absolute right-4 top-1/2 -translate-y-1/2 border-t-primary" />
+              <div className="w-full bg-background rounded-full h-3 overflow-hidden">
+                 <div 
+                   className="h-full bg-primary transition-all duration-500 ease-out"
+                   style={{ width: `${(habits.filter(h => h.completedToday).length / habits.length) * 100}%` }}
+                 />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                "Small steps every day lead to big changes."
+              </p>
            </div>
         </div>
 
-        {/* Habits List */}
+        {/* Habits Grid */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-display font-semibold">Your Habits</h2>
-            <div className="flex gap-2">
-               {/* Filter pills could go here */}
-            </div>
+            <h2 className="text-xl font-display font-semibold">Weekly View</h2>
           </div>
           
-          <div className="grid gap-4">
-            {habits.map((habit) => (
-              <HabitCard key={habit.id} habit={habit} onToggle={handleToggle} />
-            ))}
-          </div>
+          <HabitGrid habits={habits} onToggle={handleToggle} />
         </div>
       </div>
     </Layout>
