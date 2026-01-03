@@ -11,6 +11,8 @@ import SystemInsight from "@/pages/system-insight";
 import GeniusAI from "@/pages/deep-mind";
 import FinancePage from "@/pages/finance";
 
+import Settings from "@/pages/settings";
+
 function Router() {
   return (
     <Switch>
@@ -20,7 +22,7 @@ function Router() {
       <Route path="/analytics" component={Analytics} />
       <Route path="/headspace" component={SystemInsight} />
       <Route path="/deep-mind" component={GeniusAI} />
-      <Route path="/settings" component={() => <div className="p-8 text-center text-muted-foreground">Settings Page (Coming Soon)</div>} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );
