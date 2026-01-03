@@ -37,7 +37,11 @@ import {
   Calendar,
   CheckCircle2,
   Target,
-  AlertCircle
+  AlertCircle,
+  CloudFog,
+  MessageSquare,
+  Flame,
+  Battery
 } from "lucide-react";
 
 // --- Mock Data ---
@@ -50,6 +54,16 @@ const HABIT_DATA = [
   { name: "Fri", completed: 6, total: 6 },
   { name: "Sat", completed: 4, total: 6 },
   { name: "Sun", completed: 5, total: 6 },
+];
+
+const DETAILED_METRICS = [
+  { name: "Mon", dissociation: 3, communication: 6, pain: 2, sleep: 7, energy: 6, urges: 1 },
+  { name: "Tue", dissociation: 2, communication: 7, pain: 3, sleep: 6, energy: 7, urges: 2 },
+  { name: "Wed", dissociation: 5, communication: 4, pain: 4, sleep: 5, energy: 4, urges: 5 },
+  { name: "Thu", dissociation: 2, communication: 8, pain: 2, sleep: 8, energy: 8, urges: 1 },
+  { name: "Fri", dissociation: 4, communication: 5, pain: 5, sleep: 4, energy: 5, urges: 3 },
+  { name: "Sat", dissociation: 1, communication: 9, pain: 1, sleep: 9, energy: 9, urges: 1 },
+  { name: "Sun", dissociation: 2, communication: 8, pain: 2, sleep: 8, energy: 7, urges: 2 },
 ];
 
 const MOOD_DATA = [
@@ -264,6 +278,72 @@ export default function Analytics() {
                     </CardContent>
                 </Card>
             </div>
+            </div>
+        </div>
+
+        {/* Detailed Metrics Breakdown */}
+        <div className="space-y-6">
+            <h2 className="text-xl font-semibold flex items-center gap-2 border-b border-border/40 pb-2">
+                <Activity className="w-5 h-5 text-indigo-500" />
+                Physical & System Telemetry
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               {/* Internal System Chart */}
+               <Card className="border-border/50 shadow-sm">
+                  <CardHeader>
+                     <CardTitle className="flex items-center gap-2 text-base">
+                        <CloudFog className="w-4 h-4 text-purple-500" />
+                        Internal System State
+                     </CardTitle>
+                     <CardDescription>Dissociation & Communication levels</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                     <div className="h-[250px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                           <LineChart data={DETAILED_METRICS}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} dy={10} />
+                              <YAxis domain={[0, 10]} axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                              <Tooltip 
+                                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--background))' }}
+                              />
+                              <Line type="monotone" dataKey="dissociation" stroke="#9333ea" strokeWidth={2} dot={{r:3}} name="Dissociation" />
+                              <Line type="monotone" dataKey="communication" stroke="#6366f1" strokeWidth={2} dot={{r:3}} name="Communication" />
+                              <Line type="step" dataKey="urges" stroke="#ef4444" strokeWidth={1} strokeDasharray="4 4" dot={false} name="Urge Intensity" />
+                           </LineChart>
+                        </ResponsiveContainer>
+                     </div>
+                  </CardContent>
+               </Card>
+
+               {/* Body Vitals Chart */}
+               <Card className="border-border/50 shadow-sm">
+                  <CardHeader>
+                     <CardTitle className="flex items-center gap-2 text-base">
+                        <Battery className="w-4 h-4 text-emerald-500" />
+                        Body Vitals
+                     </CardTitle>
+                     <CardDescription>Energy, Sleep & Pain Correlation</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                     <div className="h-[250px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                           <BarChart data={DETAILED_METRICS}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} dy={10} />
+                              <YAxis domain={[0, 10]} axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                              <Tooltip 
+                                 cursor={{ fill: 'hsl(var(--muted)/0.2)' }}
+                                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--background))' }}
+                              />
+                              <Bar dataKey="energy" fill="#10b981" radius={[4, 4, 0, 0]} name="Energy" barSize={12} />
+                              <Bar dataKey="sleep" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Sleep Quality" barSize={12} />
+                              <Line type="monotone" dataKey="pain" stroke="#f59e0b" strokeWidth={2} dot={{r:3}} name="Pain Level" />
+                           </BarChart>
+                        </ResponsiveContainer>
+                     </div>
+                  </CardContent>
+               </Card>
             </div>
         </div>
         
