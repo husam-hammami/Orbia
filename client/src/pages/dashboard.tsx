@@ -5,11 +5,13 @@ import { HabitGarden } from "@/components/habit-garden";
 import { HabitListCompact } from "@/components/habit-list-compact";
 import { MoodTracker } from "@/components/mood-tracker";
 import { SystemJournal } from "@/components/system-journal";
+import { HeadspaceMap } from "@/components/headspace-map";
+import { GroundingAnchor } from "@/components/grounding-anchor";
 import { HabitForm } from "@/components/habit-form";
 import { MOCK_HABITS, MOCK_STATS } from "@/lib/mock-data";
 import { Habit } from "@/lib/types";
 import { format } from "date-fns";
-import { Plus, LayoutGrid, List, Flower2, NotebookPen } from "lucide-react";
+import { Plus, LayoutGrid, List, Flower2, NotebookPen, BrainCircuit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
@@ -25,6 +27,7 @@ import {
 export default function Dashboard() {
   const [habits, setHabits] = useState(MOCK_HABITS);
   const [viewMode, setViewMode] = useState<"grid" | "list" | "garden">("grid");
+  const [showHeadspace, setShowHeadspace] = useState(false);
   
   const handleToggle = (id: string) => {
     setHabits(habits.map(h => {
@@ -72,9 +75,19 @@ export default function Dashboard() {
           </div>
           
           <div className="flex items-center gap-2">
+            <Button 
+               variant={showHeadspace ? "default" : "outline"}
+               size="sm" 
+               className="gap-2 hidden md:flex"
+               onClick={() => setShowHeadspace(!showHeadspace)}
+            >
+               <BrainCircuit className="w-4 h-4" />
+               {showHeadspace ? "Hide Headspace" : "Show Headspace"}
+            </Button>
+
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-primary/20 text-primary hover:bg-primary/5">
+                <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-primary/20 text-primary hover:bg-primary/5" title="System Journal">
                   <NotebookPen className="w-5 h-5" />
                 </Button>
               </SheetTrigger>
@@ -91,6 +104,13 @@ export default function Dashboard() {
             <HabitForm onSubmit={handleAddHabit} />
           </div>
         </div>
+
+        {/* Headspace Map (Collapsible) */}
+        {showHeadspace && (
+           <div className="animate-in slide-in-from-top-4 duration-300">
+              <HeadspaceMap />
+           </div>
+        )}
 
         {/* Mood & Stats Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -161,6 +181,7 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+      <GroundingAnchor />
     </Layout>
   );
 }
