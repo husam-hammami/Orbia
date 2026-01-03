@@ -8,7 +8,7 @@ import Dashboard from "@/pages/dashboard";
 import CareerPage from "@/pages/career";
 import Analytics from "@/pages/analytics";
 import SystemInsight from "@/pages/system-insight";
-import GeniusAI from "@/pages/genius-ai";
+import GeniusAI from "@/pages/deep-mind";
 
 function Router() {
   return (
@@ -17,7 +17,7 @@ function Router() {
       <Route path="/career" component={CareerPage} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/headspace" component={SystemInsight} />
-      <Route path="/genius" component={GeniusAI} />
+      <Route path="/deep-mind" component={GeniusAI} />
       <Route path="/settings" component={() => <div className="p-8 text-center text-muted-foreground">Settings Page (Coming Soon)</div>} />
       <Route component={NotFound} />
     </Switch>

@@ -156,7 +156,7 @@ const CustomNeuralNode = (props: any) => {
     );
 };
 
-export default function GeniusAI() {
+export default function DeepMind() {
   return (
     <Layout>
       <div className="space-y-8 animate-in fade-in duration-500 pb-12">
@@ -165,7 +165,7 @@ export default function GeniusAI() {
           <div className="space-y-2">
              <div className="flex items-center gap-2">
                 <Badge variant="outline" className="border-indigo-500/30 text-indigo-400 bg-indigo-500/10 gap-1.5 px-3 py-1">
-                    <Bot className="w-3.5 h-3.5" /> Genius Engine v3.0
+                    <Bot className="w-3.5 h-3.5" /> Deep Mind Engine v3.0
                 </Badge>
                 <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 gap-1.5 px-3 py-1 animate-pulse">
                     <span className="relative flex h-2 w-2">

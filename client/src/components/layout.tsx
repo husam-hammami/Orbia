@@ -17,7 +17,7 @@ function Sidebar({ className }: SidebarProps) {
     { href: "/career", label: "Career & Vision", icon: Briefcase },
     { href: "/analytics", label: "Analytics", icon: BarChart2 },
     { href: "/headspace", label: "Headspace", icon: BrainCircuit },
-    { href: "/genius", label: "Genius AI", icon: Sparkles },
+    { href: "/deep-mind", label: "Deep Mind", icon: Sparkles },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
 
