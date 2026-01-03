@@ -9,7 +9,7 @@ interface SidebarProps {
   className?: string;
 }
 
-import logoUrl from '@assets/generated_images/neurogarden_logo.png';
+import logoUrl from '@assets/generated_images/neurozen_logo_with_text.png';
 
 function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
@@ -26,11 +26,10 @@ function Sidebar({ className }: SidebarProps) {
 
   return (
     <div className={cn("flex flex-col h-full py-8 px-4 bg-sidebar border-r border-sidebar-border", className)}>
-      <div className="flex items-center gap-3 px-4 mb-12">
-        <div className="w-8 h-8 rounded-lg overflow-hidden">
-          <img src={logoUrl} alt="NeuroGarden Logo" className="w-full h-full object-cover" />
+      <div className="flex items-center gap-3 px-2 mb-12">
+        <div className="w-48 h-12 rounded-lg overflow-hidden flex items-center">
+          <img src={logoUrl} alt="NeuroZen Logo" className="w-full h-full object-contain object-left" />
         </div>
-        <span className="font-display font-bold text-xl tracking-tight text-sidebar-foreground">NeuroGarden</span>
       </div>
 
       <nav className="space-y-2 flex-1">
@@ -77,10 +76,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         <header className="md:hidden flex items-center justify-between p-4 border-b bg-sidebar">
           <div className="flex items-center gap-2">
-             <div className="w-8 h-8 rounded-lg overflow-hidden">
-              <img src={logoUrl} alt="NeuroGarden Logo" className="w-full h-full object-cover" />
+             <div className="w-40 h-10 rounded-lg overflow-hidden flex items-center">
+              <img src={logoUrl} alt="NeuroZen Logo" className="w-full h-full object-contain object-left" />
             </div>
-            <span className="font-display font-bold text-lg">NeuroGarden</span>
           </div>
           <Sheet>
             <SheetTrigger asChild>
