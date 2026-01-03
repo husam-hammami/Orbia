@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Smile, Frown, Meh, Zap, BatteryLow, BatteryFull, Activity, HeartPulse, UserCircle2, CloudFog, Moon, BedDouble, AlertCircle, Sparkles } from "lucide-react";
+import { Smile, Frown, Meh, Zap, BatteryLow, BatteryFull, Activity, HeartPulse, UserCircle2, CloudFog, Moon, BedDouble, AlertCircle, Sparkles, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ export function MoodTracker() {
   const [motivation, setMotivation] = useState([5]);
   const [comfort, setComfort] = useState([5]); 
   const [dissociation, setDissociation] = useState([2]); // Low dissociation by default
+  const [urges, setUrges] = useState([1]); 
   const [sleep, setSleep] = useState([7]); 
   const [whoIsFronting, setWhoIsFronting] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -102,6 +103,35 @@ export function MoodTracker() {
                 <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
                   <span>Present</span>
                   <span>Switched / Lost Time</span>
+                </div>
+            </div>
+
+            {/* Intrusive Urges (New) */}
+            <div className="bg-red-50/50 dark:bg-red-900/10 p-4 rounded-xl border border-red-100 dark:border-red-900/30">
+               <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Flame className="w-4 h-4 text-orange-500" />
+                    <label className="text-sm font-medium">Intrusive Urges</label>
+                  </div>
+                  <span className={cn(
+                    "text-xs font-bold px-2 py-0.5 rounded-full",
+                    urges[0] < 3 ? "bg-slate-100 text-slate-700" :
+                    urges[0] < 7 ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"
+                  )}>
+                    {urges[0] < 3 ? "Quiet" : urges[0] < 7 ? "Present" : "Intense"}
+                  </span>
+               </div>
+               
+               <Slider
+                  value={urges}
+                  onValueChange={setUrges}
+                  max={10}
+                  step={1}
+                  className="cursor-pointer mb-2 [&_.bg-primary]:bg-orange-500"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                  <span>Manageable</span>
+                  <span>Overwhelming</span>
                 </div>
             </div>
 
