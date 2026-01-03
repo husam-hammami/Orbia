@@ -14,15 +14,25 @@ export function MoodTracker() {
   const [comfort, setComfort] = useState([5]); 
   const [dissociation, setDissociation] = useState([2]); 
   const [urges, setUrges] = useState([1]); 
+  const [stress, setStress] = useState([3]);
   const [sleep, setSleep] = useState([7]); 
   const [systemComm, setSystemComm] = useState([5]); 
   const [whoIsFronting, setWhoIsFronting] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [stressCauses, setStressCauses] = useState<string[]>([]);
   const [note, setNote] = useState("");
   const [meals, setMeals] = useState({ breakfast: false, lunch: false, dinner: false, snack: false });
 
   const toggleMeal = (meal: keyof typeof meals) => {
     setMeals(prev => ({ ...prev, [meal]: !prev[meal] }));
+  };
+
+  const toggleStressCause = (cause: string) => {
+    if (stressCauses.includes(cause)) {
+        setStressCauses(stressCauses.filter(c => c !== cause));
+    } else {
+        setStressCauses([...stressCauses, cause]);
+    }
   };
 
   const moods = [
@@ -36,6 +46,10 @@ export function MoodTracker() {
   const tags = [
     "Therapy", "Pain Spike", "Insomnia", "Triggered", "Switchy", "Productive", 
     "Socializing", "Medication", "Grounding", "Flashback", "Rest"
+  ];
+
+  const stressTriggers = [
+    "Work", "Loneliness", "Horniness", "Finance", "Family", "Health", "Social"
   ];
 
   const toggleTag = (tag: string) => {
@@ -236,6 +250,38 @@ export function MoodTracker() {
                           </span>
                        </div>
                        <Slider value={urges} onValueChange={setUrges} max={10} step={1} className="h-4 [&_.bg-primary]:bg-orange-500" />
+                    </div>
+
+                    {/* Stress Monitor (New) */}
+                    <div className="bg-slate-50/50 dark:bg-slate-900/10 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                        <div className="flex justify-between items-center mb-2">
+                            <div className="flex items-center gap-1.5 text-slate-600">
+                                <Activity className="w-3.5 h-3.5" />
+                                <span className="text-xs font-semibold">Stress Load</span>
+                            </div>
+                            <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border">
+                                {stress[0]}/10
+                            </span>
+                        </div>
+                        <Slider value={stress} onValueChange={setStress} max={10} step={1} className="h-4 [&_.bg-primary]:bg-slate-500" />
+                        
+                        {/* Stress Triggers */}
+                        <div className="flex flex-wrap gap-1.5 mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-800">
+                            {stressTriggers.map(trigger => (
+                                <button
+                                    key={trigger}
+                                    onClick={() => toggleStressCause(trigger)}
+                                    className={cn(
+                                        "text-[9px] px-2 py-0.5 rounded-full border transition-all",
+                                        stressCauses.includes(trigger)
+                                            ? "bg-slate-500 text-white border-slate-500"
+                                            : "bg-background border-slate-200 text-slate-500 hover:border-slate-300"
+                                    )}
+                                >
+                                    {trigger}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Note */}
