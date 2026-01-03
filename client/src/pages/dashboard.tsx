@@ -1,21 +1,12 @@
 import { Layout } from "@/components/layout";
-import { SystemJournal } from "@/components/system-journal";
 import { HeadspaceMap } from "@/components/headspace-map";
 import { GroundingAnchor } from "@/components/grounding-anchor";
 import { format, subDays, parseISO, isSameDay } from "date-fns";
-import { NotebookPen, BrainCircuit, Smile, Frown, Meh, Zap, TrendingUp, TrendingDown, Minus, Activity, CheckCircle2, Clock, Loader2, CloudFog, HeartPulse, Moon, MessageSquare, Flame, Utensils } from "lucide-react";
+import { BrainCircuit, Smile, Frown, Meh, Zap, TrendingUp, TrendingDown, Minus, Activity, CheckCircle2, Clock, Loader2, CloudFog, HeartPulse, Moon, MessageSquare, Flame, Utensils } from "lucide-react";
 import { useMembers } from "@/lib/api-hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useState } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { useHabits, useTrackerEntries, useRoutineLogs, useRoutineActivities, useRoutineBlocks } from "@/lib/api-hooks";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -125,35 +116,16 @@ export default function Dashboard() {
             <p className="text-muted-foreground mt-1">Your insights and patterns at a glance</p>
           </div>
           
-          <div className="flex flex-wrap items-center gap-3">
-            <Button 
-               variant={showHeadspace ? "default" : "outline"}
-               size="sm" 
-               className="gap-2"
-               onClick={() => setShowHeadspace(!showHeadspace)}
-               data-testid="button-toggle-headspace"
-            >
-               <BrainCircuit className="w-4 h-4" />
-               {showHeadspace ? "Hide Headspace" : "Show Headspace"}
-            </Button>
-
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-primary/20 text-primary hover:bg-primary/5" title="System Journal" data-testid="button-open-journal">
-                  <NotebookPen className="w-5 h-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="w-[400px] sm:w-[540px]">
-                <SheetHeader className="mb-4">
-                  <SheetTitle>System Journal</SheetTitle>
-                  <SheetDescription>
-                    A shared space for notes, reminders, and communication.
-                  </SheetDescription>
-                </SheetHeader>
-                <SystemJournal />
-              </SheetContent>
-            </Sheet>
-          </div>
+          <Button 
+             variant={showHeadspace ? "default" : "outline"}
+             size="sm" 
+             className="gap-2"
+             onClick={() => setShowHeadspace(!showHeadspace)}
+             data-testid="button-toggle-headspace"
+          >
+             <BrainCircuit className="w-4 h-4" />
+             {showHeadspace ? "Hide Headspace" : "Show Headspace"}
+          </Button>
         </div>
 
         {showHeadspace && (

@@ -3,11 +3,13 @@ import { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Wind, Droplets, Sun, Sparkles, Trash2, Heart, Briefcase, Brain, Palette, Users, PiggyBank, Accessibility } from "lucide-react";
+import { HabitEditForm } from "./habit-edit-form";
 
 interface HabitGardenProps {
   habits: Habit[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit?: (id: string, data: Partial<Omit<Habit, "id" | "streak" | "completedToday" | "history">>) => void;
 }
 
 // Map categories to icons
@@ -186,11 +188,18 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
   );
 };
 
-export function HabitGarden({ habits, onToggle, onDelete }: HabitGardenProps) {
+export function HabitGarden({ habits, onToggle, onDelete, onEdit }: HabitGardenProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 py-8">
       {habits.map((habit) => (
-        <PlantNode key={habit.id} habit={habit} onToggle={() => onToggle(habit.id)} onDelete={() => onDelete(habit.id)} />
+        <div key={habit.id} className="relative group">
+          <PlantNode habit={habit} onToggle={() => onToggle(habit.id)} onDelete={() => onDelete(habit.id)} />
+          {onEdit && (
+            <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <HabitEditForm habit={habit} onSubmit={onEdit} />
+            </div>
+          )}
+        </div>
       ))}
       
       {/* Empty Plot for "New Habit" visualization */}

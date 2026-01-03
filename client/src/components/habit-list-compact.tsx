@@ -4,14 +4,16 @@ import { format, subDays, isSameDay, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Flame, Trophy, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HabitEditForm } from "./habit-edit-form";
 
 interface HabitListCompactProps {
   habits: Habit[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit?: (id: string, data: Partial<Omit<Habit, "id" | "streak" | "completedToday" | "history">>) => void;
 }
 
-export function HabitListCompact({ habits, onToggle, onDelete }: HabitListCompactProps) {
+export function HabitListCompact({ habits, onToggle, onDelete, onEdit }: HabitListCompactProps) {
   const today = new Date();
   // Last 14 days for the mini heatmap
   const days = Array.from({ length: 14 }).map((_, i) => subDays(today, 13 - i));
@@ -103,9 +105,12 @@ export function HabitListCompact({ habits, onToggle, onDelete }: HabitListCompac
                 </AnimatePresence>
             </button>
             
-            <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onDelete(habit.id)}>
-              <Trash2 className="w-4 h-4" />
-            </Button>
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+              {onEdit && <HabitEditForm habit={habit} onSubmit={onEdit} />}
+              <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-destructive" onClick={() => onDelete(habit.id)}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </motion.div>
       ))}

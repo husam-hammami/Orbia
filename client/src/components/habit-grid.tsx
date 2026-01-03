@@ -4,14 +4,16 @@ import { format, subDays, isSameDay, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Flame, Trophy, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HabitEditForm } from "./habit-edit-form";
 
 interface HabitGridProps {
   habits: Habit[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit?: (id: string, data: Partial<Omit<Habit, "id" | "streak" | "completedToday" | "history">>) => void;
 }
 
-export function HabitGrid({ habits, onToggle, onDelete }: HabitGridProps) {
+export function HabitGrid({ habits, onToggle, onDelete, onEdit }: HabitGridProps) {
   const today = new Date();
   const days = Array.from({ length: 5 }).map((_, i) => subDays(today, 4 - i));
 
@@ -133,8 +135,9 @@ export function HabitGrid({ habits, onToggle, onDelete }: HabitGridProps) {
                 );
               })}
 
-              {/* Delete Action */}
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Actions */}
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {onEdit && <HabitEditForm habit={habit} onSubmit={onEdit} />}
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(habit.id)}>
                    <Trash2 className="w-4 h-4" />
                 </Button>

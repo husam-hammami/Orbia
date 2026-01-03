@@ -7,12 +7,22 @@ import { HabitGrid } from "@/components/habit-grid";
 import { HabitGarden } from "@/components/habit-garden";
 import { HabitListCompact } from "@/components/habit-list-compact";
 import { HabitForm } from "@/components/habit-form";
+import { SystemJournal } from "@/components/system-journal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { format } from "date-fns";
-import { Activity, Calendar, Sparkles, LayoutGrid, List, Flower2, Loader2 } from "lucide-react";
+import { Activity, Calendar, Sparkles, LayoutGrid, List, Flower2, Loader2, NotebookPen } from "lucide-react";
 import { Habit } from "@/lib/types";
 import { toast } from "sonner";
-import { useHabits, useCreateHabit, useDeleteHabit, useAddHabitCompletion, useRemoveHabitCompletion } from "@/lib/api-hooks";
+import { useHabits, useCreateHabit, useDeleteHabit, useUpdateHabit, useAddHabitCompletion, useRemoveHabitCompletion } from "@/lib/api-hooks";
 import { useQuery } from "@tanstack/react-query";
 
 async function fetchAllCompletions(habitIds: string[]): Promise<Record<string, string[]>> {
@@ -49,6 +59,7 @@ export default function TrackerPage() {
 
   const createHabitMutation = useCreateHabit();
   const deleteHabitMutation = useDeleteHabit();
+  const updateHabitMutation = useUpdateHabit();
   const addCompletionMutation = useAddHabitCompletion();
   const removeCompletionMutation = useRemoveHabitCompletion();
 
@@ -111,16 +122,42 @@ export default function TrackerPage() {
     });
   };
 
+  const handleUpdate = (id: string, data: Partial<Omit<Habit, "id" | "streak" | "completedToday" | "history">>) => {
+    updateHabitMutation.mutate({ id, data }, {
+      onSuccess: () => toast.success("Habit updated"),
+      onError: () => toast.error("Failed to update habit"),
+    });
+  };
+
   const isLoading = habitsLoading || (habitIds.length > 0 && completionsLoading);
 
   return (
     <Layout>
       <div className="space-y-6 animate-in fade-in duration-500">
-        <div>
-          <p className="text-muted-foreground font-medium mb-1">{format(new Date(), "EEEE, MMMM do")}</p>
-          <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
-            Daily Tracker
-          </h1>
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-muted-foreground font-medium mb-1">{format(new Date(), "EEEE, MMMM do")}</p>
+            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+              Daily Tracker
+            </h1>
+          </div>
+          
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-primary/20 text-primary hover:bg-primary/5" title="System Journal" data-testid="button-open-journal">
+                <NotebookPen className="w-5 h-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="w-[400px] sm:w-[540px]">
+              <SheetHeader className="mb-4">
+                <SheetTitle>System Journal</SheetTitle>
+                <SheetDescription>
+                  A shared space for notes, reminders, and communication.
+                </SheetDescription>
+              </SheetHeader>
+              <SystemJournal />
+            </SheetContent>
+          </Sheet>
         </div>
 
         <Tabs defaultValue="habits" className="w-full">
@@ -200,15 +237,15 @@ export default function TrackerPage() {
               ) : (
                 <>
                   {viewMode === "grid" && (
-                    <HabitGrid habits={habits} onToggle={handleToggle} onDelete={handleDelete} />
+                    <HabitGrid habits={habits} onToggle={handleToggle} onDelete={handleDelete} onEdit={handleUpdate} />
                   )}
                   
                   {viewMode === "list" && (
-                    <HabitListCompact habits={habits} onToggle={handleToggle} onDelete={handleDelete} />
+                    <HabitListCompact habits={habits} onToggle={handleToggle} onDelete={handleDelete} onEdit={handleUpdate} />
                   )}
 
                   {viewMode === "garden" && (
-                    <HabitGarden habits={habits} onToggle={handleToggle} onDelete={handleDelete} />
+                    <HabitGarden habits={habits} onToggle={handleToggle} onDelete={handleDelete} onEdit={handleUpdate} />
                   )}
                 </>
               )}
