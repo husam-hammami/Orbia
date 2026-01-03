@@ -55,38 +55,9 @@ import { cn } from "@/lib/utils";
 
 // --- Mock Data ---
 
-const TRIGGER_HEATMAP_DATA = [
-    { hour: "6am", intensity: 10, day: "Mon" },
-    { hour: "9am", intensity: 65, day: "Mon" }, // Work start stress
-    { hour: "12pm", intensity: 40, day: "Mon" },
-    { hour: "3pm", intensity: 55, day: "Mon" },
-    { hour: "6pm", intensity: 20, day: "Mon" },
-    { hour: "9pm", intensity: 80, day: "Mon" }, // Night triggers
-    
-    { hour: "6am", intensity: 15, day: "Wed" },
-    { hour: "9am", intensity: 70, day: "Wed" },
-    { hour: "12pm", intensity: 45, day: "Wed" },
-    { hour: "3pm", intensity: 60, day: "Wed" },
-    { hour: "6pm", intensity: 25, day: "Wed" },
-    { hour: "9pm", intensity: 85, day: "Wed" },
-    
-    { hour: "6am", intensity: 5, day: "Fri" },
-    { hour: "9am", intensity: 50, day: "Fri" },
-    { hour: "12pm", intensity: 30, day: "Fri" },
-    { hour: "3pm", intensity: 40, day: "Fri" },
-    { hour: "6pm", intensity: 15, day: "Fri" },
-    { hour: "9pm", intensity: 40, day: "Fri" }, // Friday night better
-];
+const TRIGGER_HEATMAP_DATA: any[] = [];
 
-const SOCIAL_BATTERY_DATA = [
-  { day: "Mon", interaction: 4, battery: 80 },
-  { day: "Tue", interaction: 6, battery: 60 },
-  { day: "Wed", interaction: 8, battery: 30 }, // Burnout point
-  { day: "Thu", interaction: 2, battery: 50 }, // Recovery
-  { day: "Fri", interaction: 5, battery: 40 },
-  { day: "Sat", interaction: 9, battery: 20 }, // Weekend drain
-  { day: "Sun", interaction: 0, battery: 90 }, // Full recharge
-];
+const SOCIAL_BATTERY_DATA: any[] = [];
 
 const CORRELATION_INSIGHTS = [
     { 
@@ -94,13 +65,6 @@ const CORRELATION_INSIGHTS = [
         title: "Sleep & Dissociation", 
         finding: "Sleep < 6h increases dissociation by 40%.",
         confidence: 92,
-        trend: "negative"
-    },
-    { 
-        id: 2, 
-        title: "Social Drain", 
-        finding: "Interactions > 6h trigger rapid battery depletion.",
-        confidence: 85,
         trend: "negative"
     },
     { 
@@ -420,87 +384,30 @@ export default function Analytics() {
                 Genius Insights & Predictions
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* 1. Correlation Insights Cards */}
-                <div className="space-y-4">
-                    {CORRELATION_INSIGHTS.map(insight => (
-                        <Card key={insight.id} className="border-l-4 border-l-primary border-border/50 shadow-sm bg-muted/5">
-                            <CardContent className="p-4">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="flex items-center gap-2">
-                                        {insight.trend === 'negative' ? (
-                                            <AlertCircle className="w-4 h-4 text-rose-500" />
-                                        ) : (
-                                            <Zap className="w-4 h-4 text-amber-500" />
-                                        )}
-                                        <h4 className="font-semibold text-sm">{insight.title}</h4>
-                                    </div>
-                                    <Badge variant="outline" className="text-[10px] h-5 bg-background">
-                                        {insight.confidence}% Confidence
-                                    </Badge>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {CORRELATION_INSIGHTS.map(insight => (
+                    <Card key={insight.id} className="border-l-4 border-l-primary border-border/50 shadow-sm bg-muted/5">
+                        <CardContent className="p-4">
+                            <div className="flex justify-between items-start mb-2">
+                                <div className="flex items-center gap-2">
+                                    {insight.trend === 'negative' ? (
+                                        <AlertCircle className="w-4 h-4 text-rose-500" />
+                                    ) : (
+                                        <Zap className="w-4 h-4 text-amber-500" />
+                                    )}
+                                    <h4 className="font-semibold text-sm">{insight.title}</h4>
                                 </div>
-                                <p className="text-sm text-muted-foreground leading-snug">
-                                    {insight.finding}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-
-                {/* 2. Social Battery */}
-                <Card className="md:col-span-2 border-border/50 shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Users className="w-4 h-4 text-blue-500" />
-                            Social Battery Monitor
-                        </CardTitle>
-                        <CardDescription>Social interaction hours vs. Emotional Energy</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <div className="h-[200px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={SOCIAL_BATTERY_DATA}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} dy={10} />
-                                    <Tooltip 
-                                        cursor={{ fill: 'hsl(var(--muted)/0.2)' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--background))' }}
-                                    />
-                                    <Bar dataKey="interaction" fill="#60a5fa" radius={[4, 4, 0, 0]} name="Social Hours" barSize={20} />
-                                    <Line type="monotone" dataKey="battery" stroke="#f59e0b" strokeWidth={3} dot={{r:4, fill: "#f59e0b"}} name="Social Battery %" />
-                                    <Legend />
-                                </BarChart>
-                            </ResponsiveContainer>
-                         </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* 3. Trigger Heatmap */}
-            <Card className="border-border/50 shadow-sm">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                        <Clock className="w-4 h-4 text-rose-500" />
-                        Trigger Risk Heatmap
-                    </CardTitle>
-                    <CardDescription>High-risk times based on historical stress spikes.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-6 gap-2">
-                        {TRIGGER_HEATMAP_DATA.map((point, i) => (
-                            <div key={i} className="flex flex-col items-center gap-1 p-2 rounded-lg bg-muted/10 border border-border/30">
-                                <span className="text-[10px] text-muted-foreground uppercase font-bold">{point.day}</span>
-                                <span className="text-xs font-mono">{point.hour}</span>
-                                <div className={cn(
-                                    "w-full h-1.5 rounded-full mt-1",
-                                    point.intensity > 70 ? "bg-rose-500" :
-                                    point.intensity > 40 ? "bg-amber-500" : "bg-emerald-500"
-                                )} />
+                                <Badge variant="outline" className="text-[10px] h-5 bg-background">
+                                    {insight.confidence}% Confidence
+                                </Badge>
                             </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
+                            <p className="text-sm text-muted-foreground leading-snug">
+                                {insight.finding}
+                            </p>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
         </div>
         
         {/* Habit Tracking (Secondary Focus) */}
