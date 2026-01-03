@@ -74,7 +74,21 @@ export default function Dashboard() {
             </h1>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+             {/* Compact Daily Progress */}
+             <div className="hidden lg:flex items-center gap-3 bg-muted/30 px-4 py-2 rounded-full border border-border/50 mr-2">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Progress</span>
+                <div className="flex items-center gap-3">
+                   <span className="text-sm font-bold text-primary font-mono">{habits.filter(h => h.completedToday).length} <span className="text-muted-foreground font-normal">/ {habits.length}</span></span>
+                   <div className="w-24 h-2 bg-background rounded-full overflow-hidden border border-border/50">
+                      <div 
+                        className="h-full bg-primary transition-all duration-500 ease-out"
+                        style={{ width: habits.length > 0 ? `${(habits.filter(h => h.completedToday).length / habits.length) * 100}%` : '0%' }}
+                      />
+                   </div>
+                </div>
+             </div>
+
             <Button 
                variant={showHeadspace ? "default" : "outline"}
                size="sm" 
@@ -112,31 +126,8 @@ export default function Dashboard() {
            </div>
         )}
 
-        {/* Mood & Stats Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-           <div className="lg:col-span-2">
-              <MoodTracker />
-           </div>
-           
-           <div className="bg-primary/5 rounded-2xl border border-primary/10 p-6 flex flex-col justify-center gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground font-medium">Daily Progress</p>
-                <div className="flex items-end gap-2 mt-1">
-                   <p className="text-4xl font-display font-bold text-primary">{habits.filter(h => h.completedToday).length}</p>
-                   <p className="text-xl text-muted-foreground mb-1">/ {habits.length}</p>
-                </div>
-              </div>
-              <div className="w-full bg-background rounded-full h-3 overflow-hidden">
-                 <div 
-                   className="h-full bg-primary transition-all duration-500 ease-out"
-                   style={{ width: habits.length > 0 ? `${(habits.filter(h => h.completedToday).length / habits.length) * 100}%` : '0%' }}
-                 />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                "Small steps every day lead to big changes."
-              </p>
-           </div>
-        </div>
+        {/* Mood Tracker (Full Width) */}
+        <MoodTracker />
 
         {/* Habits Grid */}
         <div className="space-y-4">
