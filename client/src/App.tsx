@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import CareerPage from "@/pages/career";
 import Analytics from "@/pages/analytics";
+import SystemInsight from "@/pages/system-insight";
 
 function Router() {
   return (
@@ -14,6 +15,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/career" component={CareerPage} />
       <Route path="/analytics" component={Analytics} />
+      <Route path="/system-insight" component={SystemInsight} />
       <Route path="/settings" component={() => <div className="p-8 text-center text-muted-foreground">Settings Page (Coming Soon)</div>} />
       <Route component={NotFound} />
     </Switch>
