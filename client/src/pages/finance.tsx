@@ -41,7 +41,10 @@ import {
   Pencil,
   Trash2,
   MoreHorizontal,
-  DollarSign
+  DollarSign,
+  ChevronLeft,
+  ChevronRight,
+  Calendar
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -65,19 +68,28 @@ interface Expense {
   category: ExpenseCategory;
   status: ExpenseStatus;
   date: string;
+  month: string; // "Jan", "Feb", etc.
 }
 
 const MONTHLY_BUDGET = 4500;
 const DAYS_LEFT = 12;
 
 const INITIAL_EXPENSES: Expense[] = [
-  { id: "1", name: "Rent & Utilities", amount: 1800, budget: 1800, category: "Fixed", status: "paid", date: "Jan 1" },
-  { id: "2", name: "Student Loan", amount: 450, budget: 450, category: "Debt", status: "paid", date: "Jan 5" },
-  { id: "3", name: "Groceries & Food", amount: 420, budget: 600, category: "Variable", status: "variable", date: "Multiple" },
-  { id: "4", name: "Transport", amount: 120, budget: 200, category: "Variable", status: "variable", date: "Multiple" },
-  { id: "5", name: "Entertainment", amount: 180, budget: 300, category: "Variable", status: "variable", date: "Multiple" },
-  { id: "6", name: "Subscriptions", amount: 150, budget: 150, category: "Fixed", status: "pending", date: "Jan 25" },
+  // January
+  { id: "1", name: "Rent & Utilities", amount: 1800, budget: 1800, category: "Fixed", status: "paid", date: "Jan 1", month: "January" },
+  { id: "2", name: "Student Loan", amount: 450, budget: 450, category: "Debt", status: "paid", date: "Jan 5", month: "January" },
+  { id: "3", name: "Groceries & Food", amount: 420, budget: 600, category: "Variable", status: "variable", date: "Jan 12", month: "January" },
+  { id: "4", name: "Transport", amount: 120, budget: 200, category: "Variable", status: "variable", date: "Jan 15", month: "January" },
+  { id: "5", name: "Entertainment", amount: 180, budget: 300, category: "Variable", status: "variable", date: "Jan 20", month: "January" },
+  { id: "6", name: "Subscriptions", amount: 150, budget: 150, category: "Fixed", status: "pending", date: "Jan 25", month: "January" },
+  
+  // February (Projected/Mock)
+  { id: "7", name: "Rent & Utilities", amount: 1800, budget: 1800, category: "Fixed", status: "pending", date: "Feb 1", month: "February" },
+  { id: "8", name: "Student Loan", amount: 450, budget: 450, category: "Debt", status: "pending", date: "Feb 5", month: "February" },
+  { id: "9", name: "Groceries & Food", amount: 150, budget: 600, category: "Variable", status: "variable", date: "Feb 2", month: "February" },
 ];
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const LOAN_PROGRESS = {
     total: 25000,
@@ -106,8 +118,11 @@ const COLORS = {
 
 export default function FinancePage() {
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
+  const [currentMonthIndex, setCurrentMonthIndex] = useState(0); // 0 = January
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+
+  const currentMonth = MONTHS[currentMonthIndex];
 
   // Form State
   const [formData, setFormData] = useState<Partial<Expense>>({
@@ -119,13 +134,18 @@ export default function FinancePage() {
     date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   });
 
+  // Filter expenses by month
+  const monthlyExpenses = useMemo(() => {
+    return expenses.filter(e => e.month === currentMonth);
+  }, [expenses, currentMonth]);
+
   // Calculations
-  const totalSpent = useMemo(() => expenses.reduce((acc, curr) => acc + curr.amount, 0), [expenses]);
+  const totalSpent = useMemo(() => monthlyExpenses.reduce((acc, curr) => acc + curr.amount, 0), [monthlyExpenses]);
   const percentSpent = (totalSpent / MONTHLY_BUDGET) * 100;
   
   const spendingData = useMemo(() => {
     const data: Record<string, number> = { Fixed: 0, Variable: 0, Debt: 0, Savings: 0 };
-    expenses.forEach(e => {
+    monthlyExpenses.forEach(e => {
       if (data[e.category] !== undefined) {
         data[e.category] += e.amount;
       }
@@ -139,9 +159,17 @@ export default function FinancePage() {
       { name: 'Debt', value: data.Debt, color: COLORS.Debt },
       { name: 'Remaining', value: remaining, color: COLORS.Savings },
     ].filter(item => item.value > 0);
-  }, [expenses, totalSpent]);
+  }, [monthlyExpenses, totalSpent]);
 
   // Handlers
+  const handleMonthChange = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+        setCurrentMonthIndex(prev => Math.max(0, prev - 1));
+    } else {
+        setCurrentMonthIndex(prev => Math.min(MONTHS.length - 1, prev + 1));
+    }
+  };
+
   const handleOpenAdd = () => {
     setEditingExpense(null);
     setFormData({
@@ -180,7 +208,8 @@ export default function FinancePage() {
         budget: formData.budget || 0,
         category: formData.category || "Variable",
         status: formData.status || "pending",
-        date: formData.date || new Date().toLocaleDateString()
+        date: formData.date || new Date().toLocaleDateString(),
+        month: currentMonth // Auto-assign to current view month
       };
       setExpenses(prev => [...prev, newExpense]);
       toast.success("Expense added");
@@ -196,7 +225,32 @@ export default function FinancePage() {
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">Financial Wellness</h1>
             <p className="text-muted-foreground text-lg">Track your monthly flow and loan progress.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center bg-muted/50 rounded-lg p-1 border border-border/50">
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8" 
+                    onClick={() => handleMonthChange('prev')}
+                    disabled={currentMonthIndex === 0}
+                >
+                    <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <div className="px-4 font-medium min-w-[100px] text-center flex items-center justify-center gap-2">
+                    <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                    {currentMonth}
+                </div>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8"
+                    onClick={() => handleMonthChange('next')}
+                    disabled={currentMonthIndex === MONTHS.length - 1}
+                >
+                    <ChevronRight className="w-4 h-4" />
+                </Button>
+            </div>
+            
             <Button onClick={handleOpenAdd} className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white">
               <Plus className="w-4 h-4" /> Add Expense
             </Button>
@@ -270,13 +324,13 @@ export default function FinancePage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Wallet className="w-5 h-5 text-indigo-500" />
-                            Monthly Expenses
+                            {currentMonth} Expenses
                         </CardTitle>
                         <CardDescription>Breakdown of fixed and variable costs.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {expenses.map((expense) => {
+                            {monthlyExpenses.map((expense) => {
                                 const Icon = getCategoryIcon(expense.category);
                                 const isOverBudget = expense.amount > expense.budget && expense.budget > 0;
                                 const percent = expense.budget > 0 ? Math.min((expense.amount / expense.budget) * 100, 100) : 100;
@@ -328,9 +382,13 @@ export default function FinancePage() {
                                 )
                             })}
                             
-                            {expenses.length === 0 && (
-                                <div className="text-center py-8 text-muted-foreground">
-                                    No expenses added yet. Click "Add Expense" to get started.
+                            {monthlyExpenses.length === 0 && (
+                                <div className="text-center py-12 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed border-border/50 rounded-xl bg-muted/5">
+                                    <div className="bg-muted p-3 rounded-full mb-3">
+                                        <Calendar className="w-6 h-6 text-muted-foreground" />
+                                    </div>
+                                    <p className="font-medium">No expenses for {currentMonth}</p>
+                                    <p className="text-sm mt-1">Start tracking by adding a new expense.</p>
                                 </div>
                             )}
                         </div>
