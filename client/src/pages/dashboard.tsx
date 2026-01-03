@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { HabitGrid } from "@/components/habit-grid";
+import { HabitListCompact } from "@/components/habit-list-compact";
 import { MoodTracker } from "@/components/mood-tracker";
 import { MOCK_HABITS, MOCK_STATS } from "@/lib/mock-data";
 import { format } from "date-fns";
 import { Plus, LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export default function Dashboard() {
   const [habits, setHabits] = useState(MOCK_HABITS);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   
   const handleToggle = (id: string) => {
     setHabits(habits.map(h => {
@@ -74,10 +77,29 @@ export default function Dashboard() {
         {/* Habits Grid */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-display font-semibold">Weekly View</h2>
+            <h2 className="text-xl font-display font-semibold">Your Habits</h2>
+            
+            <div className="bg-muted/50 p-1 rounded-lg flex items-center">
+               <button 
+                  onClick={() => setViewMode("grid")}
+                  className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+               >
+                  <LayoutGrid className="w-4 h-4" />
+               </button>
+               <button 
+                  onClick={() => setViewMode("list")}
+                  className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+               >
+                  <List className="w-4 h-4" />
+               </button>
+            </div>
           </div>
           
-          <HabitGrid habits={habits} onToggle={handleToggle} />
+          {viewMode === "grid" ? (
+             <HabitGrid habits={habits} onToggle={handleToggle} />
+          ) : (
+             <HabitListCompact habits={habits} onToggle={handleToggle} />
+          )}
         </div>
       </div>
     </Layout>
