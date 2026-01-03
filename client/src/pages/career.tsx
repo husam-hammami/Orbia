@@ -213,6 +213,22 @@ export default function CareerPage() {
     setIsProjectDetailsOpen(true);
   };
 
+  const handleAddProjectTask = (projectTitle: string) => {
+    const task = {
+      id: Date.now(),
+      title: "New Task",
+      project: projectTitle,
+      completed: false,
+      priority: "Medium",
+      due: format(new Date(), "yyyy-MM-dd"), // Default to today in YYYY-MM-DD
+      tags: [],
+      description: ""
+    };
+    setTasks([...tasks, task]);
+    setSelectedTask(task);
+    setIsTaskDialogOpen(true);
+  };
+
   const handleUpdateProject = (updatedProject: typeof MOCK_PROJECTS[0]) => {
     setProjects(projects.map(p => p.id === updatedProject.id ? updatedProject : p));
     setIsProjectDialogOpen(false);
@@ -814,9 +830,9 @@ export default function CareerPage() {
                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
                          <h3 className="font-semibold flex items-center gap-2">
-                            <CheckSquare className="w-4 h-4" /> Related Tasks
+                            <CheckSquare className="w-4 h-4" /> To-Do List
                          </h3>
-                         <Button variant="ghost" size="sm" className="h-8">
+                         <Button variant="ghost" size="sm" className="h-8" onClick={() => handleAddProjectTask(selectedProject.title)}>
                             <Plus className="w-3.5 h-3.5 mr-1" /> Add Task
                          </Button>
                       </div>
@@ -824,20 +840,32 @@ export default function CareerPage() {
                       <div className="border rounded-lg divide-y">
                          {tasks.filter(t => t.project === selectedProject.title).length > 0 ? (
                             tasks.filter(t => t.project === selectedProject.title).map(task => (
-                               <div key={task.id} className="p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors">
+                               <div key={task.id} className="p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors group cursor-pointer" onClick={() => openTaskDetails(task)}>
                                   <button 
-                                     onClick={() => toggleTask(task.id)}
+                                     onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleTask(task.id);
+                                     }}
                                      className={cn(
-                                        "w-4 h-4 rounded border flex items-center justify-center transition-all",
+                                        "w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0",
                                         task.completed ? "bg-emerald-500 border-emerald-500 text-white" : "border-muted-foreground/40 hover:border-emerald-500"
                                      )}
                                   >
                                      {task.completed && <CheckSquare className="w-3 h-3" />}
                                   </button>
-                                  <span className={cn("text-sm flex-1", task.completed && "line-through text-muted-foreground")}>
-                                     {task.title}
-                                  </span>
-                                  <Badge variant="outline" className="text-[10px] font-normal">{task.priority}</Badge>
+                                  <div className="flex-1 min-w-0">
+                                     <span className={cn("text-sm block truncate", task.completed && "line-through text-muted-foreground")}>
+                                        {task.title}
+                                     </span>
+                                     <div className="flex items-center gap-2 mt-0.5">
+                                        <span className={cn("text-[10px] flex items-center gap-1", 
+                                           task.due === "Today" || task.due === format(new Date(), "yyyy-MM-dd") ? "text-rose-500 font-medium" : "text-muted-foreground"
+                                        )}>
+                                           <Calendar className="w-3 h-3" /> {task.due}
+                                        </span>
+                                     </div>
+                                  </div>
+                                  <Badge variant="outline" className="text-[10px] font-normal shrink-0">{task.priority}</Badge>
                                </div>
                             ))
                          ) : (
