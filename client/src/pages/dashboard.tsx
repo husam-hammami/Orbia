@@ -1,17 +1,14 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { HabitGrid } from "@/components/habit-grid";
-import { HabitListCompact } from "@/components/habit-list-compact";
-import { MoodTracker } from "@/components/mood-tracker";
-import { MOCK_HABITS, MOCK_STATS } from "@/lib/mock-data";
-import { format } from "date-fns";
-import { Plus, LayoutGrid, List } from "lucide-react";
+import { HabitGarden } from "@/components/habit-garden";
+import { Plus, LayoutGrid, List, Flower2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export default function Dashboard() {
   const [habits, setHabits] = useState(MOCK_HABITS);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "garden">("grid");
   
   const handleToggle = (id: string) => {
     setHabits(habits.map(h => {
@@ -83,22 +80,37 @@ export default function Dashboard() {
                <button 
                   onClick={() => setViewMode("grid")}
                   className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  title="Weekly Grid"
                >
                   <LayoutGrid className="w-4 h-4" />
                </button>
                <button 
                   onClick={() => setViewMode("list")}
                   className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  title="Compact List"
                >
                   <List className="w-4 h-4" />
+               </button>
+               <button 
+                  onClick={() => setViewMode("garden")}
+                  className={`p-2 rounded-md transition-all ${viewMode === 'garden' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  title="Zen Garden"
+               >
+                  <Flower2 className="w-4 h-4" />
                </button>
             </div>
           </div>
           
-          {viewMode === "grid" ? (
+          {viewMode === "grid" && (
              <HabitGrid habits={habits} onToggle={handleToggle} />
-          ) : (
+          )}
+          
+          {viewMode === "list" && (
              <HabitListCompact habits={habits} onToggle={handleToggle} />
+          )}
+
+          {viewMode === "garden" && (
+             <HabitGarden habits={habits} onToggle={handleToggle} />
           )}
         </div>
       </div>
