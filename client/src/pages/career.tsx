@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
-import { Plus, Target, Rocket, Calendar, CheckSquare, MoreHorizontal, ArrowRight, Briefcase } from "lucide-react";
+import { 
+  Plus, Target, Rocket, Calendar, CheckSquare, MoreHorizontal, 
+  ArrowRight, Briefcase, TrendingUp, Clock, AlertCircle, 
+  CheckCircle2, LayoutTemplate, Sparkles, Filter, BrainCircuit
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Card,
   CardContent,
@@ -15,194 +20,361 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { format, differenceInDays } from "date-fns";
 
 // Mock Data
 const MOCK_PROJECTS = [
-  { id: 1, title: "Website Redesign", status: "In Progress", progress: 65, deadline: "2024-02-15", color: "bg-blue-500" },
-  { id: 2, title: "Q1 Marketing Plan", status: "Planning", progress: 20, deadline: "2024-01-30", color: "bg-purple-500" },
-  { id: 3, title: "Learning React", status: "Ongoing", progress: 45, deadline: null, color: "bg-green-500" },
+  { 
+    id: 1, 
+    title: "Portfolio Redesign 2026", 
+    status: "In Progress", 
+    progress: 65, 
+    deadline: "2026-02-15", 
+    color: "bg-indigo-500",
+    nextAction: "Finalize case study copy"
+  },
+  { 
+    id: 2, 
+    title: "Q1 Marketing Strategy", 
+    status: "Planning", 
+    progress: 20, 
+    deadline: "2026-01-30", 
+    color: "bg-rose-500",
+    nextAction: "Competitor analysis"
+  },
+  { 
+    id: 3, 
+    title: "React Performance Course", 
+    status: "Ongoing", 
+    progress: 45, 
+    deadline: null, 
+    color: "bg-emerald-500",
+    nextAction: "Complete module 4"
+  },
 ];
 
 const MOCK_TASKS = [
-  { id: 1, title: "Draft homepage copy", project: "Website Redesign", completed: false, priority: "High" },
-  { id: 2, title: "Select color palette", project: "Website Redesign", completed: true, priority: "Medium" },
-  { id: 3, title: "Research competitors", project: "Q1 Marketing Plan", completed: false, priority: "Medium" },
-  { id: 4, title: "Complete tutorial #4", project: "Learning React", completed: false, priority: "Low" },
+  { id: 1, title: "Draft homepage copy", project: "Portfolio Redesign 2026", completed: false, priority: "High", due: "Today" },
+  { id: 2, title: "Select color palette", project: "Portfolio Redesign 2026", completed: true, priority: "Medium", due: "Yesterday" },
+  { id: 3, title: "Research competitors", project: "Q1 Marketing Strategy", completed: false, priority: "Medium", due: "Tomorrow" },
+  { id: 4, title: "Complete tutorial #4", project: "React Performance Course", completed: false, priority: "Low", due: "Next Week" },
+  { id: 5, title: "Update LinkedIn Profile", project: "General", completed: false, priority: "Low", due: "Next Week" },
 ];
 
 const MOCK_VISION = [
-  { id: 1, text: "Become a Senior Frontend Developer", timeframe: "Long-term" },
-  { id: 2, text: "Launch a personal side project", timeframe: "This Year" },
-  { id: 3, text: "Build a consistent deep work habit", timeframe: "Ongoing" },
+  { 
+    id: 1, 
+    title: "Senior Frontend Engineer", 
+    type: "Role",
+    timeframe: "2 Years",
+    description: "Leading a team of developers, architecting scalable UI systems.",
+    icon: Briefcase,
+    color: "text-blue-500 bg-blue-500/10"
+  },
+  { 
+    id: 2, 
+    title: "Launch SaaS Product", 
+    type: "Entrepreneurship",
+    timeframe: "This Year",
+    description: "Build and launch a small productivity tool for developers.",
+    icon: Rocket,
+    color: "text-purple-500 bg-purple-500/10"
+  },
+  { 
+    id: 3, 
+    title: "Deep Work Mastery", 
+    type: "Habit",
+    timeframe: "Ongoing",
+    description: "Consistently achieving 4 hours of flow state daily.",
+    icon: BrainCircuit,
+    color: "text-amber-500 bg-amber-500/10"
+  },
 ];
 
 export default function CareerPage() {
   const [projects, setProjects] = useState(MOCK_PROJECTS);
   const [tasks, setTasks] = useState(MOCK_TASKS);
   const [vision, setVision] = useState(MOCK_VISION);
-  const [activeTab, setActiveTab] = useState<"overview" | "projects" | "vision">("overview");
+  const [newTask, setNewTask] = useState("");
 
   const toggleTask = (id: number) => {
     setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
   };
 
+  const handleAddTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTask.trim()) return;
+    setTasks([{
+      id: Date.now(),
+      title: newTask,
+      project: "General",
+      completed: false,
+      priority: "Medium",
+      due: "Today"
+    }, ...tasks]);
+    setNewTask("");
+  };
+
   return (
     <Layout>
-      <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="space-y-8 animate-in fade-in duration-500 pb-12">
         
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1 text-muted-foreground">
-               <Briefcase className="w-4 h-4" />
-               <span className="font-medium text-sm">Professional</span>
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border/40">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-muted-foreground mb-2">
+               <span className="px-2 py-1 rounded-md bg-muted text-xs font-medium uppercase tracking-wider">Professional Workspace</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+            <h1 className="text-3xl md:text-5xl font-display font-bold text-foreground tracking-tight">
               Career & Vision
             </h1>
+            <p className="text-muted-foreground text-lg max-w-2xl font-light">
+              Designing your future, one project at a time.
+            </p>
           </div>
           
-          <div className="flex gap-2">
-             <Button variant="outline" className="gap-2">
-                <Target className="w-4 h-4" /> Add Goal
+          <div className="flex gap-3">
+             <Button variant="outline" className="gap-2 h-10 px-4">
+                <LayoutTemplate className="w-4 h-4" /> Board View
              </Button>
-             <Button className="gap-2">
-                <Plus className="w-4 h-4" /> New Project
+             <Button className="gap-2 h-10 px-4 bg-primary text-primary-foreground shadow-sm hover:shadow transition-all">
+                <Plus className="w-4 h-4" /> New Initiative
              </Button>
           </div>
         </div>
 
-        {/* Vision Board (Top Section) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-           <Card className="md:col-span-2 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-background border-indigo-100 dark:border-indigo-900/50">
-              <CardHeader className="pb-2">
-                 <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                       <Rocket className="w-5 h-5 text-indigo-500" />
-                       North Star Vision
-                    </CardTitle>
-                    <Button variant="ghost" size="sm" className="text-xs h-8">Edit</Button>
-                 </div>
-              </CardHeader>
-              <CardContent>
-                 <div className="space-y-3 mt-2">
-                    {vision.map(v => (
-                       <div key={v.id} className="flex items-start gap-3 p-3 bg-white/60 dark:bg-black/20 rounded-lg border border-indigo-100/50 dark:border-indigo-900/30">
-                          <Target className="w-4 h-4 text-indigo-400 mt-0.5" />
-                          <div>
-                             <p className="font-medium text-sm">{v.text}</p>
-                             <p className="text-xs text-muted-foreground mt-0.5">{v.timeframe}</p>
-                          </div>
-                       </div>
-                    ))}
-                 </div>
-              </CardContent>
-           </Card>
-
-           <Card className="bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/20 dark:to-background border-emerald-100 dark:border-emerald-900/50 flex flex-col justify-center items-center text-center p-6">
-               <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center mb-4">
-                  <CheckSquare className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
-               </div>
-               <h3 className="font-bold text-2xl text-emerald-900 dark:text-emerald-100">{tasks.filter(t => t.completed).length} / {tasks.length}</h3>
-               <p className="text-sm text-emerald-700/80 dark:text-emerald-300/80 font-medium">Tasks Completed</p>
-               <div className="w-full mt-4">
-                  <Progress value={(tasks.filter(t => t.completed).length / tasks.length) * 100} className="h-2" />
-               </div>
-           </Card>
-        </div>
-
-        {/* Projects & Tasks Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Vision Section */}
+        <section className="space-y-4">
+           <div className="flex items-center justify-between">
+              <h2 className="text-xl font-display font-semibold flex items-center gap-2">
+                 <Sparkles className="w-5 h-5 text-amber-500" />
+                 North Star Vision
+              </h2>
+           </div>
            
-           {/* Projects Column */}
-           <div className="lg:col-span-2 space-y-6">
-              <div className="flex items-center justify-between">
-                 <h2 className="text-xl font-display font-semibold">Active Projects</h2>
-                 <Button variant="ghost" size="sm">View All</Button>
-              </div>
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {vision.map((item) => (
+                 <div key={item.id} className="group relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br from-background to-muted/30 p-6 hover:shadow-md transition-all duration-300 hover:border-border">
+                    <div className={cn("absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity")}>
+                       <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="w-4 h-4" />
+                       </Button>
+                    </div>
+                    
+                    <div className="flex items-start gap-4 mb-4">
+                       <div className={cn("p-3 rounded-lg", item.color)}>
+                          <item.icon className="w-6 h-6" />
+                       </div>
+                       <div>
+                          <Badge variant="outline" className="mb-2 font-normal text-xs">{item.type}</Badge>
+                          <h3 className="font-semibold text-lg leading-none">{item.title}</h3>
+                       </div>
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                       {item.description}
+                    </p>
+                    
+                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                       <Clock className="w-3.5 h-3.5" />
+                       {item.timeframe}
+                    </div>
+                 </div>
+              ))}
               
+              <button className="group flex flex-col items-center justify-center p-6 border-2 border-dashed border-muted rounded-xl hover:bg-muted/30 hover:border-primary/50 transition-all duration-300 min-h-[200px]">
+                 <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                    <Plus className="w-6 h-6" />
+                 </div>
+                 <span className="font-medium text-muted-foreground group-hover:text-foreground">Add Vision Goal</span>
+              </button>
+           </div>
+        </section>
+
+        <Separator className="my-8" />
+
+        {/* Dashboard Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+           
+           {/* Projects Column (8 cols) */}
+           <div className="lg:col-span-8 space-y-6">
+              <div className="flex items-center justify-between">
+                 <h2 className="text-xl font-display font-semibold flex items-center gap-2">
+                    <Rocket className="w-5 h-5 text-indigo-500" />
+                    Active Projects
+                 </h2>
+                 <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" className="text-muted-foreground">
+                       <Filter className="w-4 h-4 mr-2" /> Filter
+                    </Button>
+                 </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 {projects.map(project => (
-                    <Card key={project.id} className="hover:shadow-md transition-shadow cursor-pointer border-l-4" style={{ borderLeftColor: project.color.replace('bg-', '') }}>
-                       <CardHeader className="pb-2">
-                          <div className="flex justify-between items-start">
-                             <CardTitle className="text-base">{project.title}</CardTitle>
-                             <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-                          </div>
-                          <CardDescription className="flex items-center gap-2 text-xs">
-                             <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted uppercase tracking-wide")}>
-                                {project.status}
-                             </span>
-                             {project.deadline && (
-                                <span className="flex items-center gap-1 text-muted-foreground">
-                                   <Calendar className="w-3 h-3" />
-                                   {project.deadline}
-                                </span>
+                 {projects.map(project => {
+                    const daysLeft = project.deadline ? differenceInDays(new Date(project.deadline), new Date()) : null;
+                    const isUrgent = daysLeft !== null && daysLeft < 7;
+
+                    return (
+                       <Card key={project.id} className="group hover:shadow-lg transition-all duration-300 border-border/50">
+                          <CardHeader className="pb-3">
+                             <div className="flex justify-between items-start mb-2">
+                                <Badge 
+                                   variant="outline" 
+                                   className={cn("font-normal", 
+                                      project.status === "In Progress" ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800" : 
+                                      project.status === "Planning" ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800" :
+                                      "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800"
+                                   )}
+                                >
+                                   {project.status}
+                                </Badge>
+                                <DropdownMenu>
+                                   <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                                         <MoreHorizontal className="w-4 h-4" />
+                                      </Button>
+                                   </DropdownMenuTrigger>
+                                   <DropdownMenuContent align="end">
+                                      <DropdownMenuItem>Edit Project</DropdownMenuItem>
+                                      <DropdownMenuItem>View Details</DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem className="text-destructive">Archive</DropdownMenuItem>
+                                   </DropdownMenuContent>
+                                </DropdownMenu>
+                             </div>
+                             <CardTitle className="text-lg font-semibold tracking-tight">{project.title}</CardTitle>
+                          </CardHeader>
+                          
+                          <CardContent className="pb-4">
+                             <div className="mb-4">
+                                <div className="flex justify-between text-xs mb-1.5 font-medium text-muted-foreground">
+                                   <span>Progress</span>
+                                   <span>{project.progress}%</span>
+                                </div>
+                                <Progress value={project.progress} className="h-2" indicatorClassName={project.color} />
+                             </div>
+                             
+                             {project.nextAction && (
+                                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+                                   <ArrowRight className="w-3.5 h-3.5" />
+                                   <span className="truncate">Next: <span className="font-medium text-foreground">{project.nextAction}</span></span>
+                                </div>
                              )}
-                          </CardDescription>
-                       </CardHeader>
-                       <CardContent className="pb-4">
-                          <div className="flex justify-between text-xs mb-1.5 font-medium text-muted-foreground">
-                             <span>Progress</span>
-                             <span>{project.progress}%</span>
-                          </div>
-                          <Progress value={project.progress} className="h-1.5" />
-                       </CardContent>
-                    </Card>
-                 ))}
-                 
-                 <button className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-muted rounded-xl hover:bg-muted/30 transition-colors h-full min-h-[140px]">
-                    <Plus className="w-8 h-8 text-muted-foreground mb-2" />
-                    <span className="text-sm font-medium text-muted-foreground">Create New Project</span>
-                 </button>
+                          </CardContent>
+                          
+                          <CardFooter className="pt-0 text-xs text-muted-foreground flex justify-between items-center">
+                             {project.deadline ? (
+                                <div className={cn("flex items-center gap-1.5", isUrgent && "text-rose-500 font-medium")}>
+                                   <Calendar className="w-3.5 h-3.5" />
+                                   {daysLeft} days left
+                                </div>
+                             ) : (
+                                <div className="flex items-center gap-1.5">
+                                   <TrendingUp className="w-3.5 h-3.5" />
+                                   Ongoing
+                                </div>
+                             )}
+                          </CardFooter>
+                       </Card>
+                    );
+                 })}
               </div>
            </div>
 
-           {/* Tasks Column */}
-           <div className="space-y-6">
+           {/* Tasks Column (4 cols) */}
+           <div className="lg:col-span-4 space-y-6">
               <div className="flex items-center justify-between">
-                 <h2 className="text-xl font-display font-semibold">Focus Tasks</h2>
-                 <Button variant="ghost" size="sm">Add Task</Button>
+                 <h2 className="text-xl font-display font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    Priority Actions
+                 </h2>
               </div>
 
-              <div className="bg-card rounded-xl border border-border divide-y divide-border">
-                 {tasks.map(task => (
-                    <div key={task.id} className="p-4 flex items-start gap-3 hover:bg-muted/20 transition-colors group">
-                       <button 
-                          onClick={() => toggleTask(task.id)}
-                          className={cn(
-                             "mt-0.5 w-5 h-5 rounded border flex items-center justify-center transition-colors",
-                             task.completed ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground hover:border-primary"
-                          )}
-                       >
-                          {task.completed && <CheckSquare className="w-3.5 h-3.5" />}
-                       </button>
-                       <div className="flex-1 min-w-0">
-                          <p className={cn("text-sm font-medium leading-none truncate", task.completed && "line-through text-muted-foreground")}>
-                             {task.title}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1.5">
-                             <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground truncate max-w-[100px]">
-                                {task.project}
-                             </span>
-                             <span className={cn(
-                                "text-[10px] font-medium",
-                                task.priority === "High" ? "text-red-500" : task.priority === "Medium" ? "text-orange-500" : "text-blue-500"
-                             )}>
-                                {task.priority}
-                             </span>
+              <Card className="border-border/50 shadow-sm h-full flex flex-col">
+                 <CardHeader className="pb-3 border-b border-border/50 bg-muted/20">
+                    <form onSubmit={handleAddTask} className="flex gap-2">
+                       <Input 
+                          placeholder="Add a quick task..." 
+                          className="h-9 bg-background" 
+                          value={newTask}
+                          onChange={(e) => setNewTask(e.target.value)}
+                       />
+                       <Button size="sm" type="submit" disabled={!newTask.trim()}>
+                          <Plus className="w-4 h-4" />
+                       </Button>
+                    </form>
+                 </CardHeader>
+                 
+                 <ScrollArea className="flex-1 p-0">
+                    <div className="divide-y divide-border/50">
+                       {tasks.map(task => (
+                          <div 
+                             key={task.id} 
+                             className={cn(
+                                "p-3 flex items-start gap-3 hover:bg-muted/30 transition-colors group relative",
+                                task.completed && "bg-muted/10"
+                             )}
+                          >
+                             <button 
+                                onClick={() => toggleTask(task.id)}
+                                className={cn(
+                                   "mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200",
+                                   task.completed 
+                                      ? "bg-emerald-500 border-emerald-500 text-white shadow-sm" 
+                                      : "border-muted-foreground/40 hover:border-emerald-500 hover:text-emerald-500"
+                                )}
+                             >
+                                {task.completed && <CheckSquare className="w-3.5 h-3.5" />}
+                             </button>
+                             
+                             <div className="flex-1 min-w-0">
+                                <p className={cn(
+                                   "text-sm font-medium leading-none truncate transition-all", 
+                                   task.completed && "line-through text-muted-foreground"
+                                )}>
+                                   {task.title}
+                                </p>
+                                
+                                <div className="flex items-center gap-2 mt-2">
+                                   <span className={cn(
+                                      "text-[10px] px-1.5 py-0.5 rounded font-medium border",
+                                      task.priority === "High" ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-300" : 
+                                      task.priority === "Medium" ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300" : 
+                                      "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900/20 dark:text-slate-300"
+                                   )}>
+                                      {task.priority}
+                                   </span>
+                                   <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                      <Briefcase className="w-3 h-3" /> {task.project}
+                                   </span>
+                                </div>
+                             </div>
+
+                             {task.due === "Today" && !task.completed && (
+                                <div className="absolute top-3 right-3">
+                                   <span className="text-[10px] font-semibold text-rose-500 bg-rose-50 dark:bg-rose-900/20 px-1.5 py-0.5 rounded">
+                                      Today
+                                   </span>
+                                </div>
+                             )}
                           </div>
-                       </div>
+                       ))}
                     </div>
-                 ))}
-              </div>
+                 </ScrollArea>
+                 
+                 <CardFooter className="pt-3 pb-3 border-t border-border/50 bg-muted/20 text-xs text-muted-foreground justify-center">
+                    {tasks.filter(t => t.completed).length} of {tasks.length} tasks completed
+                 </CardFooter>
+              </Card>
            </div>
         </div>
       </div>
