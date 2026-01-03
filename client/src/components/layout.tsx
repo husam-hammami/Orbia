@@ -9,7 +9,7 @@ interface SidebarProps {
   className?: string;
 }
 
-import logoUrl from '@assets/image_1767461898437.png';
+import logoUrl from '@assets/generated_images/green_neurozen_logo.png';
 
 function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
@@ -28,11 +28,10 @@ function Sidebar({ className }: SidebarProps) {
     <div className={cn("flex flex-col h-full py-8 px-4 bg-sidebar border-r border-sidebar-border", className)}>
       <div className="flex items-center gap-3 px-2 mb-8">
         <div className="w-full h-32 rounded-lg overflow-hidden flex items-center justify-center relative">
-           <div className="absolute inset-0 bg-sidebar/50 mix-blend-overlay z-10 pointer-events-none"></div>
            <img 
             src={logoUrl} 
             alt="NeuroZen Logo" 
-            className="w-full h-full object-contain mix-blend-multiply filter contrast-125 brightness-90 grayscale-[0.2]" 
+            className="w-full h-full object-contain mix-blend-multiply" 
            />
         </div>
       </div>
@@ -82,7 +81,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <header className="md:hidden flex items-center justify-between p-4 border-b bg-sidebar">
           <div className="flex items-center gap-2">
              <div className="w-40 h-12 rounded-lg overflow-hidden flex items-center">
-              <img src={logoUrl} alt="NeuroZen Logo" className="w-full h-full object-contain object-left mix-blend-multiply filter contrast-125 brightness-90 grayscale-[0.2]" />
+              <img src={logoUrl} alt="NeuroZen Logo" className="w-full h-full object-contain object-left mix-blend-multiply" />
             </div>
           </div>
           <Sheet>
