@@ -36,7 +36,8 @@ import {
   Meh,
   Calendar,
   CheckCircle2,
-  Target
+  Target,
+  AlertCircle
 } from "lucide-react";
 
 // --- Mock Data ---
