@@ -9,12 +9,14 @@ import CareerPage from "@/pages/career";
 import Analytics from "@/pages/analytics";
 import SystemInsight from "@/pages/system-insight";
 import GeniusAI from "@/pages/deep-mind";
+import FinancePage from "@/pages/finance";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/career" component={CareerPage} />
+      <Route path="/finance" component={FinancePage} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/headspace" component={SystemInsight} />
       <Route path="/deep-mind" component={GeniusAI} />
