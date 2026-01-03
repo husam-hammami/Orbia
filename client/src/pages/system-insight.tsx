@@ -21,25 +21,13 @@ import {
   Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SYSTEM_MEMBERS } from "@/lib/mock-data";
+import { useMembers } from "@/lib/api-hooks";
 import { HeadspaceMap } from "@/components/headspace-map";
+import type { SystemMember } from "@shared/schema";
 
 export default function SystemInsight() {
-  const [members, setMembers] = useState(SYSTEM_MEMBERS);
-  const [activeMember, setActiveMember] = useState(members[0]);
-
-  // Keep activeMember up to date with member changes
-  const updateActiveMember = (member: any) => {
-      setActiveMember(member);
-  }
-
-  // Effect to ensure activeMember reflects current state if it was edited
-  if (activeMember) {
-      const current = members.find(m => m.id === activeMember.id);
-      if (current && JSON.stringify(current) !== JSON.stringify(activeMember)) {
-          setActiveMember(current);
-      }
-  }
+  const { data: members = [], isLoading } = useMembers();
+  const [activeMember, setActiveMember] = useState<SystemMember | null>(null);
 
   const getIcon = (avatar: string) => {
     switch(avatar) {
@@ -50,6 +38,11 @@ export default function SystemInsight() {
       default: return Users;
     }
   };
+
+  // Auto-select first member if none selected
+  if (!activeMember && members.length > 0 && !isLoading) {
+    setActiveMember(members[0]);
+  }
 
   return (
     <Layout>
@@ -67,14 +60,19 @@ export default function SystemInsight() {
           </div>
         </div>
 
-        <Tabs defaultValue="visualizer" className="space-y-6">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-muted-foreground">Loading members...</div>
+          </div>
+        ) : (
+          <Tabs defaultValue="visualizer" className="space-y-6">
             <TabsList className="bg-muted/30 p-1 border border-border/40">
                  <TabsTrigger value="visualizer" className="gap-2"><LayoutTemplate className="w-4 h-4" /> Visual Headspace</TabsTrigger>
                 <TabsTrigger value="directory" className="gap-2"><Users className="w-4 h-4" /> Directory</TabsTrigger>
             </TabsList>
 
             <TabsContent value="visualizer" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <HeadspaceMap members={members} setMembers={setMembers} />
+                <HeadspaceMap />
             </TabsContent>
 
             <TabsContent value="directory" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -98,7 +96,7 @@ export default function SystemInsight() {
                                     return (
                                         <button
                                             key={member.id}
-                                            onClick={() => updateActiveMember(member)}
+                                            onClick={() => setActiveMember(member)}
                                             className={cn(
                                                 "flex items-center gap-3 p-4 text-left transition-all border-l-4 hover:bg-muted/50",
                                                 isActive 
@@ -128,7 +126,7 @@ export default function SystemInsight() {
 
                     {/* Main Content: Member Profile */}
                     <div className="lg:col-span-8 space-y-6">
-                        {activeMember ? (
+                        {activeMember && (
                         <Card className="border-t-4 shadow-md" style={{ borderTopColor: activeMember.color }}>
                             <CardHeader>
                                 <div className="flex justify-between items-start">
@@ -210,7 +208,8 @@ export default function SystemInsight() {
                                 </div>
                             </CardContent>
                         </Card>
-                        ) : (
+                        )}
+                        {!activeMember && (
                             <div className="h-full flex flex-col items-center justify-center p-12 text-center text-muted-foreground bg-muted/10 rounded-xl border border-dashed">
                                 <Users className="w-12 h-12 mb-4 opacity-20" />
                                 <p>Select a member to view their profile</p>
@@ -219,7 +218,8 @@ export default function SystemInsight() {
                     </div>
                 </div>
             </TabsContent>
-        </Tabs>
+          </Tabs>
+        )}
       </div>
     </Layout>
   );

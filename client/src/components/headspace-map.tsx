@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { User, Shield, Ghost, Brain, Zap, Plus, MoreHorizontal, UserCog, Crown, Eye, Mic, Armchair, DoorOpen, Coffee, Edit, Trash2, Settings2 } from "lucide-react";
@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useMembers, useCreateMember, useUpdateMember, useDeleteMember } from "@/lib/api-hooks";
+import { toast } from "sonner";
 
 // --- Headspace Rooms Configuration ---
 const DEFAULT_ROOMS = [
@@ -28,33 +30,21 @@ const DEFAULT_ROOMS = [
   { id: 'inner', name: 'Inner World', icon: DoorOpen, description: "Deep resting place", color: "border-purple-500/50 bg-purple-500/5" },
 ];
 
-interface HeadspaceMapProps {
-    members: any[];
-    setMembers: (members: any[]) => void;
-}
+export function HeadspaceMap() {
+  const { data: members = [], isLoading } = useMembers();
+  const createMember = useCreateMember();
+  const updateMember = useUpdateMember();
+  const deleteMember = useDeleteMember();
 
-export function HeadspaceMap({ members = [], setMembers }: HeadspaceMapProps) {
   // State for customizable rooms
   const [rooms, setRooms] = useState(DEFAULT_ROOMS);
   const [isEditingRooms, setIsEditingRooms] = useState(false);
 
-  // Initialize members with locations if not present
-  useEffect(() => {
-    if (!members) return;
-    
-    const initializedMembers = members.map(m => ({ 
-        ...m, 
-        location: m.location || (m.role.includes('Daily') ? 'front' : m.role.includes('Trauma') ? 'inner' : 'meeting') 
-    }));
-    
-    // Only update if changes were made to avoid infinite loop
-    if (JSON.stringify(initializedMembers) !== JSON.stringify(members)) {
-        setMembers(initializedMembers);
-    }
-  }, []);
-
   const moveMember = (memberId: string, roomId: string) => {
-    setMembers(members.map(m => m.id === memberId ? { ...m, location: roomId } : m));
+    updateMember.mutate({ 
+      id: memberId, 
+      data: { location: roomId } 
+    });
   };
 
   const handleUpdateRoom = (id: string, field: string, value: string) => {
@@ -64,40 +54,69 @@ export function HeadspaceMap({ members = [], setMembers }: HeadspaceMapProps) {
   // Manage Member State
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", role: "Unknown", color: "#6366f1" });
+  const [editForm, setEditForm] = useState({ name: "", role: "Unknown", color: "#6366f1", traits: [""], avatar: "user", description: "" });
 
   const handleAddMember = () => {
-     const newId = 'm' + (members.length + 1) + Math.random().toString(36).substr(2, 5);
-     const newMember = {
-         id: newId,
+     createMember.mutate({
          name: editForm.name || "New Alter",
          role: editForm.role,
          color: editForm.color,
-         traits: ["New"],
-         avatar: 'user',
-         description: "New system member.",
-         location: 'meeting',
-         stats: { stress: 0, activity: 0 }
-     };
-     setMembers([...members, newMember]);
-     setIsAdding(false);
-     setEditForm({ name: "", role: "Unknown", color: "#6366f1" });
+         traits: editForm.traits.filter(t => t.trim()),
+         avatar: editForm.avatar,
+         description: editForm.description || "New system member.",
+         location: 'meeting'
+     }, {
+       onSuccess: () => {
+         setIsAdding(false);
+         setEditForm({ name: "", role: "Unknown", color: "#6366f1", traits: [""], avatar: "user", description: "" });
+         toast.success("Member added");
+       }
+     });
   };
 
   const handleUpdateMember = () => {
       if (!isEditing) return;
-      setMembers(members.map(m => m.id === isEditing ? { ...m, ...editForm } : m));
-      setIsEditing(null);
+      updateMember.mutate({ 
+        id: isEditing, 
+        data: {
+          name: editForm.name,
+          role: editForm.role,
+          color: editForm.color,
+          traits: editForm.traits.filter(t => t.trim()),
+          avatar: editForm.avatar,
+          description: editForm.description
+        }
+      }, {
+        onSuccess: () => {
+          setIsEditing(null);
+          toast.success("Member updated");
+        }
+      });
   };
   
   const handleDeleteMember = (id: string) => {
-      setMembers(members.filter(m => m.id !== id));
-      setIsEditing(null);
+      deleteMember.mutate(id, {
+        onSuccess: () => {
+          setIsEditing(null);
+          toast.success("Member removed");
+        }
+      });
   };
 
   const openEdit = (member: any) => {
-      setEditForm({ name: member.name, role: member.role, color: member.color });
+      setEditForm({ 
+        name: member.name, 
+        role: member.role, 
+        color: member.color,
+        traits: member.traits || [""],
+        avatar: member.avatar || "user",
+        description: member.description || ""
+      });
       setIsEditing(member.id);
+  }
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center py-12 text-muted-foreground">Loading headspace...</div>;
   }
 
   return (
