@@ -273,7 +273,10 @@ export function HeadspaceMap() {
          
          {rooms.map(room => {
             const RoomIcon = room.icon;
-            const roomMembers = (members || []).filter(m => m.location === room.id);
+            const roomMembers = (members || []).filter(m => {
+              const memberLocation = m.location || 'front';
+              return memberLocation === room.id;
+            });
 
             return (
                 <div key={room.id} className={cn("rounded-xl border-2 border-dashed p-4 flex flex-col gap-4 transition-colors relative group", room.color)}>
