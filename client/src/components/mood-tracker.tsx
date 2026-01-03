@@ -1,15 +1,20 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Smile, Frown, Meh, Zap, BatteryLow, BatteryFull, Activity, HeartPulse, UserCircle2, CloudFog, Moon, BedDouble, AlertCircle, Sparkles, Flame, MessageSquare, MicOff, Mic, ChevronDown, ChevronUp, Utensils, Coffee, Sun, MoonStar, Cookie, Clock, History } from "lucide-react";
+import { Smile, Frown, Meh, Zap, BatteryLow, BatteryFull, Activity, HeartPulse, UserCircle2, CloudFog, Moon, BedDouble, AlertCircle, Sparkles, Flame, MessageSquare, MicOff, Mic, ChevronDown, ChevronUp, Utensils, Coffee, Sun, MoonStar, Cookie, Clock, History, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
-import { SYSTEM_MEMBERS } from "@/lib/mock-data";
+import { useMembers, useTrackerEntries, useCreateTrackerEntry } from "@/lib/api-hooks";
+import { toast } from "sonner";
+import { format } from "date-fns";
 
 export function MoodTracker() {
+  const { data: members, isLoading: membersLoading } = useMembers();
+  const { data: trackerEntries } = useTrackerEntries(5);
+  const createEntryMutation = useCreateTrackerEntry();
+
   const [isExpanded, setIsExpanded] = useState(false);
   const [mood, setMood] = useState<string | null>(null);
   const [motivation, setMotivation] = useState([5]);
@@ -19,16 +24,23 @@ export function MoodTracker() {
   const [stress, setStress] = useState([3]);
   const [sleep, setSleep] = useState([7]); 
   const [systemComm, setSystemComm] = useState([5]); 
-  const [selectedFronter, setSelectedFronter] = useState(SYSTEM_MEMBERS[0]);
+  const [selectedFronterId, setSelectedFronterId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [stressCauses, setStressCauses] = useState<string[]>([]);
   const [note, setNote] = useState("");
   const [meals, setMeals] = useState({ breakfast: false, lunch: false, dinner: false, snack: false });
   const [entryTime, setEntryTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-  const [entriesToday, setEntriesToday] = useState([
-    { time: "09:00", mood: "neutral" },
-    { time: "12:30", mood: "bad" }
-  ]);
+
+  const selectedFronter = members?.find(m => m.id === selectedFronterId) || members?.[0];
+
+  const entriesToday = (trackerEntries || []).filter(entry => {
+    const entryDate = format(new Date(entry.timestamp), "yyyy-MM-dd");
+    const today = format(new Date(), "yyyy-MM-dd");
+    return entryDate === today;
+  }).map(entry => ({
+    time: format(new Date(entry.timestamp), "HH:mm"),
+    mood: entry.mood <= 2 ? "bad" : entry.mood <= 3 ? "neutral" : "good"
+  }));
 
   const toggleMeal = (meal: keyof typeof meals) => {
     setMeals(prev => ({ ...prev, [meal]: !prev[meal] }));
@@ -67,6 +79,36 @@ export function MoodTracker() {
     }
   };
 
+  const handleAddEntry = () => {
+    const moodValue = mood === "terrible" ? 1 : mood === "bad" ? 2 : mood === "neutral" ? 3 : mood === "good" ? 4 : mood === "excellent" ? 5 : 3;
+    
+    const noteParts = [];
+    if (note) noteParts.push(note);
+    if (selectedTags.length > 0) noteParts.push(`Tags: ${selectedTags.join(", ")}`);
+    if (stressCauses.length > 0) noteParts.push(`Stress triggers: ${stressCauses.join(", ")}`);
+    const mealsEaten = Object.entries(meals).filter(([_, eaten]) => eaten).map(([meal]) => meal);
+    if (mealsEaten.length > 0) noteParts.push(`Meals: ${mealsEaten.join(", ")}`);
+
+    createEntryMutation.mutate({
+      frontingMemberId: selectedFronter?.id || null,
+      mood: moodValue,
+      energy: motivation[0],
+      stress: stress[0] * 10,
+      dissociation: dissociation[0] * 10,
+      notes: noteParts.join(" | "),
+      timestamp: new Date(),
+    }, {
+      onSuccess: () => {
+        toast.success("Entry logged successfully!");
+        setNote("");
+        setSelectedTags([]);
+        setStressCauses([]);
+        setIsExpanded(false);
+      },
+      onError: () => toast.error("Failed to log entry"),
+    });
+  };
+
   return (
     <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden transition-all duration-300">
       {/* Compact Header - Always Visible */}
@@ -75,7 +117,7 @@ export function MoodTracker() {
             <div>
                 <h3 className="font-display font-semibold text-lg hidden sm:block">Input Metrics</h3>
                 <p className="text-[10px] text-muted-foreground hidden sm:block">
-                    {entriesToday.length} entries today • Last at {entriesToday[entriesToday.length-1]?.time}
+                    {entriesToday.length} entries today{entriesToday.length > 0 ? ` • Last at ${entriesToday[entriesToday.length-1]?.time}` : ''}
                 </p>
             </div>
             
@@ -104,10 +146,12 @@ export function MoodTracker() {
 
             {/* Quick Fronting Input */}
             <div className="hidden md:flex items-center gap-2 flex-1 max-w-[200px] justify-end">
-                <div className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-full border border-border/50">
-                    <UserCircle2 className="w-3.5 h-3.5 text-indigo-500" />
-                    <span className="text-xs font-medium" style={{ color: selectedFronter.color }}>{selectedFronter.name}</span>
-                </div>
+                {selectedFronter && (
+                  <div className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-full border border-border/50">
+                      <UserCircle2 className="w-3.5 h-3.5 text-indigo-500" />
+                      <span className="text-xs font-medium" style={{ color: selectedFronter.color }}>{selectedFronter.name}</span>
+                  </div>
+                )}
             </div>
          </div>
 
@@ -182,24 +226,33 @@ export function MoodTracker() {
                     {/* Mobile Fronting Input (visible if hidden in header) */}
                     <div>
                         <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Who is fronting?</label>
-                        <div className="flex flex-wrap gap-2">
-                            {SYSTEM_MEMBERS.map(member => (
-                                <button
-                                    key={member.id}
-                                    onClick={() => setSelectedFronter(member)}
-                                    className={cn(
-                                        "text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5",
-                                        selectedFronter.id === member.id 
-                                            ? "bg-background shadow-sm border-indigo-500 ring-1 ring-indigo-500/20" 
-                                            : "bg-muted/30 border-transparent hover:bg-muted"
-                                    )}
-                                    style={{ color: selectedFronter.id === member.id ? member.color : undefined }}
-                                >
-                                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: member.color }} />
-                                    {member.name}
-                                </button>
-                            ))}
-                        </div>
+                        {membersLoading ? (
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                            <Loader2 className="w-4 h-4 animate-spin" /> Loading...
+                          </div>
+                        ) : members && members.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                              {members.map(member => (
+                                  <button
+                                      key={member.id}
+                                      onClick={() => setSelectedFronterId(member.id)}
+                                      data-testid={`button-fronter-${member.id}`}
+                                      className={cn(
+                                          "text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5",
+                                          selectedFronter?.id === member.id 
+                                              ? "bg-background shadow-sm border-indigo-500 ring-1 ring-indigo-500/20" 
+                                              : "bg-muted/30 border-transparent hover:bg-muted"
+                                      )}
+                                      style={{ color: selectedFronter?.id === member.id ? member.color : undefined }}
+                                  >
+                                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: member.color }} />
+                                      {member.name}
+                                  </button>
+                              ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No members yet. Add members in System Insight.</p>
+                        )}
                     </div>
                 </div>
 
@@ -353,7 +406,16 @@ export function MoodTracker() {
                     </button>
                  </div>
                  
-                 <Button size="sm" className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700">
+                 <Button 
+                    size="sm" 
+                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700"
+                    onClick={handleAddEntry}
+                    disabled={createEntryMutation.isPending}
+                    data-testid="button-add-entry"
+                 >
+                    {createEntryMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : null}
                     Add Entry at {entryTime}
                  </Button>
               </div>

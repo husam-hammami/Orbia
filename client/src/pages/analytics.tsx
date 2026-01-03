@@ -28,7 +28,6 @@ import {
   Scatter,
   ZAxis
 } from "recharts";
-import { MOCK_HABITS } from "@/lib/mock-data";
 import { 
   BrainCircuit, 
   Utensils, 

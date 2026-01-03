@@ -76,14 +76,13 @@ export default function DeepMind() {
     }
 
     createEntryMutation.mutate({
-      memberId: selectedMember.id,
+      frontingMemberId: selectedMember.id,
       mood: Math.round((100 - stress[0]) / 20),
       energy: Math.round(communication[0] / 20),
-      clarity: Math.round((100 - dissociation[0]) / 20),
-      anxiety: Math.round(stress[0] / 20),
-      dissociation: Math.round(dissociation[0] / 20),
+      stress: stress[0],
+      dissociation: dissociation[0],
       notes: `Dissociation: ${dissociation[0]}%, Communication: ${communication[0]}%, Stress: ${stress[0]}%, Urges: ${urges[0]}%`,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
     }, {
       onSuccess: () => toast.success("System log committed"),
       onError: () => toast.error("Failed to commit log"),
@@ -91,11 +90,11 @@ export default function DeepMind() {
   };
 
   const recentLogs = (trackerEntries || []).slice(0, 5).map(entry => {
-    const member = members?.find(m => m.id === entry.memberId);
+    const member = members?.find(m => m.id === entry.frontingMemberId);
     return {
       time: format(new Date(entry.timestamp), "h:mm a"),
-      dissociation: (entry.dissociation || 0) * 20,
-      stress: (entry.anxiety || 0) * 20,
+      dissociation: entry.dissociation || 0,
+      stress: entry.stress || 0,
       front: member?.name || "Unknown",
       note: entry.notes || "",
     };
