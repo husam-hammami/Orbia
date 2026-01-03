@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +45,8 @@ import {
   ThermometerSnowflake,
   Network,
   Smile,
-  TrendingUp
+  TrendingUp,
+  Calendar
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -96,6 +98,8 @@ const ALTER_STATS = [
 ];
 
 export default function SystemInsight() {
+  const [timeRange, setTimeRange] = useState("daily");
+
   return (
     <Layout>
       <div className="space-y-8 animate-in fade-in duration-500 pb-12">
@@ -112,6 +116,23 @@ export default function SystemInsight() {
              </div>
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">Headspace & Alters</h1>
             <p className="text-muted-foreground text-lg">Deep diagnostic telemetry for your System & Alter Egos.</p>
+          </div>
+          
+          <div className="flex bg-muted/50 p-1 rounded-lg border border-border/50 self-start md:self-end">
+            {["daily", "weekly", "monthly"].map((range) => (
+              <button
+                key={range}
+                onClick={() => setTimeRange(range)}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium rounded-md transition-all capitalize",
+                  timeRange === range
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+              >
+                {range}
+              </button>
+            ))}
           </div>
         </div>
 

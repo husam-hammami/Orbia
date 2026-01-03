@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -154,6 +155,8 @@ const PROJECT_STATUS_DATA = [
 const NUTRITION_DISTRIBUTION = []; // Removed
 
 export default function Analytics() {
+  const [timeRange, setTimeRange] = useState("weekly");
+
   return (
     <Layout>
       <div className="space-y-8 animate-in fade-in duration-500 pb-12">
@@ -162,11 +165,22 @@ export default function Analytics() {
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">System Analytics</h1>
             <p className="text-muted-foreground text-lg">Comprehensive telemetry for your life OS.</p>
           </div>
-          <div className="flex gap-2">
-            <Badge variant="outline" className="px-3 py-1 h-8 text-sm font-normal gap-2">
-              <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-              Last 7 Days
-            </Badge>
+          
+          <div className="flex bg-muted/50 p-1 rounded-lg border border-border/50 self-start md:self-end">
+            {["daily", "weekly", "monthly"].map((range) => (
+              <button
+                key={range}
+                onClick={() => setTimeRange(range)}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium rounded-md transition-all capitalize",
+                  timeRange === range
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+              >
+                {range}
+              </button>
+            ))}
           </div>
         </div>
 
