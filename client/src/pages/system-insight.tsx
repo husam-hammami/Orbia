@@ -42,7 +42,9 @@ import {
   Puzzle,
   GitGraph,
   ThermometerSnowflake,
-  Network
+  Network,
+  Smile,
+  TrendingUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -423,5 +425,3 @@ export default function SystemInsight() {
   );
 }
 
-// Missing icons import fix
-import { Smile, TrendingUp } from "lucide-react";
