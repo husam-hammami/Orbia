@@ -26,8 +26,8 @@ function Sidebar({ className }: SidebarProps) {
 
   return (
     <div className={cn("flex flex-col h-full py-8 px-4 bg-sidebar border-r border-sidebar-border", className)}>
-      <div className="flex items-center gap-3 px-2 mb-12">
-        <div className="w-48 h-12 rounded-lg overflow-hidden flex items-center">
+      <div className="flex items-center gap-3 px-2 mb-8">
+        <div className="w-full h-24 rounded-lg overflow-visible flex items-center justify-start">
           <img src={logoUrl} alt="NeuroZen Logo" className="w-full h-full object-contain object-left" />
         </div>
       </div>
@@ -76,7 +76,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         <header className="md:hidden flex items-center justify-between p-4 border-b bg-sidebar">
           <div className="flex items-center gap-2">
-             <div className="w-40 h-10 rounded-lg overflow-hidden flex items-center">
+             <div className="w-40 h-12 rounded-lg overflow-hidden flex items-center">
               <img src={logoUrl} alt="NeuroZen Logo" className="w-full h-full object-contain object-left" />
             </div>
           </div>
