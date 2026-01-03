@@ -14,6 +14,15 @@ import {
   insertRoutineActivityLogSchema
 } from "@shared/schema";
 import { z } from "zod";
+import { registerChatRoutes } from "./replit_integrations/chat";
+import { registerImageRoutes } from "./replit_integrations/image";
+import { parseTrackerNotes } from "./lib/parse-notes";
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
 
 const toggleRoutineSchema = z.object({
   activityId: z.string().min(1),
@@ -27,6 +36,10 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  
+  // Register AI integration routes
+  registerChatRoutes(app);
+  registerImageRoutes(app);
   
   // System Members Routes
   app.get("/api/members", async (req, res) => {
@@ -504,6 +517,354 @@ export async function registerRoutes(
       }
     } catch (error) {
       res.status(500).json({ error: "Failed to toggle routine activity" });
+    }
+  });
+
+  // AI Insights endpoint - analyzes linked data from habits, mood, and routines
+  app.get("/api/insights", async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 14;
+      
+      // Fetch all linked data for analysis
+      const [entries, habits, completions, routineBlocks, routineActivities, routineLogs, members] = await Promise.all([
+        storage.getAllTrackerEntries(),
+        storage.getAllHabits(),
+        storage.getAllHabitCompletions(),
+        storage.getAllRoutineBlocks(),
+        storage.getAllRoutineActivities(),
+        storage.getAllRoutineLogs(),
+        storage.getAllMembers()
+      ]);
+      
+      // Filter to recent data
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      
+      const recentEntries = entries.filter(e => new Date(e.timestamp) >= cutoffDate);
+      const recentCompletions = completions.filter(c => new Date(c.completedDate) >= cutoffDate);
+      const recentRoutineLogs = routineLogs.filter(l => new Date(l.completedDate) >= cutoffDate);
+      
+      // Parse all entries once and cache results for efficiency
+      const parsedEntries = recentEntries.map(e => ({
+        entry: e,
+        parsed: parseTrackerNotes(e.notes),
+        frontingMember: members.find(m => m.id === e.frontingMemberId)
+      }));
+      
+      // Build habit lookup for routine linkage
+      const habitById = new Map(habits.map(h => [h.id, h]));
+      const habitCompletionsByHabit = new Map<string, typeof recentCompletions>();
+      habits.forEach(h => {
+        habitCompletionsByHabit.set(h.id, recentCompletions.filter(c => c.habitId === h.id));
+      });
+      
+      // Build comprehensive context for AI analysis including all parsed tracker data
+      const context = {
+        moodEntries: parsedEntries.map(({ entry: e, parsed, frontingMember }) => ({
+          date: e.timestamp,
+          mood: { value: e.mood, scale: "1-10" },
+          energy: { value: e.energy, scale: "1-10" },
+          stress: { value: e.stress, scale: "0-100" },
+          dissociation: { value: e.dissociation, scale: "0-100" },
+          frontingMember: frontingMember?.name || null,
+          frontingMemberRole: frontingMember?.role || null,
+          journalText: parsed.text,
+          tags: parsed.tags,
+          stressTriggers: parsed.triggers,
+          meals: parsed.meals,
+          sleepHours: parsed.normalizedMetrics.sleepHours,
+          painLevel: parsed.normalizedMetrics.painLevel !== null 
+            ? { value: parsed.normalizedMetrics.painLevel, scale: "0-10" } 
+            : null,
+          comfortScore: parsed.normalizedMetrics.comfortScore !== null
+            ? { value: parsed.normalizedMetrics.comfortScore, scale: "1-10" }
+            : null,
+          communicationScore: parsed.normalizedMetrics.communicationScore !== null
+            ? { value: parsed.normalizedMetrics.communicationScore, scale: "1-10" }
+            : null,
+          urgesLevel: parsed.normalizedMetrics.urgesLevel !== null
+            ? { value: parsed.normalizedMetrics.urgesLevel, scale: "0-10" }
+            : null,
+          rawMetrics: parsed.rawMetrics
+        })),
+        habitData: habits.map(h => {
+          const hCompletions = habitCompletionsByHabit.get(h.id) || [];
+          return {
+            id: h.id,
+            name: h.title,
+            description: h.description,
+            category: h.category,
+            color: h.color,
+            target: h.target,
+            unit: h.unit,
+            frequency: h.frequency,
+            currentStreak: h.streak,
+            completionCount: hCompletions.length,
+            completionDates: hCompletions.map(c => c.completedDate)
+          };
+        }),
+        routineData: routineBlocks.map(b => ({
+          block: b.name,
+          startTime: b.startTime,
+          endTime: b.endTime,
+          purpose: b.purpose,
+          activities: routineActivities
+            .filter(a => a.blockId === b.id)
+            .map(a => {
+              const activityLogs = recentRoutineLogs.filter(l => l.activityId === a.id);
+              const linkedHabit = a.habitId ? habitById.get(a.habitId) : null;
+              const linkedHabitCompletions = a.habitId ? habitCompletionsByHabit.get(a.habitId) : null;
+              return {
+                name: a.name,
+                description: a.description,
+                linkedHabitId: a.habitId,
+                linkedHabitName: linkedHabit?.title || null,
+                linkedHabitTarget: linkedHabit?.target || null,
+                linkedHabitCompletionDates: linkedHabitCompletions?.map(c => c.completedDate) || [],
+                completionCount: activityLogs.length,
+                completionDates: activityLogs.map(l => l.completedDate)
+              };
+            })
+        })),
+        systemMembers: members.map(m => ({ 
+          name: m.name, 
+          role: m.role,
+          traits: m.traits
+        })),
+        dataQualitySummary: {
+          totalMoodEntries: parsedEntries.length,
+          entriesWithSleep: parsedEntries.filter(({ parsed }) => parsed.normalizedMetrics.sleepHours !== null).length,
+          entriesWithTriggers: parsedEntries.filter(({ parsed }) => parsed.triggers.length > 0).length,
+          entriesWithMeals: parsedEntries.filter(({ parsed }) => parsed.meals.length > 0).length,
+          habitsTracked: habits.length,
+          routineBlocksActive: routineBlocks.length
+        }
+      };
+      
+      // Generate AI insights using GPT-5.1
+      const systemPrompt = `You are a compassionate mental health insights assistant for NeuroZen, an app designed for individuals with dissociative identity disorder (DID) or complex trauma. 
+
+You have access to comprehensive tracking data including:
+- Mood, energy, stress, and dissociation levels (daily metrics)
+- Additional metrics from notes: sleep, pain, communication quality, urges, comfort levels
+- Journal text with emotional context
+- Tags describing the day (e.g., "therapy day", "work", "rest day")
+- Stress triggers identified by the user
+- Meal tracking data
+- System member (alter) fronting patterns with their roles and traits
+- Habit tracking with completion dates and targets
+- Daily routine activities linked to habits
+
+Analyze this data to identify patterns and provide helpful, trauma-informed insights. Focus on:
+1. Correlations between sleep, meals, and mood/dissociation
+2. Stress trigger patterns and their impact on metrics
+3. Habit and routine consistency and their relationship to wellbeing
+4. System member fronting patterns and when different parts tend to be present
+5. Positive reinforcement for consistency and progress
+6. Gentle suggestions based on observed patterns
+
+Be supportive, non-judgmental, and use trauma-informed language. Avoid triggering content. Keep insights actionable and specific to the data provided.`;
+
+      const userPrompt = `Please analyze the following ${days}-day data snapshot and provide insights:
+
+${JSON.stringify(context, null, 2)}
+
+Provide 3-5 key insights with:
+- A brief title for each insight
+- The pattern or observation
+- A gentle, actionable suggestion if applicable
+
+Format your response as JSON with this structure:
+{
+  "insights": [
+    {
+      "title": "string",
+      "observation": "string",
+      "suggestion": "string or null"
+    }
+  ],
+  "overallTrend": "improving" | "stable" | "needs_attention",
+  "encouragement": "A brief encouraging message"
+}`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-5.1",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        response_format: { type: "json_object" },
+        max_completion_tokens: 1500
+      });
+      
+      const responseText = completion.choices[0]?.message?.content || "{}";
+      const insights = JSON.parse(responseText);
+      
+      res.json({
+        ...insights,
+        dataRange: {
+          days,
+          entriesAnalyzed: recentEntries.length,
+          habitsTracked: habits.length,
+          routineBlocksActive: routineBlocks.length
+        }
+      });
+    } catch (error) {
+      console.error("Error generating insights:", error);
+      res.status(500).json({ error: "Failed to generate insights" });
+    }
+  });
+
+  // AI pattern analysis endpoint - streaming version for real-time analysis
+  app.post("/api/insights/analyze", async (req, res) => {
+    try {
+      const { question, days = 14 } = req.body;
+      
+      // Fetch all linked data
+      const [entries, habits, completions, routineBlocks, routineActivities, routineLogs, members] = await Promise.all([
+        storage.getAllTrackerEntries(),
+        storage.getAllHabits(),
+        storage.getAllHabitCompletions(),
+        storage.getAllRoutineBlocks(),
+        storage.getAllRoutineActivities(),
+        storage.getAllRoutineLogs(),
+        storage.getAllMembers()
+      ]);
+      
+      // Filter to recent data
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      
+      const recentEntries = entries.filter(e => new Date(e.timestamp) >= cutoffDate);
+      const recentCompletions = completions.filter(c => new Date(c.completedDate) >= cutoffDate);
+      const recentRoutineLogs = routineLogs.filter(l => new Date(l.completedDate) >= cutoffDate);
+      
+      // Parse all entries once and cache results for efficiency
+      const parsedEntries = recentEntries.map(e => ({
+        entry: e,
+        parsed: parseTrackerNotes(e.notes),
+        frontingMember: members.find(m => m.id === e.frontingMemberId)
+      }));
+      
+      // Build habit lookup for routine linkage
+      const habitById = new Map(habits.map(h => [h.id, h]));
+      const habitCompletionsByHabit = new Map<string, typeof recentCompletions>();
+      habits.forEach(h => {
+        habitCompletionsByHabit.set(h.id, recentCompletions.filter(c => c.habitId === h.id));
+      });
+      
+      const dataContext = {
+        moodEntries: parsedEntries.map(({ entry: e, parsed, frontingMember }) => ({
+          date: e.timestamp,
+          mood: { value: e.mood, scale: "1-10" },
+          energy: { value: e.energy, scale: "1-10" },
+          stress: { value: e.stress, scale: "0-100" },
+          dissociation: { value: e.dissociation, scale: "0-100" },
+          frontingMember: frontingMember?.name || null,
+          frontingMemberRole: frontingMember?.role || null,
+          journalText: parsed.text,
+          tags: parsed.tags,
+          stressTriggers: parsed.triggers,
+          meals: parsed.meals,
+          sleepHours: parsed.normalizedMetrics.sleepHours,
+          painLevel: parsed.normalizedMetrics.painLevel !== null 
+            ? { value: parsed.normalizedMetrics.painLevel, scale: "0-10" } 
+            : null,
+          comfortScore: parsed.normalizedMetrics.comfortScore !== null
+            ? { value: parsed.normalizedMetrics.comfortScore, scale: "1-10" }
+            : null,
+          communicationScore: parsed.normalizedMetrics.communicationScore !== null
+            ? { value: parsed.normalizedMetrics.communicationScore, scale: "1-10" }
+            : null,
+          urgesLevel: parsed.normalizedMetrics.urgesLevel !== null
+            ? { value: parsed.normalizedMetrics.urgesLevel, scale: "0-10" }
+            : null,
+          rawMetrics: parsed.rawMetrics
+        })),
+        habits: habits.map(h => {
+          const hCompletions = habitCompletionsByHabit.get(h.id) || [];
+          return {
+            id: h.id,
+            name: h.title,
+            category: h.category,
+            target: h.target,
+            unit: h.unit,
+            frequency: h.frequency,
+            currentStreak: h.streak,
+            completionCount: hCompletions.length,
+            completions: hCompletions.map(c => c.completedDate)
+          };
+        }),
+        routineBlocks: routineBlocks.map(b => ({
+          name: b.name,
+          startTime: b.startTime,
+          endTime: b.endTime,
+          purpose: b.purpose,
+          activities: routineActivities
+            .filter(a => a.blockId === b.id)
+            .map(a => {
+              const activityLogs = recentRoutineLogs.filter(l => l.activityId === a.id);
+              const linkedHabit = a.habitId ? habitById.get(a.habitId) : null;
+              const linkedHabitCompletions = a.habitId ? habitCompletionsByHabit.get(a.habitId) : null;
+              return {
+                name: a.name,
+                linkedHabitId: a.habitId,
+                linkedHabitName: linkedHabit?.title || null,
+                linkedHabitTarget: linkedHabit?.target || null,
+                linkedHabitCompletions: linkedHabitCompletions?.map(c => c.completedDate) || [],
+                completions: activityLogs.map(l => l.completedDate)
+              };
+            })
+        })),
+        systemMembers: members.map(m => ({
+          name: m.name,
+          role: m.role,
+          traits: m.traits
+        }))
+      };
+      
+      // Set up SSE for streaming response
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      
+      const systemPrompt = `You are a compassionate mental health pattern analyst for NeuroZen, an app for individuals with DID/complex trauma. 
+
+You have access to the user's linked tracking data including:
+- Mood, energy, stress, and dissociation entries
+- Habit completions
+- Daily routine activity logs
+- System member (alter) information
+
+Provide trauma-informed, supportive analysis. Be specific about patterns you observe in the data. Use gentle, encouraging language.`;
+
+      const stream = await openai.chat.completions.create({
+        model: "gpt-5.1",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Here is my tracking data from the last ${days} days:\n\n${JSON.stringify(dataContext, null, 2)}\n\nMy question: ${question || "What patterns do you see in my data?"}` }
+        ],
+        stream: true,
+        max_completion_tokens: 1500
+      });
+      
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || "";
+        if (content) {
+          res.write(`data: ${JSON.stringify({ content })}\n\n`);
+        }
+      }
+      
+      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      res.end();
+    } catch (error) {
+      console.error("Error in pattern analysis:", error);
+      if (res.headersSent) {
+        res.write(`data: ${JSON.stringify({ error: "Analysis failed" })}\n\n`);
+        res.end();
+      } else {
+        res.status(500).json({ error: "Failed to analyze patterns" });
+      }
     }
   });
 

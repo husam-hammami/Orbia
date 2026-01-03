@@ -1,7 +1,9 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, jsonb, serial } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+export * from "./models/chat";
 
 // System Members (Alters/Parts)
 export const systemMembers = pgTable("system_members", {

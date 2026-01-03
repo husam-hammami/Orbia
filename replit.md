@@ -54,6 +54,26 @@ Key data models:
 - `systemSettings`: User preferences and configuration
 - `habits`: Habit definitions with categories and targets
 - `habitCompletions`: Completion records for habit tracking
+- `routineBlocks`: Time-based routine blocks (morning, work, evening)
+- `routineActivities`: Individual activities within routine blocks (linked to habits)
+- `routineActivityLogs`: Daily completion records for routine activities
+- `conversations`: AI chat conversation threads
+- `messages`: Individual messages within AI conversations
+
+### AI Integration
+
+- **Provider**: OpenAI via Replit AI Integrations (GPT-5.1 model)
+- **No API key required**: Uses Replit's built-in AI service, billed to credits
+- **Endpoints**:
+  - `GET /api/insights`: Returns structured JSON insights analyzing linked mood, habit, and routine data
+  - `POST /api/insights/analyze`: Streaming endpoint for custom pattern analysis questions
+  - `POST /api/conversations/:id/messages`: Streaming chat with conversation history
+
+The AI insights system:
+- Parses tracker notes to extract normalized metrics (sleep, pain, comfort, communication, urges)
+- Links habits with routine activities for cross-correlation
+- Provides trauma-informed, DID-aware analysis
+- Includes data quality summary for context awareness
 
 ### Build and Development
 

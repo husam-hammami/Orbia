@@ -91,6 +91,7 @@ export interface IStorage {
   deleteRoutineActivity(id: string): Promise<boolean>;
 
   // Routine Activity Logs
+  getAllRoutineLogs(): Promise<RoutineActivityLog[]>;
   getActivityLogsForDate(date: string): Promise<RoutineActivityLog[]>;
   addActivityLog(log: InsertRoutineActivityLog): Promise<RoutineActivityLog>;
   removeActivityLog(activityId: string, date: string): Promise<boolean>;
@@ -309,6 +310,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Routine Activity Logs
+  async getAllRoutineLogs(): Promise<RoutineActivityLog[]> {
+    return await db.select().from(routineActivityLogs);
+  }
+
   async getActivityLogsForDate(date: string): Promise<RoutineActivityLog[]> {
     return await db.select().from(routineActivityLogs).where(eq(routineActivityLogs.completedDate, date));
   }
