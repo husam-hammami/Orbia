@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Smile, Frown, Meh, Zap, Battery, BatteryLow, BatteryMedium, BatteryFull, Activity, HeartPulse } from "lucide-react";
+import { Smile, Frown, Meh, Zap, Battery, BatteryLow, BatteryMedium, BatteryFull, Activity, HeartPulse, UserCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 
 export function MoodTracker() {
   const [mood, setMood] = useState<string | null>(null);
   const [motivation, setMotivation] = useState([5]);
   const [comfort, setComfort] = useState([5]); // Physical comfort/pain level
+  const [whoIsFronting, setWhoIsFronting] = useState("");
 
   const moods = [
     { value: "terrible", icon: Frown, color: "text-red-500", bg: "bg-red-100" },
@@ -45,6 +47,19 @@ export function MoodTracker() {
                 </button>
               );
             })}
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-border">
+              <label className="text-sm text-muted-foreground font-medium mb-2 block flex items-center gap-2">
+                 <UserCircle2 className="w-4 h-4" />
+                 Who is fronting?
+              </label>
+              <Input 
+                 placeholder="Name or role (optional)..." 
+                 value={whoIsFronting}
+                 onChange={(e) => setWhoIsFronting(e.target.value)}
+                 className="bg-muted/30"
+              />
           </div>
         </div>
 

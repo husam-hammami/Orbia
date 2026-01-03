@@ -4,14 +4,23 @@ import { HabitGrid } from "@/components/habit-grid";
 import { HabitGarden } from "@/components/habit-garden";
 import { HabitListCompact } from "@/components/habit-list-compact";
 import { MoodTracker } from "@/components/mood-tracker";
+import { SystemJournal } from "@/components/system-journal";
 import { HabitForm } from "@/components/habit-form";
 import { MOCK_HABITS, MOCK_STATS } from "@/lib/mock-data";
 import { Habit } from "@/lib/types";
 import { format } from "date-fns";
-import { Plus, LayoutGrid, List, Flower2 } from "lucide-react";
+import { Plus, LayoutGrid, List, Flower2, NotebookPen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export default function Dashboard() {
   const [habits, setHabits] = useState(MOCK_HABITS);
@@ -62,7 +71,25 @@ export default function Dashboard() {
             </h1>
           </div>
           
-          <HabitForm onSubmit={handleAddHabit} />
+          <div className="flex items-center gap-2">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-primary/20 text-primary hover:bg-primary/5">
+                  <NotebookPen className="w-5 h-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-[400px] sm:w-[540px]">
+                <SheetHeader className="mb-4">
+                  <SheetTitle>System Journal</SheetTitle>
+                  <SheetDescription>
+                    A shared space for notes, reminders, and communication.
+                  </SheetDescription>
+                </SheetHeader>
+                <SystemJournal />
+              </SheetContent>
+            </Sheet>
+            <HabitForm onSubmit={handleAddHabit} />
+          </div>
         </div>
 
         {/* Mood & Stats Row */}
