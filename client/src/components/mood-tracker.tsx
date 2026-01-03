@@ -7,6 +7,8 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
+import { SYSTEM_MEMBERS } from "@/lib/mock-data";
+
 export function MoodTracker() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [mood, setMood] = useState<string | null>(null);
@@ -17,7 +19,7 @@ export function MoodTracker() {
   const [stress, setStress] = useState([3]);
   const [sleep, setSleep] = useState([7]); 
   const [systemComm, setSystemComm] = useState([5]); 
-  const [whoIsFronting, setWhoIsFronting] = useState("");
+  const [selectedFronter, setSelectedFronter] = useState(SYSTEM_MEMBERS[0]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [stressCauses, setStressCauses] = useState<string[]>([]);
   const [note, setNote] = useState("");
@@ -91,11 +93,11 @@ export function MoodTracker() {
             </div>
 
             {/* Quick Fronting Input */}
-            <div className="hidden md:flex items-center gap-2 flex-1 max-w-[200px]">
-               <Activity className="w-4 h-4 text-muted-foreground" />
-               <div className="text-xs text-muted-foreground truncate">
-                  {isExpanded ? "Recording..." : "Daily check-in required"}
-               </div>
+            <div className="hidden md:flex items-center gap-2 flex-1 max-w-[200px] justify-end">
+                <div className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-full border border-border/50">
+                    <UserCircle2 className="w-3.5 h-3.5 text-indigo-500" />
+                    <span className="text-xs font-medium" style={{ color: selectedFronter.color }}>{selectedFronter.name}</span>
+                </div>
             </div>
          </div>
 
@@ -156,13 +158,26 @@ export function MoodTracker() {
                     </div>
                     
                     {/* Mobile Fronting Input (visible if hidden in header) */}
-                    <div className="md:hidden">
-                        <label className="text-xs text-muted-foreground font-medium mb-1 block">Who is fronting?</label>
-                        <Input 
-                           value={whoIsFronting}
-                           onChange={(e) => setWhoIsFronting(e.target.value)}
-                           className="h-8 bg-muted/30"
-                        />
+                    <div>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Who is fronting?</label>
+                        <div className="flex flex-wrap gap-2">
+                            {SYSTEM_MEMBERS.map(member => (
+                                <button
+                                    key={member.id}
+                                    onClick={() => setSelectedFronter(member)}
+                                    className={cn(
+                                        "text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5",
+                                        selectedFronter.id === member.id 
+                                            ? "bg-background shadow-sm border-indigo-500 ring-1 ring-indigo-500/20" 
+                                            : "bg-muted/30 border-transparent hover:bg-muted"
+                                    )}
+                                    style={{ color: selectedFronter.id === member.id ? member.color : undefined }}
+                                >
+                                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: member.color }} />
+                                    {member.name}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

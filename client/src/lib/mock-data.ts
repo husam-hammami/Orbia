@@ -113,3 +113,62 @@ export const MOCK_STATS: UserStats = {
   currentStreak: 5,
   completionRate: 78
 };
+
+// --- System & Headspace Data ---
+
+export const SYSTEM_MEMBERS = [
+  { 
+    id: 'm1', 
+    name: 'Host', 
+    role: 'Daily Life', 
+    traits: ['Logical', 'Anxious', 'Responsible'], 
+    color: '#6366f1', // Indigo
+    avatar: 'user',
+    description: "Handles work, daily routines, and social masking. Often tired but persistent.",
+    stats: { stress: 4, activity: 65 }
+  },
+  { 
+    id: 'm2', 
+    name: 'Protector', 
+    role: 'Safety & Defense', 
+    traits: ['Vigilant', 'Strong', 'Blunt'], 
+    color: '#ef4444', // Red
+    avatar: 'shield',
+    description: "Steps in during conflict or high stress. Can be abrasive but means well.",
+    stats: { stress: 7, activity: 20 }
+  },
+  { 
+    id: 'm3', 
+    name: 'Little', 
+    role: 'Trauma Holder', 
+    traits: ['Creative', 'Sensitive', 'Playful'], 
+    color: '#ec4899', // Pink
+    avatar: 'ghost',
+    description: "Holds emotional memories. Needs comfort items and safe spaces.",
+    stats: { stress: 6, activity: 10 }
+  },
+  { 
+    id: 'm4', 
+    name: 'Manager', 
+    role: 'Organization', 
+    traits: ['Strict', 'Efficient', 'Detail-oriented'], 
+    color: '#10b981', // Emerald
+    avatar: 'cpu',
+    description: "Keeps track of appointments, finances, and cleaning. Gets annoyed by mess.",
+    stats: { stress: 3, activity: 15 }
+  },
+  { 
+    id: 'm5', 
+    name: 'Gatekeeper', 
+    role: 'Memory Manager', 
+    traits: ['Calm', 'Detached', 'Observant'], 
+    color: '#8b5cf6', // Violet
+    avatar: 'eye',
+    description: "Controls access to memories and switching. Rarely fronts fully.",
+    stats: { stress: 2, activity: 5 }
+  },
+];
+
+export const HEADSPACE_LOCATIONS = [
+  "Fronting Room", "Inner World", "Library", "Control Room", "Dormant", "Unknown"
+];

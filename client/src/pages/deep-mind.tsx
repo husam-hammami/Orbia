@@ -53,19 +53,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { SYSTEM_MEMBERS, HEADSPACE_LOCATIONS } from "@/lib/mock-data";
+
 // --- Advanced Mock Data ---
-
-const SYSTEM_MEMBERS = [
-  { id: 'm1', name: 'Host', role: 'Daily Life', traits: ['Logical', 'Anxious'], color: '#6366f1' },
-  { id: 'm2', name: 'Protector', role: 'Safety', traits: ['Vigilant', 'Strong'], color: '#ef4444' },
-  { id: 'm3', name: 'Little', role: 'Trauma Holder', traits: ['Creative', 'Sensitive'], color: '#ec4899' },
-  { id: 'm4', name: 'Manager', role: 'Organization', traits: ['Strict', 'Efficient'], color: '#10b981' },
-  { id: 'm5', name: 'Gatekeeper', role: 'Memory', traits: ['Calm', 'Detached'], color: '#8b5cf6' },
-];
-
-const HEADSPACE_LOCATIONS = [
-  "Fronting Room", "Inner World", "Library", "Control Room", "Dormant", "Unknown"
-];
 
 const RECENT_LOGS = [
   { time: "10:30 AM", dissociation: 30, stress: 45, front: "Host", note: "Meeting preparation" },
