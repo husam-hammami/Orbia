@@ -149,7 +149,7 @@ export const routineBlocks = pgTable("routine_blocks", {
   emoji: text("emoji").notNull(),
   startTime: text("start_time").notNull(), // "08:00"
   endTime: text("end_time").notNull(), // "09:00"
-  purpose: text("purpose").notNull(),
+  purpose: text("purpose").notNull().default(""),
   order: integer("order").notNull(),
   color: text("color").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

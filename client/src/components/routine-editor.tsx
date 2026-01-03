@@ -58,14 +58,18 @@ export function RoutineEditor() {
       toast.error("Block name is required");
       return;
     }
+    if (blockForm.startTime >= blockForm.endTime) {
+      toast.error("End time must be after start time");
+      return;
+    }
     
     try {
       if (editingBlock) {
         await updateBlock.mutateAsync({ id: editingBlock.id, ...blockForm, order: editingBlock.order });
         toast.success("Block updated");
       } else {
-        const order = (blocks?.length || 0);
-        await createBlock.mutateAsync({ ...blockForm, order });
+        const maxOrder = blocks && blocks.length > 0 ? Math.max(...blocks.map(b => b.order)) : -1;
+        await createBlock.mutateAsync({ ...blockForm, order: maxOrder + 1 });
         toast.success("Block created");
       }
       resetBlockForm();
@@ -92,7 +96,8 @@ export function RoutineEditor() {
     
     try {
       const blockActivities = activities?.filter(a => a.blockId === selectedBlockId) || [];
-      const order = blockActivities.length;
+      const maxOrder = blockActivities.length > 0 ? Math.max(...blockActivities.map(a => a.order)) : -1;
+      const order = maxOrder + 1;
       
       if (editingActivity) {
         await updateActivity.mutateAsync({
