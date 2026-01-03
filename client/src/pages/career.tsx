@@ -35,6 +35,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -57,7 +58,9 @@ const MOCK_PROJECTS = [
     progress: 65, 
     deadline: "2026-02-15", 
     color: "bg-indigo-500",
-    nextAction: "Finalize case study copy"
+    nextAction: "Finalize case study copy",
+    description: "A complete overhaul of my personal portfolio to showcase my latest work and skills. Focusing on accessibility, performance, and modern design trends.",
+    tags: ["Design", "Dev", "Personal Branding"]
   },
   { 
     id: 2, 
@@ -66,7 +69,9 @@ const MOCK_PROJECTS = [
     progress: 20, 
     deadline: "2026-01-30", 
     color: "bg-rose-500",
-    nextAction: "Competitor analysis"
+    nextAction: "Competitor analysis",
+    description: "Developing a comprehensive marketing strategy for the first quarter. Includes social media planning, content calendar, and outreach campaigns.",
+    tags: ["Marketing", "Strategy"]
   },
   { 
     id: 3, 
@@ -75,7 +80,9 @@ const MOCK_PROJECTS = [
     progress: 45, 
     deadline: null, 
     color: "bg-emerald-500",
-    nextAction: "Complete module 4"
+    nextAction: "Complete module 4",
+    description: "Advanced React course focusing on optimization techniques, memoization, and rendering performance.",
+    tags: ["Learning", "React", "Dev"]
   },
 ];
 
@@ -161,6 +168,11 @@ export default function CareerPage() {
   const [viewMode, setViewMode] = useState<"list" | "board">("list");
   const [selectedTask, setSelectedTask] = useState<typeof MOCK_TASKS[0] | null>(null);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  
+  // Project State
+  const [selectedProject, setSelectedProject] = useState<typeof MOCK_PROJECTS[0] | null>(null);
+  const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
+  const [isProjectDetailsOpen, setIsProjectDetailsOpen] = useState(false);
 
   const toggleTask = (id: number) => {
     setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
@@ -189,6 +201,21 @@ export default function CareerPage() {
   const openTaskDetails = (task: typeof MOCK_TASKS[0]) => {
     setSelectedTask(task);
     setIsTaskDialogOpen(true);
+  };
+
+  const openEditProject = (project: typeof MOCK_PROJECTS[0]) => {
+    setSelectedProject(project);
+    setIsProjectDialogOpen(true);
+  };
+
+  const openViewProject = (project: typeof MOCK_PROJECTS[0]) => {
+    setSelectedProject(project);
+    setIsProjectDetailsOpen(true);
+  };
+
+  const handleUpdateProject = (updatedProject: typeof MOCK_PROJECTS[0]) => {
+    setProjects(projects.map(p => p.id === updatedProject.id ? updatedProject : p));
+    setIsProjectDialogOpen(false);
   };
 
   return (
@@ -286,8 +313,8 @@ export default function CareerPage() {
                                           </Button>
                                        </DropdownMenuTrigger>
                                        <DropdownMenuContent align="end">
-                                          <DropdownMenuItem>Edit Project</DropdownMenuItem>
-                                          <DropdownMenuItem>View Details</DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => openEditProject(project)}>Edit Project</DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => openViewProject(project)}>View Details</DropdownMenuItem>
                                           <DropdownMenuSeparator />
                                           <DropdownMenuItem className="text-destructive">Archive</DropdownMenuItem>
                                        </DropdownMenuContent>
@@ -366,8 +393,10 @@ export default function CareerPage() {
                                                   </Button>
                                                </DropdownMenuTrigger>
                                                <DropdownMenuContent align="end">
-                                                  <DropdownMenuItem>Edit</DropdownMenuItem>
-                                                  <DropdownMenuItem>Move to...</DropdownMenuItem>
+                                                  <DropdownMenuItem onClick={() => openEditProject(project)}>Edit Project</DropdownMenuItem>
+                                                  <DropdownMenuItem onClick={() => openViewProject(project)}>View Details</DropdownMenuItem>
+                                                  <DropdownMenuSeparator />
+                                                  <DropdownMenuItem className="text-destructive">Archive</DropdownMenuItem>
                                                </DropdownMenuContent>
                                             </DropdownMenu>
                                          </div>
@@ -604,6 +633,226 @@ export default function CareerPage() {
             <DialogFooter>
               <Button type="submit" onClick={() => setIsTaskDialogOpen(false)}>Save Changes</Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Project Dialog */}
+        <Dialog open={isProjectDialogOpen} onOpenChange={setIsProjectDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Edit Project</DialogTitle>
+            </DialogHeader>
+            {selectedProject && (
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="project-title">Project Title</Label>
+                  <Input 
+                    id="project-title" 
+                    value={selectedProject.title} 
+                    onChange={(e) => setSelectedProject({...selectedProject, title: e.target.value})}
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="project-desc">Description</Label>
+                  <Textarea 
+                    id="project-desc" 
+                    value={selectedProject.description || ""} 
+                    className="min-h-[100px]"
+                    onChange={(e) => setSelectedProject({...selectedProject, description: e.target.value})}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="grid gap-2">
+                      <Label>Status</Label>
+                      <Select 
+                        value={selectedProject.status} 
+                        onValueChange={(val) => setSelectedProject({...selectedProject, status: val})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Planning">Planning</SelectItem>
+                          <SelectItem value="In Progress">In Progress</SelectItem>
+                          <SelectItem value="Ongoing">Ongoing</SelectItem>
+                          <SelectItem value="Completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                   </div>
+                   <div className="grid gap-2">
+                      <Label>Deadline</Label>
+                      <Input 
+                         type="date"
+                         value={selectedProject.deadline || ""}
+                         onChange={(e) => setSelectedProject({...selectedProject, deadline: e.target.value})}
+                      />
+                   </div>
+                </div>
+
+                <div className="grid gap-2">
+                   <div className="flex justify-between">
+                      <Label>Progress ({selectedProject.progress}%)</Label>
+                   </div>
+                   <Progress value={selectedProject.progress} className="h-2" indicatorClassName={selectedProject.color} />
+                   <input 
+                      type="range" 
+                      min="0" 
+                      max="100" 
+                      value={selectedProject.progress} 
+                      className="w-full mt-2"
+                      onChange={(e) => setSelectedProject({...selectedProject, progress: parseInt(e.target.value)})}
+                   />
+                </div>
+
+                <div className="grid gap-2">
+                   <Label>Next Action</Label>
+                   <div className="flex gap-2">
+                      <Input 
+                         value={selectedProject.nextAction || ""}
+                         onChange={(e) => setSelectedProject({...selectedProject, nextAction: e.target.value})}
+                         placeholder="What's the immediate next step?"
+                      />
+                   </div>
+                </div>
+                
+                <div className="grid gap-2">
+                   <Label>Tags</Label>
+                   <div className="flex flex-wrap gap-2">
+                      {selectedProject.tags?.map(tag => (
+                         <Badge key={tag} variant="secondary">{tag}</Badge>
+                      ))}
+                      <Button variant="outline" size="sm" className="h-6 text-xs border-dashed">
+                         + Add Tag
+                      </Button>
+                   </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button onClick={() => selectedProject && handleUpdateProject(selectedProject)}>Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* View Project Details Dialog */}
+        <Dialog open={isProjectDetailsOpen} onOpenChange={setIsProjectDetailsOpen}>
+          <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
+             <DialogHeader className="space-y-1">
+                <div className="flex items-center gap-2">
+                   <Badge 
+                      variant="outline" 
+                      className={cn("font-normal mr-2", 
+                         selectedProject?.status === "In Progress" ? "bg-blue-50 text-blue-700 border-blue-200" : 
+                         selectedProject?.status === "Planning" ? "bg-purple-50 text-purple-700 border-purple-200" :
+                         "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      )}
+                   >
+                      {selectedProject?.status}
+                   </Badge>
+                   <DialogTitle className="text-xl">{selectedProject?.title}</DialogTitle>
+                </div>
+                <DialogDescription className="text-base text-muted-foreground">
+                   {selectedProject?.description}
+                </DialogDescription>
+             </DialogHeader>
+
+             {selectedProject && (
+                <div className="space-y-6 py-4">
+                   {/* Meta Grid */}
+                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/20 rounded-lg border border-border/50">
+                      <div className="space-y-1">
+                         <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Deadline</div>
+                         <div className="text-sm font-medium flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5" />
+                            {selectedProject.deadline || "Ongoing"}
+                         </div>
+                      </div>
+                      <div className="space-y-1">
+                         <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Time Left</div>
+                         <div className="text-sm font-medium">
+                            {selectedProject.deadline 
+                               ? `${differenceInDays(new Date(selectedProject.deadline), new Date())} days` 
+                               : "N/A"
+                            }
+                         </div>
+                      </div>
+                      <div className="space-y-1">
+                         <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Progress</div>
+                         <div className="text-sm font-medium">{selectedProject.progress}%</div>
+                      </div>
+                      <div className="space-y-1">
+                         <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Tasks</div>
+                         <div className="text-sm font-medium">
+                            {tasks.filter(t => t.project === selectedProject.title).filter(t => t.completed).length} / {tasks.filter(t => t.project === selectedProject.title).length}
+                         </div>
+                      </div>
+                   </div>
+
+                   {/* Progress Section */}
+                   <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                         <span className="font-medium">Project Progress</span>
+                         <span className="text-muted-foreground">{selectedProject.progress}%</span>
+                      </div>
+                      <Progress value={selectedProject.progress} className="h-3" indicatorClassName={selectedProject.color} />
+                   </div>
+
+                   {/* Next Action */}
+                   <div className="p-4 rounded-lg bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50">
+                      <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-medium mb-1">
+                         <ArrowRight className="w-4 h-4" />
+                         Next Action
+                      </div>
+                      <p className="text-sm text-indigo-600/90 dark:text-indigo-300/80 pl-6">
+                         {selectedProject.nextAction}
+                      </p>
+                   </div>
+
+                   {/* Project Tasks */}
+                   <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                         <h3 className="font-semibold flex items-center gap-2">
+                            <CheckSquare className="w-4 h-4" /> Related Tasks
+                         </h3>
+                         <Button variant="ghost" size="sm" className="h-8">
+                            <Plus className="w-3.5 h-3.5 mr-1" /> Add Task
+                         </Button>
+                      </div>
+                      
+                      <div className="border rounded-lg divide-y">
+                         {tasks.filter(t => t.project === selectedProject.title).length > 0 ? (
+                            tasks.filter(t => t.project === selectedProject.title).map(task => (
+                               <div key={task.id} className="p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors">
+                                  <button 
+                                     onClick={() => toggleTask(task.id)}
+                                     className={cn(
+                                        "w-4 h-4 rounded border flex items-center justify-center transition-all",
+                                        task.completed ? "bg-emerald-500 border-emerald-500 text-white" : "border-muted-foreground/40 hover:border-emerald-500"
+                                     )}
+                                  >
+                                     {task.completed && <CheckSquare className="w-3 h-3" />}
+                                  </button>
+                                  <span className={cn("text-sm flex-1", task.completed && "line-through text-muted-foreground")}>
+                                     {task.title}
+                                  </span>
+                                  <Badge variant="outline" className="text-[10px] font-normal">{task.priority}</Badge>
+                               </div>
+                            ))
+                         ) : (
+                            <div className="p-8 text-center text-muted-foreground text-sm">
+                               No tasks created for this project yet.
+                            </div>
+                         )}
+                      </div>
+                   </div>
+
+                   <div className="flex justify-end pt-4">
+                      <Button onClick={() => setIsProjectDetailsOpen(false)}>Close</Button>
+                   </div>
+                </div>
+             )}
           </DialogContent>
         </Dialog>
       </div>
