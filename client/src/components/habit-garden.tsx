@@ -2,13 +2,23 @@ import { useState, useEffect } from "react";
 import { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Wind, Droplets, Sun, Sparkles, Trash2 } from "lucide-react";
+import { Check, Wind, Droplets, Sun, Sparkles, Trash2, Heart, Briefcase, Brain, Palette, Users, PiggyBank } from "lucide-react";
 
 interface HabitGardenProps {
   habits: Habit[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
 }
+
+// Map categories to icons
+const CategoryIcons: Record<string, any> = {
+  Health: Heart,
+  Work: Briefcase,
+  Mindfulness: Brain,
+  Creativity: Palette,
+  Social: Users,
+  Finance: PiggyBank
+};
 
 // Procedural plant generator based on habit data
 const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () => void; onDelete: () => void }) => {
@@ -21,6 +31,8 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
   if (streak > 3) stage = "bloom";
   if (streak > 10) stage = "thrive";
   if (streak > 30) stage = "master";
+
+  const CategoryIcon = CategoryIcons[habit.category] || Sparkles;
 
   // Visual variants
   const variants = {
@@ -95,10 +107,19 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
                        animate={{ scale: 1, rotate: 0 }}
                        className="text-foreground"
                     >
-                       {stage === "seed" && <Droplets className="w-8 h-8 mx-auto mb-1 text-blue-400" />}
-                       {stage === "sprout" && <Wind className="w-8 h-8 mx-auto mb-1 text-green-400" />}
-                       {stage === "bloom" && <Sun className="w-10 h-10 mx-auto mb-1 text-orange-400" />}
-                       {(stage === "thrive" || stage === "master") && <Sparkles className="w-12 h-12 mx-auto mb-1 text-yellow-400" />}
+                       {/* Show category icon instead of generic nature icons once it sprouts */}
+                       {stage === "seed" ? (
+                          <Droplets className="w-8 h-8 mx-auto mb-1 text-blue-400" />
+                       ) : (
+                          <CategoryIcon 
+                              className={cn(
+                                "mx-auto mb-1", 
+                                stage === "sprout" ? "w-8 h-8" : "w-10 h-10",
+                                stage === "thrive" || stage === "master" ? "w-12 h-12" : ""
+                              )} 
+                              style={{ color: habit.color }}
+                          />
+                       )}
                        
                        <p className="text-xs font-bold uppercase tracking-wider opacity-60">Done</p>
                     </motion.div>
