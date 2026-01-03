@@ -52,7 +52,7 @@ import {
   Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useTrackerEntries, useHabits, useAllHabitCompletions } from "@/lib/api-hooks";
+import { useTrackerEntries, useHabits, useAllHabitCompletions, useRoutineBlocks, useRoutineActivities, useRoutineLogs } from "@/lib/api-hooks";
 import { format, subDays, startOfDay, isSameDay } from "date-fns";
 
 export default function Analytics() {
@@ -61,6 +61,10 @@ export default function Analytics() {
   const { data: trackerEntries, isLoading: entriesLoading } = useTrackerEntries(100);
   const { data: habits, isLoading: habitsLoading } = useHabits();
   const { data: allCompletions, isLoading: completionsLoading } = useAllHabitCompletions();
+  const { data: routineBlocks } = useRoutineBlocks();
+  const { data: routineActivities } = useRoutineActivities();
+  const today = format(new Date(), "yyyy-MM-dd");
+  const { data: todayRoutineLogs } = useRoutineLogs(today);
   
   const isLoading = entriesLoading || habitsLoading || completionsLoading;
   const hasData = (trackerEntries?.length || 0) > 0;
@@ -148,6 +152,36 @@ export default function Analytics() {
     return totalOpportunities > 0 ? Math.round((completionsInRange / totalOpportunities) * 100) : 0;
   }, [habits, allCompletions]);
 
+  const routineAdherence = useMemo(() => {
+    if (!routineActivities || routineActivities.length === 0) return null;
+    const completedToday = todayRoutineLogs?.length || 0;
+    const totalActivities = routineActivities.length;
+    return Math.round((completedToday / totalActivities) * 100);
+  }, [routineActivities, todayRoutineLogs]);
+
+  const blockProgress = useMemo(() => {
+    if (!routineBlocks || !routineActivities) return [];
+    const completedIds = new Set((todayRoutineLogs || []).map(l => l.activityId));
+    return routineBlocks
+      .sort((a, b) => a.order - b.order)
+      .map(block => {
+        const blockActivities = routineActivities
+          .filter(a => a.blockId === block.id)
+          .sort((a, b) => a.order - b.order);
+        const completed = blockActivities.filter(a => completedIds.has(a.id)).length;
+        const total = blockActivities.length;
+        return {
+          name: block.emoji,
+          fullName: block.name,
+          completed,
+          total,
+          percent: total > 0 ? Math.round((completed / total) * 100) : 0,
+          color: block.color,
+        };
+      })
+      .filter(block => block.total > 0);
+  }, [routineBlocks, routineActivities, todayRoutineLogs]);
+
   return (
     <Layout>
       <div className="space-y-8 animate-in fade-in duration-500 pb-12">
@@ -232,6 +266,56 @@ export default function Analytics() {
               </CardContent>
            </Card>
         </div>
+
+        {/* Today's Routine Progress */}
+        <Card className="border-border/50 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-primary" />
+              Today's Routine
+            </CardTitle>
+            <CardDescription>
+              {routineAdherence !== null ? `${routineAdherence}% complete` : "No routine data"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {blockProgress.length > 0 ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-6 gap-2">
+                  {blockProgress.map((block, i) => (
+                    <div key={i} className="text-center">
+                      <div 
+                        className="w-12 h-12 mx-auto rounded-xl flex items-center justify-center text-xl mb-2"
+                        style={{ backgroundColor: `${block.color}20` }}
+                      >
+                        {block.name}
+                      </div>
+                      <div className="text-xs font-medium truncate">{block.fullName}</div>
+                      <div className="text-xs text-muted-foreground">{block.completed}/{block.total}</div>
+                      <Progress 
+                        value={block.percent} 
+                        className="h-1 mt-1"
+                        style={{ backgroundColor: `${block.color}20` }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                  <span className="text-sm text-muted-foreground">Overall Progress</span>
+                  <div className="flex items-center gap-2">
+                    <Progress value={routineAdherence || 0} className="w-32 h-2" />
+                    <span className="text-sm font-medium">{routineAdherence}%</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p>No routine activities logged yet today</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Mental & Mood Section (Primary Focus) */}
         <div className="space-y-6">
@@ -421,37 +505,22 @@ export default function Analytics() {
             </div>
         </div>
 
-        {/* GENIUS INSIGHTS SECTION */}
+        {/* INSIGHTS SECTION - Will show computed insights when more data is available */}
         <div className="space-y-6">
              <h2 className="text-xl font-semibold flex items-center gap-2 border-b border-border/40 pb-2">
                 <Lightbulb className="w-5 h-5 text-amber-500" />
-                Genius Insights & Predictions
+                Insights & Patterns
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {CORRELATION_INSIGHTS.map(insight => (
-                    <Card key={insight.id} className="border-l-4 border-l-primary border-border/50 shadow-sm bg-muted/5">
-                        <CardContent className="p-4">
-                            <div className="flex justify-between items-start mb-2">
-                                <div className="flex items-center gap-2">
-                                    {insight.trend === 'negative' ? (
-                                        <AlertCircle className="w-4 h-4 text-rose-500" />
-                                    ) : (
-                                        <Zap className="w-4 h-4 text-amber-500" />
-                                    )}
-                                    <h4 className="font-semibold text-sm">{insight.title}</h4>
-                                </div>
-                                <Badge variant="outline" className="text-[10px] h-5 bg-background">
-                                    {insight.confidence}% Confidence
-                                </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground leading-snug">
-                                {insight.finding}
-                            </p>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+            <Card className="border-border/50 shadow-sm bg-muted/5">
+              <CardContent className="p-6 text-center">
+                <Lightbulb className="w-10 h-10 mx-auto mb-3 text-amber-500/50" />
+                <h4 className="font-semibold mb-1">Pattern Analysis Coming Soon</h4>
+                <p className="text-sm text-muted-foreground">
+                  Continue logging your mood, habits, and routine to unlock personalized insights about your patterns.
+                </p>
+              </CardContent>
+            </Card>
         </div>
         
         {/* Habit Tracking (Secondary Focus) */}

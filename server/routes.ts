@@ -13,6 +13,14 @@ import {
   insertRoutineActivitySchema,
   insertRoutineActivityLogSchema
 } from "@shared/schema";
+import { z } from "zod";
+
+const toggleRoutineSchema = z.object({
+  activityId: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  habitId: z.string().nullable().optional(),
+  action: z.enum(["add", "remove"]),
+});
 import { fromError } from "zod-validation-error";
 
 export async function registerRoutes(
@@ -477,6 +485,25 @@ export async function registerRoutes(
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete routine log" });
+    }
+  });
+
+  // Atomic routine + habit toggle endpoint
+  app.post("/api/routine-toggle", async (req, res) => {
+    try {
+      const parsed = toggleRoutineSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: fromError(parsed.error).toString() });
+      }
+      const { activityId, date, habitId, action } = parsed.data;
+      const result = await storage.toggleRoutineActivityWithHabit(activityId, date, habitId || null, action);
+      if (result.success) {
+        res.json(result);
+      } else {
+        res.status(500).json({ error: "Failed to toggle activity" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to toggle routine activity" });
     }
   });
 

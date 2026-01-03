@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Clock, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
-import { useRoutineBlocks, useRoutineActivities, useRoutineLogs, useAddRoutineLog, useRemoveRoutineLog, useAddHabitCompletion, useRemoveHabitCompletion, useHabits, useAllHabitCompletions } from "@/lib/api-hooks";
+import { useRoutineBlocks, useRoutineActivities, useRoutineLogs, useToggleRoutineActivity, useHabits, useAllHabitCompletions } from "@/lib/api-hooks";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,10 +18,7 @@ export function RoutineTimeline() {
   const { data: habits } = useHabits();
   const { data: allHabitCompletions } = useAllHabitCompletions();
   
-  const addLogMutation = useAddRoutineLog();
-  const removeLogMutation = useRemoveRoutineLog();
-  const addHabitCompletionMutation = useAddHabitCompletion();
-  const removeHabitCompletionMutation = useRemoveHabitCompletion();
+  const toggleMutation = useToggleRoutineActivity();
 
   const completedActivityIds = useMemo(() => {
     return new Set(logs?.map(l => l.activityId) || []);
@@ -66,17 +63,12 @@ export function RoutineTimeline() {
 
   const handleToggleActivity = async (activityId: string, habitId: string | null) => {
     const isCompleted = completedActivityIds.has(activityId);
+    const action = isCompleted ? "remove" : "add";
     
-    if (isCompleted) {
-      await removeLogMutation.mutateAsync({ activityId, date: today });
-      if (habitId && completedHabitIds.has(habitId)) {
-        await removeHabitCompletionMutation.mutateAsync({ habitId, date: today });
-      }
-    } else {
-      await addLogMutation.mutateAsync({ activityId, completedDate: today });
-      if (habitId && !completedHabitIds.has(habitId)) {
-        await addHabitCompletionMutation.mutateAsync({ habitId, date: today });
-      }
+    try {
+      await toggleMutation.mutateAsync({ activityId, date: today, habitId, action });
+    } catch (e) {
+      console.error("Failed to toggle activity:", e);
     }
   };
 

@@ -94,6 +94,9 @@ export interface IStorage {
   getActivityLogsForDate(date: string): Promise<RoutineActivityLog[]>;
   addActivityLog(log: InsertRoutineActivityLog): Promise<RoutineActivityLog>;
   removeActivityLog(activityId: string, date: string): Promise<boolean>;
+
+  // Atomic routine + habit sync
+  toggleRoutineActivityWithHabit(activityId: string, date: string, habitId: string | null, action: "add" | "remove"): Promise<{ success: boolean }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -320,6 +323,38 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(routineActivityLogs.activityId, activityId), eq(routineActivityLogs.completedDate, date)))
       .returning();
     return result.length > 0;
+  }
+
+  async toggleRoutineActivityWithHabit(activityId: string, date: string, habitId: string | null, action: "add" | "remove"): Promise<{ success: boolean }> {
+    try {
+      await db.transaction(async (tx) => {
+        if (action === "add") {
+          const existingLog = await tx.select().from(routineActivityLogs)
+            .where(and(eq(routineActivityLogs.activityId, activityId), eq(routineActivityLogs.completedDate, date)));
+          if (existingLog.length === 0) {
+            await tx.insert(routineActivityLogs).values({ activityId, completedDate: date });
+          }
+          if (habitId) {
+            const existingHabit = await tx.select().from(habitCompletions)
+              .where(and(eq(habitCompletions.habitId, habitId), eq(habitCompletions.completedDate, date)));
+            if (existingHabit.length === 0) {
+              await tx.insert(habitCompletions).values({ habitId, completedDate: date });
+            }
+          }
+        } else {
+          await tx.delete(routineActivityLogs)
+            .where(and(eq(routineActivityLogs.activityId, activityId), eq(routineActivityLogs.completedDate, date)));
+          if (habitId) {
+            await tx.delete(habitCompletions)
+              .where(and(eq(habitCompletions.habitId, habitId), eq(habitCompletions.completedDate, date)));
+          }
+        }
+      });
+      return { success: true };
+    } catch (error) {
+      console.error("Transaction failed:", error);
+      return { success: false };
+    }
   }
 }
 

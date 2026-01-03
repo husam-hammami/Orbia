@@ -345,3 +345,23 @@ export function useRemoveRoutineLog() {
     },
   });
 }
+
+// Atomic routine + habit toggle
+export function useToggleRoutineActivity() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { activityId: string; date: string; habitId: string | null; action: "add" | "remove" }) =>
+      fetchAPI("/api/routine-toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (_, { date, habitId }) => {
+      queryClient.invalidateQueries({ queryKey: ["routineLogs", date] });
+      queryClient.invalidateQueries({ queryKey: ["allHabitCompletions"] });
+      if (habitId) {
+        queryClient.invalidateQueries({ queryKey: ["habitCompletions", habitId] });
+      }
+    },
+  });
+}
