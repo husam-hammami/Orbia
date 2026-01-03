@@ -8,7 +8,10 @@ import {
   insertHeadspaceRoomSchema,
   insertSystemSettingsSchema,
   insertHabitSchema,
-  insertHabitCompletionSchema
+  insertHabitCompletionSchema,
+  insertRoutineBlockSchema,
+  insertRoutineActivitySchema,
+  insertRoutineActivityLogSchema
 } from "@shared/schema";
 import { fromError } from "zod-validation-error";
 
@@ -338,6 +341,142 @@ export async function registerRoutes(
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete completion" });
+    }
+  });
+
+  // Routine Blocks Routes
+  app.get("/api/routine-blocks", async (req, res) => {
+    try {
+      const blocks = await storage.getAllRoutineBlocks();
+      res.json(blocks);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch routine blocks" });
+    }
+  });
+
+  app.post("/api/routine-blocks", async (req, res) => {
+    try {
+      const validatedData = insertRoutineBlockSchema.parse(req.body);
+      const block = await storage.createRoutineBlock(validatedData);
+      res.status(201).json(block);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.patch("/api/routine-blocks/:id", async (req, res) => {
+    try {
+      const validatedData = insertRoutineBlockSchema.partial().parse(req.body);
+      const block = await storage.updateRoutineBlock(req.params.id, validatedData);
+      if (!block) {
+        return res.status(404).json({ error: "Routine block not found" });
+      }
+      res.json(block);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/routine-blocks/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteRoutineBlock(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Routine block not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete routine block" });
+    }
+  });
+
+  // Routine Activities Routes
+  app.get("/api/routine-activities", async (req, res) => {
+    try {
+      const activities = await storage.getAllRoutineActivities();
+      res.json(activities);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch routine activities" });
+    }
+  });
+
+  app.get("/api/routine-blocks/:id/activities", async (req, res) => {
+    try {
+      const activities = await storage.getActivitiesByBlock(req.params.id);
+      res.json(activities);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch activities" });
+    }
+  });
+
+  app.post("/api/routine-activities", async (req, res) => {
+    try {
+      const validatedData = insertRoutineActivitySchema.parse(req.body);
+      const activity = await storage.createRoutineActivity(validatedData);
+      res.status(201).json(activity);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.patch("/api/routine-activities/:id", async (req, res) => {
+    try {
+      const validatedData = insertRoutineActivitySchema.partial().parse(req.body);
+      const activity = await storage.updateRoutineActivity(req.params.id, validatedData);
+      if (!activity) {
+        return res.status(404).json({ error: "Activity not found" });
+      }
+      res.json(activity);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/routine-activities/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteRoutineActivity(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Activity not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete activity" });
+    }
+  });
+
+  // Routine Activity Logs Routes
+  app.get("/api/routine-logs/:date", async (req, res) => {
+    try {
+      const logs = await storage.getActivityLogsForDate(req.params.date);
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch routine logs" });
+    }
+  });
+
+  app.post("/api/routine-logs", async (req, res) => {
+    try {
+      const validatedData = insertRoutineActivityLogSchema.parse(req.body);
+      const log = await storage.addActivityLog(validatedData);
+      res.status(201).json(log);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/routine-logs/:activityId/:date", async (req, res) => {
+    try {
+      const success = await storage.removeActivityLog(req.params.activityId, req.params.date);
+      if (!success) {
+        return res.status(404).json({ error: "Log not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete routine log" });
     }
   });
 

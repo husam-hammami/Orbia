@@ -13,13 +13,22 @@ import {
   type InsertHabit,
   type HabitCompletion,
   type InsertHabitCompletion,
+  type RoutineBlock,
+  type InsertRoutineBlock,
+  type RoutineActivity,
+  type InsertRoutineActivity,
+  type RoutineActivityLog,
+  type InsertRoutineActivityLog,
   systemMembers,
   trackerEntries,
   systemMessages,
   headspaceRooms,
   systemSettings,
   habits,
-  habitCompletions
+  habitCompletions,
+  routineBlocks,
+  routineActivities,
+  routineActivityLogs
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -67,6 +76,24 @@ export interface IStorage {
   getHabitCompletions(habitId: string): Promise<HabitCompletion[]>;
   addHabitCompletion(completion: InsertHabitCompletion): Promise<HabitCompletion>;
   removeHabitCompletion(habitId: string, date: string): Promise<boolean>;
+
+  // Routine Blocks
+  getAllRoutineBlocks(): Promise<RoutineBlock[]>;
+  createRoutineBlock(block: InsertRoutineBlock): Promise<RoutineBlock>;
+  updateRoutineBlock(id: string, block: Partial<InsertRoutineBlock>): Promise<RoutineBlock | undefined>;
+  deleteRoutineBlock(id: string): Promise<boolean>;
+
+  // Routine Activities
+  getAllRoutineActivities(): Promise<RoutineActivity[]>;
+  getActivitiesByBlock(blockId: string): Promise<RoutineActivity[]>;
+  createRoutineActivity(activity: InsertRoutineActivity): Promise<RoutineActivity>;
+  updateRoutineActivity(id: string, activity: Partial<InsertRoutineActivity>): Promise<RoutineActivity | undefined>;
+  deleteRoutineActivity(id: string): Promise<boolean>;
+
+  // Routine Activity Logs
+  getActivityLogsForDate(date: string): Promise<RoutineActivityLog[]>;
+  addActivityLog(log: InsertRoutineActivityLog): Promise<RoutineActivityLog>;
+  removeActivityLog(activityId: string, date: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -224,6 +251,73 @@ export class DatabaseStorage implements IStorage {
   async removeHabitCompletion(habitId: string, date: string): Promise<boolean> {
     const result = await db.delete(habitCompletions)
       .where(and(eq(habitCompletions.habitId, habitId), eq(habitCompletions.completedDate, date)))
+      .returning();
+    return result.length > 0;
+  }
+
+  // Routine Blocks
+  async getAllRoutineBlocks(): Promise<RoutineBlock[]> {
+    return await db.select().from(routineBlocks).orderBy(routineBlocks.order);
+  }
+
+  async createRoutineBlock(block: InsertRoutineBlock): Promise<RoutineBlock> {
+    const result = await db.insert(routineBlocks).values(block).returning();
+    return result[0];
+  }
+
+  async updateRoutineBlock(id: string, block: Partial<InsertRoutineBlock>): Promise<RoutineBlock | undefined> {
+    const result = await db.update(routineBlocks).set(block).where(eq(routineBlocks.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteRoutineBlock(id: string): Promise<boolean> {
+    const activities = await db.select().from(routineActivities).where(eq(routineActivities.blockId, id));
+    for (const activity of activities) {
+      await db.delete(routineActivityLogs).where(eq(routineActivityLogs.activityId, activity.id));
+    }
+    await db.delete(routineActivities).where(eq(routineActivities.blockId, id));
+    const result = await db.delete(routineBlocks).where(eq(routineBlocks.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Routine Activities
+  async getAllRoutineActivities(): Promise<RoutineActivity[]> {
+    return await db.select().from(routineActivities).orderBy(routineActivities.order);
+  }
+
+  async getActivitiesByBlock(blockId: string): Promise<RoutineActivity[]> {
+    return await db.select().from(routineActivities).where(eq(routineActivities.blockId, blockId)).orderBy(routineActivities.order);
+  }
+
+  async createRoutineActivity(activity: InsertRoutineActivity): Promise<RoutineActivity> {
+    const result = await db.insert(routineActivities).values(activity).returning();
+    return result[0];
+  }
+
+  async updateRoutineActivity(id: string, activity: Partial<InsertRoutineActivity>): Promise<RoutineActivity | undefined> {
+    const result = await db.update(routineActivities).set(activity).where(eq(routineActivities.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteRoutineActivity(id: string): Promise<boolean> {
+    await db.delete(routineActivityLogs).where(eq(routineActivityLogs.activityId, id));
+    const result = await db.delete(routineActivities).where(eq(routineActivities.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Routine Activity Logs
+  async getActivityLogsForDate(date: string): Promise<RoutineActivityLog[]> {
+    return await db.select().from(routineActivityLogs).where(eq(routineActivityLogs.completedDate, date));
+  }
+
+  async addActivityLog(log: InsertRoutineActivityLog): Promise<RoutineActivityLog> {
+    const result = await db.insert(routineActivityLogs).values(log).returning();
+    return result[0];
+  }
+
+  async removeActivityLog(activityId: string, date: string): Promise<boolean> {
+    const result = await db.delete(routineActivityLogs)
+      .where(and(eq(routineActivityLogs.activityId, activityId), eq(routineActivityLogs.completedDate, date)))
       .returning();
     return result.length > 0;
   }

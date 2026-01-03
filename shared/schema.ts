@@ -139,3 +139,61 @@ export const insertHabitCompletionSchema = createInsertSchema(habitCompletions).
 
 export type HabitCompletion = typeof habitCompletions.$inferSelect;
 export type InsertHabitCompletion = z.infer<typeof insertHabitCompletionSchema>;
+
+// Routine Blocks (time blocks in daily routine)
+export const routineBlocks = pgTable("routine_blocks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  emoji: text("emoji").notNull(),
+  startTime: text("start_time").notNull(), // "08:00"
+  endTime: text("end_time").notNull(), // "09:00"
+  purpose: text("purpose").notNull(),
+  order: integer("order").notNull(),
+  color: text("color").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertRoutineBlockSchema = createInsertSchema(routineBlocks).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type RoutineBlock = typeof routineBlocks.$inferSelect;
+export type InsertRoutineBlock = z.infer<typeof insertRoutineBlockSchema>;
+
+// Routine Activities (individual activities within blocks)
+export const routineActivities = pgTable("routine_activities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  blockId: varchar("block_id").notNull().references(() => routineBlocks.id),
+  name: text("name").notNull(),
+  time: text("time"), // "08:00" - optional specific time
+  description: text("description"),
+  habitId: varchar("habit_id").references(() => habits.id), // link to habit for auto-completion
+  order: integer("order").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertRoutineActivitySchema = createInsertSchema(routineActivities).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type RoutineActivity = typeof routineActivities.$inferSelect;
+export type InsertRoutineActivity = z.infer<typeof insertRoutineActivitySchema>;
+
+// Routine Activity Logs (daily completion tracking)
+export const routineActivityLogs = pgTable("routine_activity_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  activityId: varchar("activity_id").notNull().references(() => routineActivities.id),
+  completedDate: text("completed_date").notNull(), // "2026-01-03"
+  completedAt: timestamp("completed_at").defaultNow().notNull(),
+  notes: text("notes"),
+});
+
+export const insertRoutineActivityLogSchema = createInsertSchema(routineActivityLogs).omit({
+  id: true,
+  completedAt: true,
+});
+
+export type RoutineActivityLog = typeof routineActivityLogs.$inferSelect;
+export type InsertRoutineActivityLog = z.infer<typeof insertRoutineActivityLogSchema>;
