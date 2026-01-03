@@ -1,93 +1,155 @@
-import { useState } from "react";
 import { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { format, subDays, isSameDay, parseISO, startOfWeek, addDays } from "date-fns";
-import { motion } from "framer-motion";
-import { Check, Flame, MoreHorizontal } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { format, subDays, isSameDay, parseISO } from "date-fns";
+import { motion, AnimatePresence } from "framer-motion";
+import { Check, Flame, Trophy } from "lucide-react";
 
 interface HabitGridProps {
   habits: Habit[];
-  onToggle: (id: string, date?: Date) => void;
+  onToggle: (id: string) => void;
 }
 
 export function HabitGrid({ habits, onToggle }: HabitGridProps) {
-  // Use a 7-day rolling window or a strict Mon-Sun week? 
-  // Let's use a rolling window of last 6 days + Today for the "Zen" feel of immediate progress.
   const today = new Date();
-  const days = Array.from({ length: 7 }).map((_, i) => subDays(today, 6 - i));
+  const days = Array.from({ length: 5 }).map((_, i) => subDays(today, 4 - i));
 
   return (
-    <div className="w-full overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
-      <table className="w-full min-w-[600px] border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border/50">
-            <th className="p-4 text-left font-display font-semibold text-muted-foreground w-[30%] min-w-[200px]">Habit</th>
-            {days.map((day, i) => {
-              const isToday = isSameDay(day, today);
-              return (
-                <th key={i} className={cn("p-2 text-center w-[10%]", isToday && "bg-primary/5")}>
-                  <div className={cn("flex flex-col items-center justify-center gap-1", isToday ? "text-primary font-bold" : "text-muted-foreground")}>
-                    <span className="text-xs uppercase">{format(day, "EEE")}</span>
-                    <span className={cn("text-lg font-display", isToday && "scale-110")}>{format(day, "d")}</span>
-                  </div>
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {habits.map((habit) => (
-            <tr key={habit.id} className="group border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
-              <td className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-1 h-8 rounded-full" style={{ backgroundColor: habit.color }} />
-                  <div>
-                    <p className={cn("font-medium text-foreground", habit.completedToday && "text-muted-foreground line-through decoration-primary/30")}>
-                      {habit.title}
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                       <span>{habit.target} {habit.unit}</span>
-                       {habit.streak > 0 && (
-                         <span className="flex items-center text-amber-500 bg-amber-500/10 px-1.5 rounded-full">
-                           <Flame className="w-3 h-3 mr-0.5 fill-current" /> {habit.streak}
-                         </span>
-                       )}
-                    </div>
+    <div className="w-full space-y-6">
+      {/* Header Row */}
+      <div className="grid grid-cols-[1.5fr_repeat(5,1fr)] gap-4 px-4">
+        <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider self-end pb-2">Habit</div>
+        {days.map((day, i) => {
+          const isToday = isSameDay(day, today);
+          return (
+            <div key={i} className="flex flex-col items-center gap-1">
+              <span className={cn(
+                "text-[10px] font-bold uppercase tracking-widest",
+                isToday ? "text-primary" : "text-muted-foreground/60"
+              )}>
+                {format(day, "EEE")}
+              </span>
+              <div className={cn(
+                "w-10 h-10 flex items-center justify-center rounded-full text-sm font-bold transition-all",
+                isToday 
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-110" 
+                  : "bg-transparent text-muted-foreground"
+              )}>
+                {format(day, "d")}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Habits */}
+      <div className="space-y-3">
+        {habits.map((habit, index) => (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            key={habit.id}
+            className="group relative bg-card hover:bg-card/80 transition-colors rounded-2xl p-4 shadow-sm hover:shadow-md border border-border/40"
+          >
+            <div className="grid grid-cols-[1.5fr_repeat(5,1fr)] gap-4 items-center">
+              {/* Habit Info */}
+              <div className="flex items-center gap-4 min-w-0 pr-4">
+                <div 
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shadow-sm shrink-0"
+                  style={{ backgroundColor: `${habit.color}15`, color: habit.color }}
+                >
+                  {habit.title.charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-display font-semibold text-foreground truncate">{habit.title}</h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-muted-foreground font-medium bg-secondary/50 px-2 py-0.5 rounded-md">
+                      {habit.target} {habit.unit}
+                    </span>
+                    {habit.streak > 2 && (
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full">
+                        <Flame className="w-3 h-3 fill-current" />
+                        {habit.streak}
+                      </div>
+                    )}
                   </div>
                 </div>
-              </td>
+              </div>
+
+              {/* Days Grid */}
               {days.map((day, i) => {
-                // Check if completed on this date
-                const isCompleted = habit.history.some(h => isSameDay(parseISO(h), day)) || (isSameDay(day, today) && habit.completedToday);
                 const isToday = isSameDay(day, today);
+                // History Check: Check if completed on this specific past date
+                const isCompletedHistory = habit.history.some(h => isSameDay(parseISO(h), day));
+                // Today Check: Check if completed today
+                const isCompletedToday = isSameDay(day, today) && habit.completedToday;
+                
+                const isCompleted = isCompletedHistory || isCompletedToday;
+                
+                // Connector Logic
+                const nextDay = days[i + 1];
+                const isNextCompleted = nextDay && (
+                   habit.history.some(h => isSameDay(parseISO(h), nextDay)) || 
+                   (isSameDay(nextDay, today) && habit.completedToday)
+                );
+                
+                // We draw a line to the right if:
+                // 1. This day is completed
+                // 2. The next day is completed (streak continues)
+                // 3. We are not the last column
+                const showConnector = isCompleted && isNextCompleted && i < days.length - 1;
 
                 return (
-                  <td key={i} className={cn("p-2 text-center relative", isToday && "bg-primary/5")}>
-                    <div className="flex items-center justify-center">
-                      <button
-                        onClick={() => isToday && onToggle(habit.id)}
-                        disabled={!isToday}
-                        className={cn(
-                          "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200",
-                          isCompleted 
-                            ? "bg-primary text-primary-foreground shadow-sm scale-100" 
-                            : "bg-muted/30 text-transparent hover:bg-muted",
-                           !isToday && !isCompleted && "bg-transparent border border-dashed border-border",
-                           !isToday && isCompleted && "opacity-60",
-                           isToday && !isCompleted && "border-2 border-primary/20 hover:border-primary/50"
+                  <div key={i} className="relative flex items-center justify-center h-12">
+                     {/* Connector Line */}
+                    {showConnector && (
+                        <div className="absolute left-1/2 w-full h-1 bg-primary/20 -z-10" />
+                    )}
+
+                    <button
+                      onClick={() => isToday && onToggle(habit.id)}
+                      disabled={!isToday}
+                      className={cn(
+                        "relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 group/btn",
+                        isCompleted 
+                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-100" 
+                          : "bg-secondary/30 text-transparent hover:bg-secondary/50",
+                        !isToday && !isCompleted && "opacity-40 scale-75",
+                        isToday && !isCompleted && "ring-2 ring-primary/20 ring-offset-2 ring-offset-card hover:ring-primary/40 hover:scale-105 cursor-pointer bg-card"
+                      )}
+                    >
+                      <AnimatePresence mode="wait">
+                        {isCompleted ? (
+                          <motion.div
+                            initial={{ scale: 0.5, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.5, opacity: 0 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                          >
+                            <Check className="w-5 h-5 stroke-[3px]" />
+                          </motion.div>
+                        ) : (
+                          isToday && (
+                             <div className="w-3 h-3 rounded-full bg-primary/20 group-hover/btn:bg-primary/40 transition-colors" />
+                          )
                         )}
-                      >
-                         {isCompleted && <Check className="w-5 h-5 stroke-[3px]" />}
-                      </button>
-                    </div>
-                  </td>
+                      </AnimatePresence>
+                    </button>
+                  </div>
                 );
               })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+      
+      {/* Empty State / Encouragement */}
+      {habits.length === 0 && (
+          <div className="text-center py-12 bg-muted/10 rounded-2xl border border-dashed border-border">
+              <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-20" />
+              <p className="text-muted-foreground">No habits yet. Start small.</p>
+          </div>
+      )}
     </div>
   );
 }
