@@ -19,10 +19,9 @@ interface HabitCardProps {
 
 export function HabitCard({ habit, onToggle }: HabitCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [completed, setCompleted] = useState(habit.completedToday);
+  const completed = habit.completedToday;
 
   const handleToggle = () => {
-    setCompleted(!completed);
     onToggle(habit.id);
   };
 

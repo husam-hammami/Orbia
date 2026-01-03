@@ -107,7 +107,6 @@ export function MoodTracker() {
         setNote("");
         setSelectedTags([]);
         setStressCauses([]);
-        setIsExpanded(false);
       },
       onError: () => toast.error("Failed to log entry"),
     });

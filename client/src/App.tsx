@@ -17,8 +17,8 @@ import TrackerPage from "@/pages/tracker";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/tracker" component={TrackerPage} />
+      <Route path="/" component={TrackerPage} />
+      <Route path="/dashboard" component={Dashboard} />
       <Route path="/career" component={CareerPage} />
       <Route path="/finance" component={FinancePage} />
       <Route path="/analytics" component={Analytics} />
