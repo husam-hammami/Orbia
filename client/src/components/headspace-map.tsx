@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { User, Shield, Ghost, Brain, Zap, Plus, MoreHorizontal, UserCog, Crown, Eye, Mic, Armchair, DoorOpen, Coffee } from "lucide-react";
+import { User, Shield, Ghost, Brain, Zap, Plus, MoreHorizontal, UserCog, Crown, Eye, Mic, Armchair, DoorOpen, Coffee, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,7 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SYSTEM_MEMBERS } from "@/lib/mock-data";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 // --- Headspace Rooms ---
 const ROOMS = [
@@ -27,16 +28,67 @@ const ROOMS = [
   { id: 'inner', name: 'Inner World', icon: DoorOpen, description: "Deep resting place", color: "border-purple-500/50 bg-purple-500/5" },
 ];
 
-export function HeadspaceMap() {
-  // Initialize members with locations
-  const [members, setMembers] = useState(SYSTEM_MEMBERS.map(m => ({ 
-    ...m, 
-    location: m.role.includes('Daily') ? 'front' : m.role.includes('Trauma') ? 'inner' : 'meeting' 
-  })));
+interface HeadspaceMapProps {
+    members: any[];
+    setMembers: (members: any[]) => void;
+}
+
+export function HeadspaceMap({ members, setMembers }: HeadspaceMapProps) {
+  // Initialize members with locations if not present
+  useEffect(() => {
+    const initializedMembers = members.map(m => ({ 
+        ...m, 
+        location: m.location || (m.role.includes('Daily') ? 'front' : m.role.includes('Trauma') ? 'inner' : 'meeting') 
+    }));
+    
+    // Only update if changes were made to avoid infinite loop
+    if (JSON.stringify(initializedMembers) !== JSON.stringify(members)) {
+        setMembers(initializedMembers);
+    }
+  }, []);
 
   const moveMember = (memberId: string, roomId: string) => {
     setMembers(members.map(m => m.id === memberId ? { ...m, location: roomId } : m));
   };
+  
+  // Manage Member State
+  const [isAdding, setIsAdding] = useState(false);
+  const [isEditing, setIsEditing] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", role: "Unknown", color: "#6366f1" });
+
+  const handleAddMember = () => {
+     const newId = 'm' + (members.length + 1) + Math.random().toString(36).substr(2, 5);
+     const newMember = {
+         id: newId,
+         name: editForm.name || "New Alter",
+         role: editForm.role,
+         color: editForm.color,
+         traits: ["New"],
+         avatar: 'user',
+         description: "New system member.",
+         location: 'meeting',
+         stats: { stress: 0, activity: 0 }
+     };
+     setMembers([...members, newMember]);
+     setIsAdding(false);
+     setEditForm({ name: "", role: "Unknown", color: "#6366f1" });
+  };
+
+  const handleUpdateMember = () => {
+      if (!isEditing) return;
+      setMembers(members.map(m => m.id === isEditing ? { ...m, ...editForm } : m));
+      setIsEditing(null);
+  };
+  
+  const handleDeleteMember = (id: string) => {
+      setMembers(members.filter(m => m.id !== id));
+      setIsEditing(null);
+  };
+
+  const openEdit = (member: any) => {
+      setEditForm({ name: member.name, role: member.role, color: member.color });
+      setIsEditing(member.id);
+  }
 
   return (
     <div className="bg-card rounded-2xl border border-border shadow-sm min-h-[500px] flex flex-col relative overflow-hidden">
@@ -48,9 +100,99 @@ export function HeadspaceMap() {
              <p className="text-xs text-muted-foreground">Drag & Drop Simulation (Click to move)</p>
            </div>
         </div>
-        <div className="flex gap-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Active</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-400"></span> Resting</span>
+        
+        <div className="flex items-center gap-4">
+             <div className="flex gap-2 text-xs text-muted-foreground mr-4 hidden md:flex">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Active</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-400"></span> Resting</span>
+            </div>
+            
+            <Dialog open={isAdding} onOpenChange={setIsAdding}>
+                <DialogTrigger asChild>
+                    <Button size="sm" className="gap-2">
+                        <Plus className="w-4 h-4" /> Add Member
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add New System Member</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Name</Label>
+                            <Input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} placeholder="Alter name" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Role</Label>
+                             <Select value={editForm.role} onValueChange={v => setEditForm({...editForm, role: v})}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Host">Host</SelectItem>
+                                    <SelectItem value="Protector">Protector</SelectItem>
+                                    <SelectItem value="Little">Little</SelectItem>
+                                    <SelectItem value="Trauma Holder">Trauma Holder</SelectItem>
+                                    <SelectItem value="Gatekeeper">Gatekeeper</SelectItem>
+                                    <SelectItem value="Manager">Manager</SelectItem>
+                                    <SelectItem value="Unknown">Unknown</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Color (Hex)</Label>
+                            <div className="flex gap-2">
+                                <Input type="color" className="w-12 p-1 cursor-pointer" value={editForm.color} onChange={e => setEditForm({...editForm, color: e.target.value})} />
+                                <Input value={editForm.color} onChange={e => setEditForm({...editForm, color: e.target.value})} placeholder="#000000" />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleAddMember}>Create Member</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            
+            {/* Edit Dialog */}
+            <Dialog open={!!isEditing} onOpenChange={(open) => !open && setIsEditing(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit Member Details</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                         <div className="space-y-2">
+                            <Label>Name</Label>
+                            <Input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Role</Label>
+                             <Select value={editForm.role} onValueChange={v => setEditForm({...editForm, role: v})}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Host">Host</SelectItem>
+                                    <SelectItem value="Protector">Protector</SelectItem>
+                                    <SelectItem value="Little">Little</SelectItem>
+                                    <SelectItem value="Trauma Holder">Trauma Holder</SelectItem>
+                                    <SelectItem value="Gatekeeper">Gatekeeper</SelectItem>
+                                    <SelectItem value="Manager">Manager</SelectItem>
+                                    <SelectItem value="Unknown">Unknown</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Color</Label>
+                             <div className="flex gap-2">
+                                <Input type="color" className="w-12 p-1 cursor-pointer" value={editForm.color} onChange={e => setEditForm({...editForm, color: e.target.value})} />
+                                <Input value={editForm.color} onChange={e => setEditForm({...editForm, color: e.target.value})} />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter className="flex justify-between sm:justify-between w-full">
+                        <Button variant="destructive" size="sm" onClick={() => isEditing && handleDeleteMember(isEditing)}>
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete
+                        </Button>
+                        <Button onClick={handleUpdateMember}>Save Changes</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
       </div>
 
@@ -85,13 +227,17 @@ export function HeadspaceMap() {
                                     className="relative group/avatar"
                                 >
                                     {/* Action Menu (Hover) */}
-                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-[10px] px-2 py-1 rounded shadow-md opacity-0 group-hover/avatar:opacity-100 transition-opacity z-20 pointer-events-none whitespace-nowrap">
-                                        {member.role}
+                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-[10px] p-1 rounded shadow-md opacity-0 group-hover/avatar:opacity-100 transition-opacity z-20 whitespace-nowrap flex gap-1 items-center border">
+                                        <span className="px-1">{member.role}</span>
+                                        <div className="w-[1px] h-3 bg-border"></div>
+                                        <button onClick={(e) => { e.stopPropagation(); openEdit(member); }} className="hover:bg-muted p-1 rounded cursor-pointer">
+                                            <Edit className="w-3 h-3" />
+                                        </button>
                                     </div>
 
                                     {/* Avatar */}
                                     <div 
-                                        className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-background shadow-sm cursor-grab active:cursor-grabbing hover:scale-110 transition-transform"
+                                        className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-background shadow-sm cursor-grab active:cursor-grabbing hover:scale-110 transition-transform relative"
                                         style={{ borderColor: member.color }}
                                         // Simple click-to-move logic for prototype
                                         onClick={() => {

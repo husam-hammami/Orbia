@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { 
   Users, 
   BrainCircuit, 
@@ -16,14 +17,29 @@ import {
   FileText,
   Clock,
   MapPin,
-  LayoutTemplate
+  LayoutTemplate,
+  Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SYSTEM_MEMBERS } from "@/lib/mock-data";
 import { HeadspaceMap } from "@/components/headspace-map";
 
 export default function SystemInsight() {
-  const [activeMember, setActiveMember] = useState(SYSTEM_MEMBERS[0]);
+  const [members, setMembers] = useState(SYSTEM_MEMBERS);
+  const [activeMember, setActiveMember] = useState(members[0]);
+
+  // Keep activeMember up to date with member changes
+  const updateActiveMember = (member: any) => {
+      setActiveMember(member);
+  }
+
+  // Effect to ensure activeMember reflects current state if it was edited
+  if (activeMember) {
+      const current = members.find(m => m.id === activeMember.id);
+      if (current && JSON.stringify(current) !== JSON.stringify(activeMember)) {
+          setActiveMember(current);
+      }
+  }
 
   const getIcon = (avatar: string) => {
     switch(avatar) {
@@ -51,14 +67,14 @@ export default function SystemInsight() {
           </div>
         </div>
 
-        <Tabs defaultValue="directory" className="space-y-6">
+        <Tabs defaultValue="visualizer" className="space-y-6">
             <TabsList className="bg-muted/30 p-1 border border-border/40">
+                 <TabsTrigger value="visualizer" className="gap-2"><LayoutTemplate className="w-4 h-4" /> Visual Headspace</TabsTrigger>
                 <TabsTrigger value="directory" className="gap-2"><Users className="w-4 h-4" /> Directory</TabsTrigger>
-                <TabsTrigger value="visualizer" className="gap-2"><LayoutTemplate className="w-4 h-4" /> Visual Headspace</TabsTrigger>
             </TabsList>
 
             <TabsContent value="visualizer" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <HeadspaceMap />
+                <HeadspaceMap members={members} setMembers={setMembers} />
             </TabsContent>
 
             <TabsContent value="directory" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -66,21 +82,23 @@ export default function SystemInsight() {
                     {/* Left Sidebar: Member List */}
                     <Card className="lg:col-span-4 h-fit border-border/50">
                         <CardHeader>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <Users className="w-5 h-5 text-muted-foreground" />
-                                Members ({SYSTEM_MEMBERS.length})
+                            <CardTitle className="text-lg flex items-center gap-2 justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Users className="w-5 h-5 text-muted-foreground" />
+                                    Members ({members.length})
+                                </div>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
                             <div className="flex flex-col">
-                                {SYSTEM_MEMBERS.map(member => {
+                                {members.map(member => {
                                     const Icon = getIcon(member.avatar || 'user');
-                                    const isActive = activeMember.id === member.id;
+                                    const isActive = activeMember?.id === member.id;
                                     
                                     return (
                                         <button
                                             key={member.id}
-                                            onClick={() => setActiveMember(member)}
+                                            onClick={() => updateActiveMember(member)}
                                             className={cn(
                                                 "flex items-center gap-3 p-4 text-left transition-all border-l-4 hover:bg-muted/50",
                                                 isActive 
@@ -110,6 +128,7 @@ export default function SystemInsight() {
 
                     {/* Main Content: Member Profile */}
                     <div className="lg:col-span-8 space-y-6">
+                        {activeMember ? (
                         <Card className="border-t-4 shadow-md" style={{ borderTopColor: activeMember.color }}>
                             <CardHeader>
                                 <div className="flex justify-between items-start">
@@ -175,7 +194,7 @@ export default function SystemInsight() {
                                         <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
                                             <MapPin className="w-3.5 h-3.5" /> Usual Spot
                                         </div>
-                                        <div className="text-lg font-bold">Front Room</div>
+                                        <div className="text-lg font-bold capitalize">{activeMember.location || 'Unknown'}</div>
                                     </div>
                                 </div>
 
@@ -196,6 +215,12 @@ export default function SystemInsight() {
                                 </div>
                             </CardContent>
                         </Card>
+                        ) : (
+                            <div className="h-full flex flex-col items-center justify-center p-12 text-center text-muted-foreground bg-muted/10 rounded-xl border border-dashed">
+                                <Users className="w-12 h-12 mb-4 opacity-20" />
+                                <p>Select a member to view their profile</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </TabsContent>
