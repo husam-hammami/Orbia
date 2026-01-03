@@ -1,4 +1,4 @@
-export type Category = "Health" | "Work" | "Mindfulness" | "Creativity" | "Social" | "Finance" | "Recovery";
+export type Category = "Health" | "Work" | "Mindfulness" | "Creativity" | "Social" | "Finance" | "Recovery" | "System";
 
 export type Frequency = "daily" | "weekly";
 
@@ -21,4 +21,19 @@ export interface UserStats {
   completedToday: number;
   currentStreak: number; // Global streak
   completionRate: number;
+}
+
+export interface SystemMember {
+    id: string;
+    name: string;
+    role: string;
+    traits: string[];
+    color: string;
+    avatar: string;
+    description: string;
+    location?: string;
+    stats?: {
+        stress: number;
+        activity: number;
+    };
 }

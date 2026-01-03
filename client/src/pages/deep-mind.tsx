@@ -64,34 +64,21 @@ const RECENT_LOGS = [
   { time: "05:00 PM", dissociation: 20, stress: 25, front: "Manager", note: "Wrapping up work" },
 ];
 
-const SYSTEM_WAVEFORM = Array.from({ length: 50 }, (_, i) => ({
-  time: i,
-  noise: 30 + Math.random() * 40 + (Math.sin(i / 5) * 20),
-  coherence: 50 + Math.cos(i / 8) * 30
-}));
+// Replaced simulated waveform with placeholder
+const SYSTEM_WAVEFORM = []; 
 
-const SYSTEM_STATS = [
-  { subject: 'Dissociation', A: 65, fullMark: 100 },
-  { subject: 'Communication', A: 40, fullMark: 100 },
-  { subject: 'Memory Access', A: 55, fullMark: 100 },
-  { subject: 'Emotional Reg', A: 30, fullMark: 100 },
-  { subject: 'Physical Grounding', A: 70, fullMark: 100 },
-  { subject: 'Co-con', A: 45, fullMark: 100 },
+const SYSTEM_STATS: any[] = [
+  { subject: 'Dissociation', A: 0, fullMark: 100 },
+  { subject: 'Communication', A: 0, fullMark: 100 },
+  { subject: 'Memory Access', A: 0, fullMark: 100 },
+  { subject: 'Emotional Reg', A: 0, fullMark: 100 },
+  { subject: 'Physical Grounding', A: 0, fullMark: 100 },
+  { subject: 'Co-con', A: 0, fullMark: 100 },
 ];
 
-const ALTER_POSITIONS = [
-    { x: 50, y: 10, z: 100, name: 'Host', status: 'Fronting' },
-    { x: 30, y: 40, z: 60, name: 'Protector', status: 'Co-con' },
-    { x: 70, y: 40, z: 50, name: 'Manager', status: 'Watching' },
-    { x: 20, y: 80, z: 20, name: 'Little', status: 'Deep Internal' },
-    { x: 80, y: 80, z: 10, name: 'Gatekeeper', status: 'Deep Internal' },
-];
+const ALTER_POSITIONS: any[] = [];
 
-const PREDICTIVE_PATTERNS = [
-    { trigger: "High Caffeine", effect: "Rapid Switching", probability: 85 },
-    { trigger: "Sleep < 5h", effect: "Amnesia Barriers Up", probability: 92 },
-    { trigger: "Social Stress", effect: "Protector Fronting", probability: 78 },
-];
+const PREDICTIVE_PATTERNS: any[] = [];
 
 export default function DeepMind() {
   const [activeTab, setActiveTab] = useState("monitor");
@@ -105,21 +92,9 @@ export default function DeepMind() {
   const [location, setLocation] = useState("Fronting Room");
   const [isRecording, setIsRecording] = useState(false);
 
-  // Simulated live data effect
-  const [waveform, setWaveform] = useState(SYSTEM_WAVEFORM);
-  useEffect(() => {
-    const interval = setInterval(() => {
-        setWaveform(prev => {
-            const next = [...prev.slice(1), {
-                time: prev[prev.length - 1].time + 1,
-                noise: 30 + Math.random() * 40 + (Math.sin(Date.now() / 1000) * 20),
-                coherence: 50 + Math.cos(Date.now() / 2000) * 30
-            }];
-            return next;
-        });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  // Removed simulated live data effect
+  const [waveform, setWaveform] = useState([]);
+
 
   return (
     <Layout>
@@ -147,11 +122,11 @@ export default function DeepMind() {
             <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-lg border border-border/50">
                 <div className="text-right px-2 border-r border-border/50">
                     <div className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">System Noise</div>
-                    <div className="text-lg font-mono font-bold text-rose-400">42%</div>
+                    <div className="text-lg font-mono font-bold text-muted-foreground">--</div>
                 </div>
                 <div className="text-right px-2">
                     <div className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Coherence</div>
-                    <div className="text-lg font-mono font-bold text-indigo-400">89%</div>
+                    <div className="text-lg font-mono font-bold text-muted-foreground">--</div>
                 </div>
             </div>
         </div>
@@ -260,30 +235,12 @@ export default function DeepMind() {
                                     <Activity className="w-4 h-4 text-emerald-400" /> Real-time System Coherence
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="h-[250px] relative z-10 pl-0">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={waveform}>
-                                        <defs>
-                                            <linearGradient id="colorNoise" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
-                                                <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
-                                            </linearGradient>
-                                            <linearGradient id="colorCoherence" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                                        <XAxis dataKey="time" hide />
-                                        <YAxis hide domain={[0, 100]} />
-                                        <Tooltip 
-                                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
-                                            itemStyle={{ fontSize: '12px' }}
-                                        />
-                                        <Area type="monotone" dataKey="noise" stroke="#f43f5e" strokeWidth={2} fillOpacity={1} fill="url(#colorNoise)" name="Noise/Chaos" isAnimationActive={false} />
-                                        <Area type="monotone" dataKey="coherence" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorCoherence)" name="Stability" isAnimationActive={false} />
-                                    </AreaChart>
-                                </ResponsiveContainer>
+                            <CardContent className="h-[250px] relative z-10 pl-0 flex items-center justify-center">
+                                <div className="text-center space-y-2">
+                                    <Activity className="w-8 h-8 text-slate-700 mx-auto animate-pulse" />
+                                    <p className="text-slate-500 text-sm">Awaiting Data Points</p>
+                                    <p className="text-slate-600 text-xs">Log multiple entries to visualize coherence trends.</p>
+                                </div>
                             </CardContent>
                         </Card>
 
@@ -365,25 +322,13 @@ export default function DeepMind() {
                                     Fluctuations in stress and dissociation throughout the day are weighted heavily to prevent data flattening.
                                 </div>
                             </div>
-                            <div className="space-y-4">
-                                {PREDICTIVE_PATTERNS.map((pattern, i) => (
-                                    <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-muted/10 hover:bg-muted/30 transition-colors">
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-10 w-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-500 font-bold text-xs">
-                                                {pattern.probability}%
-                                            </div>
-                                            <div>
-                                                <div className="font-semibold text-sm flex items-center gap-2">
-                                                    {pattern.trigger} 
-                                                    <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                                                    <span className="text-indigo-600 dark:text-indigo-400">{pattern.effect}</span>
-                                                </div>
-                                                <div className="text-xs text-muted-foreground mt-0.5">Confidence Level: High</div>
-                                            </div>
-                                        </div>
-                                        <Badge variant="outline">Detected</Badge>
-                                    </div>
-                                ))}
+                            <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+                                <Search className="w-12 h-12 text-muted-foreground/20" />
+                                <p className="text-muted-foreground text-sm font-medium">No Patterns Detected Yet</p>
+                                <p className="text-muted-foreground/60 text-xs max-w-xs">
+                                    Pattern recognition requires at least 3-5 days of consistent logging.
+                                    Continue logging daily mood, stress, and dissociation levels.
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
@@ -396,29 +341,12 @@ export default function DeepMind() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="p-4 rounded-lg bg-purple-500/5 border border-purple-500/10">
-                                <div className="text-xs font-bold text-purple-500 uppercase mb-2">Most Active (7 Days)</div>
-                                <div className="flex items-center gap-3">
-                                    <div className="h-12 w-12 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
-                                        <Users className="w-6 h-6 text-slate-400" />
-                                    </div>
-                                    <div>
-                                        <div className="font-bold">The Protector</div>
-                                        <div className="text-xs text-muted-foreground">Fronting 45% of time</div>
-                                    </div>
-                                </div>
-                            </div>
-                             <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/10">
-                                <div className="text-xs font-bold text-amber-500 uppercase mb-2">Needs Attention</div>
-                                <div className="flex items-center gap-3">
-                                    <div className="h-12 w-12 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
-                                        <Ghost className="w-6 h-6 text-slate-400" />
-                                    </div>
-                                    <div>
-                                        <div className="font-bold">Little</div>
-                                        <div className="text-xs text-muted-foreground">High stress signals detected</div>
-                                    </div>
-                                </div>
+                            <div className="flex flex-col items-center justify-center py-8 text-center space-y-2">
+                                <Users className="w-10 h-10 text-muted-foreground/20" />
+                                <p className="text-sm text-muted-foreground">Insufficient Data</p>
+                                <p className="text-xs text-muted-foreground/60">
+                                    Log "Who is Fronting" consistently to enable fragment analysis.
+                                </p>
                             </div>
                         </CardContent>
                     </Card>

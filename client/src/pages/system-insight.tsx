@@ -170,14 +170,14 @@ export default function SystemInsight() {
                                         <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
                                             <Activity className="w-3.5 h-3.5" /> Activity Level
                                         </div>
-                                        <div className="text-2xl font-bold">{activeMember.stats?.activity}%</div>
-                                        <Progress value={activeMember.stats?.activity} className="h-1 mt-2" style={{ color: activeMember.color }} />
+                                        <div className="text-2xl font-bold">{activeMember.stats?.activity ? `${activeMember.stats.activity}%` : "--"}</div>
+                                        <Progress value={activeMember.stats?.activity || 0} className="h-1 mt-2" style={{ color: activeMember.color }} />
                                     </div>
                                     <div className="p-4 rounded-xl bg-muted/20 border border-border/50">
                                         <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
                                             <BrainCircuit className="w-3.5 h-3.5" /> Avg Stress
                                         </div>
-                                        <div className="text-2xl font-bold">{activeMember.stats?.stress}/10</div>
+                                        <div className="text-2xl font-bold">{activeMember.stats?.stress ? `${activeMember.stats.stress}/10` : "--"}</div>
                                         <div className="flex gap-0.5 mt-2 h-1">
                                             {[...Array(10)].map((_, i) => (
                                                 <div key={i} className={cn("flex-1 rounded-full", i < (activeMember.stats?.stress || 0) ? "bg-rose-500" : "bg-muted")} />
@@ -188,7 +188,7 @@ export default function SystemInsight() {
                                         <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
                                             <Clock className="w-3.5 h-3.5" /> Last Front
                                         </div>
-                                        <div className="text-lg font-bold">2 hours ago</div>
+                                        <div className="text-lg font-bold text-muted-foreground">No Data</div>
                                     </div>
                                     <div className="p-4 rounded-xl bg-muted/20 border border-border/50">
                                         <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
@@ -204,13 +204,8 @@ export default function SystemInsight() {
                                         <FileText className="w-4 h-4 text-muted-foreground" />
                                         Recent Notes & Observations
                                     </h3>
-                                    <div className="space-y-3">
-                                        <div className="text-sm text-muted-foreground italic">
-                                            "Seems to be triggered by loud noises recently. Needs headphones." - recorded by Gatekeeper
-                                        </div>
-                                        <div className="text-sm text-muted-foreground italic">
-                                            "Completed all tasks for the day efficiently." - recorded by Host
-                                        </div>
+                                    <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground/60">
+                                        <p className="text-sm">No recent notes recorded for this member.</p>
                                     </div>
                                 </div>
                             </CardContent>

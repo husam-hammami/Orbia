@@ -1,4 +1,4 @@
-import { Habit, UserStats } from "./types";
+import { Habit, UserStats, SystemMember } from "./types";
 import { subDays, format } from "date-fns";
 
 const generateHistory = (days: number, probability: number): string[] => {
@@ -116,7 +116,7 @@ export const MOCK_STATS: UserStats = {
 
 // --- System & Headspace Data ---
 
-export const SYSTEM_MEMBERS = [
+export const SYSTEM_MEMBERS: SystemMember[] = [
   { 
     id: 'm1', 
     name: 'Host', 
@@ -125,7 +125,7 @@ export const SYSTEM_MEMBERS = [
     color: '#6366f1', // Indigo
     avatar: 'user',
     description: "Handles work, daily routines, and social masking. Often tired but persistent.",
-    stats: { stress: 4, activity: 65 }
+    // stats: { stress: 4, activity: 65 }
   },
   { 
     id: 'm2', 
@@ -135,7 +135,7 @@ export const SYSTEM_MEMBERS = [
     color: '#ef4444', // Red
     avatar: 'shield',
     description: "Steps in during conflict or high stress. Can be abrasive but means well.",
-    stats: { stress: 7, activity: 20 }
+    // stats: { stress: 7, activity: 20 }
   },
   { 
     id: 'm3', 
@@ -145,7 +145,7 @@ export const SYSTEM_MEMBERS = [
     color: '#ec4899', // Pink
     avatar: 'ghost',
     description: "Holds emotional memories. Needs comfort items and safe spaces.",
-    stats: { stress: 6, activity: 10 }
+    // stats: { stress: 6, activity: 10 }
   },
   { 
     id: 'm4', 
@@ -155,7 +155,7 @@ export const SYSTEM_MEMBERS = [
     color: '#10b981', // Emerald
     avatar: 'cpu',
     description: "Keeps track of appointments, finances, and cleaning. Gets annoyed by mess.",
-    stats: { stress: 3, activity: 15 }
+    // stats: { stress: 3, activity: 15 }
   },
   { 
     id: 'm5', 
@@ -165,7 +165,7 @@ export const SYSTEM_MEMBERS = [
     color: '#8b5cf6', // Violet
     avatar: 'eye',
     description: "Controls access to memories and switching. Rarely fronts fully.",
-    stats: { stress: 2, activity: 5 }
+    // stats: { stress: 2, activity: 5 }
   },
 ];
 
