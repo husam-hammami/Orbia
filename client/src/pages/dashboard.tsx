@@ -3,7 +3,8 @@ import { SystemJournal } from "@/components/system-journal";
 import { HeadspaceMap } from "@/components/headspace-map";
 import { GroundingAnchor } from "@/components/grounding-anchor";
 import { format, subDays, parseISO, isSameDay } from "date-fns";
-import { NotebookPen, BrainCircuit, Smile, Frown, Meh, Zap, TrendingUp, TrendingDown, Minus, Activity, CheckCircle2, Clock, Loader2 } from "lucide-react";
+import { NotebookPen, BrainCircuit, Smile, Frown, Meh, Zap, TrendingUp, TrendingDown, Minus, Activity, CheckCircle2, Clock, Loader2, CloudFog, HeartPulse, Moon, MessageSquare, Flame, Utensils } from "lucide-react";
+import { useMembers } from "@/lib/api-hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useState } from "react";
@@ -48,6 +49,7 @@ export default function Dashboard() {
   const { data: routineLogs } = useRoutineLogs(today);
   const { data: routineActivities } = useRoutineActivities();
   const { data: routineBlocks } = useRoutineBlocks();
+  const { data: members } = useMembers();
   const [showHeadspace, setShowHeadspace] = useState(false);
   
   const habitIds = dbHabits?.map(h => h.id) || [];
@@ -251,30 +253,132 @@ export default function Dashboard() {
                   {(trackerEntries || []).length === 0 ? (
                     <p className="text-muted-foreground text-center py-8">No entries yet. Start tracking on the Daily Tracker!</p>
                   ) : (
-                    <div className="space-y-3 max-h-[300px] overflow-y-auto">
-                      {(trackerEntries || []).slice(0, 10).map((entry) => (
-                        <div key={entry.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border/50" data-testid={`entry-mood-${entry.id}`}>
-                          <div className="flex-shrink-0 mt-0.5">
-                            {getMoodIcon(entry.mood)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-medium">{getMoodLabel(entry.mood)}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {format(new Date(entry.timestamp), "MMM d, h:mm a")}
-                              </span>
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                      {(trackerEntries || []).slice(0, 10).map((entry) => {
+                        const parseNotes = (notes: string | null): { text: string | null; tags: string[]; triggers: string[]; meals: string[]; metrics: Record<string, string> } => {
+                          if (!notes) return { text: null, tags: [], triggers: [], meals: [], metrics: {} };
+                          const parts = notes.split(" | ");
+                          const tags: string[] = [];
+                          const triggers: string[] = [];
+                          const meals: string[] = [];
+                          const metrics: Record<string, string> = {};
+                          let text: string | null = "";
+                          
+                          parts.forEach(part => {
+                            if (part.startsWith("Tags:")) {
+                              tags.push(...part.replace("Tags: ", "").split(", "));
+                            } else if (part.startsWith("Stress triggers:")) {
+                              triggers.push(...part.replace("Stress triggers: ", "").split(", "));
+                            } else if (part.startsWith("Meals:")) {
+                              meals.push(...part.replace("Meals: ", "").split(", "));
+                            } else if (part.includes(":") && part.includes("/")) {
+                              const [key, val] = part.split(": ");
+                              metrics[key] = val;
+                            } else if (part.includes(":") && part.endsWith("h")) {
+                              const [key, val] = part.split(": ");
+                              metrics[key] = val;
+                            } else if (part.trim()) {
+                              text = part;
+                            }
+                          });
+                          return { text, tags, triggers, meals, metrics };
+                        };
+                        
+                        const parsed = parseNotes(entry.notes);
+                        const fronter = members?.find(m => m.id === entry.frontingMemberId);
+                        
+                        return (
+                          <div 
+                            key={entry.id} 
+                            className="p-4 rounded-xl bg-muted/30 border border-border/50 space-y-3"
+                            data-testid={`entry-mood-${entry.id}`}
+                          >
+                            {/* Header: Mood, Time, Fronter */}
+                            <div className="flex items-center justify-between gap-3 flex-wrap">
+                              <div className="flex items-center gap-3">
+                                <div className={cn("p-2 rounded-lg", entry.mood <= 3 ? "bg-red-100 dark:bg-red-900/20" : entry.mood <= 5 ? "bg-yellow-100 dark:bg-yellow-900/20" : entry.mood <= 7 ? "bg-green-100 dark:bg-green-900/20" : "bg-blue-100 dark:bg-blue-900/20")}>
+                                  {getMoodIcon(entry.mood)}
+                                </div>
+                                <div>
+                                  <span className="font-semibold">{getMoodLabel(entry.mood)}</span>
+                                  <span className="text-muted-foreground ml-2 text-sm">{entry.mood}/10</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                {fronter && (
+                                  <span className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded-full text-xs">
+                                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: fronter.color }} />
+                                    {fronter.name}
+                                  </span>
+                                )}
+                                <span>{format(new Date(entry.timestamp), "MMM d, h:mm a")}</span>
+                              </div>
                             </div>
-                            <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
-                              <span>Energy: {entry.energy}/10</span>
-                              <span>Stress: {entry.stress}%</span>
-                              <span>Dissociation: {entry.dissociation}%</span>
+
+                            {/* Metrics Grid */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
+                                <Zap className="w-4 h-4 text-yellow-500" />
+                                <div className="text-xs">
+                                  <span className="text-muted-foreground">Energy</span>
+                                  <span className="font-semibold ml-1">{entry.energy}/10</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
+                                <Activity className="w-4 h-4 text-red-500" />
+                                <div className="text-xs">
+                                  <span className="text-muted-foreground">Stress</span>
+                                  <span className="font-semibold ml-1">{entry.stress}%</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
+                                <CloudFog className="w-4 h-4 text-purple-500" />
+                                <div className="text-xs">
+                                  <span className="text-muted-foreground">Dissociation</span>
+                                  <span className="font-semibold ml-1">{entry.dissociation}%</span>
+                                </div>
+                              </div>
+                              {parsed.metrics["Comfort"] && (
+                                <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
+                                  <HeartPulse className="w-4 h-4 text-pink-500" />
+                                  <div className="text-xs">
+                                    <span className="text-muted-foreground">Pain</span>
+                                    <span className="font-semibold ml-1">{parsed.metrics["Comfort"]}</span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            {entry.notes && (
-                              <p className="text-sm text-muted-foreground mt-1 truncate">{entry.notes}</p>
+
+                            {/* Tags, Triggers, Meals */}
+                            {(parsed.tags.length > 0 || parsed.triggers.length > 0 || parsed.meals.length > 0) && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {parsed.tags.map((tag, i) => (
+                                  <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                    {tag}
+                                  </span>
+                                ))}
+                                {parsed.triggers.map((trigger, i) => (
+                                  <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 border border-red-200 dark:border-red-800">
+                                    {trigger}
+                                  </span>
+                                ))}
+                                {parsed.meals.map((meal, i) => (
+                                  <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
+                                    <Utensils className="w-3 h-3 inline mr-1" />{meal}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Notes */}
+                            {parsed.text && (
+                              <p className="text-sm text-muted-foreground bg-background p-2 rounded-lg border italic">
+                                "{parsed.text}"
+                              </p>
                             )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>

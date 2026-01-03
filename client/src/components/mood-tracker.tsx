@@ -1,18 +1,19 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Smile, Frown, Meh, Zap, BatteryLow, BatteryFull, Activity, HeartPulse, UserCircle2, CloudFog, Moon, BedDouble, AlertCircle, Sparkles, Flame, MessageSquare, MicOff, Mic, ChevronDown, ChevronUp, Utensils, Coffee, Sun, MoonStar, Cookie, Clock, History, Loader2 } from "lucide-react";
+import { Smile, Frown, Meh, Zap, BatteryLow, BatteryFull, Activity, HeartPulse, UserCircle2, CloudFog, Moon, BedDouble, AlertCircle, Sparkles, Flame, MessageSquare, MicOff, Mic, ChevronDown, ChevronUp, Utensils, Coffee, Sun, MoonStar, Cookie, Clock, History, Loader2, TrendingUp, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useMembers, useTrackerEntries, useCreateTrackerEntry } from "@/lib/api-hooks";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, subDays } from "date-fns";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function MoodTracker() {
   const { data: members, isLoading: membersLoading } = useMembers();
-  const { data: trackerEntries } = useTrackerEntries(5);
+  const { data: trackerEntries, isLoading: entriesLoading } = useTrackerEntries(30);
   const createEntryMutation = useCreateTrackerEntry();
 
   const [isExpanded, setIsExpanded] = useState(true);
@@ -113,6 +114,7 @@ export function MoodTracker() {
   };
 
   return (
+    <>
     <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden transition-all duration-300">
       {/* Compact Header - Always Visible */}
       <div className="p-4 flex items-center justify-between gap-4">
@@ -427,5 +429,186 @@ export function MoodTracker() {
         )}
       </AnimatePresence>
     </div>
+
+    {/* Detailed Entries List */}
+    <Card className="mt-6" data-testid="card-mood-entries">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Calendar className="w-5 h-5 text-primary" />
+          Recent Entries
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {entriesLoading ? (
+          <div className="flex items-center justify-center py-8 text-muted-foreground">
+            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+            Loading entries...
+          </div>
+        ) : (trackerEntries || []).length === 0 ? (
+          <p className="text-muted-foreground text-center py-8">No entries yet. Start tracking above!</p>
+        ) : (
+          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+            {(trackerEntries || []).map((entry) => {
+              const moodValue = entry.mood;
+              const moodLabel = moodValue <= 2 ? "Terrible" : moodValue <= 4 ? "Low" : moodValue <= 6 ? "Okay" : moodValue <= 8 ? "Good" : "Great";
+              const MoodIcon = moodValue <= 3 ? Frown : moodValue <= 5 ? Meh : moodValue <= 7 ? Smile : Zap;
+              const moodColor = moodValue <= 3 ? "text-red-500" : moodValue <= 5 ? "text-yellow-500" : moodValue <= 7 ? "text-green-500" : "text-blue-500";
+              const fronter = members?.find(m => m.id === entry.frontingMemberId);
+              
+              const parseNotes = (notes: string | null): { text: string | null; tags: string[]; triggers: string[]; meals: string[]; metrics: Record<string, string> } => {
+                if (!notes) return { text: null, tags: [], triggers: [], meals: [], metrics: {} };
+                const parts = notes.split(" | ");
+                const tags: string[] = [];
+                const triggers: string[] = [];
+                const meals: string[] = [];
+                const metrics: Record<string, string> = {};
+                let text: string | null = "";
+                
+                parts.forEach(part => {
+                  if (part.startsWith("Tags:")) {
+                    tags.push(...part.replace("Tags: ", "").split(", "));
+                  } else if (part.startsWith("Stress triggers:")) {
+                    triggers.push(...part.replace("Stress triggers: ", "").split(", "));
+                  } else if (part.startsWith("Meals:")) {
+                    meals.push(...part.replace("Meals: ", "").split(", "));
+                  } else if (part.includes(":") && part.includes("/")) {
+                    const [key, val] = part.split(": ");
+                    metrics[key] = val;
+                  } else if (part.includes(":") && part.endsWith("h")) {
+                    const [key, val] = part.split(": ");
+                    metrics[key] = val;
+                  } else if (part.trim()) {
+                    text = part;
+                  }
+                });
+                return { text, tags, triggers, meals, metrics };
+              };
+              
+              const parsed = parseNotes(entry.notes);
+              
+              return (
+                <div 
+                  key={entry.id} 
+                  className="p-4 rounded-xl bg-muted/30 border border-border/50 space-y-3"
+                  data-testid={`entry-detail-${entry.id}`}
+                >
+                  {/* Header: Mood, Time, Fronter */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className={cn("p-2 rounded-lg", moodValue <= 3 ? "bg-red-100 dark:bg-red-900/20" : moodValue <= 5 ? "bg-yellow-100 dark:bg-yellow-900/20" : moodValue <= 7 ? "bg-green-100 dark:bg-green-900/20" : "bg-blue-100 dark:bg-blue-900/20")}>
+                        <MoodIcon className={cn("w-5 h-5", moodColor)} />
+                      </div>
+                      <div>
+                        <span className="font-semibold">{moodLabel}</span>
+                        <span className="text-muted-foreground ml-2 text-sm">{moodValue}/10</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      {fronter && (
+                        <span className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded-full text-xs">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: fronter.color }} />
+                          {fronter.name}
+                        </span>
+                      )}
+                      <span>{format(new Date(entry.timestamp), "MMM d, h:mm a")}</span>
+                    </div>
+                  </div>
+
+                  {/* Metrics Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
+                      <Zap className="w-4 h-4 text-yellow-500" />
+                      <div className="text-xs">
+                        <span className="text-muted-foreground">Energy</span>
+                        <span className="font-semibold ml-1">{entry.energy}/10</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
+                      <Activity className="w-4 h-4 text-red-500" />
+                      <div className="text-xs">
+                        <span className="text-muted-foreground">Stress</span>
+                        <span className="font-semibold ml-1">{entry.stress}%</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
+                      <CloudFog className="w-4 h-4 text-purple-500" />
+                      <div className="text-xs">
+                        <span className="text-muted-foreground">Dissociation</span>
+                        <span className="font-semibold ml-1">{entry.dissociation}%</span>
+                      </div>
+                    </div>
+                    {parsed.metrics["Comfort"] && (
+                      <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
+                        <HeartPulse className="w-4 h-4 text-pink-500" />
+                        <div className="text-xs">
+                          <span className="text-muted-foreground">Pain</span>
+                          <span className="font-semibold ml-1">{parsed.metrics["Comfort"]}</span>
+                        </div>
+                      </div>
+                    )}
+                    {parsed.metrics["Sleep"] && (
+                      <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
+                        <Moon className="w-4 h-4 text-indigo-500" />
+                        <div className="text-xs">
+                          <span className="text-muted-foreground">Sleep</span>
+                          <span className="font-semibold ml-1">{parsed.metrics["Sleep"]}</span>
+                        </div>
+                      </div>
+                    )}
+                    {parsed.metrics["System Comm"] && (
+                      <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
+                        <MessageSquare className="w-4 h-4 text-indigo-500" />
+                        <div className="text-xs">
+                          <span className="text-muted-foreground">Comm</span>
+                          <span className="font-semibold ml-1">{parsed.metrics["System Comm"]}</span>
+                        </div>
+                      </div>
+                    )}
+                    {parsed.metrics["Urges"] && (
+                      <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
+                        <Flame className="w-4 h-4 text-orange-500" />
+                        <div className="text-xs">
+                          <span className="text-muted-foreground">Urges</span>
+                          <span className="font-semibold ml-1">{parsed.metrics["Urges"]}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tags, Triggers, Meals */}
+                  {(parsed.tags.length > 0 || parsed.triggers.length > 0 || parsed.meals.length > 0) && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {parsed.tags.map((tag, i) => (
+                        <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                          {tag}
+                        </span>
+                      ))}
+                      {parsed.triggers.map((trigger, i) => (
+                        <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 border border-red-200 dark:border-red-800">
+                          {trigger}
+                        </span>
+                      ))}
+                      {parsed.meals.map((meal, i) => (
+                        <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
+                          <Utensils className="w-3 h-3 inline mr-1" />{meal}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Notes */}
+                  {parsed.text && (
+                    <p className="text-sm text-muted-foreground bg-background p-2 rounded-lg border italic">
+                      "{parsed.text}"
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+    </>
   );
 }
