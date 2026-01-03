@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { User, Shield, Ghost, Brain, Zap, Plus, MoreHorizontal, UserCog, Crown, Eye, Mic, Armchair, DoorOpen, Coffee, Edit, Trash2 } from "lucide-react";
+import { User, Shield, Ghost, Brain, Zap, Plus, MoreHorizontal, UserCog, Crown, Eye, Mic, Armchair, DoorOpen, Coffee, Edit, Trash2, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,8 +21,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// --- Headspace Rooms ---
-const ROOMS = [
+// --- Headspace Rooms Configuration ---
+const DEFAULT_ROOMS = [
   { id: 'front', name: 'Front Room', icon: Armchair, description: "Direct control of the body", color: "border-indigo-500/50 bg-indigo-500/5" },
   { id: 'meeting', name: 'Meeting Room', icon: Coffee, description: "Internal communication", color: "border-amber-500/50 bg-amber-500/5" },
   { id: 'inner', name: 'Inner World', icon: DoorOpen, description: "Deep resting place", color: "border-purple-500/50 bg-purple-500/5" },
@@ -34,6 +34,10 @@ interface HeadspaceMapProps {
 }
 
 export function HeadspaceMap({ members, setMembers }: HeadspaceMapProps) {
+  // State for customizable rooms
+  const [rooms, setRooms] = useState(DEFAULT_ROOMS);
+  const [isEditingRooms, setIsEditingRooms] = useState(false);
+
   // Initialize members with locations if not present
   useEffect(() => {
     const initializedMembers = members.map(m => ({ 
@@ -49,6 +53,10 @@ export function HeadspaceMap({ members, setMembers }: HeadspaceMapProps) {
 
   const moveMember = (memberId: string, roomId: string) => {
     setMembers(members.map(m => m.id === memberId ? { ...m, location: roomId } : m));
+  };
+
+  const handleUpdateRoom = (id: string, field: string, value: string) => {
+    setRooms(rooms.map(r => r.id === id ? { ...r, [field]: value } : r));
   };
   
   // Manage Member State
@@ -106,6 +114,44 @@ export function HeadspaceMap({ members, setMembers }: HeadspaceMapProps) {
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Active</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-400"></span> Resting</span>
             </div>
+
+            <Dialog open={isEditingRooms} onOpenChange={setIsEditingRooms}>
+                <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                        <Settings2 className="w-4 h-4" /> Config
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Configure Headspace Areas</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-6 py-4">
+                        <p className="text-sm text-muted-foreground">Customize these areas to match your own internal landscape. Not every system uses "Rooms" - feel free to rename them to Zones, States, or Locations.</p>
+                        {rooms.map((room) => (
+                            <div key={room.id} className="space-y-2 border-b border-border/50 pb-4 last:border-0">
+                                <div className="flex items-center gap-2 font-medium text-sm">
+                                    <room.icon className="w-4 h-4 text-muted-foreground" />
+                                    <span className="capitalize">{room.id} Area</span>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label className="text-xs">Display Name</Label>
+                                    <Input 
+                                        value={room.name} 
+                                        onChange={(e) => handleUpdateRoom(room.id, 'name', e.target.value)}
+                                        className="h-8"
+                                    />
+                                    <Label className="text-xs">Description</Label>
+                                    <Input 
+                                        value={room.description} 
+                                        onChange={(e) => handleUpdateRoom(room.id, 'description', e.target.value)}
+                                        className="h-8 text-xs text-muted-foreground"
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
             
             <Dialog open={isAdding} onOpenChange={setIsAdding}>
                 <DialogTrigger asChild>
@@ -199,7 +245,7 @@ export function HeadspaceMap({ members, setMembers }: HeadspaceMapProps) {
       {/* Visualization Area */}
       <div className="flex-1 bg-slate-50/50 dark:bg-slate-950/50 p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
          
-         {ROOMS.map(room => {
+         {rooms.map(room => {
             const RoomIcon = room.icon;
             const roomMembers = members.filter(m => m.location === room.id);
 
@@ -241,8 +287,8 @@ export function HeadspaceMap({ members, setMembers }: HeadspaceMapProps) {
                                         style={{ borderColor: member.color }}
                                         // Simple click-to-move logic for prototype
                                         onClick={() => {
-                                            const nextRoomIndex = (ROOMS.findIndex(r => r.id === room.id) + 1) % ROOMS.length;
-                                            moveMember(member.id, ROOMS[nextRoomIndex].id);
+                                            const nextRoomIndex = (rooms.findIndex(r => r.id === room.id) + 1) % rooms.length;
+                                            moveMember(member.id, rooms[nextRoomIndex].id);
                                         }}
                                     >
                                         <User className="w-6 h-6" style={{ color: member.color }} />
@@ -272,7 +318,7 @@ export function HeadspaceMap({ members, setMembers }: HeadspaceMapProps) {
       </div>
       
       <div className="p-4 border-t border-border bg-muted/10 text-xs text-center text-muted-foreground">
-        Click on an alter to move them to the next room. (Front → Meeting → Inner → Front)
+        Click on an alter to move them to the next room. ({rooms.map(r => r.name).join(' → ')} → {rooms[0].name})
       </div>
     </div>
   );
