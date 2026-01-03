@@ -41,25 +41,34 @@ import { cn } from "@/lib/utils";
 // --- Mock Data ---
 
 const NEURAL_NODES = [
-  // Input Layer (Sensory/State)
-  { x: 10, y: 30, z: 50, name: "Sleep Quality", type: "Input", cluster: "bio" },
-  { x: 15, y: 45, z: 60, name: "Heart Rate", type: "Input", cluster: "bio" },
-  { x: 12, y: 70, z: 40, name: "Nutrition", type: "Input", cluster: "bio" },
+  // Input Layer (Sensory/State) - X: 10-20
+  { id: 'n1', x: 15, y: 20, z: 50, name: "Sleep Quality", type: "Input", cluster: "bio" },
+  { id: 'n2', x: 15, y: 50, z: 60, name: "Work Stress", type: "Input", cluster: "env" },
+  { id: 'n3', x: 15, y: 80, z: 40, name: "Nutrition", type: "Input", cluster: "bio" },
   
-  { x: 30, y: 20, z: 70, name: "Work Stress", type: "Input", cluster: "env" },
-  { x: 35, y: 50, z: 80, name: "Social Drain", type: "Input", cluster: "env" },
-  { x: 25, y: 80, z: 50, name: "Noise Level", type: "Input", cluster: "env" },
+  // Hidden Layer (Processing) - X: 45-55
+  { id: 'n4', x: 50, y: 30, z: 90, name: "Amygdala", type: "Hidden", cluster: "brain" },
+  { id: 'n5', x: 50, y: 70, z: 85, name: "Prefrontal Cortex", type: "Hidden", cluster: "brain" },
 
-  // Hidden Layer (Processing)
-  { x: 50, y: 30, z: 90, name: "Amygdala Activation", type: "Hidden", cluster: "brain" },
-  { x: 55, y: 60, z: 85, name: "Frontal Cortex Load", type: "Hidden", cluster: "brain" },
-  { x: 45, y: 45, z: 95, name: "Vagus Nerve", type: "Hidden", cluster: "brain" },
-  { x: 60, y: 20, z: 60, name: "Memory Access", type: "Hidden", cluster: "brain" },
+  // Output Layer (System State) - X: 80-90
+  { id: 'n6', x: 85, y: 20, z: 100, name: "Dissociation", type: "Output", cluster: "result" },
+  { id: 'n7', x: 85, y: 50, z: 90, name: "Switch Risk", type: "Output", cluster: "result" },
+  { id: 'n8', x: 85, y: 80, z: 80, name: "Urge Intensity", type: "Output", cluster: "result" },
+];
 
-  // Output Layer (System State)
-  { x: 80, y: 40, z: 100, name: "Switch Risk", type: "Output", cluster: "result" },
-  { x: 85, y: 70, z: 90, name: "Dissociation", type: "Output", cluster: "result" },
-  { x: 90, y: 25, z: 80, name: "Urge Intensity", type: "Output", cluster: "result" },
+const NEURAL_EDGES = [
+    { source: 'n1', target: 'n5', strength: 0.8, type: 'positive' }, // Sleep -> Cortex
+    { source: 'n2', target: 'n4', strength: 0.9, type: 'positive' }, // Stress -> Amygdala
+    { source: 'n2', target: 'n5', strength: 0.7, type: 'negative' }, // Stress -> Cortex (neg)
+    { source: 'n3', target: 'n4', strength: 0.4, type: 'positive' }, // Nutrition -> Amygdala
+    { source: 'n3', target: 'n5', strength: 0.6, type: 'positive' }, // Nutrition -> Cortex
+    
+    { source: 'n4', target: 'n6', strength: 0.9, type: 'positive' }, // Amygdala -> Dissociation
+    { source: 'n4', target: 'n7', strength: 0.8, type: 'positive' }, // Amygdala -> Switch
+    { source: 'n4', target: 'n8', strength: 0.7, type: 'positive' }, // Amygdala -> Urge
+    
+    { source: 'n5', target: 'n7', strength: 0.6, type: 'negative' }, // Cortex -> Switch (Inhibits)
+    { source: 'n5', target: 'n8', strength: 0.8, type: 'negative' }, // Cortex -> Urge (Inhibits)
 ];
 
 const PREDICTION_DATA = [
@@ -128,18 +137,21 @@ const CustomNeuralNode = (props: any) => {
     const isHidden = payload.type === 'Hidden';
     
     const color = isOutput ? '#ef4444' : isHidden ? '#a855f7' : '#6366f1';
-    const radius = isOutput ? 8 : isHidden ? 6 : 5;
+    const radius = isOutput ? 12 : isHidden ? 10 : 8; // Slightly larger for better readability
     
     return (
         <g className="cursor-pointer group">
             {/* Glow Effect */}
-            <circle cx={cx} cy={cy} r={radius * 3} fill={color} opacity={0.15} className="animate-pulse" />
-            <circle cx={cx} cy={cy} r={radius * 1.5} fill={color} opacity={0.3} />
+            <circle cx={cx} cy={cy} r={radius * 2.5} fill={color} opacity={0.15} className="animate-pulse" />
+            <circle cx={cx} cy={cy} r={radius * 1.2} fill={color} opacity={0.3} />
             
             {/* Core Node */}
             <circle cx={cx} cy={cy} r={radius} fill={color} stroke="hsl(var(--background))" strokeWidth={2} className="group-hover:stroke-white transition-colors" />
             
-            {/* Label on Hover (handled by Tooltip mostly, but simple label here for context if needed) */}
+            {/* Label always visible for clarity */}
+            <text x={cx} y={cy + radius + 15} textAnchor="middle" fill={color} fontSize={10} fontWeight="bold" className="opacity-70 group-hover:opacity-100 transition-opacity pointer-events-none uppercase tracking-wider">
+                {payload.name}
+            </text>
         </g>
     );
 };
@@ -197,47 +209,71 @@ export default function GeniusAI() {
                         <Network className="w-5 h-5 text-indigo-400" />
                         Neural Correlation Graph
                     </CardTitle>
-                    <CardDescription>Visualizing hidden connections between your habits, triggers, and system states.</CardDescription>
+                    <CardDescription>
+                        Interactive Map: <span className="text-indigo-400">Inputs</span> (Left) → <span className="text-purple-400">Processing</span> (Center) → <span className="text-rose-400">Outcomes</span> (Right). 
+                        Thicker lines indicate stronger influence.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="h-[450px] w-full bg-slate-950 rounded-xl border border-indigo-500/10 shadow-inner p-4 relative overflow-hidden group">
+                    <div className="h-[500px] w-full bg-slate-950 rounded-xl border border-indigo-500/10 shadow-inner p-4 relative overflow-hidden group">
                         {/* Dynamic Background Pattern */}
                         <div className="absolute inset-0 opacity-20" 
                              style={{ 
                                  backgroundImage: 'radial-gradient(circle at 50% 50%, #6366f1 1px, transparent 1px)', 
-                                 backgroundSize: '30px 30px' 
+                                 backgroundSize: '40px 40px' 
                              }} 
                         />
                         
-                        {/* Animated Synapses - SVG Layer */}
-                        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-60">
+                        {/* Data-Driven Edge Layer */}
+                        <svg className="absolute inset-0 w-full h-full pointer-events-none">
                             <defs>
-                                <linearGradient id="synapse-flow" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stopColor="#6366f1" stopOpacity="0.2" />
-                                    <stop offset="50%" stopColor="#a855f7" stopOpacity="0.8" />
-                                    <stop offset="100%" stopColor="#ef4444" stopOpacity="0.2" />
+                                <linearGradient id="edge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#6366f1" stopOpacity="0.4" />
+                                    <stop offset="100%" stopColor="#ef4444" stopOpacity="0.4" />
                                 </linearGradient>
                             </defs>
                             
-                            {/* Connections Input -> Hidden */}
-                            <path d="M 10% 30% C 30% 30%, 30% 30%, 50% 30%" stroke="url(#synapse-flow)" strokeWidth="1" fill="none" className="animate-pulse" />
-                            <path d="M 15% 45% C 30% 45%, 30% 60%, 55% 60%" stroke="url(#synapse-flow)" strokeWidth="1" fill="none" />
-                            <path d="M 12% 70% C 30% 70%, 30% 45%, 45% 45%" stroke="url(#synapse-flow)" strokeWidth="1" fill="none" />
-                            
-                            <path d="M 30% 20% C 40% 20%, 40% 30%, 50% 30%" stroke="url(#synapse-flow)" strokeWidth="1" fill="none" />
-                            <path d="M 35% 50% C 45% 50%, 45% 45%, 45% 45%" stroke="url(#synapse-flow)" strokeWidth="2" fill="none" />
-                            <path d="M 25% 80% C 40% 80%, 40% 60%, 55% 60%" stroke="url(#synapse-flow)" strokeWidth="1" fill="none" />
+                            {NEURAL_EDGES.map((edge, i) => {
+                                const sourceNode = NEURAL_NODES.find(n => n.id === edge.source);
+                                const targetNode = NEURAL_NODES.find(n => n.id === edge.target);
+                                
+                                if (!sourceNode || !targetNode) return null;
 
-                            {/* Connections Hidden -> Output */}
-                            <path d="M 50% 30% C 65% 30%, 65% 40%, 80% 40%" stroke="url(#synapse-flow)" strokeWidth="2" fill="none" className="animate-[pulse_3s_ease-in-out_infinite]" />
-                            <path d="M 55% 60% C 70% 60%, 70% 70%, 85% 70%" stroke="url(#synapse-flow)" strokeWidth="2" fill="none" />
-                            <path d="M 45% 45% C 60% 45%, 60% 25%, 90% 25%" stroke="url(#synapse-flow)" strokeWidth="1" fill="none" />
-                            <path d="M 60% 20% C 70% 20%, 70% 40%, 80% 40%" stroke="url(#synapse-flow)" strokeWidth="1" fill="none" />
+                                // Convert logical coordinates (0-100) to percentage for SVG
+                                const x1 = `${sourceNode.x}%`;
+                                const y1 = `${100 - sourceNode.y}%`; // Recharts flips Y axis? No, Scatterchart Y is bottom-up usually. Let's assume standard logical coords
+                                const x2 = `${targetNode.x}%`;
+                                const y2 = `${100 - targetNode.y}%`;
+
+                                return (
+                                    <g key={i}>
+                                        <path 
+                                            d={`M ${x1} ${y1} C ${parseFloat(x1)+15}% ${y1}, ${parseFloat(x2)-15}% ${y2}, ${x2} ${y2}`} 
+                                            stroke="url(#edge-gradient)" 
+                                            strokeWidth={edge.strength * 3} 
+                                            fill="none" 
+                                            opacity={0.6}
+                                            className="transition-all duration-500"
+                                        />
+                                        {/* Animated particle for flow */}
+                                        <circle r="2" fill="#fff">
+                                            <animateMotion 
+                                                dur={`${2 / edge.strength}s`} 
+                                                repeatCount="indefinite"
+                                                path={`M ${sourceNode.x * 10} ${1000 - sourceNode.y * 10} C ${(sourceNode.x + 15) * 10} ${1000 - sourceNode.y * 10}, ${(targetNode.x - 15) * 10} ${1000 - targetNode.y * 10}, ${targetNode.x * 10} ${1000 - targetNode.y * 10}`}
+                                                // Note: coordinate mapping for animateMotion is tricky with percentages. 
+                                                // Simplifying: we'll use CSS animation on the path instead if possible, or skip particles for robust SVG lines.
+                                                // Actually, let's just use a pulsing opacity on the line itself.
+                                            />
+                                        </circle>
+                                    </g>
+                                );
+                            })}
                         </svg>
 
                         <ResponsiveContainer width="100%" height="100%">
                             <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#6366f1" opacity={0.1} vertical={false} horizontal={false} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="#6366f1" opacity={0.05} vertical={false} horizontal={false} />
                                 <XAxis type="number" dataKey="x" hide domain={[0, 100]} />
                                 <YAxis type="number" dataKey="y" hide domain={[0, 100]} />
                                 <ZAxis type="number" dataKey="z" range={[100, 600]} />
@@ -247,22 +283,28 @@ export default function GeniusAI() {
                                         if (active && payload && payload.length) {
                                             const data = payload[0].payload;
                                             return (
-                                                <div className="bg-slate-900/90 backdrop-blur-md border border-indigo-500/30 p-3 rounded-lg shadow-xl text-white">
-                                                    <p className="font-bold text-base flex items-center gap-2">
-                                                        {data.type === 'Output' ? <Sparkles className="w-4 h-4 text-rose-500" /> : 
-                                                         data.type === 'Hidden' ? <Cpu className="w-4 h-4 text-purple-500" /> :
-                                                         <Activity className="w-4 h-4 text-indigo-500" />}
+                                                <div className="bg-slate-900/95 backdrop-blur-md border border-indigo-500/30 p-4 rounded-xl shadow-2xl text-white min-w-[200px]">
+                                                    <p className="font-bold text-lg flex items-center gap-2 mb-2">
+                                                        {data.type === 'Output' ? <Sparkles className="w-5 h-5 text-rose-500" /> : 
+                                                         data.type === 'Hidden' ? <Cpu className="w-5 h-5 text-purple-500" /> :
+                                                         <Activity className="w-5 h-5 text-indigo-500" />}
                                                         {data.name}
                                                     </p>
-                                                    <div className="flex items-center gap-2 mt-2">
-                                                        <Badge variant="outline" className={cn(
-                                                            "text-[10px] h-5 px-1.5",
-                                                            data.type === 'Output' ? "border-rose-500/50 text-rose-400" : 
-                                                            data.type === 'Hidden' ? "border-purple-500/50 text-purple-400" : "border-indigo-500/50 text-indigo-400"
-                                                        )}>
-                                                            {data.type} Layer
-                                                        </Badge>
-                                                        <span className="text-xs text-muted-foreground">Signal: {data.z}%</span>
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex items-center justify-between text-xs text-slate-400 uppercase tracking-wider font-semibold">
+                                                            <span>Activation Level</span>
+                                                            <span className="text-white">{data.z}%</span>
+                                                        </div>
+                                                        <Progress value={data.z} className="h-1.5 bg-slate-700" indicatorClassName={
+                                                            data.type === 'Output' ? "bg-rose-500" : 
+                                                            data.type === 'Hidden' ? "bg-purple-500" : "bg-indigo-500"
+                                                        } />
+                                                        
+                                                        <div className="mt-2 pt-2 border-t border-slate-800 text-xs text-slate-300">
+                                                            {data.type === 'Input' && "Primary environmental driver."}
+                                                            {data.type === 'Hidden' && "Internal processing node."}
+                                                            {data.type === 'Output' && "Predicted system state."}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             );
@@ -275,8 +317,8 @@ export default function GeniusAI() {
                         </ResponsiveContainer>
                         
                         <div className="absolute bottom-4 left-4 text-xs text-slate-500 font-mono">
-                            Neural Topography v3.1<br/>
-                            13 Active Synapses
+                            Graph Logic v4.2<br/>
+                            {NEURAL_EDGES.length} Active Correlations
                         </div>
                     </div>
                 </CardContent>
