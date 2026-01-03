@@ -2,21 +2,23 @@ import { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { format, subDays, isSameDay, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Flame, Trophy } from "lucide-react";
+import { Check, Flame, Trophy, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface HabitGridProps {
   habits: Habit[];
   onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
-export function HabitGrid({ habits, onToggle }: HabitGridProps) {
+export function HabitGrid({ habits, onToggle, onDelete }: HabitGridProps) {
   const today = new Date();
   const days = Array.from({ length: 5 }).map((_, i) => subDays(today, 4 - i));
 
   return (
     <div className="w-full space-y-6">
       {/* Header Row */}
-      <div className="grid grid-cols-[1.5fr_repeat(5,1fr)] gap-4 px-4">
+      <div className="grid grid-cols-[1.5fr_repeat(5,1fr)_auto] gap-4 px-4">
         <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider self-end pb-2">Habit</div>
         {days.map((day, i) => {
           const isToday = isSameDay(day, today);
@@ -39,6 +41,7 @@ export function HabitGrid({ habits, onToggle }: HabitGridProps) {
             </div>
           );
         })}
+        <div className="w-8"></div> {/* Spacer for delete button */}
       </div>
 
       {/* Habits */}
@@ -51,7 +54,7 @@ export function HabitGrid({ habits, onToggle }: HabitGridProps) {
             key={habit.id}
             className="group relative bg-card hover:bg-card/80 transition-colors rounded-2xl p-4 shadow-sm hover:shadow-md border border-border/40"
           >
-            <div className="grid grid-cols-[1.5fr_repeat(5,1fr)] gap-4 items-center">
+            <div className="grid grid-cols-[1.5fr_repeat(5,1fr)_auto] gap-4 items-center">
               {/* Habit Info */}
               <div className="flex items-center gap-4 min-w-0 pr-4">
                 <div 
@@ -79,24 +82,15 @@ export function HabitGrid({ habits, onToggle }: HabitGridProps) {
               {/* Days Grid */}
               {days.map((day, i) => {
                 const isToday = isSameDay(day, today);
-                // History Check: Check if completed on this specific past date
                 const isCompletedHistory = habit.history.some(h => isSameDay(parseISO(h), day));
-                // Today Check: Check if completed today
                 const isCompletedToday = isSameDay(day, today) && habit.completedToday;
-                
                 const isCompleted = isCompletedHistory || isCompletedToday;
                 
-                // Connector Logic
                 const nextDay = days[i + 1];
                 const isNextCompleted = nextDay && (
                    habit.history.some(h => isSameDay(parseISO(h), nextDay)) || 
                    (isSameDay(nextDay, today) && habit.completedToday)
                 );
-                
-                // We draw a line to the right if:
-                // 1. This day is completed
-                // 2. The next day is completed (streak continues)
-                // 3. We are not the last column
                 const showConnector = isCompleted && isNextCompleted && i < days.length - 1;
 
                 return (
@@ -138,6 +132,13 @@ export function HabitGrid({ habits, onToggle }: HabitGridProps) {
                   </div>
                 );
               })}
+
+              {/* Delete Action */}
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(habit.id)}>
+                   <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </motion.div>
         ))}

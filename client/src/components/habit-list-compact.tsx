@@ -2,14 +2,16 @@ import { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { format, subDays, isSameDay, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Flame, Trophy } from "lucide-react";
+import { Check, Flame, Trophy, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface HabitListCompactProps {
   habits: Habit[];
   onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
-export function HabitListCompact({ habits, onToggle }: HabitListCompactProps) {
+export function HabitListCompact({ habits, onToggle, onDelete }: HabitListCompactProps) {
   const today = new Date();
   // Last 14 days for the mini heatmap
   const days = Array.from({ length: 14 }).map((_, i) => subDays(today, 13 - i));
@@ -23,7 +25,7 @@ export function HabitListCompact({ habits, onToggle }: HabitListCompactProps) {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.05 }}
           key={habit.id}
-          className="group flex items-center justify-between p-4 bg-card hover:bg-card/80 border border-border/40 rounded-2xl shadow-sm transition-all"
+          className="group flex items-center justify-between p-4 bg-card hover:bg-card/80 border border-border/40 rounded-2xl shadow-sm transition-all relative overflow-hidden"
         >
           {/* Left: Info */}
           <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -66,39 +68,45 @@ export function HabitListCompact({ habits, onToggle }: HabitListCompactProps) {
           </div>
 
           {/* Right: Action */}
-          <button
-              onClick={() => onToggle(habit.id)}
-              className={cn(
-                "relative h-12 px-6 rounded-xl flex items-center gap-2 transition-all duration-200 font-medium",
-                habit.completedToday 
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90" 
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-              )}
-            >
-              <AnimatePresence mode="wait">
-                {habit.completedToday ? (
-                  <motion.div
-                    key="checked"
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.5, opacity: 0 }}
-                    className="flex items-center gap-2"
-                  >
-                    <Check className="w-5 h-5 stroke-[3px]" />
-                    <span>Done</span>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                     key="unchecked"
-                     initial={{ opacity: 0 }}
-                     animate={{ opacity: 1 }}
-                     exit={{ opacity: 0 }}
-                  >
-                    Check In
-                  </motion.div>
+          <div className="flex items-center gap-2">
+            <button
+                onClick={() => onToggle(habit.id)}
+                className={cn(
+                  "relative h-12 px-6 rounded-xl flex items-center gap-2 transition-all duration-200 font-medium",
+                  habit.completedToday 
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90" 
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 )}
-              </AnimatePresence>
-          </button>
+              >
+                <AnimatePresence mode="wait">
+                  {habit.completedToday ? (
+                    <motion.div
+                      key="checked"
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.5, opacity: 0 }}
+                      className="flex items-center gap-2"
+                    >
+                      <Check className="w-5 h-5 stroke-[3px]" />
+                      <span>Done</span>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="unchecked"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      Check In
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+            </button>
+            
+            <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onDelete(habit.id)}>
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
         </motion.div>
       ))}
 

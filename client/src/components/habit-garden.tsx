@@ -2,15 +2,16 @@ import { useState, useEffect } from "react";
 import { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Wind, Droplets, Sun, Sparkles } from "lucide-react";
+import { Check, Wind, Droplets, Sun, Sparkles, Trash2 } from "lucide-react";
 
 interface HabitGardenProps {
   habits: Habit[];
   onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
 // Procedural plant generator based on habit data
-const PlantNode = ({ habit, onToggle }: { habit: Habit; onToggle: () => void }) => {
+const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () => void; onDelete: () => void }) => {
   const isCompleted = habit.completedToday;
   const streak = habit.streak;
   
@@ -32,6 +33,14 @@ const PlantNode = ({ habit, onToggle }: { habit: Habit; onToggle: () => void }) 
 
   return (
     <div className="relative group flex flex-col items-center justify-center gap-4 p-4">
+       {/* Delete Button - Appears on hover */}
+       <button 
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          className="absolute top-2 right-2 p-2 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity z-20"
+       >
+          <Trash2 className="w-4 h-4" />
+       </button>
+
        {/* The "Plant" Orb */}
        <motion.button
           onClick={onToggle}
@@ -144,11 +153,11 @@ const PlantNode = ({ habit, onToggle }: { habit: Habit; onToggle: () => void }) 
   );
 };
 
-export function HabitGarden({ habits, onToggle }: HabitGardenProps) {
+export function HabitGarden({ habits, onToggle, onDelete }: HabitGardenProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 py-8">
       {habits.map((habit) => (
-        <PlantNode key={habit.id} habit={habit} onToggle={() => onToggle(habit.id)} />
+        <PlantNode key={habit.id} habit={habit} onToggle={() => onToggle(habit.id)} onDelete={() => onDelete(habit.id)} />
       ))}
       
       {/* Empty Plot for "New Habit" visualization */}

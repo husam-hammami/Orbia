@@ -4,11 +4,14 @@ import { HabitGrid } from "@/components/habit-grid";
 import { HabitGarden } from "@/components/habit-garden";
 import { HabitListCompact } from "@/components/habit-list-compact";
 import { MoodTracker } from "@/components/mood-tracker";
+import { HabitForm } from "@/components/habit-form";
 import { MOCK_HABITS, MOCK_STATS } from "@/lib/mock-data";
+import { Habit } from "@/lib/types";
 import { format } from "date-fns";
 import { Plus, LayoutGrid, List, Flower2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { toast } from "sonner";
 
 export default function Dashboard() {
   const [habits, setHabits] = useState(MOCK_HABITS);
@@ -17,7 +20,6 @@ export default function Dashboard() {
   const handleToggle = (id: string) => {
     setHabits(habits.map(h => {
       if (h.id === id) {
-        // Toggle logic (simplified for mockup)
         const newCompleted = !h.completedToday;
         return {
           ...h,
@@ -27,6 +29,23 @@ export default function Dashboard() {
       }
       return h;
     }));
+  };
+
+  const handleAddHabit = (data: Omit<Habit, "id" | "streak" | "completedToday" | "history">) => {
+    const newHabit: Habit = {
+      ...data,
+      id: Math.random().toString(36).substr(2, 9),
+      streak: 0,
+      completedToday: false,
+      history: []
+    };
+    setHabits([...habits, newHabit]);
+    toast.success("New habit planted!");
+  };
+
+  const handleDelete = (id: string) => {
+    setHabits(habits.filter(h => h.id !== id));
+    toast.success("Habit removed");
   };
 
   const today = new Date();
@@ -43,10 +62,7 @@ export default function Dashboard() {
             </h1>
           </div>
           
-          <Button size="lg" className="rounded-full px-6 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
-            <Plus className="w-5 h-5 mr-2" />
-            New Habit
-          </Button>
+          <HabitForm onSubmit={handleAddHabit} />
         </div>
 
         {/* Mood & Stats Row */}
@@ -66,7 +82,7 @@ export default function Dashboard() {
               <div className="w-full bg-background rounded-full h-3 overflow-hidden">
                  <div 
                    className="h-full bg-primary transition-all duration-500 ease-out"
-                   style={{ width: `${(habits.filter(h => h.completedToday).length / habits.length) * 100}%` }}
+                   style={{ width: habits.length > 0 ? `${(habits.filter(h => h.completedToday).length / habits.length) * 100}%` : '0%' }}
                  />
               </div>
               <p className="text-xs text-muted-foreground">
@@ -106,15 +122,15 @@ export default function Dashboard() {
           </div>
           
           {viewMode === "grid" && (
-             <HabitGrid habits={habits} onToggle={handleToggle} />
+             <HabitGrid habits={habits} onToggle={handleToggle} onDelete={handleDelete} />
           )}
           
           {viewMode === "list" && (
-             <HabitListCompact habits={habits} onToggle={handleToggle} />
+             <HabitListCompact habits={habits} onToggle={handleToggle} onDelete={handleDelete} />
           )}
 
           {viewMode === "garden" && (
-             <HabitGarden habits={habits} onToggle={handleToggle} />
+             <HabitGarden habits={habits} onToggle={handleToggle} onDelete={handleDelete} />
           )}
         </div>
       </div>
