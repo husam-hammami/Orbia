@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { LifeBuoy, Wind, Eye, Music, Phone } from "lucide-react";
+import { LifeBuoy, Wind, Eye, Music, Phone, Anchor } from "lucide-react";
 
 interface SidebarProps {
   className?: string;
@@ -27,14 +27,14 @@ function SafetyKit() {
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="destructive" className="w-full gap-2 shadow-lg shadow-red-500/20 animate-pulse hover:animate-none">
-            <LifeBuoy className="w-4 h-4" />
-            Safety Kit
+            <Anchor className="w-4 h-4" />
+            Grounding Anchor
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl text-destructive">
-            <LifeBuoy className="w-6 h-6" /> System Safety & Grounding
+            <Anchor className="w-6 h-6" /> System Grounding Anchor
           </DialogTitle>
           <DialogDescription>
             Immediate tools to help you reconnect with the present moment.
