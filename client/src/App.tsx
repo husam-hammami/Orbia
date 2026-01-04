@@ -11,6 +11,7 @@ import SystemInsight from "@/pages/system-insight";
 import GeniusAI from "@/pages/deep-mind";
 import FinancePage from "@/pages/finance";
 import OrbitPage from "@/pages/orbit";
+import JournalPage from "@/pages/journal";
 import { OrbitFab } from "@/components/orbit-fab";
 
 import Settings from "@/pages/settings";
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/" component={TrackerPage} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/orbit" component={OrbitPage} />
+      <Route path="/journal" component={JournalPage} />
       <Route path="/career" component={CareerPage} />
       <Route path="/finance" component={FinancePage} />
       <Route path="/analytics" component={Analytics} />

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo, DailySummary, CareerProject, CareerTask, Expense } from "@shared/schema";
+import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo, DailySummary, CareerProject, CareerTask, Expense, JournalEntry } from "@shared/schema";
 
 // Helper to handle API calls
 async function fetchAPI(url: string, options?: RequestInit) {
@@ -826,6 +826,57 @@ export function useUpdateFinanceSettings() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financeSettings"] });
+    },
+  });
+}
+
+// Journal Entries Hooks
+export function useJournalEntries() {
+  return useQuery<JournalEntry[]>({
+    queryKey: ["journal"],
+    queryFn: () => fetchAPI("/api/journal"),
+  });
+}
+
+export function useCreateJournalEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Omit<JournalEntry, "id" | "createdAt">) =>
+      fetchAPI("/api/journal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["journal"] });
+    },
+  });
+}
+
+export function useUpdateJournalEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<JournalEntry> }) =>
+      fetchAPI(`/api/journal/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["journal"] });
+    },
+  });
+}
+
+export function useDeleteJournalEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchAPI(`/api/journal/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["journal"] });
     },
   });
 }

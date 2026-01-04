@@ -17,7 +17,8 @@ import {
   insertCareerProjectSchema,
   insertCareerTaskSchema,
   insertExpenseSchema,
-  insertCareerVisionSchema
+  insertCareerVisionSchema,
+  insertJournalEntrySchema
 } from "@shared/schema";
 import { z } from "zod";
 import { registerChatRoutes } from "./replit_integrations/chat";
@@ -1797,6 +1798,65 @@ ${JSON.stringify(context, null, 2)}`;
     } catch (error) {
       const validationError = fromError(error);
       res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  // Journal Entries Routes
+  app.get("/api/journal", async (req, res) => {
+    try {
+      const entries = await storage.getAllJournalEntries();
+      res.json(entries);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch journal entries" });
+    }
+  });
+
+  app.get("/api/journal/:id", async (req, res) => {
+    try {
+      const entry = await storage.getJournalEntry(req.params.id);
+      if (!entry) {
+        return res.status(404).json({ error: "Journal entry not found" });
+      }
+      res.json(entry);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch journal entry" });
+    }
+  });
+
+  app.post("/api/journal", async (req, res) => {
+    try {
+      const validatedData = insertJournalEntrySchema.parse(req.body);
+      const entry = await storage.createJournalEntry(validatedData);
+      res.status(201).json(entry);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.patch("/api/journal/:id", async (req, res) => {
+    try {
+      const validatedData = insertJournalEntrySchema.partial().parse(req.body);
+      const entry = await storage.updateJournalEntry(req.params.id, validatedData);
+      if (!entry) {
+        return res.status(404).json({ error: "Journal entry not found" });
+      }
+      res.json(entry);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/journal/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteJournalEntry(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Journal entry not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete journal entry" });
     }
   });
 
