@@ -36,6 +36,8 @@ export const trackerEntries = pgTable("tracker_entries", {
   energy: integer("energy").notNull(), // 1-10 scale
   capacity: integer("capacity"), // 0-5 scale (how much capacity do I have right now?)
   triggerTag: text("trigger_tag"), // "work" | "loneliness" | "pain" | "noise" | "sleep" | "body" | "unknown"
+  workLoad: integer("work_load"), // 0-10: How hostile/draining was work today?
+  workTag: text("work_tag"), // "deadlines" | "conflict" | "firefighting" | "unclear" | "blame" | "chaos"
   timeOfDay: text("time_of_day"), // "morning" | "afternoon" | "evening" | "night" (auto-set)
   frontingMemberId: varchar("fronting_member_id").references(() => systemMembers.id),
   notes: text("notes"),

@@ -50,6 +50,7 @@ Key data models:
 - `systemMembers`: Alter/part profiles with roles, traits, and colors
 - `trackerEntries`: Daily mood, dissociation, stress, and energy tracking
   - New fields: `capacity` (0-5 scale), `triggerTag` (work/loneliness/pain/noise/sleep/body/unknown), `timeOfDay` (auto-set: morning/afternoon/evening/night)
+  - Work context: `workLoad` (0-10 hostility/draining scale), `workTag` (deadlines/conflict/firefighting/unclear/blame/chaos)
 - `systemMessages`: Internal sticky notes for system communication
 - `headspaceRooms`: Virtual rooms representing internal spaces
 - `systemSettings`: User preferences and configuration

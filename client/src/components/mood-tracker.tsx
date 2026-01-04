@@ -28,6 +28,8 @@ export function MoodTracker() {
   const [systemComm, setSystemComm] = useState([5]); 
   const [capacity, setCapacity] = useState([3]); // 0-5 capacity scale
   const [triggerTag, setTriggerTag] = useState<string | null>(null); // optional context tag
+  const [workLoad, setWorkLoad] = useState([0]); // 0-10: How hostile/draining was work today?
+  const [workTag, setWorkTag] = useState<string | null>(null); // optional work-specific context
   const [selectedFronterId, setSelectedFronterId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [note, setNote] = useState("");
@@ -50,6 +52,15 @@ export function MoodTracker() {
     { value: "sleep", label: "Sleep", icon: "😴" },
     { value: "body", label: "Body/Health", icon: "🩺" },
     { value: "unknown", label: "Unknown", icon: "❓" },
+  ];
+
+  const workTags = [
+    { value: "deadlines", label: "Deadlines" },
+    { value: "conflict", label: "Conflict" },
+    { value: "firefighting", label: "Firefighting" },
+    { value: "unclear", label: "Unclear requirements" },
+    { value: "blame", label: "Blame / criticism" },
+    { value: "chaos", label: "Organizational chaos" },
   ];
 
   const selectedFronter = members?.find(m => m.id === selectedFronterId) || members?.[0];
@@ -104,6 +115,8 @@ export function MoodTracker() {
       dissociation: dissociation[0] * 10,
       capacity: capacity[0],
       triggerTag: triggerTag,
+      workLoad: workLoad[0] > 0 ? workLoad[0] : null,
+      workTag: workTag,
       timeOfDay: getTimeOfDay(),
       notes: noteParts.join(" | "),
       timestamp: new Date(),
@@ -113,6 +126,8 @@ export function MoodTracker() {
         setNote("");
         setSelectedTags([]);
         setTriggerTag(null);
+        setWorkLoad([0]);
+        setWorkTag(null);
       },
       onError: () => toast.error("Failed to log entry"),
     });
@@ -313,6 +328,21 @@ export function MoodTracker() {
                        </div>
                        <Slider value={stress} onValueChange={setStress} max={10} step={1} />
                     </div>
+
+                    {/* Work Environment Load */}
+                    <div className="bg-amber-50/50 dark:bg-amber-900/10 p-3 rounded-lg border border-amber-100 dark:border-amber-900/30">
+                       <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-1.5 text-amber-700">
+                             <span className="text-sm">💼</span>
+                             <span className="text-xs font-semibold">Work Environment Load</span>
+                          </div>
+                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-amber-700">
+                             {workLoad[0] === 0 ? "No work" : workLoad[0] <= 3 ? "Manageable" : workLoad[0] <= 6 ? "Difficult" : "Toxic"}
+                          </span>
+                       </div>
+                       <Slider value={workLoad} onValueChange={setWorkLoad} max={10} step={1} className="h-4 [&_.bg-primary]:bg-amber-500" />
+                       <p className="text-[9px] text-muted-foreground mt-1.5">How hostile or draining was work today? (0 = no work/neutral)</p>
+                    </div>
                 </div>
 
                 {/* 3. Intensity & Notes */}
@@ -345,7 +375,10 @@ export function MoodTracker() {
                           {triggerTags.map(tag => (
                              <button
                                 key={tag.value}
-                                onClick={() => setTriggerTag(triggerTag === tag.value ? null : tag.value)}
+                                onClick={() => {
+                                   setTriggerTag(triggerTag === tag.value ? null : tag.value);
+                                   if (tag.value !== "work") setWorkTag(null); // Clear work tag when switching
+                                }}
                                 data-testid={`button-trigger-${tag.value}`}
                                 className={cn(
                                    "text-[10px] px-2 py-1 rounded-full border transition-all flex items-center gap-1",
@@ -359,6 +392,30 @@ export function MoodTracker() {
                              </button>
                           ))}
                        </div>
+
+                       {/* Work-specific tags (shown when Work is selected) */}
+                       {triggerTag === "work" && (
+                          <div className="mt-2 pt-2 border-t border-violet-200/50">
+                             <p className="text-[9px] text-muted-foreground mb-1.5">Work context (optional, pick one):</p>
+                             <div className="flex flex-wrap gap-1">
+                                {workTags.map(tag => (
+                                   <button
+                                      key={tag.value}
+                                      onClick={() => setWorkTag(workTag === tag.value ? null : tag.value)}
+                                      data-testid={`button-work-${tag.value}`}
+                                      className={cn(
+                                         "text-[9px] px-1.5 py-0.5 rounded border transition-all",
+                                         workTag === tag.value
+                                            ? "bg-amber-500 text-white border-amber-500"
+                                            : "bg-background border-amber-200 text-amber-700 hover:border-amber-300"
+                                      )}
+                                   >
+                                      {tag.label}
+                                   </button>
+                                ))}
+                             </div>
+                          </div>
+                       )}
                     </div>
 
                     {/* Urges */}

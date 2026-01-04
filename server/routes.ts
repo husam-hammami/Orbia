@@ -1125,6 +1125,8 @@ KEY DATA AVAILABLE:
 7. NEW CONTEXT FIELDS - Use these for deeper pattern analysis:
    - capacity (0-5): How much they can handle RIGHT NOW (distinct from mood/energy - someone can be calm but have low capacity)
    - triggerTag: What influenced the entry (work, loneliness, pain, noise, sleep, body, unknown)
+   - workLoad (0-10): How hostile/draining was work? (0 = no work, 5 = difficult, 10 = toxic/unsafe)
+   - workTag: Specific work stressor (deadlines, conflict, firefighting, unclear, blame, chaos)
    - timeOfDay: When the entry was made (morning, afternoon, evening, night)
    - dailySummaries: End-of-day reflections (lighter, average, heavier than usual)
 
@@ -1134,6 +1136,9 @@ KEY DATA AVAILABLE:
    - Which members appear at which times of day
    - Capacity vs mood discrepancies (calm but low capacity = different from high energy high capacity)
    - Daily summary correlations with actual metrics (does "heavier" correlate with specific triggers/members?)
+   - Work environment load impact on mood/dissociation - separate external pressure from internal state
+   - Work tag patterns (e.g., "blame/criticism days have 2x dissociation")
+   - Helps prevent self-blame by identifying external stressors
 
 CRITICAL INSTRUCTIONS:
 - PRIORITIZE insights from highConfidence section - these have validated sample sizes
