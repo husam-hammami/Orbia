@@ -653,9 +653,10 @@ export default function DeepMind() {
                                       routines: 'border-l-amber-500 bg-amber-500/5',
                                       system: 'border-l-purple-500 bg-purple-500/5',
                                       overall: 'border-l-indigo-500 bg-indigo-500/5',
+                                      journal: 'border-l-rose-500 bg-rose-500/5',
                                     };
                                     const categoryIcons: Record<string, string> = {
-                                      sleep: '😴', habits: '✓', routines: '📅', system: '👥', overall: '📊'
+                                      sleep: '😴', habits: '✓', routines: '📅', system: '👥', overall: '📊', journal: '📝'
                                     };
                                     
                                     return (
