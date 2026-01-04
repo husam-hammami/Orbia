@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
+import { useSearch } from "wouter";
 import { MoodTracker } from "@/components/mood-tracker";
 import { RoutineTimeline } from "@/components/routine-timeline";
 import { RoutineEditor } from "@/components/routine-editor";
@@ -10,6 +11,7 @@ import { HabitForm } from "@/components/habit-form";
 import { SystemJournal } from "@/components/system-journal";
 import { TodoList } from "@/components/todo-list";
 import { DailySummary } from "@/components/daily-summary";
+import { JournalTab } from "@/components/journal-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +23,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { format } from "date-fns";
-import { Activity, Calendar, Sparkles, LayoutGrid, List, Flower2, Loader2, NotebookPen, ListTodo } from "lucide-react";
+import { Activity, Calendar, Sparkles, LayoutGrid, List, Flower2, Loader2, NotebookPen, ListTodo, BookOpen } from "lucide-react";
 import { Habit } from "@/lib/types";
 import { toast } from "sonner";
 import { useHabits, useCreateHabit, useDeleteHabit, useUpdateHabit, useAddHabitCompletion, useRemoveHabitCompletion } from "@/lib/api-hooks";
@@ -48,6 +50,18 @@ async function fetchAllCompletions(habitIds: string[]): Promise<Record<string, s
 }
 
 export default function TrackerPage() {
+  const searchString = useSearch();
+  const urlParams = new URLSearchParams(searchString);
+  const tabFromUrl = urlParams.get("tab");
+  
+  const [activeTab, setActiveTab] = useState(tabFromUrl || "habits");
+  
+  useEffect(() => {
+    if (tabFromUrl && ["habits", "mood", "routine", "todos", "journal"].includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+  
   const { data: dbHabits, isLoading: habitsLoading } = useHabits();
   const [viewMode, setViewMode] = useState<"grid" | "list" | "garden">("garden");
   
@@ -162,8 +176,8 @@ export default function TrackerPage() {
           </Sheet>
         </div>
 
-        <Tabs defaultValue="habits" className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full max-w-3xl grid-cols-5">
             <TabsTrigger value="habits" className="gap-2" data-testid="tab-habits">
               <Sparkles className="w-4 h-4" />
               Habits
@@ -179,6 +193,10 @@ export default function TrackerPage() {
             <TabsTrigger value="todos" className="gap-2" data-testid="tab-todos">
               <ListTodo className="w-4 h-4" />
               Tasks
+            </TabsTrigger>
+            <TabsTrigger value="journal" className="gap-2" data-testid="tab-journal">
+              <BookOpen className="w-4 h-4" />
+              Journal
             </TabsTrigger>
           </TabsList>
           
@@ -274,6 +292,10 @@ export default function TrackerPage() {
             <div className="max-w-2xl">
               <TodoList />
             </div>
+          </TabsContent>
+          
+          <TabsContent value="journal" className="mt-6" data-testid="content-journal">
+            <JournalTab />
           </TabsContent>
         </Tabs>
       </div>
