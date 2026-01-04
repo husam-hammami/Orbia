@@ -393,13 +393,6 @@ export function useRoutineLogs(date: string) {
   });
 }
 
-export function useAllRoutineLogs() {
-  return useQuery<RoutineActivityLog[]>({
-    queryKey: ["allRoutineLogs"],
-    queryFn: () => fetchAPI("/api/routine-logs"),
-  });
-}
-
 export function useAddRoutineLog() {
   const queryClient = useQueryClient();
   return useMutation({

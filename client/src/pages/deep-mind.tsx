@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,103 +6,73 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { 
+  ResponsiveContainer, 
+  RadarChart, 
+  PolarGrid, 
+  PolarAngleAxis, 
+  PolarRadiusAxis, 
+  Radar,
+  ScatterChart,
+  Scatter,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  ZAxis,
+  Cell,
+  Tooltip,
+  LineChart,
+  Line,
+  Legend,
+  BarChart,
+  Bar,
+  ComposedChart,
+  Area
+} from "recharts";
 import { 
   Brain, 
   Activity, 
   Users, 
   Zap, 
   AlertTriangle, 
+  Fingerprint, 
+  Network, 
+  Mic2, 
   Ghost,
   Cpu,
   Save,
   History,
+  Layers,
+  Search,
+  Plus,
   Loader2,
   Sparkles,
   TrendingUp,
-  Shield,
-  ChevronDown,
-  Mic2,
-  CloudSun,
+  Lightbulb,
+  BarChart2,
   Moon,
-  Briefcase
+  Target
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useMembers, useTrackerEntries, useCreateTrackerEntry, useAllRoutineLogs } from "@/lib/api-hooks";
+import { useMembers, useTrackerEntries, useCreateTrackerEntry } from "@/lib/api-hooks";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { analyzeSystem, type StabilityLevel, type PressureLevel } from "@/lib/system-analytics";
 
-const stabilityConfig: Record<StabilityLevel, { label: string; color: string; bg: string; description: string }> = {
-  stable: { 
-    label: "Stable", 
-    color: "text-slate-600 dark:text-slate-300", 
-    bg: "bg-slate-100 dark:bg-slate-800",
-    description: "The system is holding steady"
-  },
-  variable: { 
-    label: "Variable", 
-    color: "text-amber-600 dark:text-amber-400", 
-    bg: "bg-amber-50 dark:bg-amber-900/20",
-    description: "Some fluctuation is present"
-  },
-  strained: { 
-    label: "Strained", 
-    color: "text-slate-500 dark:text-slate-400", 
-    bg: "bg-slate-50 dark:bg-slate-900/30",
-    description: "The system is under pressure"
-  },
-};
-
-const pressureConfig: Record<PressureLevel, { bars: number; color: string }> = {
-  low: { bars: 1, color: "bg-slate-400" },
-  medium: { bars: 3, color: "bg-amber-400" },
-  high: { bars: 5, color: "bg-amber-500" },
-  variable: { bars: 4, color: "bg-slate-500" },
-};
-
-function PressureBar({ level }: { level: PressureLevel }) {
-  const config = pressureConfig[level];
-  return (
-    <div className="flex gap-0.5">
-      {[1, 2, 3, 4, 5, 6].map((i) => (
-        <div
-          key={i}
-          className={cn(
-            "w-3 h-4 rounded-sm transition-colors",
-            i <= config.bars ? config.color : "bg-muted"
-          )}
-        />
-      ))}
-    </div>
-  );
-}
-
-function StatePresenceBar({ percentage, color }: { percentage: number; color: string }) {
-  return (
-    <div className="flex gap-0.5 flex-1">
-      {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-        <div
-          key={i}
-          className={cn(
-            "h-5 flex-1 rounded-sm transition-colors",
-            (percentage / 100) * 7 >= i ? "" : "bg-muted"
-          )}
-          style={{ backgroundColor: (percentage / 100) * 7 >= i ? color : undefined }}
-        />
-      ))}
-    </div>
-  );
-}
+const SYSTEM_STATS: any[] = [
+  { subject: 'Dissociation', A: 0, fullMark: 100 },
+  { subject: 'Communication', A: 0, fullMark: 100 },
+  { subject: 'Memory Access', A: 0, fullMark: 100 },
+  { subject: 'Emotional Reg', A: 0, fullMark: 100 },
+  { subject: 'Physical Grounding', A: 0, fullMark: 100 },
+  { subject: 'Co-con', A: 0, fullMark: 100 },
+];
 
 export default function DeepMind() {
   const [activeTab, setActiveTab] = useState("monitor");
-  const [timePeriod, setTimePeriod] = useState<"24h" | "7d">("7d");
   
   const { data: members, isLoading: membersLoading } = useMembers();
-  const { data: trackerEntries, isLoading: entriesLoading } = useTrackerEntries(30);
-  const { data: routineLogs = [] } = useAllRoutineLogs();
+  const { data: trackerEntries, isLoading: entriesLoading } = useTrackerEntries(10);
   const createEntryMutation = useCreateTrackerEntry();
   
   const { data: insights, isLoading: insightsLoading } = useQuery({
@@ -112,7 +82,7 @@ export default function DeepMind() {
       if (!res.ok) throw new Error("Failed to fetch insights");
       return res.json();
     },
-    enabled: activeTab === "analysis",
+    enabled: activeTab === "analysis" || activeTab === "visuals",
   });
 
   const [dissociation, setDissociation] = useState([30]);
@@ -123,11 +93,48 @@ export default function DeepMind() {
   
   const selectedMember = members?.find(m => m.id === selectedMemberId) || members?.[0];
   
-  const systemAnalytics = useMemo(() => {
-    if (!trackerEntries || !members) return null;
-    const days = timePeriod === "24h" ? 1 : 7;
-    return analyzeSystem(trackerEntries, members, routineLogs, days);
-  }, [trackerEntries, members, routineLogs, timePeriod]);
+  const coherenceChartData = (trackerEntries || [])
+    .slice()
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    .map(entry => ({
+      time: format(new Date(entry.timestamp), "h:mm a"),
+      dissociation: entry.dissociation || 0,
+      stress: entry.stress || 0,
+      mood: (entry.mood || 5) * 20,
+      energy: (entry.energy || 5) * 20,
+    }));
+  
+  const frontingPatterns = (() => {
+    if (!trackerEntries || !members) return [];
+    const memberStats = new Map<string, { count: number; totalStress: number; totalDissociation: number; member: any }>();
+    trackerEntries.forEach(entry => {
+      const member = members.find(m => m.id === entry.frontingMemberId);
+      if (member) {
+        const existing = memberStats.get(member.id) || { count: 0, totalStress: 0, totalDissociation: 0, member };
+        existing.count++;
+        existing.totalStress += entry.stress || 0;
+        existing.totalDissociation += entry.dissociation || 0;
+        memberStats.set(member.id, existing);
+      }
+    });
+    return Array.from(memberStats.values()).map(({ count, totalStress, totalDissociation, member }) => ({
+      name: member.name,
+      color: member.color,
+      count,
+      avgStress: Math.round(totalStress / count),
+      avgDissociation: Math.round(totalDissociation / count),
+    }));
+  })();
+  
+  const latestEntry = trackerEntries?.[0];
+  const systemStats = latestEntry ? [
+    { subject: 'Dissociation', A: 100 - (latestEntry.dissociation || 0), fullMark: 100 },
+    { subject: 'Communication', A: latestEntry.energy ? latestEntry.energy * 20 : 50, fullMark: 100 },
+    { subject: 'Memory Access', A: 70, fullMark: 100 },
+    { subject: 'Emotional Reg', A: 100 - (latestEntry.stress || 0), fullMark: 100 },
+    { subject: 'Grounding', A: latestEntry.mood ? latestEntry.mood * 20 : 50, fullMark: 100 },
+    { subject: 'Co-con', A: 60, fullMark: 100 },
+  ] : SYSTEM_STATS;
 
   const handleCommitLog = () => {
     if (!selectedMember) {
@@ -141,11 +148,6 @@ export default function DeepMind() {
       energy: Math.round(communication[0] / 20),
       stress: stress[0],
       dissociation: dissociation[0],
-      capacity: null,
-      triggerTag: null,
-      workLoad: null,
-      workTag: null,
-      timeOfDay: null,
       notes: `Dissociation: ${dissociation[0]}%, Communication: ${communication[0]}%, Stress: ${stress[0]}%, Urges: ${urges[0]}%`,
       timestamp: new Date(),
     }, {
@@ -158,7 +160,6 @@ export default function DeepMind() {
     const member = members?.find(m => m.id === entry.frontingMemberId);
     return {
       time: format(new Date(entry.timestamp), "h:mm a"),
-      date: format(new Date(entry.timestamp), "MMM d"),
       dissociation: entry.dissociation || 0,
       stress: entry.stress || 0,
       front: member?.name || "Unknown",
@@ -166,528 +167,999 @@ export default function DeepMind() {
     };
   });
 
+  const alterPositions = (members || []).map((member, i) => ({
+    name: member.name,
+    x: 30 + (i % 3) * 25,
+    y: 30 + Math.floor(i / 3) * 25,
+    z: member.location === "front" ? 90 : 50,
+    status: member.location === "front" ? "Fronting" : member.location || "Internal",
+  }));
+
   return (
     <Layout>
       <div className="space-y-6 animate-in fade-in duration-500 pb-20">
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border/40 pb-6">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Badge variant="outline" className="bg-slate-500/10 text-slate-500 border-slate-500/20 px-2 py-0.5 text-xs font-mono uppercase tracking-wider">
-                Deep Mind
-              </Badge>
-              <Badge variant="outline" className="bg-slate-500/10 text-slate-500 border-slate-500/20 px-2 py-0.5 text-xs font-mono uppercase tracking-wider flex items-center gap-1.5">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-slate-500"></span>
-                </span>
-                Active
-              </Badge>
+            <div>
+                <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="outline" className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 px-2 py-0.5 text-xs font-mono uppercase tracking-wider">
+                        Deep Mind v4.0
+                    </Badge>
+                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-2 py-0.5 text-xs font-mono uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                        </span>
+                        System Online
+                    </Badge>
+                </div>
+                <h1 className="text-3xl font-display font-bold tracking-tight">Cortex Interface</h1>
+                <p className="text-muted-foreground text-sm">Advanced system telemetry and headspace mapping.</p>
             </div>
-            <h1 className="text-3xl font-display font-bold tracking-tight">System Overview</h1>
-            <p className="text-muted-foreground text-sm">Track, understand, and support your system.</p>
-          </div>
 
-          <div className="flex items-center gap-2 bg-muted/30 p-1 rounded-lg border border-border/50">
-            <Button
-              variant={timePeriod === "24h" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setTimePeriod("24h")}
-              className="text-xs"
-              data-testid="button-period-24h"
-            >
-              Last 24h
-            </Button>
-            <Button
-              variant={timePeriod === "7d" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setTimePeriod("7d")}
-              className="text-xs"
-              data-testid="button-period-7d"
-            >
-              Last 7 Days
-            </Button>
-          </div>
+            <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-lg border border-border/50">
+                <div className="text-right px-2 border-r border-border/50">
+                    <div className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">System Noise</div>
+                    <div className="text-lg font-mono font-bold text-muted-foreground">--</div>
+                </div>
+                <div className="text-right px-2">
+                    <div className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Coherence</div>
+                    <div className="text-lg font-mono font-bold text-muted-foreground">--</div>
+                </div>
+            </div>
         </div>
 
         <Tabs defaultValue="monitor" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-muted/30 border border-border/50 p-1">
-            <TabsTrigger value="monitor" className="gap-2" data-testid="tab-monitor">
-              <Activity className="w-4 h-4" /> Monitor
-            </TabsTrigger>
-            <TabsTrigger value="analysis" className="gap-2" data-testid="tab-analysis">
-              <Brain className="w-4 h-4" /> Analysis
-            </TabsTrigger>
-          </TabsList>
+            <TabsList className="bg-muted/30 border border-border/50 p-1">
+                <TabsTrigger value="monitor" className="gap-2" data-testid="tab-monitor"><Activity className="w-4 h-4" /> Live Monitor</TabsTrigger>
+                <TabsTrigger value="analysis" className="gap-2" data-testid="tab-analysis"><Brain className="w-4 h-4" /> Analysis & Patterns</TabsTrigger>
+                <TabsTrigger value="visuals" className="gap-2" data-testid="tab-visuals"><BarChart2 className="w-4 h-4" /> Visualizations</TabsTrigger>
+                <TabsTrigger value="map" className="gap-2" data-testid="tab-map"><Network className="w-4 h-4" /> Headspace Map</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="monitor" className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              
-              <Card className="lg:col-span-4 border-l-4 border-l-slate-400 shadow-lg">
-                <CardHeader className="bg-muted/10 pb-4">
-                  <CardTitle className="flex items-center justify-between text-lg">
-                    <span>Quick Log</span>
-                    <Cpu className="w-4 h-4 text-slate-500 animate-pulse" />
-                  </CardTitle>
-                  <CardDescription>Log current system state</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6 pt-6">
-                  
-                  <div className="space-y-3">
-                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                      <Users className="w-3.5 h-3.5" /> Who's Present
-                    </label>
-                    {membersLoading ? (
-                      <div className="flex items-center justify-center py-4">
-                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : members && members.length > 0 ? (
-                      <div className="grid grid-cols-3 gap-2">
-                        {members.slice(0, 6).map(member => (
-                          <button
-                            key={member.id}
-                            onClick={() => setSelectedMemberId(member.id)}
-                            data-testid={`button-select-member-${member.id}`}
-                            className={cn(
-                              "text-xs p-2 rounded border transition-all text-center font-medium truncate",
-                              selectedMember?.id === member.id 
-                                ? "bg-slate-600 text-white border-slate-700 shadow-md" 
-                                : "bg-background border-border hover:bg-muted text-muted-foreground"
-                            )}
-                            style={{ 
-                              borderColor: selectedMember?.id === member.id ? member.color : undefined,
-                              backgroundColor: selectedMember?.id === member.id ? member.color : undefined
-                            }}
-                          >
-                            {member.name}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-4 text-muted-foreground text-sm">
-                        No members yet. Add members in System Insight.
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs font-medium">
-                        <span className="flex items-center gap-1.5"><Ghost className="w-3.5 h-3.5 text-slate-500" /> Dissociation</span>
-                        <span className="font-mono">{dissociation}%</span>
-                      </div>
-                      <Slider value={dissociation} onValueChange={setDissociation} max={100} step={1} className="[&>span:first-child]:bg-slate-500/20 [&_[role=slider]]:bg-slate-500" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs font-medium">
-                        <span className="flex items-center gap-1.5"><Mic2 className="w-3.5 h-3.5 text-sky-500" /> Communication</span>
-                        <span className="font-mono">{communication}%</span>
-                      </div>
-                      <Slider value={communication} onValueChange={setCommunication} max={100} step={1} className="[&>span:first-child]:bg-sky-500/20 [&_[role=slider]]:bg-sky-500" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs font-medium">
-                        <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-amber-500" /> System Stress</span>
-                        <span className="font-mono">{stress}%</span>
-                      </div>
-                      <Slider value={stress} onValueChange={setStress} max={100} step={1} className="[&>span:first-child]:bg-amber-500/20 [&_[role=slider]]:bg-amber-500" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs font-medium">
-                        <span className="flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-slate-400" /> Intrusive Urges</span>
-                        <span className="font-mono">{urges}%</span>
-                      </div>
-                      <Slider value={urges} onValueChange={setUrges} max={100} step={1} className="[&>span:first-child]:bg-slate-400/20 [&_[role=slider]]:bg-slate-400" />
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    className="w-full bg-slate-600 hover:bg-slate-700 text-white shadow-lg shadow-slate-500/20" 
-                    size="lg"
-                    onClick={handleCommitLog}
-                    disabled={createEntryMutation.isPending || !selectedMember}
-                    data-testid="button-commit-log"
-                  >
-                    {createEntryMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4 mr-2" />
-                    )}
-                    Commit Log
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <div className="lg:col-span-8 space-y-6">
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  
-                  <Card className="border-l-4 border-l-sky-400" data-testid="card-state-activity">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <Users className="w-4 h-4 text-sky-500" />
-                        State Activity
-                      </CardTitle>
-                      <CardDescription className="text-xs">Who's been present</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {entriesLoading ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                        </div>
-                      ) : systemAnalytics && systemAnalytics.stateFrequencies.length > 0 ? (
-                        systemAnalytics.stateFrequencies.slice(0, 4).map((state, i) => (
-                          <div key={i} className="space-y-1">
-                            <div className="flex justify-between text-xs">
-                              <span className="font-medium">{state.stateName}</span>
-                              <span className="text-muted-foreground">{state.percentage}%</span>
+            <TabsContent value="monitor" className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    <Card className="lg:col-span-4 border-l-4 border-l-indigo-500 shadow-lg">
+                        <CardHeader className="bg-muted/10 pb-4">
+                            <CardTitle className="flex items-center justify-between text-lg">
+                                <span>Neural Logger</span>
+                                <Cpu className="w-4 h-4 text-indigo-500 animate-pulse" />
+                            </CardTitle>
+                            <CardDescription>Log current system parameters</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6 pt-6">
+                            
+                            <div className="space-y-3">
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                    <Users className="w-3.5 h-3.5" /> Active Front
+                                </label>
+                                {membersLoading ? (
+                                  <div className="flex items-center justify-center py-4">
+                                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                                  </div>
+                                ) : members && members.length > 0 ? (
+                                  <div className="grid grid-cols-3 gap-2">
+                                      {members.slice(0, 6).map(member => (
+                                          <button
+                                              key={member.id}
+                                              onClick={() => setSelectedMemberId(member.id)}
+                                              data-testid={`button-select-member-${member.id}`}
+                                              className={cn(
+                                                  "text-xs p-2 rounded border transition-all text-center font-medium truncate",
+                                                  selectedMember?.id === member.id 
+                                                      ? "bg-indigo-500 text-white border-indigo-600 shadow-md transform scale-105" 
+                                                      : "bg-background border-border hover:bg-muted text-muted-foreground"
+                                              )}
+                                              style={{ 
+                                                  borderColor: selectedMember?.id === member.id ? member.color : undefined,
+                                                  backgroundColor: selectedMember?.id === member.id ? member.color : undefined
+                                              }}
+                                          >
+                                              {member.name}
+                                          </button>
+                                      ))}
+                                      <button className="text-xs p-2 rounded border border-dashed border-border text-muted-foreground hover:bg-muted flex items-center justify-center">
+                                          <Plus className="w-3 h-3" />
+                                      </button>
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-4 text-muted-foreground text-sm">
+                                    No members yet. Add members in System Insight.
+                                  </div>
+                                )}
                             </div>
-                            <StatePresenceBar percentage={state.percentage} color={state.color} />
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-6 text-muted-foreground text-sm">
-                          <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                          <p>Start logging to see state activity</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
 
-                  <Card className="border-l-4 border-l-amber-400" data-testid="card-stability-meter">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <Shield className="w-4 h-4 text-amber-500" />
-                        System Stability
-                      </CardTitle>
-                      <CardDescription className="text-xs">Informational</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {entriesLoading ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                        </div>
-                      ) : systemAnalytics ? (
-                        <div className="space-y-4">
-                          <div className={cn(
-                            "p-4 rounded-lg text-center",
-                            stabilityConfig[systemAnalytics.stability.level].bg
-                          )}>
-                            <div className={cn(
-                              "text-2xl font-bold mb-1",
-                              stabilityConfig[systemAnalytics.stability.level].color
-                            )}>
-                              {stabilityConfig[systemAnalytics.stability.level].label}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {stabilityConfig[systemAnalytics.stability.level].description}
-                            </div>
-                          </div>
-                          
-                          {systemAnalytics.nothingChanged && systemAnalytics.nothingChangedMessage && (
-                            <div className="p-3 bg-sky-50 dark:bg-sky-900/20 rounded-lg border border-sky-200 dark:border-sky-800">
-                              <p className="text-xs text-sky-700 dark:text-sky-300">
-                                {systemAnalytics.nothingChangedMessage}
-                              </p>
-                            </div>
-                          )}
-                          
-                          <Collapsible>
-                            <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground w-full">
-                              <ChevronDown className="w-3 h-3" />
-                              Details
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="pt-2">
-                              <div className="space-y-1 text-xs text-muted-foreground">
-                                <div className="flex justify-between">
-                                  <span>State switches:</span>
-                                  <span>{systemAnalytics.stability.factors.stateSwitches}</span>
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-xs font-medium">
+                                        <span className="flex items-center gap-1.5"><Ghost className="w-3.5 h-3.5 text-purple-500" /> Dissociation</span>
+                                        <span className="font-mono">{dissociation}%</span>
+                                    </div>
+                                    <Slider value={dissociation} onValueChange={setDissociation} max={100} step={1} className="[&>span:first-child]:bg-purple-500/20 [&_[role=slider]]:bg-purple-500" />
                                 </div>
-                                <div className="flex justify-between">
-                                  <span>Routine consistency:</span>
-                                  <span>{systemAnalytics.stability.factors.routineConsistency}%</span>
-                                </div>
-                              </div>
-                            </CollapsibleContent>
-                          </Collapsible>
-                        </div>
-                      ) : (
-                        <div className="text-center py-6 text-muted-foreground text-sm">
-                          <Shield className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                          <p>More data needed</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
 
-                  <Card className="border-l-4 border-l-slate-400" data-testid="card-external-pressure">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <CloudSun className="w-4 h-4 text-slate-500" />
-                        External Load
-                      </CardTitle>
-                      <CardDescription className="text-xs">This is not all from you</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {entriesLoading ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                        </div>
-                      ) : systemAnalytics && systemAnalytics.pressureSources.length > 0 ? (
-                        systemAnalytics.pressureSources.map((source, i) => (
-                          <div key={i} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              {source.source === "Work" && <Briefcase className="w-3.5 h-3.5 text-slate-500" />}
-                              {source.source === "Pain" && <Zap className="w-3.5 h-3.5 text-amber-500" />}
-                              {source.source === "Sleep" && <Moon className="w-3.5 h-3.5 text-sky-500" />}
-                              <span className="text-sm font-medium">{source.source}</span>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-xs font-medium">
+                                        <span className="flex items-center gap-1.5"><Mic2 className="w-3.5 h-3.5 text-blue-500" /> Communication</span>
+                                        <span className="font-mono">{communication}%</span>
+                                    </div>
+                                    <Slider value={communication} onValueChange={setCommunication} max={100} step={1} className="[&>span:first-child]:bg-blue-500/20 [&_[role=slider]]:bg-blue-500" />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-xs font-medium">
+                                        <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-amber-500" /> System Stress</span>
+                                        <span className="font-mono">{stress}%</span>
+                                    </div>
+                                    <Slider value={stress} onValueChange={setStress} max={100} step={1} className="[&>span:first-child]:bg-amber-500/20 [&_[role=slider]]:bg-amber-500" />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-xs font-medium">
+                                        <span className="flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-rose-500" /> Intrusive Urges</span>
+                                        <span className="font-mono">{urges}%</span>
+                                    </div>
+                                    <Slider value={urges} onValueChange={setUrges} max={100} step={1} className="[&>span:first-child]:bg-rose-500/20 [&_[role=slider]]:bg-rose-500" />
+                                </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground capitalize">{source.level}</span>
-                              <PressureBar level={source.level} />
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-6 text-muted-foreground text-sm">
-                          <CloudSun className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                          <p>No pressure data yet</p>
-                          <p className="text-xs mt-1">Log work load and metrics</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                            
+                            <Button 
+                              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20" 
+                              size="lg"
+                              onClick={handleCommitLog}
+                              disabled={createEntryMutation.isPending || !selectedMember}
+                              data-testid="button-commit-log"
+                            >
+                                {createEntryMutation.isPending ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Save className="w-4 h-4 mr-2" />
+                                )}
+                                Commit System Log
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <Card className="md:col-span-2 bg-slate-950 border-slate-800 shadow-2xl overflow-hidden relative group">
+                            <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f46e520_1px,transparent_1px),linear-gradient(to_bottom,#4f46e520_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+                            <CardHeader className="relative z-10 pb-2">
+                                <CardTitle className="text-slate-100 flex items-center gap-2 text-base font-mono">
+                                    <Activity className="w-4 h-4 text-emerald-400" /> Real-time System Coherence
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="h-[250px] relative z-10 pl-0">
+                                {coherenceChartData.length > 0 ? (
+                                  <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={coherenceChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                                      <XAxis dataKey="time" stroke="#64748b" fontSize={10} />
+                                      <YAxis stroke="#64748b" fontSize={10} domain={[0, 100]} />
+                                      <Tooltip 
+                                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                                        labelStyle={{ color: '#94a3b8' }}
+                                      />
+                                      <Legend wrapperStyle={{ fontSize: '10px' }} />
+                                      <Line type="monotone" dataKey="dissociation" stroke="#f43f5e" strokeWidth={2} dot={{ fill: '#f43f5e', r: 3 }} name="Dissociation" />
+                                      <Line type="monotone" dataKey="stress" stroke="#f59e0b" strokeWidth={2} dot={{ fill: '#f59e0b', r: 3 }} name="Stress" />
+                                      <Line type="monotone" dataKey="mood" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981', r: 3 }} name="Mood" />
+                                    </LineChart>
+                                  </ResponsiveContainer>
+                                ) : (
+                                  <div className="h-full flex items-center justify-center text-center space-y-2">
+                                    <div>
+                                      <Activity className="w-8 h-8 text-slate-700 mx-auto animate-pulse" />
+                                      <p className="text-slate-500 text-sm mt-2">Awaiting Data Points</p>
+                                      <p className="text-slate-600 text-xs">Log multiple entries to visualize coherence trends.</p>
+                                    </div>
+                                  </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card className="flex flex-col">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <History className="w-4 h-4 text-muted-foreground" />
+                                    Recent Logs
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex-1 p-0">
+                                <ScrollArea className="h-[250px] px-4">
+                                    {entriesLoading ? (
+                                      <div className="flex items-center justify-center py-8">
+                                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                                      </div>
+                                    ) : recentLogs.length > 0 ? (
+                                      <div className="space-y-4 pb-4">
+                                          {recentLogs.map((log, i) => (
+                                              <div key={i} className="flex gap-3 items-start p-3 rounded-lg bg-muted/30 border border-border/50 text-sm">
+                                                  <div className="min-w-[60px] font-mono text-xs text-muted-foreground pt-0.5">{log.time}</div>
+                                                  <div className="space-y-1 flex-1">
+                                                      <div className="flex justify-between items-center">
+                                                          <span className="font-semibold text-indigo-500">{log.front}</span>
+                                                          <Badge variant="outline" className="text-[10px] h-4 px-1">Dis: {log.dissociation}%</Badge>
+                                                      </div>
+                                                      {log.note && <p className="text-muted-foreground text-xs leading-snug">{log.note}</p>}
+                                                  </div>
+                                              </div>
+                                          ))}
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                                        <History className="w-8 h-8 mb-2 opacity-30" />
+                                        <p className="text-sm">No logs yet</p>
+                                      </div>
+                                    )}
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                             <CardHeader className="pb-2">
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <Layers className="w-4 h-4 text-muted-foreground" />
+                                    System Balance
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="h-[250px] flex items-center justify-center">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={systemStats}>
+                                        <PolarGrid stroke="#e2e8f0" strokeOpacity={0.5} />
+                                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                                        <Radar
+                                            name="System State"
+                                            dataKey="A"
+                                            stroke="#8b5cf6"
+                                            strokeWidth={2}
+                                            fill="#8b5cf6"
+                                            fillOpacity={0.3}
+                                        />
+                                    </RadarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+
+                    </div>
                 </div>
+            </TabsContent>
 
-                <Card className="flex flex-col">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <History className="w-4 h-4 text-muted-foreground" />
-                      Recent Logs
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex-1 p-0">
-                    <ScrollArea className="h-[250px] px-4">
-                      {entriesLoading ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                        </div>
-                      ) : recentLogs.length > 0 ? (
-                        <div className="space-y-4 pb-4">
-                          {recentLogs.map((log, i) => (
-                            <div key={i} className="flex gap-3 items-start p-3 rounded-lg bg-muted/30 border border-border/50 text-sm">
-                              <div className="min-w-[60px] font-mono text-xs text-muted-foreground pt-0.5">
-                                <div>{log.time}</div>
-                                <div className="text-[10px]">{log.date}</div>
+            <TabsContent value="analysis" className="animate-in slide-in-from-bottom-4 duration-500">
+                <div className="space-y-6">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-indigo-500" />
+                                Pattern Analysis
+                            </CardTitle>
+                            <CardDescription>Insights from your mood, habit, and routine data.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {insightsLoading ? (
+                              <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+                                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                                <p className="text-muted-foreground text-sm">Analyzing patterns and correlations...</p>
                               </div>
-                              <div className="space-y-1 flex-1">
-                                <div className="flex justify-between items-center">
-                                  <span className="font-semibold text-slate-600 dark:text-slate-300">{log.front}</span>
-                                  <Badge variant="outline" className="text-[10px] h-4 px-1">Dis: {log.dissociation}%</Badge>
+                            ) : insights?.insights && insights.insights.length > 0 ? (
+                              <div className="space-y-4">
+                                {insights.encouragement && (
+                                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-sm text-emerald-600 dark:text-emerald-400">
+                                    {insights.encouragement}
+                                  </div>
+                                )}
+                                
+                                {(() => {
+                                  const meaningfulCorrelations = insights.correlationHighlights?.filter((c: any) => 
+                                    c.strength === 'strong' || c.strength === 'moderate'
+                                  ) || [];
+                                  
+                                  if (meaningfulCorrelations.length === 0) return null;
+                                  
+                                  return (
+                                    <div className="p-4 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-lg border border-indigo-500/20">
+                                      <h4 className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-3 flex items-center gap-2">
+                                        <TrendingUp className="w-4 h-4" />
+                                        Validated Correlations
+                                      </h4>
+                                      <div className="grid md:grid-cols-2 gap-3">
+                                        {meaningfulCorrelations.map((corr: any, i: number) => (
+                                          <div key={i} className="flex items-center gap-3 bg-background/50 p-3 rounded-lg">
+                                            <div className={cn(
+                                              "w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold shrink-0",
+                                              corr.relationship === 'positive' ? 'bg-emerald-500/20 text-emerald-600' :
+                                              corr.relationship === 'negative' ? 'bg-rose-500/20 text-rose-600' :
+                                              'bg-slate-500/20 text-slate-600'
+                                            )}>
+                                              {corr.relationship === 'positive' ? '↑' : corr.relationship === 'negative' ? '↓' : '~'}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <div className="text-sm font-medium truncate">{corr.factor1} → {corr.factor2}</div>
+                                              <div className="text-xs text-muted-foreground">{corr.summary}</div>
+                                            </div>
+                                            <Badge variant="outline" className={cn(
+                                              "shrink-0 text-[10px]",
+                                              corr.strength === 'strong' ? 'border-emerald-500 text-emerald-600' : 'border-amber-500 text-amber-600'
+                                            )}>{corr.strength}</Badge>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                                
+                                <div className="space-y-3">
+                                  {(() => {
+                                    const highConfidenceInsights = insights.insights.filter((i: any) => 
+                                      i.confidence === 'strong' || i.confidence === 'moderate'
+                                    );
+                                    const limitedInsights = insights.insights.filter((i: any) => 
+                                      i.confidence !== 'strong' && i.confidence !== 'moderate'
+                                    );
+                                    
+                                    const categoryColors: Record<string, string> = {
+                                      sleep: 'border-l-blue-500 bg-blue-500/5',
+                                      habits: 'border-l-emerald-500 bg-emerald-500/5',
+                                      routines: 'border-l-amber-500 bg-amber-500/5',
+                                      system: 'border-l-purple-500 bg-purple-500/5',
+                                      overall: 'border-l-indigo-500 bg-indigo-500/5',
+                                    };
+                                    const categoryIcons: Record<string, string> = {
+                                      sleep: '😴', habits: '✓', routines: '📅', system: '👥', overall: '📊'
+                                    };
+                                    
+                                    return (
+                                      <>
+                                        {highConfidenceInsights.length > 0 ? (
+                                          highConfidenceInsights.map((insight: any, i: number) => (
+                                            <div key={i} className={cn(
+                                              "p-3 rounded-lg border-l-4",
+                                              categoryColors[insight.category] || 'border-l-slate-500 bg-muted/30'
+                                            )}>
+                                              <div className="flex items-start justify-between gap-2 mb-1">
+                                                <div className="flex items-center gap-2">
+                                                  <span>{categoryIcons[insight.category] || '💡'}</span>
+                                                  <h4 className="font-semibold text-sm text-foreground">{insight.title}</h4>
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                  {insight.dataPoint && (
+                                                    <Badge className="bg-primary/20 text-primary text-[10px] font-bold">
+                                                      {insight.dataPoint}
+                                                    </Badge>
+                                                  )}
+                                                  <Badge variant="outline" className={cn(
+                                                    "text-[10px]",
+                                                    insight.confidence === 'strong' ? 'border-emerald-500 text-emerald-600' :
+                                                    'border-amber-500 text-amber-600'
+                                                  )}>
+                                                    {insight.confidence}
+                                                  </Badge>
+                                                </div>
+                                              </div>
+                                              <p className="text-xs text-muted-foreground">{insight.observation}</p>
+                                            </div>
+                                          ))
+                                        ) : (
+                                          <div className="p-6 bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20 rounded-lg">
+                                            <div className="flex items-start gap-4">
+                                              <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                                                <Activity className="w-6 h-6 text-amber-600" />
+                                              </div>
+                                              <div className="flex-1">
+                                                <h3 className="font-semibold text-lg text-amber-700 dark:text-amber-400 mb-1">Collecting Data for Insights</h3>
+                                                <p className="text-sm text-muted-foreground mb-4">
+                                                  Meaningful patterns need at least 7 days of tracking. Keep logging daily to unlock personalized correlations.
+                                                </p>
+                                                <div className="grid grid-cols-4 gap-4">
+                                                  <div className="text-center">
+                                                    <div className="text-2xl font-bold text-amber-600">{insights.dataRange?.entriesAnalyzed || 0}</div>
+                                                    <div className="text-xs text-muted-foreground">Days Logged</div>
+                                                    <div className="mt-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                                                      <div className="h-full bg-amber-500 rounded-full" style={{ width: `${Math.min(100, ((insights.dataRange?.entriesAnalyzed || 0) / 7) * 100)}%` }}></div>
+                                                    </div>
+                                                  </div>
+                                                  <div className="text-center">
+                                                    <div className="text-2xl font-bold text-emerald-600">{insights.rawCorrelations?.overallMetrics?.totalHabitCompletions || 0}</div>
+                                                    <div className="text-xs text-muted-foreground">Habit Completions</div>
+                                                  </div>
+                                                  <div className="text-center">
+                                                    <div className="text-2xl font-bold text-blue-600">{insights.rawCorrelations?.overallMetrics?.totalRoutineCompletions || 0}</div>
+                                                    <div className="text-xs text-muted-foreground">Routine Completions</div>
+                                                  </div>
+                                                  <div className="text-center">
+                                                    <div className="text-2xl font-bold text-purple-600">{Math.max(0, 7 - (insights.dataRange?.entriesAnalyzed || 0))}</div>
+                                                    <div className="text-xs text-muted-foreground">Days Until Insights</div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
+                                        
+                                        {limitedInsights.length > 0 && (
+                                          <details className="mt-2">
+                                            <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground py-1">
+                                              {limitedInsights.length} preliminary observation{limitedInsights.length > 1 ? 's' : ''} (needs more data)
+                                            </summary>
+                                            <div className="mt-2 space-y-2 pl-2 border-l border-muted">
+                                              {limitedInsights.slice(0, 3).map((insight: any, i: number) => (
+                                                <div key={i} className="text-xs text-muted-foreground py-1">
+                                                  <span className="mr-1">{categoryIcons[insight.category] || '💡'}</span>
+                                                  <span className="font-medium">{insight.title}</span>
+                                                </div>
+                                              ))}
+                                              {limitedInsights.length > 3 && (
+                                                <div className="text-xs text-muted-foreground/60">
+                                                  +{limitedInsights.length - 3} more...
+                                                </div>
+                                              )}
+                                            </div>
+                                          </details>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
                                 </div>
-                                {log.note && <p className="text-muted-foreground text-xs leading-snug">{log.note}</p>}
+                                
+                                {insights.dataRange && (
+                                  <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-border/50">
+                                    <p className="text-xs font-medium text-muted-foreground mb-2">Analysis Summary</p>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                                      <div className="bg-background/50 p-2 rounded">
+                                        <span className="text-muted-foreground">Period:</span>
+                                        <span className="font-mono ml-1">{insights.dataRange.days} days</span>
+                                      </div>
+                                      <div className="bg-background/50 p-2 rounded">
+                                        <span className="text-muted-foreground">Entries:</span>
+                                        <span className="font-mono ml-1">{insights.dataRange.entriesAnalyzed}</span>
+                                      </div>
+                                      <div className="bg-background/50 p-2 rounded">
+                                        <span className="text-muted-foreground">Habits:</span>
+                                        <span className="font-mono ml-1">{insights.dataRange.habitsTracked}</span>
+                                      </div>
+                                      <div className="bg-background/50 p-2 rounded">
+                                        <span className="text-muted-foreground">Trend:</span>
+                                        <span className={cn(
+                                          "font-mono ml-1 capitalize",
+                                          insights.overallTrend === 'improving' ? 'text-emerald-600' :
+                                          insights.overallTrend === 'needs_attention' ? 'text-amber-600' : ''
+                                        )}>{insights.overallTrend || 'stable'}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+                                <Search className="w-12 h-12 text-muted-foreground/20" />
+                                <p className="text-muted-foreground text-sm font-medium">No Patterns Detected Yet</p>
+                                <p className="text-muted-foreground/60 text-xs max-w-xs">
+                                    Pattern recognition requires logged data. Continue logging daily mood, stress, and habits.
+                                </p>
+                              </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {frontingPatterns.length > 1 && (
+                      <div className="p-3 bg-purple-500/5 border border-purple-500/20 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Fingerprint className="w-4 h-4 text-purple-500" />
+                          <span className="text-sm font-medium">System Member Activity</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {frontingPatterns.map((pattern, i) => (
+                            <div key={i} className="flex items-center gap-1.5 px-2 py-1 bg-background/50 rounded text-xs">
+                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: pattern.color }}></span>
+                              <span className="font-medium">{pattern.name}</span>
+                              <span className="text-muted-foreground">({pattern.count})</span>
                             </div>
                           ))}
                         </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                          <History className="w-8 h-8 mb-2 opacity-30" />
-                          <p className="text-sm">No logs yet</p>
-                        </div>
-                      )}
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="analysis" className="animate-in slide-in-from-bottom-4 duration-500">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-slate-500" />
-                    Pattern Analysis
-                  </CardTitle>
-                  <CardDescription>Insights from your tracking data.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {insightsLoading ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
-                      <Loader2 className="w-8 h-8 text-slate-500 animate-spin" />
-                      <p className="text-muted-foreground text-sm">Analyzing patterns...</p>
-                    </div>
-                  ) : insights?.insights && insights.insights.length > 0 ? (
-                    <div className="space-y-4">
-                      {insights.encouragement && (
-                        <div className="p-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-300">
-                          {insights.encouragement}
-                        </div>
-                      )}
-                      
-                      {(() => {
-                        const meaningfulCorrelations = insights.correlationHighlights?.filter((c: any) => 
-                          c.strength === 'strong' || c.strength === 'moderate'
-                        ) || [];
-                        
-                        if (meaningfulCorrelations.length === 0) return null;
-                        
-                        return (
-                          <div className="p-4 bg-gradient-to-r from-slate-100 to-sky-50 dark:from-slate-800 dark:to-sky-900/20 rounded-lg border border-slate-200 dark:border-slate-700">
-                            <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                              <TrendingUp className="w-4 h-4" />
-                              Validated Patterns
-                            </h4>
-                            <div className="grid md:grid-cols-2 gap-3">
-                              {meaningfulCorrelations.map((corr: any, i: number) => (
-                                <div key={i} className="flex items-center gap-3 bg-background/50 p-3 rounded-lg">
-                                  <div className={cn(
-                                    "w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold shrink-0",
-                                    corr.relationship === 'positive' ? 'bg-sky-100 dark:bg-sky-900/30 text-sky-600' :
-                                    corr.relationship === 'negative' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' :
-                                    'bg-slate-100 dark:bg-slate-800 text-slate-600'
-                                  )}>
-                                    {corr.relationship === 'positive' ? '↑' : corr.relationship === 'negative' ? '↓' : '~'}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium truncate">{corr.factor1} → {corr.factor2}</div>
-                                    <div className="text-xs text-muted-foreground">{corr.summary}</div>
-                                  </div>
-                                  <Badge variant="outline" className={cn(
-                                    "shrink-0 text-[10px]",
-                                    corr.strength === 'strong' ? 'border-sky-500 text-sky-600' : 'border-amber-500 text-amber-600'
-                                  )}>{corr.strength}</Badge>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                      
-                      <div className="space-y-3">
-                        {(() => {
-                          const highConfidenceInsights = insights.insights.filter((i: any) => 
-                            i.confidence === 'strong' || i.confidence === 'moderate'
-                          );
-                          const limitedInsights = insights.insights.filter((i: any) => 
-                            i.confidence !== 'strong' && i.confidence !== 'moderate'
-                          );
-                          
-                          const categoryColors: Record<string, string> = {
-                            sleep: 'border-l-sky-400 bg-sky-50/50 dark:bg-sky-900/10',
-                            habits: 'border-l-slate-400 bg-slate-50/50 dark:bg-slate-900/10',
-                            routines: 'border-l-amber-400 bg-amber-50/50 dark:bg-amber-900/10',
-                            system: 'border-l-slate-500 bg-slate-50/50 dark:bg-slate-900/10',
-                            overall: 'border-l-slate-400 bg-slate-50/50 dark:bg-slate-900/10',
-                          };
-                          const categoryIcons: Record<string, string> = {
-                            sleep: '😴', habits: '✓', routines: '📅', system: '👥', overall: '📊'
-                          };
-                          
-                          return (
-                            <>
-                              {highConfidenceInsights.length > 0 ? (
-                                highConfidenceInsights.map((insight: any, i: number) => (
-                                  <div key={i} className={cn(
-                                    "p-3 rounded-lg border-l-4",
-                                    categoryColors[insight.category] || 'border-l-slate-400 bg-muted/30'
-                                  )}>
-                                    <div className="flex items-start justify-between gap-2 mb-1">
-                                      <div className="flex items-center gap-2">
-                                        <span>{categoryIcons[insight.category] || '💡'}</span>
-                                        <h4 className="font-semibold text-sm text-foreground">{insight.title}</h4>
-                                      </div>
-                                      <div className="flex items-center gap-1.5">
-                                        {insight.dataPoint && (
-                                          <Badge className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold">
-                                            {insight.dataPoint}
-                                          </Badge>
-                                        )}
-                                        <Badge variant="outline" className={cn(
-                                          "text-[10px]",
-                                          insight.confidence === 'strong' ? 'border-sky-500 text-sky-600' :
-                                          'border-amber-500 text-amber-600'
-                                        )}>
-                                          {insight.confidence}
-                                        </Badge>
-                                      </div>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">{insight.observation}</p>
-                                  </div>
-                                ))
-                              ) : (
-                                <div className="p-6 bg-gradient-to-br from-amber-50 to-slate-50 dark:from-amber-900/10 dark:to-slate-900/10 border border-amber-200 dark:border-amber-800/30 rounded-lg">
-                                  <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-                                      <Activity className="w-6 h-6 text-amber-600" />
-                                    </div>
-                                    <div className="flex-1">
-                                      <h3 className="font-semibold text-lg text-amber-700 dark:text-amber-400 mb-1">Collecting Data</h3>
-                                      <p className="text-sm text-muted-foreground mb-4">
-                                        Meaningful patterns need at least 7 days of tracking. Keep logging to unlock insights.
-                                      </p>
-                                      <div className="grid grid-cols-2 gap-4">
-                                        <div className="text-center">
-                                          <div className="text-2xl font-bold text-amber-600">{insights.dataRange?.entriesAnalyzed || 0}</div>
-                                          <div className="text-xs text-muted-foreground">Days Logged</div>
-                                          <div className="mt-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                                            <div className="h-full bg-amber-400 rounded-full" style={{ width: `${Math.min(100, ((insights.dataRange?.entriesAnalyzed || 0) / 7) * 100)}%` }}></div>
-                                          </div>
-                                        </div>
-                                        <div className="text-center">
-                                          <div className="text-2xl font-bold text-slate-600">{Math.max(0, 7 - (insights.dataRange?.entriesAnalyzed || 0))}</div>
-                                          <div className="text-xs text-muted-foreground">Days Until Insights</div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {limitedInsights.length > 0 && (
-                                <Collapsible className="mt-2">
-                                  <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground py-1">
-                                    <ChevronDown className="w-3 h-3" />
-                                    {limitedInsights.length} preliminary observation{limitedInsights.length > 1 ? 's' : ''} (needs more data)
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent className="pt-2">
-                                    <div className="space-y-2 pl-2 border-l border-muted">
-                                      {limitedInsights.slice(0, 3).map((insight: any, i: number) => (
-                                        <div key={i} className="text-xs text-muted-foreground py-1">
-                                          <span className="mr-1">{categoryIcons[insight.category] || '💡'}</span>
-                                          <span className="font-medium">{insight.title}</span>
-                                        </div>
-                                      ))}
-                                      {limitedInsights.length > 3 && (
-                                        <div className="text-xs text-muted-foreground/60">
-                                          +{limitedInsights.length - 3} more...
-                                        </div>
-                                      )}
-                                    </div>
-                                  </CollapsibleContent>
-                                </Collapsible>
-                              )}
-                            </>
-                          );
-                        })()}
                       </div>
+                    )}
+                </div>
+            </TabsContent>
+
+            <TabsContent value="visuals" className="animate-in slide-in-from-bottom-4 duration-500">
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Target className="w-5 h-5 text-emerald-500" />
+                                    Habit Impact on Mood
+                                </CardTitle>
+                                <CardDescription>Compare your mood on days with vs without habit completion</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {insights?.rawCorrelations?.habitCorrelations && insights.rawCorrelations.habitCorrelations.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <BarChart 
+                                            data={insights.rawCorrelations.habitCorrelations.slice(0, 6).map((h: any) => ({
+                                                name: h.habitName.length > 12 ? h.habitName.slice(0, 12) + '...' : h.habitName,
+                                                'With Habit': parseFloat(h.avgMoodWithHabit) || 0,
+                                                'Without Habit': parseFloat(h.avgMoodWithoutHabit) || 0,
+                                            }))}
+                                            layout="vertical"
+                                            margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                                            <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 11 }} />
+                                            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={70} />
+                                            <Tooltip 
+                                                formatter={(value: number) => [`${value.toFixed(1)}/10`, '']}
+                                                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                                            />
+                                            <Legend />
+                                            <Bar dataKey="With Habit" fill="#10b981" radius={[0, 4, 4, 0]} />
+                                            <Bar dataKey="Without Habit" fill="#94a3b8" radius={[0, 4, 4, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                        <Target className="w-10 h-10 mb-3 opacity-30" />
+                                        <p className="text-sm">Complete habits and log mood to see correlations</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Moon className="w-5 h-5 text-blue-500" />
+                                    Sleep & Dissociation Link
+                                </CardTitle>
+                                <CardDescription>How sleep quality affects your dissociation levels</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {insights?.rawCorrelations?.sleepCorrelations ? (
+                                    <div className="space-y-6">
+                                        <ResponsiveContainer width="100%" height={200}>
+                                            <BarChart 
+                                                data={[
+                                                    { name: 'Low Sleep (<6h)', mood: parseFloat(insights.rawCorrelations.sleepCorrelations.avgMoodLowSleep) || 0, dissociation: insights.rawCorrelations.sleepCorrelations.avgDissociationLowSleep || 0 },
+                                                    { name: 'Good Sleep (7h+)', mood: parseFloat(insights.rawCorrelations.sleepCorrelations.avgMoodGoodSleep) || 0, dissociation: insights.rawCorrelations.sleepCorrelations.avgDissociationGoodSleep || 0 },
+                                                ]}
+                                                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                                            >
+                                                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                                                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                                                <YAxis tick={{ fontSize: 11 }} />
+                                                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                                                <Legend />
+                                                <Bar dataKey="mood" name="Mood (1-10)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                                <Bar dataKey="dissociation" name="Dissociation %" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                        <div className="grid grid-cols-2 gap-4 text-center">
+                                            <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                                                <div className="text-2xl font-bold text-blue-600">{insights.rawCorrelations.sleepCorrelations.avgSleepHours}h</div>
+                                                <div className="text-xs text-muted-foreground">Avg Sleep</div>
+                                            </div>
+                                            <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                                                <div className="text-2xl font-bold text-amber-600">{insights.rawCorrelations.sleepCorrelations.entriesWithSleepData}</div>
+                                                <div className="text-xs text-muted-foreground">Days Tracked</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                        <Moon className="w-10 h-10 mb-3 opacity-30" />
+                                        <p className="text-sm">Log sleep data in your daily tracker to see correlations</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
                     </div>
-                  ) : (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <Brain className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                      <p>Start tracking to see patterns</p>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <History className="w-5 h-5 text-amber-500" />
+                                    Routine Block Adherence
+                                </CardTitle>
+                                <CardDescription>How consistently you follow each routine block</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {insights?.rawCorrelations?.routineAdherence && insights.rawCorrelations.routineAdherence.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height={250}>
+                                        <ComposedChart 
+                                            data={insights.rawCorrelations.routineAdherence.map((r: any) => ({
+                                                name: r.blockName,
+                                                completion: r.completionRate,
+                                                activities: r.activityCount,
+                                            }))}
+                                            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                                            <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                                            <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} />
+                                            <Tooltip 
+                                                formatter={(value: number, name: string) => [
+                                                    name === 'completion' ? `${value}%` : value,
+                                                    name === 'completion' ? 'Completion Rate' : 'Activities'
+                                                ]}
+                                                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} 
+                                            />
+                                            <Legend />
+                                            <Bar dataKey="completion" name="Completion %" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                                        </ComposedChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                        <History className="w-10 h-10 mb-3 opacity-30" />
+                                        <p className="text-sm">Complete routine activities to see adherence patterns</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Users className="w-5 h-5 text-purple-500" />
+                                    System Member Patterns
+                                </CardTitle>
+                                <CardDescription>Mood and stress patterns for each system member</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {insights?.rawCorrelations?.frontingPatterns && insights.rawCorrelations.frontingPatterns.length > 0 ? (
+                                    <div className="space-y-4">
+                                        <ResponsiveContainer width="100%" height={200}>
+                                            <BarChart 
+                                                data={insights.rawCorrelations.frontingPatterns.map((f: any) => ({
+                                                    name: f.name,
+                                                    'Avg Mood': parseFloat(f.avgMood),
+                                                    'Avg Stress': f.avgStress / 10,
+                                                    'Avg Dissociation': f.avgDissociation / 10,
+                                                }))}
+                                                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                                            >
+                                                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                                                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                                                <YAxis tick={{ fontSize: 11 }} domain={[0, 10]} />
+                                                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                                                <Legend />
+                                                <Bar dataKey="Avg Mood" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                                                <Bar dataKey="Avg Stress" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                                                <Bar dataKey="Avg Dissociation" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                            {insights.rawCorrelations.frontingPatterns.map((f: any, i: number) => (
+                                                <div key={i} className="p-2 bg-muted/30 rounded-lg text-center">
+                                                    <div className="text-lg font-bold" style={{ color: members?.find(m => m.name === f.name)?.color }}>{f.percentageOfEntries}%</div>
+                                                    <div className="text-[10px] text-muted-foreground">{f.name} fronting</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                        <Users className="w-10 h-10 mb-3 opacity-30" />
+                                        <p className="text-sm">Log which member is fronting to see patterns</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <TrendingUp className="w-5 h-5 text-indigo-500" />
+                                Habit Completion vs Stress Reduction
+                            </CardTitle>
+                            <CardDescription>See how each habit affects your stress levels</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {insights?.rawCorrelations?.habitCorrelations && insights.rawCorrelations.habitCorrelations.length > 0 ? (
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart 
+                                        data={insights.rawCorrelations.habitCorrelations.map((h: any) => {
+                                            const stressReduction = (h.avgStressWithoutHabit || 0) - (h.avgStressWithHabit || 0);
+                                            return {
+                                                name: h.habitName.length > 15 ? h.habitName.slice(0, 15) + '...' : h.habitName,
+                                                'Stress Reduction': Math.max(0, stressReduction),
+                                                'Completion Rate': h.completionRate,
+                                            };
+                                        })}
+                                        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                                        <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} height={60} />
+                                        <YAxis tick={{ fontSize: 11 }} />
+                                        <Tooltip 
+                                            formatter={(value: number, name: string) => [`${value}${name.includes('Rate') ? '%' : ' pts'}`, name]}
+                                            contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} 
+                                        />
+                                        <Legend />
+                                        <Bar dataKey="Stress Reduction" name="Stress Reduction (pts)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="Completion Rate" name="Completion Rate %" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                    <TrendingUp className="w-10 h-10 mb-3 opacity-30" />
+                                    <p className="text-sm">Complete habits and log stress levels to see correlations</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {insights?.rawCorrelations?.highConfidence && (
+                        <Card className="border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Sparkles className="w-5 h-5 text-amber-500" />
+                                    High-Confidence Multi-Factor Insights
+                                </CardTitle>
+                                <CardDescription>Statistically validated correlations linking habits, mood, and routines together</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {insights.rawCorrelations.highConfidence.routineMoodCorrelation && (
+                                    <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                            <span className="font-medium text-emerald-700 dark:text-emerald-400">Routine → Mood Impact</span>
+                                            <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
+                                                insights.rawCorrelations.highConfidence.routineMoodCorrelation.confidence?.level === 'high' 
+                                                    ? 'bg-emerald-500/20 text-emerald-600' 
+                                                    : 'bg-amber-500/20 text-amber-600'
+                                            }`}>
+                                                {insights.rawCorrelations.highConfidence.routineMoodCorrelation.confidence?.level} confidence
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xl font-bold text-emerald-600">{insights.rawCorrelations.highConfidence.routineMoodCorrelation.avgMoodHighRoutine}</div>
+                                                <div className="text-[10px] text-muted-foreground">Mood (60%+ routine)</div>
+                                            </div>
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xl font-bold text-slate-500">{insights.rawCorrelations.highConfidence.routineMoodCorrelation.avgMoodLowRoutine}</div>
+                                                <div className="text-[10px] text-muted-foreground">Mood (30%- routine)</div>
+                                            </div>
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xl font-bold text-blue-600">+{insights.rawCorrelations.highConfidence.routineMoodCorrelation.moodImprovement}</div>
+                                                <div className="text-[10px] text-muted-foreground">Mood difference</div>
+                                            </div>
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xl font-bold text-purple-600">-{insights.rawCorrelations.highConfidence.routineMoodCorrelation.stressReduction}%</div>
+                                                <div className="text-[10px] text-muted-foreground">Stress reduction</div>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-3">
+                                            On {insights.rawCorrelations.highConfidence.routineMoodCorrelation.highRoutineDays} days with 60%+ routine completion, your mood averaged {insights.rawCorrelations.highConfidence.routineMoodCorrelation.avgMoodHighRoutine}/10 compared to {insights.rawCorrelations.highConfidence.routineMoodCorrelation.avgMoodLowRoutine}/10 on {insights.rawCorrelations.highConfidence.routineMoodCorrelation.lowRoutineDays} low-routine days.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {insights.rawCorrelations.highConfidence.habitRoutineSynergy && insights.rawCorrelations.highConfidence.habitRoutineSynergy.length > 0 && (
+                                    <div className="p-4 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                            <span className="font-medium text-indigo-700 dark:text-indigo-400">Habit + Routine Synergy Effects</span>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {insights.rawCorrelations.highConfidence.habitRoutineSynergy.slice(0, 3).map((syn: any, i: number) => (
+                                                syn && (
+                                                    <div key={i} className="flex items-center justify-between p-2 bg-background/50 rounded text-sm">
+                                                        <span className="font-medium">{syn.habitName}</span>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="text-center">
+                                                                <div className="text-xs text-muted-foreground">Both</div>
+                                                                <div className="font-bold text-emerald-600">{syn.avgMoodBoth || '-'}</div>
+                                                            </div>
+                                                            <div className="text-center">
+                                                                <div className="text-xs text-muted-foreground">Neither</div>
+                                                                <div className="font-bold text-slate-500">{syn.avgMoodNeither || '-'}</div>
+                                                            </div>
+                                                            <div className="text-center min-w-[60px]">
+                                                                <div className="text-xs text-muted-foreground">Synergy</div>
+                                                                <div className={`font-bold ${parseFloat(syn.synergyBonus || 0) > 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                                                    {parseFloat(syn.synergyBonus || 0) > 0 ? '+' : ''}{syn.synergyBonus || '0'}
+                                                                </div>
+                                                            </div>
+                                                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                                                syn.confidence?.level === 'high' ? 'bg-emerald-500/20 text-emerald-600' : 'bg-amber-500/20 text-amber-600'
+                                                            }`}>
+                                                                {syn.confidence?.level}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            ))}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-3">
+                                            Synergy bonus shows the mood improvement from doing both the habit AND routine together vs doing neither.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis && (
+                                    <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                                            <span className="font-medium text-purple-700 dark:text-purple-400">Best vs Worst Days Pattern</span>
+                                            <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
+                                                insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.confidence?.level === 'high' 
+                                                    ? 'bg-emerald-500/20 text-emerald-600' 
+                                                    : 'bg-amber-500/20 text-amber-600'
+                                            }`}>
+                                                {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.confidence?.level} confidence
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                                                <div className="text-sm font-medium text-emerald-600 mb-2">Best Days (avg mood {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.avgMoodBestDays})</div>
+                                                <div className="space-y-1 text-xs text-muted-foreground">
+                                                    <div>Sleep: {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.bestDaysPatterns.avgSleep}h avg</div>
+                                                    <div>Routine: {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.bestDaysPatterns.routineCompletionRate}% completion</div>
+                                                    {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.bestDaysPatterns.topHabits.length > 0 && (
+                                                        <div>Top habits: {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.bestDaysPatterns.topHabits.map((h: any) => `${h.name} (${h.frequency}%)`).join(', ')}</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                                                <div className="text-sm font-medium text-red-600 mb-2">Worst Days (avg mood {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.avgMoodWorstDays})</div>
+                                                <div className="space-y-1 text-xs text-muted-foreground">
+                                                    <div>Sleep: {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.worstDaysPatterns.avgSleep}h avg</div>
+                                                    <div>Routine: {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.worstDaysPatterns.routineCompletionRate}% completion</div>
+                                                    {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.worstDaysPatterns.topHabits.length > 0 && (
+                                                        <div>Top habits: {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.worstDaysPatterns.topHabits.map((h: any) => `${h.name} (${h.frequency}%)`).join(', ')}</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {insights.rawCorrelations.highConfidence.sleepHabitInteraction && (
+                                    <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                            <span className="font-medium text-blue-700 dark:text-blue-400">Sleep × {insights.rawCorrelations.highConfidence.sleepHabitInteraction.habitName} Interaction</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center text-sm">
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xs text-muted-foreground mb-1">Good Sleep + Habit</div>
+                                                <div className="font-bold text-emerald-600">{insights.rawCorrelations.highConfidence.sleepHabitInteraction.goodSleepWithHabitMood || '-'}</div>
+                                                <div className="text-[10px] text-muted-foreground">({insights.rawCorrelations.highConfidence.sleepHabitInteraction.goodSleepWithHabitCount} days)</div>
+                                            </div>
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xs text-muted-foreground mb-1">Good Sleep Only</div>
+                                                <div className="font-bold text-blue-600">{insights.rawCorrelations.highConfidence.sleepHabitInteraction.goodSleepNoHabitMood || '-'}</div>
+                                                <div className="text-[10px] text-muted-foreground">({insights.rawCorrelations.highConfidence.sleepHabitInteraction.goodSleepNoHabitCount} days)</div>
+                                            </div>
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xs text-muted-foreground mb-1">Bad Sleep + Habit</div>
+                                                <div className="font-bold text-amber-600">{insights.rawCorrelations.highConfidence.sleepHabitInteraction.badSleepWithHabitMood || '-'}</div>
+                                                <div className="text-[10px] text-muted-foreground">({insights.rawCorrelations.highConfidence.sleepHabitInteraction.badSleepWithHabitCount} days)</div>
+                                            </div>
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xs text-muted-foreground mb-1">Bad Sleep Only</div>
+                                                <div className="font-bold text-red-600">{insights.rawCorrelations.highConfidence.sleepHabitInteraction.badSleepNoHabitMood || '-'}</div>
+                                                <div className="text-[10px] text-muted-foreground">({insights.rawCorrelations.highConfidence.sleepHabitInteraction.badSleepNoHabitCount} days)</div>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-3">
+                                            This shows how sleep quality affects the mood impact of your most impactful habit.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {insights.rawCorrelations.highConfidence.highConfidenceHabits && insights.rawCorrelations.highConfidence.highConfidenceHabits.length > 0 && (
+                                    <div className="p-4 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-2 h-2 rounded-full bg-cyan-500"></div>
+                                            <span className="font-medium text-cyan-700 dark:text-cyan-400">Statistically Validated Habit Impacts</span>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {insights.rawCorrelations.highConfidence.highConfidenceHabits.slice(0, 4).map((h: any, i: number) => (
+                                                <div key={i} className="flex items-center justify-between p-2 bg-background/50 rounded text-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`w-2 h-2 rounded-full ${
+                                                            h.impactDirection === 'positive' ? 'bg-emerald-500' : 
+                                                            h.impactDirection === 'negative' ? 'bg-red-500' : 'bg-slate-500'
+                                                        }`}></span>
+                                                        <span className="font-medium">{h.habitName}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="text-right">
+                                                            <div className={`font-bold ${parseFloat(h.moodDifference) > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                                                {parseFloat(h.moodDifference) > 0 ? '+' : ''}{h.moodDifference} mood
+                                                            </div>
+                                                            <div className="text-[10px] text-muted-foreground">{h.avgMoodWithHabit} vs {h.avgMoodWithoutHabit}</div>
+                                                        </div>
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                                                h.effectSize === 'strong' ? 'bg-emerald-500/20 text-emerald-600' :
+                                                                h.effectSize === 'moderate' ? 'bg-amber-500/20 text-amber-600' : 'bg-slate-500/20 text-slate-600'
+                                                            }`}>{h.effectSize}</span>
+                                                            <span className="text-[10px] text-muted-foreground">{h.confidence?.level}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            </TabsContent>
+
+            <TabsContent value="map" className="animate-in slide-in-from-bottom-4 duration-500">
+                <Card className="bg-slate-950 border-slate-800 overflow-hidden relative min-h-[500px]">
+                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
+                    <CardHeader className="relative z-10 border-b border-slate-800/50 bg-slate-900/50 backdrop-blur-sm">
+                        <div className="flex justify-between items-center">
+                            <CardTitle className="text-slate-100 flex items-center gap-2">
+                                <Network className="w-5 h-5 text-indigo-400" /> 
+                                Topographical System Map
+                            </CardTitle>
+                            <div className="flex gap-4 text-xs text-slate-400 font-mono">
+                                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> Front</div>
+                                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-slate-600"></span> Deep Internal</div>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0 relative h-[500px]">
+                        {membersLoading ? (
+                          <div className="flex items-center justify-center h-full">
+                            <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
+                          </div>
+                        ) : alterPositions.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                            <Users className="w-12 h-12 mb-3 opacity-30" />
+                            <p>No members to display</p>
+                            <p className="text-xs text-slate-600 mt-1">Add members in System Insight to see them here</p>
+                          </div>
+                        ) : (
+                          <ResponsiveContainer width="100%" height="100%">
+                              <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.3} />
+                                  <XAxis type="number" dataKey="x" name="stiffness" hide domain={[0, 100]} />
+                                  <YAxis type="number" dataKey="y" name="stiffness" hide domain={[0, 100]} />
+                                  <ZAxis type="number" dataKey="z" range={[60, 400]} name="score" />
+                                  <Tooltip 
+                                      cursor={{ strokeDasharray: '3 3' }} 
+                                      content={({ active, payload }) => {
+                                          if (active && payload && payload.length) {
+                                              const data = payload[0].payload;
+                                              return (
+                                                  <div className="bg-slate-900 border border-indigo-500/50 p-3 rounded shadow-xl text-slate-100">
+                                                      <p className="font-bold mb-1">{data.name}</p>
+                                                      <p className="text-xs text-indigo-300">{data.status}</p>
+                                                      <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wide">Proximity: {data.z}%</p>
+                                                  </div>
+                                              );
+                                          }
+                                          return null;
+                                      }}
+                                  />
+                                  <Scatter name="Alters" data={alterPositions} fill="#8884d8">
+                                      {alterPositions.map((entry, index) => (
+                                          <Cell key={`cell-${index}`} fill={entry.status === 'Fronting' ? '#6366f1' : entry.status === 'Co-con' ? '#a855f7' : '#64748b'} />
+                                      ))}
+                                  </Scatter>
+                              </ScatterChart>
+                          </ResponsiveContainer>
+                        )}
+                        
+                        <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-10">
+                            <div className="w-[200px] h-[200px] rounded-full border border-indigo-500"></div>
+                            <div className="absolute w-[400px] h-[400px] rounded-full border border-indigo-500"></div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
         </Tabs>
       </div>
     </Layout>
