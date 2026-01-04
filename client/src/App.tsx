@@ -16,6 +16,7 @@ import { OrbitFab } from "@/components/orbit-fab";
 
 import Settings from "@/pages/settings";
 import TrackerPage from "@/pages/tracker";
+import AdminSeed from "@/pages/admin-seed";
 
 function Router() {
   return (
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/headspace" component={SystemInsight} />
       <Route path="/deep-mind" component={GeniusAI} />
       <Route path="/settings" component={Settings} />
+      <Route path="/admin/seed" component={AdminSeed} />
       <Route component={NotFound} />
     </Switch>
   );

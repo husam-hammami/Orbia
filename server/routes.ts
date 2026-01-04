@@ -1928,5 +1928,140 @@ ${JSON.stringify(context, null, 2)}`;
     }
   });
 
+  // Admin seed endpoint - populates database with initial data
+  app.post("/api/admin/seed", async (req, res) => {
+    const seedKey = req.headers["x-seed-key"];
+    const expectedKey = process.env.ADMIN_SEED_KEY;
+    if (!expectedKey || seedKey !== expectedKey) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const results: Record<string, number> = {};
+
+      // Seed Habits
+      const habits = [
+        { id: "72e14641-1729-464a-b329-0bb1dba34a72", title: "Walk 20 minutes", description: "Daily walk for mental health and spinal health", category: "movement", frequency: "daily", streak: 0, color: "#22c55e", target: 20, unit: "minutes" },
+        { id: "69ab4bb6-1d0d-4f5a-8f0f-ff25539ec12f", title: "Drink 1.5L water", description: "Stay hydrated throughout the day", category: "health", frequency: "daily", streak: 0, color: "#0ea5e9", target: 1500, unit: "ml" },
+        { id: "bf5b256f-6896-420c-9a2f-018f78fc2f69", title: "Journal + mood log", description: "1-3 sentences max", category: "mental", frequency: "daily", streak: 0, color: "#ec4899", target: 1, unit: "entry" },
+        { id: "e3e0bbd3-2fe8-451f-a9bc-120f4278db1a", title: "Take meds / supplements", description: "Daily medications and supplements", category: "health", frequency: "daily", streak: 0, color: "#10b981", target: 1, unit: "dose" },
+        { id: "d46a0786-baaa-4136-9763-09a57859d7af", title: "1-minute grounding", description: "Quick grounding exercise", category: "mental", frequency: "daily", streak: 0, color: "#6366f1", target: 1, unit: "minute" },
+        { id: "967aad5e-9927-4313-baf3-f711fa95a2ba", title: "Swim (short, easy)", description: "5-15 minutes easy swimming", category: "Mindfulness", frequency: "daily", streak: 0, color: "#06b6d4", target: 1, unit: "session" },
+        { id: "2cb36ddd-f711-4b29-8f0d-3c4930dd94a9", title: "Stretch back 5 minutes", description: "Gentle back stretches, no forcing", category: "Mindfulness", frequency: "daily", streak: 0, color: "hsl(32 60% 60%)", target: 5, unit: "minutes" },
+        { id: "5e500376-8d59-4973-9d22-f93f66feccdd", title: "Sleep ~7 hours", description: "Aim for adequate rest", category: "Creativity", frequency: "daily", streak: 0, color: "#8b5cf6", target: 7, unit: "hours" },
+        { id: "4c74cdde-2734-4522-8b0e-be4a9086e5d5", title: "Eat 2 meals", description: "No pressure to cook, delivery acceptable", category: "Work", frequency: "daily", streak: 0, color: "#f59e0b", target: 2, unit: "meals" },
+        { id: "eae8a85c-42ed-4ec2-a848-68ff9203a271", title: "Stop working by 18:00", description: "", category: "Work", frequency: "daily", streak: 0, color: "hsl(220 10% 40%)", target: 1, unit: "times" },
+        { id: "683a5ce4-a589-444d-b2d1-3531b685ede1", title: "Leave the house once", description: "", category: "Health", frequency: "daily", streak: 0, color: "hsl(180 30% 50%)", target: 1, unit: "times" },
+        { id: "4ab512b1-a99e-4104-b40f-3ececf9e4b67", title: "Prepare One Meal", description: "", category: "Mindfulness", frequency: "daily", streak: 0, color: "hsl(32 60% 60%)", target: 1, unit: "times" },
+        { id: "bd1e4994-db7c-4832-819e-6f5dcad9bc23", title: "Read a book", description: "Focused reading, any book, for about 30 minutes", category: "creativity", frequency: "daily", streak: 0, color: "hsl(174 60% 50%)", target: 30, unit: "minutes" },
+        { id: "82859fab-767f-48dd-a026-b3d3120c66a2", title: "No Porn", description: "", category: "Mindfulness", frequency: "daily", streak: 0, color: "hsl(0 40% 70%)", target: 1, unit: "times" },
+      ];
+      for (const habit of habits) {
+        try {
+          await storage.createHabit(habit);
+        } catch (e) { /* ignore duplicates */ }
+      }
+      results.habits = habits.length;
+
+      // Seed Routine Blocks
+      const blocks = [
+        { id: "c6a25b3c-d140-4490-b674-f571984aa5ea", name: "Morning", emoji: "🌅", startTime: "08:00", endTime: "09:00", purpose: "Signal safety + start the day cleanly ", order: 0, color: "#fbbf24" },
+        { id: "0079590c-0c28-4cd0-ab4c-5ba4079dd45d", name: "Work Block 1", emoji: "💻", startTime: "09:00", endTime: "13:00", purpose: "Prevent dissociation + pain flare-ups", order: 1, color: "#3b82f6" },
+        { id: "d7c632ac-5173-4ce4-9bd6-3c8b26714ed9", name: "Break", emoji: "🌤", startTime: "13:00", endTime: "14:00", purpose: "Antidepressant effect + spinal health", order: 2, color: "#22c55e" },
+        { id: "2eddfb51-7976-4481-b6b9-87fc7e779f2b", name: "Work Block 2", emoji: "💻", startTime: "14:00", endTime: "18:00", purpose: "Prevent endless work days (optional, lighter)", order: 3, color: "#8b5cf6" },
+        { id: "8d58f256-452c-4854-b0bf-f732a8497faa", name: "Late Afternoon", emoji: "🌊", startTime: "18:00", endTime: "20:00", purpose: "Movement without stress or goals", order: 4, color: "#06b6d4" },
+        { id: "08846613-1354-45a5-9fa6-70b979191b27", name: "Evening", emoji: "🌙", startTime: "20:30", endTime: "23:30", purpose: "Close the day properly (very important)", order: 5, color: "#6366f1" },
+      ];
+      for (const block of blocks) {
+        try {
+          await storage.createRoutineBlock(block);
+        } catch (e) { /* ignore duplicates */ }
+      }
+      results.routineBlocks = blocks.length;
+
+      // Seed Routine Activities
+      const activities = [
+        { id: "2d5f4773-11b2-4aaa-a651-fd2bffd61bf9", blockId: "c6a25b3c-d140-4490-b674-f571984aa5ea", name: "Wake up", time: "08:00", description: "Curtains open, no phone for first 10 minutes", habitId: null, order: 0 },
+        { id: "a1edf78c-a0a6-4900-bb95-49ae9b9b36d5", blockId: "c6a25b3c-d140-4490-b674-f571984aa5ea", name: "Drink water (first glass)", time: "08:05", description: null, habitId: "69ab4bb6-1d0d-4f5a-8f0f-ff25539ec12f", order: 1 },
+        { id: "6f906a9d-b0c9-4f70-b752-e94f4225bc24", blockId: "c6a25b3c-d140-4490-b674-f571984aa5ea", name: "Stretch back – 5 minutes", time: "08:10", description: "Gentle, no forcing", habitId: "2cb36ddd-f711-4b29-8f0d-3c4930dd94a9", order: 2 },
+        { id: "935706d5-2989-4a16-a323-e2a2197fc277", blockId: "c6a25b3c-d140-4490-b674-f571984aa5ea", name: "Meal 1", time: "08:20", description: "Simple, repeatable, same few foods most days", habitId: "4c74cdde-2734-4522-8b0e-be4a9086e5d5", order: 3 },
+        { id: "d7b703fe-8d7e-4556-80ad-7376819bf9cc", blockId: "c6a25b3c-d140-4490-b674-f571984aa5ea", name: "Prep for work", time: "08:40", description: null, habitId: null, order: 4 },
+        { id: "7b52cb30-fc96-4d01-bf49-58e4cb5e4780", blockId: "0079590c-0c28-4cd0-ab4c-5ba4079dd45d", name: "Work in 45-60 min chunks [total of 5]", time: null, description: "Stand or move briefly between chunks", habitId: null, order: 0 },
+        { id: "3fe60680-a949-4165-a726-6a90f7a45a82", blockId: "0079590c-0c28-4cd0-ab4c-5ba4079dd45d", name: "Stop at 13:00 even if unfinished", time: "13:00", description: null, habitId: null, order: 1 },
+        { id: "7f0b1a60-38e5-43bc-b8fc-03da5dfe11a2", blockId: "d7c632ac-5173-4ce4-9bd6-3c8b26714ed9", name: "Walk 10 minutes", time: "13:00", description: "Around JVC / indoors if hot", habitId: "72e14641-1729-464a-b329-0bb1dba34a72", order: 0 },
+        { id: "11620cbd-cdc2-441b-9a25-8af8b3638d73", blockId: "d7c632ac-5173-4ce4-9bd6-3c8b26714ed9", name: "Meal 2", time: "13:30", description: "No pressure to cook, delivery acceptable", habitId: "4c74cdde-2734-4522-8b0e-be4a9086e5d5", order: 1 },
+        { id: "b40fe46c-d684-42b2-b7d9-8d26a60e75b6", blockId: "d7c632ac-5173-4ce4-9bd6-3c8b26714ed9", name: "Rest/ quiet time", time: "14:00", description: null, habitId: null, order: 2 },
+        { id: "7cb3c02b-64bd-4351-a28b-fb9aed305eb5", blockId: "2eddfb51-7976-4481-b6b9-87fc7e779f2b", name: "5 blocks", time: null, description: "Only if capacity allows, lower expectations than morning", habitId: null, order: 0 },
+        { id: "d902f106-1344-4bee-a2e3-4a291b216813", blockId: "2eddfb51-7976-4481-b6b9-87fc7e779f2b", name: "Hard stop at 18:00", time: "18:00", description: null, habitId: "eae8a85c-42ed-4ec2-a848-68ff9203a271", order: 1 },
+        { id: "37cc6308-127b-4fbc-8ae1-8d38b85c1bec", blockId: "8d58f256-452c-4854-b0bf-f732a8497faa", name: "Choose one: Short swim / Mall walk / sit outside / Driving License", time: null, description: "5-15 minutes easy, OR very light movement, OR just sitting outside", habitId: "967aad5e-9927-4313-baf3-f711fa95a2ba", order: 0 },
+        { id: "2a1028fa-d367-44a2-8847-fc11e7b546fd", blockId: "08846613-1354-45a5-9fa6-70b979191b27", name: "Free time (YouTube/Twitch/Netflix allowed)", time: "20:30", description: null, habitId: null, order: 0 },
+        { id: "390aebb7-c804-4f57-8e2a-c003fa420667", blockId: "08846613-1354-45a5-9fa6-70b979191b27", name: "Journal + mood / mental metrics log", time: "20:30", description: "1-3 sentences max", habitId: "bf5b256f-6896-420c-9a2f-018f78fc2f69", order: 1 },
+        { id: "5c6c2ea3-5fc9-46dd-a274-52dbcf8817cd", blockId: "08846613-1354-45a5-9fa6-70b979191b27", name: "Prep for sleep", time: "21:00", description: "Lights down, no intense content", habitId: null, order: 2 },
+        { id: "854320d9-1470-47f0-9401-a4061dc44c48", blockId: "08846613-1354-45a5-9fa6-70b979191b27", name: "In bed", time: "23:30", description: "Aim for ~7 hours sleep", habitId: "5e500376-8d59-4973-9d22-f93f66feccdd", order: 3 },
+        { id: "17d6c0b3-670d-40ed-8107-03afbc04f831", blockId: "08846613-1354-45a5-9fa6-70b979191b27", name: "Meal prep.order", time: "21:30", description: null, habitId: "4ab512b1-a99e-4104-b40f-3ececf9e4b67", order: 4 },
+      ];
+      for (const activity of activities) {
+        try {
+          await storage.createRoutineActivity(activity);
+        } catch (e) { /* ignore duplicates */ }
+      }
+      results.routineActivities = activities.length;
+
+      // Seed System Members
+      const members = [
+        { id: "75c63f9b-d3a4-48ed-a6a5-24491a626fbb", name: "Noised", role: "Little", traits: [], color: "#ff0000", avatar: "user", description: "New system member.", location: "inner" },
+        { id: "462cbe4f-df24-4c56-8da1-151c8472817e", name: "Guardian", role: "Safety & Defense", traits: ["Vigilant", "Strong"], color: "#4265f0", avatar: "shield", description: "Steps in during high stress", location: "front" },
+        { id: "672914f3-2d23-46e6-b926-238e067635e3", name: "Despair", role: "Very negative", traits: [], color: "#6b7280", avatar: "users", description: "Nothing literally matters", location: null },
+        { id: "c81795d1-c4af-4730-9d61-187aa038853f", name: "Calm", role: "Daily Life", traits: ["Logical", "Responsible"], color: "#8b5cf6", avatar: "eye", description: "Handles work and daily routines", location: null },
+      ];
+      for (const member of members) {
+        try {
+          await storage.createMember(member);
+        } catch (e) { /* ignore duplicates */ }
+      }
+      results.systemMembers = members.length;
+
+      // Seed Career Projects
+      const projects = [
+        { id: "herc-core", title: "Hercules Core: PLC Configuration Engine", description: "Full customization platform for Salalah. Configurable offset addresses, PLC Tag mapping with unique Tag IDs, groups, sections, and report builder.", status: "in_progress", progress: 15, deadline: null, nextAction: "Define Tag ID schema", color: "bg-blue-500", tags: ["PLC", "Tags", "Configuration"] },
+        { id: "herc-protocols", title: "Multi-Protocol Support & Integration", description: "Extend beyond Siemens/S7 to support TCP/IP, OPC UA, Modbus, and other protocols.", status: "planning", progress: 0, deadline: null, nextAction: "Research protocol requirements", color: "bg-cyan-500", tags: ["Protocols", "SQL", "ETL"] },
+        { id: "herc-reports", title: "Report Builder & Export System", description: "Universal report builder for any Siemens/S7 integration without development.", status: "planning", progress: 0, deadline: null, nextAction: "Design report templates", color: "bg-emerald-500", tags: ["Reports", "Export", "SMTP"] },
+        { id: "herc-ai", title: "AI & ML Predictive Module", description: "Starred/tracked signals linked to ML models for prediction.", status: "planning", progress: 0, deadline: null, nextAction: "Define ML model requirements", color: "bg-purple-500", tags: ["AI", "ML", "Predictive"] },
+        { id: "herc-energy", title: "Energy Monitoring System", description: "Complete UI/UX rework for Energy Monitor.", status: "planning", progress: 0, deadline: null, nextAction: "Schedule UX review meeting", color: "bg-amber-500", tags: ["Energy", "Monitoring", "UI/UX"] },
+        { id: "herc-3d", title: "3D Plant Monitor & Digital Twin", description: "Plant Monitor as top-level view with 3D components.", status: "planning", progress: 0, deadline: null, nextAction: "Get Salalah mill photos", color: "bg-orange-500", tags: ["3D", "Digital Twin", "Plant Monitor"] },
+        { id: "herc-security", title: "Security & Access Control", description: "Reproducible system without hacking potential.", status: "planning", progress: 0, deadline: null, nextAction: "Define access levels", color: "bg-red-500", tags: ["Security", "Access Control", "Cybersecurity"] },
+        { id: "herc-erp", title: "ERP Integration Module", description: "Fully configurable ERP integration for flour milling/feed.", status: "planning", progress: 0, deadline: null, nextAction: "Define JSON payload schema", color: "bg-indigo-500", tags: ["ERP", "Integration", "JSON"] },
+        { id: "herc-infra", title: "Infrastructure & Deployment", description: "Scalable data storage for long-term retention with good performance.", status: "planning", progress: 0, deadline: null, nextAction: "Plan hosting migration", color: "bg-slate-500", tags: ["Infrastructure", "Hosting", "Scalability"] },
+      ];
+      for (const project of projects) {
+        try {
+          await storage.createCareerProject(project);
+        } catch (e) { /* ignore duplicates */ }
+      }
+      results.careerProjects = projects.length;
+
+      // Seed Career Tasks (abbreviated - key tasks only)
+      const tasks = [
+        { id: "fd2c5aa4-a60c-4fc8-a0f5-e77d764a58f0", projectId: "herc-core", title: "Design Tag ID schema with unique identifiers", description: "Each offset address will have a unique Tag ID for groups, sections, and reports", completed: 0, priority: "high", due: null, tags: ["Design", "Schema"] },
+        { id: "dca36b7c-7f03-4d21-8d1d-5a90eb24ae6e", projectId: "herc-core", title: "Build PLC Settings page UI", description: "Configuration interface for PLC connections", completed: 0, priority: "high", due: null, tags: ["UI", "PLC"] },
+        { id: "69c465d5-0c71-4493-8f53-d80d43370e96", projectId: "herc-core", title: "Create Mapping page and options", description: "Tag mapping interface with offset address configuration", completed: 0, priority: "medium", due: null, tags: ["Mapping", "UI"] },
+        { id: "cc3ecddf-2df9-404a-95c6-b28d84075420", projectId: "herc-core", title: "Implement Tags management with data types/units", description: "CRUD for tags with type and unit configuration", completed: 0, priority: "medium", due: null, tags: ["Tags", "CRUD"] },
+        { id: "a6b1dcf1-68ad-47e2-b1bb-49a2718a9d05", projectId: "herc-core", title: "Add custom formula support with unique result IDs", description: "Formula builder for computed tags", completed: 0, priority: "medium", due: null, tags: ["Formula", "Tags"] },
+        { id: "50f239e1-d6e7-4506-8242-6d0a9d97b5ea", projectId: "herc-core", title: "Implement sections and grouping for tags", description: "Research and build tag organization system", completed: 0, priority: "low", due: null, tags: ["Groups", "Organization"] },
+      ];
+      for (const task of tasks) {
+        try {
+          await storage.createCareerTask(task);
+        } catch (e) { /* ignore duplicates */ }
+      }
+      results.careerTasks = tasks.length;
+
+      res.json({ success: true, seeded: results });
+    } catch (error) {
+      console.error("Seed error:", error);
+      res.status(500).json({ error: "Failed to seed database" });
+    }
+  });
+
   return httpServer;
 }
