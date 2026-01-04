@@ -72,6 +72,30 @@ Key data models:
   - `GET /api/insights`: Returns structured JSON insights analyzing linked mood, habit, and routine data
   - `POST /api/insights/analyze`: Streaming endpoint for custom pattern analysis questions
   - `POST /api/conversations/:id/messages`: Streaming chat with conversation history
+  - `POST /api/orbit/chat`: Streaming chat endpoint for Orbit co-pilot
+
+### Orbit Co-Pilot
+
+Orbit is a calm, operational co-pilot chat interface that helps users operate the app without navigating complex menus.
+
+**Features**:
+- Today Snapshot strip showing habits completed, routine progress, current fronter, load/stability metrics
+- Streaming chat with conversation persistence (localStorage)
+- Quick chips for common queries ("Today summary", "What's left?", "Low-capacity mode")
+- Action execution system for read/write operations
+
+**Supported Actions**:
+- `mark_habit`: Toggle habit completion for a date
+- `add_task`: Create a new todo with priority
+- `mark_task`: Toggle task completion status
+- `mark_routine_activity`: Toggle routine activity with linked habit
+- `set_low_capacity_mode` / `unset_low_capacity_mode`: Toggle low-capacity overlay
+
+**Low-Capacity Mode**:
+When activated, shows 3 core actions (grounding, stretching, leaving house/walking) and marks other routine items as optional.
+
+**Data Context**:
+Orbit has access to habits, routine blocks/activities/logs, todos, tracker entries, and system members to provide grounded responses.
 
 The AI insights system:
 - Parses tracker notes to extract normalized metrics (sleep, pain, comfort, communication, urges)
