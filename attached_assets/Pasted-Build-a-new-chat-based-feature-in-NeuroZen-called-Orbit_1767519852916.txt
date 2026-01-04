@@ -1,0 +1,132 @@
+Build a new chat-based feature in NeuroZen called “Orbit”.
+
+GOAL
+Orbit is a calm, neutral co-pilot that helps the user operate NeuroZen using ONLY the user’s NeuroZen data (habits, routine, tasks, mood/system logs, and stored diagnoses). Orbit should:
+1) Orient the user (“what matters right now”)
+2) Summarize patterns briefly (no therapy, no speculation)
+3) Execute user commands by modifying the system (add/edit/remove habits, mark done, edit routine, mark blocks done, add/complete tasks, create logs)
+
+KEEP IT SIMPLE
+- One new page/route: /orbit
+- A basic chat UI
+- A simple “action JSON” format for tool calls
+- A small action runner that executes actions via existing functions/endpoints
+- Confirmation required only for destructive actions
+
+ORBIT TONE
+- Calm, brief, operational.
+- No “you should”, no praise/shame, no deep emotional probing.
+- Uses data-grounded language: “Based on today’s logs…”
+- Permission-based actions unless the user gives a direct command.
+
+WHAT ORBIT MUST NOT DO
+- Diagnose or interpret psychology
+- Explain “why you feel this way”
+- Encourage dependence (“I’m always here for you”)
+- Invent data or pretend it completed actions
+
+UI REQUIREMENTS
+Orbit page layout:
+1) Top “Today Snapshot” strip (small, 1–2 lines):
+   - Habits done count (today)
+   - Routine completion % (today)
+   - Latest fronting state (if available)
+   - Latest: External Pressure + Internal Stability (if available)
+2) Chat thread (messages)
+3) Input box
+4) Quick chips (optional) above input:
+   - “Today summary”
+   - “What’s left?”
+   - “Low-capacity mode”
+   - “Add habit”
+   - “Edit routine”
+
+GENIUS BUT SIMPLE BEHAVIOR (core flows)
+A) If user says “what now?” → Orbit replies with:
+   - Current routine block (based on time)
+   - ONE smallest next step (pick from routine/habits)
+   - Ask: “Want me to mark it done after?”
+B) If user says “I’m overwhelmed” → Orbit offers:
+   - “Switch today to low-capacity mode?” (see below)
+C) If user asks for insights → Orbit gives only 2–3 correlations:
+   - “On high external pressure days, Guardian appears more often”
+   - “Walk days correlate with calmer evenings”
+   - Never claim causation
+
+LOW-CAPACITY MODE (must implement)
+This is a reversible “overlay” for today only:
+- Highlights 3 core actions (example):
+  1) 1-minute grounding
+  2) Stretch back 5 minutes
+  3) Leave the house once OR walk 10–20 min
+- Optionally reduces routine expectations (mark later blocks as optional)
+- Must be reversible with one command: “Undo low-capacity mode”
+
+ACTION SYSTEM (simple tool-calling)
+Orbit can output either:
+1) Normal chat text
+OR
+2) A single JSON action object EXACTLY like this:
+
+{
+  "type": "action",
+  "name": "mark_habit",
+  "args": { "habit_id": "…", "date": "YYYY-MM-DD", "done": true },
+  "confirm": false,
+  "confirm_text": ""
+}
+
+Destructive actions must set confirm=true with a confirm_text.
+
+SUPPORTED ACTIONS (implement these)
+READ:
+- get_today_snapshot
+- list_habits
+- list_routine_today
+- list_tasks_today
+- get_recent_logs (today + last 7 days)
+
+WRITE:
+- mark_habit
+- add_habit
+- edit_habit
+- remove_habit (confirm required)
+- mark_routine_item
+- edit_routine_item
+- add_task
+- mark_task
+- add_log_entry
+- set_low_capacity_mode
+- unset_low_capacity_mode
+
+PERMISSION RULES
+- If user intent is ambiguous, Orbit asks ONE clarifying question.
+- If removing/editing something important (remove habit, major routine change), ask confirmation.
+
+IMPLEMENTATION TASKS (Replit)
+1) Add /orbit route + nav link “Orbit”.
+2) Build chat UI with message persistence (local storage is fine for v1).
+3) Implement an Orbit “engine”:
+   - Takes user message + current NeuroZen data context
+   - Calls LLM
+   - If response.type === "action": run the action via existing service functions/endpoints
+   - Append a short result message to chat (“Done: marked Walk 20 minutes ✅”)
+4) Provide a small “data context builder” used for prompts:
+   - today snapshot
+   - habits list + today completion
+   - routine blocks + today completion
+   - latest mood/system metrics
+   - last 7 days summary (light: averages + most common state)
+5) Add quick chips that send pre-filled prompts.
+
+ORBIT SYSTEM PROMPT (use this as the LLM system message)
+“You are Orbit, a calm operational co-pilot for NeuroZen. You only use NeuroZen data provided in context. You help the user operate the app: summarize today briefly, suggest the smallest next step when asked, and execute user requests by returning at most one action JSON object. You never diagnose, never interpret psychology, never shame, never use motivational pressure, and never invent data. If an action is destructive, require confirmation. If unsure, ask one clarifying question. Keep responses short and practical.”
+
+OUTPUT
+Generate the code changes needed:
+- Orbit page/route + nav entry
+- Chat UI
+- Action JSON parser + runner
+- Stubs or calls to existing endpoints for the supported actions
+- Basic local persistence for chat messages
+- A few example prompts in chips
