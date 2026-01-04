@@ -61,17 +61,19 @@ import type { Expense } from "@shared/schema";
 type ExpenseCategory = "Fixed" | "Variable" | "Savings" | "Debt";
 type ExpenseStatus = "paid" | "pending" | "variable";
 
-const MONTHLY_BUDGET = 4500;
+const MONTHLY_BUDGET = 15000;
 const DAYS_LEFT = 12;
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const LOAN_PROGRESS = {
-    total: 25000,
-    paid: 8500,
-    monthlyPayment: 450,
+    total: 90000,
+    paid: 30000,
+    monthlyPayment: 1650,
     remainingMonths: 36
 };
+
+const formatAED = (amount: number) => `AED ${amount.toLocaleString()}`;
 
 // Helper icons map
 const getCategoryIcon = (category: ExpenseCategory) => {
@@ -279,12 +281,12 @@ export default function FinancePage() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-3xl font-bold flex items-baseline gap-1">
-                        <span className="text-base text-muted-foreground align-top mt-1">$</span>
+                        <span className="text-base text-muted-foreground align-top mt-1">AED</span>
                         {MONTHLY_BUDGET.toLocaleString()}
                     </div>
                     <div className="mt-4 space-y-2">
                         <div className="flex justify-between text-sm">
-                            <span>Spent: ${totalSpent.toLocaleString()}</span>
+                            <span>Spent: {formatAED(totalSpent)}</span>
                             <span className="text-muted-foreground">{percentSpent.toFixed(0)}%</span>
                         </div>
                         <Progress value={percentSpent} className={cn("h-2", percentSpent > 90 ? "bg-rose-100" : "bg-muted")} indicatorClassName={percentSpent > 90 ? "bg-rose-500" : percentSpent > 75 ? "bg-amber-500" : "bg-emerald-500"} />
@@ -298,14 +300,14 @@ export default function FinancePage() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-3xl font-bold flex items-baseline gap-1 text-emerald-600">
-                        <span className="text-base text-emerald-600/60 align-top mt-1">$</span>
+                        <span className="text-base text-emerald-600/60 align-top mt-1">AED</span>
                         {(MONTHLY_BUDGET - totalSpent).toLocaleString()}
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
                         With {DAYS_LEFT} days left in the month.
                     </p>
                     <div className="mt-4 text-xs font-medium text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded inline-block">
-                        Safe daily spend: ${Math.max(0, (MONTHLY_BUDGET - totalSpent) / DAYS_LEFT).toFixed(0)}
+                        Safe daily spend: AED {Math.max(0, (MONTHLY_BUDGET - totalSpent) / DAYS_LEFT).toFixed(0)}
                     </div>
                 </CardContent>
             </Card>
@@ -316,7 +318,7 @@ export default function FinancePage() {
                 </CardHeader>
                 <CardContent>
                      <div className="text-3xl font-bold flex items-baseline gap-1">
-                        <span className="text-base text-muted-foreground align-top mt-1">$</span>
+                        <span className="text-base text-muted-foreground align-top mt-1">AED</span>
                         {LOAN_PROGRESS.paid.toLocaleString()}
                         <span className="text-base font-normal text-muted-foreground"> / {LOAN_PROGRESS.total.toLocaleString()}</span>
                     </div>
@@ -378,8 +380,8 @@ export default function FinancePage() {
                                                 
                                                 <div className="flex items-center gap-4">
                                                     <div className="text-right">
-                                                        <div className="font-bold font-mono">${expense.amount}</div>
-                                                        {expense.budget > 0 && <div className="text-xs text-muted-foreground">of ${expense.budget}</div>}
+                                                        <div className="font-bold font-mono">AED {expense.amount.toLocaleString()}</div>
+                                                        {expense.budget > 0 && <div className="text-xs text-muted-foreground">of AED {expense.budget.toLocaleString()}</div>}
                                                     </div>
                                                     
                                                     <DropdownMenu>
@@ -438,7 +440,7 @@ export default function FinancePage() {
                                         ))}
                                     </Pie>
                                     <Tooltip 
-                                        formatter={(value: number) => `$${value.toLocaleString()}`}
+                                        formatter={(value: number) => `AED ${value.toLocaleString()}`}
                                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--background))' }}
                                     />
                                     <Legend verticalAlign="bottom" height={36}/>
@@ -447,7 +449,7 @@ export default function FinancePage() {
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <div className="text-center">
                                     <div className="text-sm font-medium text-muted-foreground">Total</div>
-                                    <div className="text-xl font-bold text-foreground">${totalSpent.toLocaleString()}</div>
+                                    <div className="text-xl font-bold text-foreground">AED {totalSpent.toLocaleString()}</div>
                                 </div>
                             </div>
                         </div>
@@ -491,7 +493,7 @@ export default function FinancePage() {
                         />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="amount" className="text-right">Amount ($)</Label>
+                        <Label htmlFor="amount" className="text-right">Amount (AED)</Label>
                         <Input 
                             id="amount" 
                             type="number"
@@ -501,7 +503,7 @@ export default function FinancePage() {
                         />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="budget" className="text-right">Budget ($)</Label>
+                        <Label htmlFor="budget" className="text-right">Budget (AED)</Label>
                         <Input 
                             id="budget" 
                             type="number"
