@@ -1,0 +1,75 @@
+AI Pattern Analysis
+Deep Mind's analysis of your mood, habits, and routine patterns.
+High-Resolution Analysis Active: Deep Mind is analyzing intra-day variance. Fluctuations in stress and dissociation throughout the day are weighted heavily to prevent data flattening.
+You’ve already logged enough to establish a clear baseline—mood 5.0, stress 30, dissociation 20—and started engaging with both routines and the 'Stretch back 5 minutes' habit. That’s a solid foundation to build on, especially given how new this setup is.
+Key Correlations Detected
+Good sleep (around 7.0 hours)
+~
+Mood and dissociation
+weak
+Stretch back 5 minutes habit
+~
+Mood, stress, and energy
+weak
+Morning + Work Block 1 routines
+↑
+Daily structure
+weak
+Host fronting
+~
+Emotional baseline
+weak
+📊
+Baseline emotional state
+avgMood 5.0, avgStress 30, avgDissociation 20, avgEnergy 5.0
+limited
+Across 2 mood entries, your average mood is 5.0/10, stress is 30/100, energy is 5.0/10, and dissociation is 20/100. This gives a stable but mid-range baseline to compare future changes against.
+
+Use this 5.0 mood and 20 dissociation baseline as a reference; as you add more days, you’ll be able to see if specific habits or routines push these numbers up or down.
+
+😴
+Consistent 7-hour sleep baseline
+avgSleepHours 7.0 with avgMoodGoodSleep 5.0 and avgDissociationGoodSleep 20
+limited
+On both recorded days, you slept an average of 7.0 hours, with 100% of tracked days in the "good sleep" range (2/2 days). On these good sleep days, mood averages 5.0/10 and dissociation averages 20/100. There is no contrasting "low sleep" data yet, so we can’t calculate differences, but this establishes a solid reference point.
+
+Keep logging sleep each day; once there are some lower-sleep nights, we’ll be able to quantify exactly how much sleep changes your mood and dissociation (e.g., +/− mood points or % change in dissociation).
+
+✓
+First signals from 'Stretch back 5 minutes'
+completionRate 7% with avgMoodWithoutHabit 5.0 and avgStressWithoutHabit 30
+limited
+The habit 'Stretch back 5 minutes' shows a 7% completion rate over the 14-day window, completed on 1 day (4 total completions on that day). On days WITHOUT this habit, your average mood is 5.0/10, stress is 30/100, and energy is 5.0/10. There is not yet any valid 'with habit' mood or stress average (all null), so we can’t compute point or percentage changes yet.
+
+Try to complete 'Stretch back 5 minutes' on at least 3–5 separate days; once we have both 'with habit' and 'without habit' averages, we’ll be able to quantify its effect (e.g., +1 mood point or −10% stress).
+
+📅
+Morning and Work Block 1 are your most active routines
+Morning completionRate 3% (2 completions), Work Block 1 completionRate 4% (1 completion)
+limited
+Among 6 routine blocks, 'Morning' and 'Work Block 1' show the most engagement. The 'Morning' block has a 3% completion rate with 2 total completed activities out of 5 possible, while 'Work Block 1' has a 4% completion rate with 1 completed activity out of 2. All other blocks ('Midday Reset', 'Work Block 2', 'Late Afternoon', 'Evening') currently show 0% completion. This means 100% of your 3 logged routine completions are concentrated in the morning and early work period.
+
+Since the 'Morning' and 'Work Block 1' blocks are already getting some traction, consider stabilizing just these two first (e.g., aim to complete 1–2 activities in each most days) before worrying about later blocks.
+
+👥
+Host is handling 100% of recorded fronting
+Host percentageOfEntries 100% with avgMood 5.0, avgStress 30, avgDissociation 20
+limited
+All mood entries (2/2, or 100%) are logged with 'Host' fronting. During Host’s fronting, average mood is 5.0/10, stress is 30/100, and dissociation is 20/100. There are currently no entries for 'Protector', so we cannot compare emotional patterns between members yet.
+
+If it feels safe, you might invite other members (like Protector) to log at least occasional check-ins; that will let us see whether different system members have different typical stress or dissociation levels.
+
+📊
+Early engagement with habits and routines
+totalHabitCompletions 4, totalRoutineCompletions 3
+limited
+In this 14-day window, there are 4 total habit completions and 3 total routine completions. With 9 habits defined and 6 routine blocks active, that means only a small portion are being used so far, but they’re starting to show up regularly in the data.
+
+Instead of trying to use all 9 habits, continue focusing on just 1–2 key ones (like 'Stretch back 5 minutes' and hydration) so we can build enough data to see clear effects on your mood and stress.
+
+Analysis Summary
+
+Period:14 days
+Entries:2
+Habits:9
+Trend:stable
