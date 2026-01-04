@@ -340,11 +340,11 @@ export default function DeepMind() {
     const capacityNow = (entries24h_cap ?? 3) * 20 - workPenalty;
     
     return [
-      { name: "Dissociation", icon: "🧠", value: Math.max(0, Math.min(100, dissNow)), trend: getTrend(dissNow, dissPrev) },
-      { name: "Communication", icon: "💬", value: Math.max(0, Math.min(100, commNow)), trend: getTrend(commNow, commPrev) },
-      { name: "Regulation", icon: "⚖️", value: Math.max(0, Math.min(100, regNow)), trend: getTrend(regNow, regPrev) },
-      { name: "Grounding", icon: "🧘", value: Math.max(0, Math.min(100, groundNow)), trend: getTrend(groundNow, groundPrev) },
-      { name: "Capacity", icon: "🔋", value: Math.max(0, Math.min(100, capacityNow)), trend: getTrend(capacityNow, capacityPrev) },
+      { name: "Dissociation", icon: "🧠", value: Math.max(12, Math.min(100, dissNow || 50)), trend: getTrend(dissNow, dissPrev) },
+      { name: "Communication", icon: "💬", value: Math.max(12, Math.min(100, commNow || 50)), trend: getTrend(commNow, commPrev) },
+      { name: "Regulation", icon: "⚖️", value: Math.max(12, Math.min(100, regNow || 50)), trend: getTrend(regNow, regPrev) },
+      { name: "Grounding", icon: "🧘", value: Math.max(12, Math.min(100, groundNow || 50)), trend: getTrend(groundNow, groundPrev) },
+      { name: "Capacity", icon: "🔋", value: Math.max(12, Math.min(100, capacityNow || 50)), trend: getTrend(capacityNow, capacityPrev) },
     ];
   })();
 
@@ -511,7 +511,7 @@ export default function DeepMind() {
                         </div>
                         <div className="flex flex-col">
                           <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.2em] leading-none mb-1.5">Safe Next Action</span>
-                          <span className="text-base font-semibold text-slate-100">{safeAction || "Take a slow deep breath and notice three colors in the room"}</span>
+                          <span className="text-base font-semibold text-white drop-shadow-sm">{safeAction || "Take a slow deep breath and notice three colors in the room"}</span>
                         </div>
                       </div>
                     )}
