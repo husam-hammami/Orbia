@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo, DailySummary, CareerProject, CareerTask, Expense, JournalEntry } from "@shared/schema";
+import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo, DailySummary, CareerProject, CareerTask, Expense, JournalEntry, InsertJournalEntry } from "@shared/schema";
 
 // Helper to handle API calls
 async function fetchAPI(url: string, options?: RequestInit) {
@@ -841,7 +841,7 @@ export function useJournalEntries() {
 export function useCreateJournalEntry() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Omit<JournalEntry, "id" | "createdAt">) =>
+    mutationFn: (data: InsertJournalEntry) =>
       fetchAPI("/api/journal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -856,7 +856,7 @@ export function useCreateJournalEntry() {
 export function useUpdateJournalEntry() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<JournalEntry> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<InsertJournalEntry> }) =>
       fetchAPI(`/api/journal/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
