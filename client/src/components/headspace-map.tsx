@@ -40,6 +40,12 @@ export function HeadspaceMap() {
   const [rooms, setRooms] = useState(DEFAULT_ROOMS);
   const [isEditingRooms, setIsEditingRooms] = useState(false);
 
+  const handleUpdateRoom = (roomId: string, field: 'name' | 'description', value: string) => {
+    setRooms(prev => prev.map(room => 
+      room.id === roomId ? { ...room, [field]: value } : room
+    ));
+  };
+
   const moveMember = (memberId: string, roomId: string) => {
     updateMember.mutate({ 
       id: memberId, 
