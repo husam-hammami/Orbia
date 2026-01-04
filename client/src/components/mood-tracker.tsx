@@ -233,7 +233,7 @@ export function MoodTracker() {
                        <Slider value={systemComm} onValueChange={setSystemComm} max={10} step={1} className="h-4 [&_.bg-primary]:bg-indigo-500" />
                     </div>
                     
-                    {/* Mobile Fronting Input (visible if hidden in header) */}
+                    {/* Who is fronting? */}
                     <div>
                         <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Who is fronting?</label>
                         {membersLoading ? (
@@ -264,6 +264,14 @@ export function MoodTracker() {
                           <p className="text-sm text-muted-foreground">No members yet. Add members in System Insight.</p>
                         )}
                     </div>
+
+                    {/* Daily Note - moved here to fill space */}
+                    <Textarea 
+                         placeholder="Daily Note..."
+                         className="bg-muted/30 resize-none h-[88px] text-xs"
+                         value={note}
+                         onChange={(e) => setNote(e.target.value)}
+                    />
                 </div>
 
                 {/* 2. Physical Body */}
@@ -366,14 +374,6 @@ export function MoodTracker() {
                        </div>
                        <Slider value={urges} onValueChange={setUrges} max={10} step={1} className="h-4 [&_.bg-primary]:bg-orange-500" />
                     </div>
-
-                    {/* Note */}
-                    <Textarea 
-                         placeholder="Daily Note..."
-                         className="bg-muted/30 resize-none h-[88px] text-xs"
-                         value={note}
-                         onChange={(e) => setNote(e.target.value)}
-                    />
                 </div>
               </div>
 
@@ -553,8 +553,8 @@ export function MoodTracker() {
                     )}
                   </div>
 
-                  {/* Tags, Triggers, Meals */}
-                  {(parsed.tags.length > 0 || parsed.triggers.length > 0 || parsed.meals.length > 0) && (
+                  {/* Tags and Triggers */}
+                  {(parsed.tags.length > 0 || parsed.triggers.length > 0) && (
                     <div className="flex flex-wrap gap-1.5">
                       {parsed.tags.map((tag, i) => (
                         <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
@@ -564,11 +564,6 @@ export function MoodTracker() {
                       {parsed.triggers.map((trigger, i) => (
                         <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 border border-red-200 dark:border-red-800">
                           {trigger}
-                        </span>
-                      ))}
-                      {parsed.meals.map((meal, i) => (
-                        <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
-                          <Utensils className="w-3 h-3 inline mr-1" />{meal}
                         </span>
                       ))}
                     </div>
