@@ -201,3 +201,20 @@ export const insertRoutineActivityLogSchema = createInsertSchema(routineActivity
 
 export type RoutineActivityLog = typeof routineActivityLogs.$inferSelect;
 export type InsertRoutineActivityLog = z.infer<typeof insertRoutineActivityLogSchema>;
+
+// Simple To-Do List
+export const todos = pgTable("todos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  completed: integer("completed").notNull().default(0), // 0 = false, 1 = true
+  priority: text("priority").notNull().default("medium"), // "low" | "medium" | "high"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertTodoSchema = createInsertSchema(todos).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Todo = typeof todos.$inferSelect;
+export type InsertTodo = z.infer<typeof insertTodoSchema>;

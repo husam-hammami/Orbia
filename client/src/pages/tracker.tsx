@@ -8,6 +8,7 @@ import { HabitGarden } from "@/components/habit-garden";
 import { HabitListCompact } from "@/components/habit-list-compact";
 import { HabitForm } from "@/components/habit-form";
 import { SystemJournal } from "@/components/system-journal";
+import { TodoList } from "@/components/todo-list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +20,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { format } from "date-fns";
-import { Activity, Calendar, Sparkles, LayoutGrid, List, Flower2, Loader2, NotebookPen } from "lucide-react";
+import { Activity, Calendar, Sparkles, LayoutGrid, List, Flower2, Loader2, NotebookPen, ListTodo } from "lucide-react";
 import { Habit } from "@/lib/types";
 import { toast } from "sonner";
 import { useHabits, useCreateHabit, useDeleteHabit, useUpdateHabit, useAddHabitCompletion, useRemoveHabitCompletion } from "@/lib/api-hooks";
@@ -161,18 +162,22 @@ export default function TrackerPage() {
         </div>
 
         <Tabs defaultValue="habits" className="w-full">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="habits" className="gap-2" data-testid="tab-habits">
               <Sparkles className="w-4 h-4" />
               Habits
             </TabsTrigger>
             <TabsTrigger value="mood" className="gap-2" data-testid="tab-mood">
               <Activity className="w-4 h-4" />
-              Mood & Metrics
+              Mood
             </TabsTrigger>
             <TabsTrigger value="routine" className="gap-2" data-testid="tab-routine">
               <Calendar className="w-4 h-4" />
               Routine
+            </TabsTrigger>
+            <TabsTrigger value="todos" className="gap-2" data-testid="tab-todos">
+              <ListTodo className="w-4 h-4" />
+              Tasks
             </TabsTrigger>
           </TabsList>
           
@@ -261,6 +266,12 @@ export default function TrackerPage() {
               <RoutineEditor />
             </div>
             <RoutineTimeline />
+          </TabsContent>
+          
+          <TabsContent value="todos" className="mt-6" data-testid="content-todos">
+            <div className="max-w-2xl">
+              <TodoList />
+            </div>
           </TabsContent>
         </Tabs>
       </div>

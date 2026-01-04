@@ -19,6 +19,8 @@ import {
   type InsertRoutineActivity,
   type RoutineActivityLog,
   type InsertRoutineActivityLog,
+  type Todo,
+  type InsertTodo,
   systemMembers,
   trackerEntries,
   systemMessages,
@@ -28,7 +30,8 @@ import {
   habitCompletions,
   routineBlocks,
   routineActivities,
-  routineActivityLogs
+  routineActivityLogs,
+  todos
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -98,6 +101,12 @@ export interface IStorage {
 
   // Atomic routine + habit sync
   toggleRoutineActivityWithHabit(activityId: string, date: string, habitId: string | null, action: "add" | "remove"): Promise<{ success: boolean }>;
+
+  // Todos
+  getAllTodos(): Promise<Todo[]>;
+  createTodo(todo: InsertTodo): Promise<Todo>;
+  updateTodo(id: string, todo: Partial<InsertTodo>): Promise<Todo | undefined>;
+  deleteTodo(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -360,6 +369,26 @@ export class DatabaseStorage implements IStorage {
       console.error("Transaction failed:", error);
       return { success: false };
     }
+  }
+
+  // Todos
+  async getAllTodos(): Promise<Todo[]> {
+    return await db.select().from(todos).orderBy(desc(todos.createdAt));
+  }
+
+  async createTodo(todo: InsertTodo): Promise<Todo> {
+    const result = await db.insert(todos).values(todo).returning();
+    return result[0];
+  }
+
+  async updateTodo(id: string, todo: Partial<InsertTodo>): Promise<Todo | undefined> {
+    const result = await db.update(todos).set(todo).where(eq(todos.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteTodo(id: string): Promise<boolean> {
+    const result = await db.delete(todos).where(eq(todos.id, id)).returning();
+    return result.length > 0;
   }
 }
 

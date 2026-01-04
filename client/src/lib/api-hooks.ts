@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog } from "@shared/schema";
+import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo } from "@shared/schema";
 
 // Helper to handle API calls
 async function fetchAPI(url: string, options?: RequestInit) {
@@ -498,6 +498,57 @@ export function useDeleteRoutineActivity() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["routineActivities"] });
+    },
+  });
+}
+
+// Todos Hooks
+export function useTodos() {
+  return useQuery<Todo[]>({
+    queryKey: ["todos"],
+    queryFn: () => fetchAPI("/api/todos"),
+  });
+}
+
+export function useCreateTodo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { title: string; priority?: string; completed?: number }) =>
+      fetchAPI("/api/todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+    },
+  });
+}
+
+export function useUpdateTodo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; title?: string; priority?: string; completed?: number }) =>
+      fetchAPI(`/api/todos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+    },
+  });
+}
+
+export function useDeleteTodo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchAPI(`/api/todos/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
     },
   });
 }

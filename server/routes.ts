@@ -11,7 +11,8 @@ import {
   insertHabitCompletionSchema,
   insertRoutineBlockSchema,
   insertRoutineActivitySchema,
-  insertRoutineActivityLogSchema
+  insertRoutineActivityLogSchema,
+  insertTodoSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { registerChatRoutes } from "./replit_integrations/chat";
@@ -1338,6 +1339,53 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
       } else {
         res.status(500).json({ error: "Failed to analyze patterns" });
       }
+    }
+  });
+
+  // Todos Routes
+  app.get("/api/todos", async (req, res) => {
+    try {
+      const todos = await storage.getAllTodos();
+      res.json(todos);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch todos" });
+    }
+  });
+
+  app.post("/api/todos", async (req, res) => {
+    try {
+      const validatedData = insertTodoSchema.parse(req.body);
+      const todo = await storage.createTodo(validatedData);
+      res.status(201).json(todo);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.patch("/api/todos/:id", async (req, res) => {
+    try {
+      const validatedData = insertTodoSchema.partial().parse(req.body);
+      const todo = await storage.updateTodo(req.params.id, validatedData);
+      if (!todo) {
+        return res.status(404).json({ error: "Todo not found" });
+      }
+      res.json(todo);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/todos/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteTodo(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Todo not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete todo" });
     }
   });
 
