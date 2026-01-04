@@ -57,7 +57,11 @@ import {
   useExpenses,
   useCreateExpense,
   useUpdateExpense,
-  useDeleteExpense
+  useDeleteExpense,
+  useJournalEntries,
+  useCreateJournalEntry,
+  useUpdateJournalEntry,
+  useDeleteJournalEntry
 } from "@/lib/api-hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -138,12 +142,17 @@ EXPENSES:
 - update_expense: {"expense_id": "...", "amount": number, "status": "paid/pending/variable", "name": "..."}
 - delete_expense: {"expense_id": "..."} - ALWAYS set confirm:true for this
 
+JOURNAL ENTRIES:
+- create_journal: {"content": "...", "entry_type": "reflection/vent/gratitude/grounding/memory/system_note", "mood": 1-10 (optional), "energy": 1-10 (optional), "tags": ["anxiety", "calm", etc] (optional), "is_private": true/false (optional)}
+- update_journal: {"entry_id": "...", "content": "...", "entry_type": "...", "mood": ..., "energy": ..., "tags": [...]}
+- delete_journal: {"entry_id": "..."} - ALWAYS set confirm:true for this
+
 LOW-CAPACITY MODE:
 - set_low_capacity_mode: {} (enables low-capacity overlay for today)
 - unset_low_capacity_mode: {} (disables low-capacity mode)
 
 CONFIRMATION RULES:
-- ALWAYS set confirm:true and confirm_text for: delete_habit, delete_task, delete_routine_activity, delete_career_project, delete_career_task, delete_expense
+- ALWAYS set confirm:true and confirm_text for: delete_habit, delete_task, delete_routine_activity, delete_career_project, delete_career_task, delete_expense, delete_journal
 - Set confirm:true for any action that seems risky or the user expressed uncertainty about
 - confirm_text should briefly describe what will happen, e.g. "Delete project 'Portfolio Redesign'?"
 
@@ -171,6 +180,7 @@ export default function OrbitPage() {
   const { data: careerProjects } = useCareerProjects();
   const { data: careerTasks } = useCareerTasks();
   const { data: expenses } = useExpenses();
+  const { data: journalEntries } = useJournalEntries();
   
   const addHabitCompletion = useAddHabitCompletion();
   const removeHabitCompletion = useRemoveHabitCompletion();
@@ -194,6 +204,9 @@ export default function OrbitPage() {
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
   const deleteExpense = useDeleteExpense();
+  const createJournalEntry = useCreateJournalEntry();
+  const updateJournalEntry = useUpdateJournalEntry();
+  const deleteJournalEntry = useDeleteJournalEntry();
 
   const [messages, setMessages] = useState<OrbitMessage[]>(() => {
     const saved = localStorage.getItem("orbit_messages");
@@ -314,7 +327,17 @@ export default function OrbitPage() {
       allRoutineBlocks: routineBlocks?.map(b => ({ id: b.id, name: b.name, emoji: b.emoji, startTime: b.startTime, endTime: b.endTime })) || [],
       allCareerProjects: careerProjects?.map(p => ({ id: p.id, title: p.title, status: p.status, progress: p.progress, deadline: p.deadline })) || [],
       allCareerTasks: careerTasks?.map(t => ({ id: t.id, title: t.title, projectId: t.projectId, completed: !!t.completed, priority: t.priority, due: t.due })) || [],
-      allExpenses: expenses?.map(e => ({ id: e.id, name: e.name, amount: e.amount, budget: e.budget, category: e.category, status: e.status, month: e.month })) || []
+      allExpenses: expenses?.map(e => ({ id: e.id, name: e.name, amount: e.amount, budget: e.budget, category: e.category, status: e.status, month: e.month })) || [],
+      recentJournalEntries: (journalEntries || []).slice(0, 5).map(j => ({
+        id: j.id,
+        type: j.entryType,
+        mood: j.mood,
+        energy: j.energy,
+        tags: j.tags,
+        date: format(new Date(j.createdAt), "MMM d, h:mm a"),
+        preview: j.content.slice(0, 100) + (j.content.length > 100 ? "..." : "")
+      })),
+      allJournalEntries: (journalEntries || []).map(j => ({ id: j.id, type: j.entryType, mood: j.mood, energy: j.energy, tags: j.tags }))
     };
   };
 
@@ -530,6 +553,46 @@ export default function OrbitPage() {
           setLowCapacityMode(false);
           localStorage.removeItem(`orbit_low_capacity_${today}`);
           return { success: true, message: "Low-capacity mode deactivated. Full routine restored." };
+        }
+        
+        // JOURNAL ACTIONS
+        case "create_journal": {
+          const { content, entry_type, mood, energy, tags, is_private } = action.args;
+          await createJournalEntry.mutateAsync({
+            content,
+            entryType: entry_type || "reflection",
+            mood: mood || null,
+            energy: energy || null,
+            tags: tags || [],
+            isPrivate: is_private ? 1 : 0,
+            authorId: null,
+            timeOfDay: (() => {
+              const hour = new Date().getHours();
+              if (hour >= 5 && hour < 12) return "morning";
+              if (hour >= 12 && hour < 17) return "afternoon";
+              if (hour >= 17 && hour < 21) return "evening";
+              return "night";
+            })()
+          });
+          return { success: true, message: `Created ${entry_type || "reflection"} journal entry` };
+        }
+        
+        case "update_journal": {
+          const { entry_id, content, entry_type, mood, energy, tags } = action.args;
+          const updateData: any = {};
+          if (content !== undefined) updateData.content = content;
+          if (entry_type !== undefined) updateData.entryType = entry_type;
+          if (mood !== undefined) updateData.mood = mood;
+          if (energy !== undefined) updateData.energy = energy;
+          if (tags !== undefined) updateData.tags = tags;
+          await updateJournalEntry.mutateAsync({ id: entry_id, data: updateData });
+          return { success: true, message: "Updated journal entry" };
+        }
+        
+        case "delete_journal": {
+          const { entry_id } = action.args;
+          await deleteJournalEntry.mutateAsync(entry_id);
+          return { success: true, message: "Deleted journal entry" };
         }
         
         default:
