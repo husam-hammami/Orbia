@@ -342,6 +342,30 @@ export function MoodTracker() {
                        </div>
                        <Slider value={workLoad} onValueChange={setWorkLoad} max={10} step={1} className="h-4 [&_.bg-primary]:bg-amber-500" />
                        <p className="text-[9px] text-muted-foreground mt-1.5">How hostile or draining was work today? (0 = no work/neutral)</p>
+                       
+                       {/* Work-specific tags (optional) */}
+                       {workLoad[0] > 0 && (
+                          <div className="mt-2 pt-2 border-t border-amber-200/50">
+                             <p className="text-[9px] text-muted-foreground mb-1.5">What made it hard? (optional, pick one):</p>
+                             <div className="flex flex-wrap gap-1">
+                                {workTags.map(tag => (
+                                   <button
+                                      key={tag.value}
+                                      onClick={() => setWorkTag(workTag === tag.value ? null : tag.value)}
+                                      data-testid={`button-work-${tag.value}`}
+                                      className={cn(
+                                         "text-[9px] px-1.5 py-0.5 rounded border transition-all",
+                                         workTag === tag.value
+                                            ? "bg-amber-500 text-white border-amber-500"
+                                            : "bg-background border-amber-200 text-amber-700 hover:border-amber-300"
+                                      )}
+                                   >
+                                      {tag.label}
+                                   </button>
+                                ))}
+                             </div>
+                          </div>
+                       )}
                     </div>
                 </div>
 
@@ -375,10 +399,7 @@ export function MoodTracker() {
                           {triggerTags.map(tag => (
                              <button
                                 key={tag.value}
-                                onClick={() => {
-                                   setTriggerTag(triggerTag === tag.value ? null : tag.value);
-                                   if (tag.value !== "work") setWorkTag(null); // Clear work tag when switching
-                                }}
+                                onClick={() => setTriggerTag(triggerTag === tag.value ? null : tag.value)}
                                 data-testid={`button-trigger-${tag.value}`}
                                 className={cn(
                                    "text-[10px] px-2 py-1 rounded-full border transition-all flex items-center gap-1",
@@ -392,30 +413,6 @@ export function MoodTracker() {
                              </button>
                           ))}
                        </div>
-
-                       {/* Work-specific tags (shown when Work is selected) */}
-                       {triggerTag === "work" && (
-                          <div className="mt-2 pt-2 border-t border-violet-200/50">
-                             <p className="text-[9px] text-muted-foreground mb-1.5">Work context (optional, pick one):</p>
-                             <div className="flex flex-wrap gap-1">
-                                {workTags.map(tag => (
-                                   <button
-                                      key={tag.value}
-                                      onClick={() => setWorkTag(workTag === tag.value ? null : tag.value)}
-                                      data-testid={`button-work-${tag.value}`}
-                                      className={cn(
-                                         "text-[9px] px-1.5 py-0.5 rounded border transition-all",
-                                         workTag === tag.value
-                                            ? "bg-amber-500 text-white border-amber-500"
-                                            : "bg-background border-amber-200 text-amber-700 hover:border-amber-300"
-                                      )}
-                                   >
-                                      {tag.label}
-                                   </button>
-                                ))}
-                             </div>
-                          </div>
-                       )}
                     </div>
 
                     {/* Urges */}
