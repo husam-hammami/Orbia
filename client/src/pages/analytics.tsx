@@ -46,7 +46,6 @@ import {
   MessageSquare,
   Flame,
   Battery,
-  Lightbulb,
   Users,
   Clock,
   Loader2
@@ -505,24 +504,6 @@ export default function Analytics() {
             </div>
         </div>
 
-        {/* INSIGHTS SECTION - Will show computed insights when more data is available */}
-        <div className="space-y-6">
-             <h2 className="text-xl font-semibold flex items-center gap-2 border-b border-border/40 pb-2">
-                <Lightbulb className="w-5 h-5 text-amber-500" />
-                Insights & Patterns
-            </h2>
-            
-            <Card className="border-border/50 shadow-sm bg-muted/5">
-              <CardContent className="p-6 text-center">
-                <Lightbulb className="w-10 h-10 mx-auto mb-3 text-amber-500/50" />
-                <h4 className="font-semibold mb-1">Pattern Analysis Coming Soon</h4>
-                <p className="text-sm text-muted-foreground">
-                  Continue logging your mood, habits, and routine to unlock personalized insights about your patterns.
-                </p>
-              </CardContent>
-            </Card>
-        </div>
-        
         {/* Habit Tracking (Secondary Focus) */}
         <div className="space-y-6">
             <h2 className="text-xl font-semibold flex items-center gap-2 border-b border-border/40 pb-2">
