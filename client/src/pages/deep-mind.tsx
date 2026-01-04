@@ -23,7 +23,11 @@ import {
   Tooltip,
   LineChart,
   Line,
-  Legend
+  Legend,
+  BarChart,
+  Bar,
+  ComposedChart,
+  Area
 } from "recharts";
 import { 
   Brain, 
@@ -44,7 +48,10 @@ import {
   Loader2,
   Sparkles,
   TrendingUp,
-  Lightbulb
+  Lightbulb,
+  BarChart2,
+  Moon,
+  Target
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMembers, useTrackerEntries, useCreateTrackerEntry } from "@/lib/api-hooks";
@@ -75,7 +82,7 @@ export default function DeepMind() {
       if (!res.ok) throw new Error("Failed to fetch insights");
       return res.json();
     },
-    enabled: activeTab === "analysis",
+    enabled: activeTab === "analysis" || activeTab === "visuals",
   });
 
   const [dissociation, setDissociation] = useState([30]);
@@ -206,6 +213,7 @@ export default function DeepMind() {
             <TabsList className="bg-muted/30 border border-border/50 p-1">
                 <TabsTrigger value="monitor" className="gap-2" data-testid="tab-monitor"><Activity className="w-4 h-4" /> Live Monitor</TabsTrigger>
                 <TabsTrigger value="analysis" className="gap-2" data-testid="tab-analysis"><Brain className="w-4 h-4" /> Analysis & Patterns</TabsTrigger>
+                <TabsTrigger value="visuals" className="gap-2" data-testid="tab-visuals"><BarChart2 className="w-4 h-4" /> Visualizations</TabsTrigger>
                 <TabsTrigger value="map" className="gap-2" data-testid="tab-map"><Network className="w-4 h-4" /> Headspace Map</TabsTrigger>
             </TabsList>
 
@@ -596,6 +604,237 @@ export default function DeepMind() {
                                     Log "Who is Fronting" consistently to enable fragment analysis.
                                 </p>
                               </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            </TabsContent>
+
+            <TabsContent value="visuals" className="animate-in slide-in-from-bottom-4 duration-500">
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Target className="w-5 h-5 text-emerald-500" />
+                                    Habit Impact on Mood
+                                </CardTitle>
+                                <CardDescription>Compare your mood on days with vs without habit completion</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {insights?.rawCorrelations?.habitCorrelations && insights.rawCorrelations.habitCorrelations.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <BarChart 
+                                            data={insights.rawCorrelations.habitCorrelations.slice(0, 6).map((h: any) => ({
+                                                name: h.habitName.length > 12 ? h.habitName.slice(0, 12) + '...' : h.habitName,
+                                                'With Habit': parseFloat(h.avgMoodWithHabit) || 0,
+                                                'Without Habit': parseFloat(h.avgMoodWithoutHabit) || 0,
+                                            }))}
+                                            layout="vertical"
+                                            margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                                            <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 11 }} />
+                                            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={70} />
+                                            <Tooltip 
+                                                formatter={(value: number) => [`${value.toFixed(1)}/10`, '']}
+                                                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                                            />
+                                            <Legend />
+                                            <Bar dataKey="With Habit" fill="#10b981" radius={[0, 4, 4, 0]} />
+                                            <Bar dataKey="Without Habit" fill="#94a3b8" radius={[0, 4, 4, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                        <Target className="w-10 h-10 mb-3 opacity-30" />
+                                        <p className="text-sm">Complete habits and log mood to see correlations</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Moon className="w-5 h-5 text-blue-500" />
+                                    Sleep & Dissociation Link
+                                </CardTitle>
+                                <CardDescription>How sleep quality affects your dissociation levels</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {insights?.rawCorrelations?.sleepCorrelations ? (
+                                    <div className="space-y-6">
+                                        <ResponsiveContainer width="100%" height={200}>
+                                            <BarChart 
+                                                data={[
+                                                    { name: 'Low Sleep (<6h)', mood: parseFloat(insights.rawCorrelations.sleepCorrelations.avgMoodLowSleep) || 0, dissociation: insights.rawCorrelations.sleepCorrelations.avgDissociationLowSleep || 0 },
+                                                    { name: 'Good Sleep (7h+)', mood: parseFloat(insights.rawCorrelations.sleepCorrelations.avgMoodGoodSleep) || 0, dissociation: insights.rawCorrelations.sleepCorrelations.avgDissociationGoodSleep || 0 },
+                                                ]}
+                                                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                                            >
+                                                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                                                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                                                <YAxis tick={{ fontSize: 11 }} />
+                                                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                                                <Legend />
+                                                <Bar dataKey="mood" name="Mood (1-10)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                                <Bar dataKey="dissociation" name="Dissociation %" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                        <div className="grid grid-cols-2 gap-4 text-center">
+                                            <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                                                <div className="text-2xl font-bold text-blue-600">{insights.rawCorrelations.sleepCorrelations.avgSleepHours}h</div>
+                                                <div className="text-xs text-muted-foreground">Avg Sleep</div>
+                                            </div>
+                                            <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                                                <div className="text-2xl font-bold text-amber-600">{insights.rawCorrelations.sleepCorrelations.entriesWithSleepData}</div>
+                                                <div className="text-xs text-muted-foreground">Days Tracked</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                        <Moon className="w-10 h-10 mb-3 opacity-30" />
+                                        <p className="text-sm">Log sleep data in your daily tracker to see correlations</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <History className="w-5 h-5 text-amber-500" />
+                                    Routine Block Adherence
+                                </CardTitle>
+                                <CardDescription>How consistently you follow each routine block</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {insights?.rawCorrelations?.routineAdherence && insights.rawCorrelations.routineAdherence.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height={250}>
+                                        <ComposedChart 
+                                            data={insights.rawCorrelations.routineAdherence.map((r: any) => ({
+                                                name: r.blockName,
+                                                completion: r.completionRate,
+                                                activities: r.activityCount,
+                                            }))}
+                                            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                                            <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                                            <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} />
+                                            <Tooltip 
+                                                formatter={(value: number, name: string) => [
+                                                    name === 'completion' ? `${value}%` : value,
+                                                    name === 'completion' ? 'Completion Rate' : 'Activities'
+                                                ]}
+                                                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} 
+                                            />
+                                            <Legend />
+                                            <Bar dataKey="completion" name="Completion %" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                                        </ComposedChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                        <History className="w-10 h-10 mb-3 opacity-30" />
+                                        <p className="text-sm">Complete routine activities to see adherence patterns</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Users className="w-5 h-5 text-purple-500" />
+                                    System Member Patterns
+                                </CardTitle>
+                                <CardDescription>Mood and stress patterns for each system member</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {insights?.rawCorrelations?.frontingPatterns && insights.rawCorrelations.frontingPatterns.length > 0 ? (
+                                    <div className="space-y-4">
+                                        <ResponsiveContainer width="100%" height={200}>
+                                            <BarChart 
+                                                data={insights.rawCorrelations.frontingPatterns.map((f: any) => ({
+                                                    name: f.name,
+                                                    'Avg Mood': parseFloat(f.avgMood),
+                                                    'Avg Stress': f.avgStress / 10,
+                                                    'Avg Dissociation': f.avgDissociation / 10,
+                                                }))}
+                                                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                                            >
+                                                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                                                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                                                <YAxis tick={{ fontSize: 11 }} domain={[0, 10]} />
+                                                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                                                <Legend />
+                                                <Bar dataKey="Avg Mood" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                                                <Bar dataKey="Avg Stress" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                                                <Bar dataKey="Avg Dissociation" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                            {insights.rawCorrelations.frontingPatterns.map((f: any, i: number) => (
+                                                <div key={i} className="p-2 bg-muted/30 rounded-lg text-center">
+                                                    <div className="text-lg font-bold" style={{ color: members?.find(m => m.name === f.name)?.color }}>{f.percentageOfEntries}%</div>
+                                                    <div className="text-[10px] text-muted-foreground">{f.name} fronting</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                        <Users className="w-10 h-10 mb-3 opacity-30" />
+                                        <p className="text-sm">Log which member is fronting to see patterns</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <TrendingUp className="w-5 h-5 text-indigo-500" />
+                                Habit Completion vs Stress Reduction
+                            </CardTitle>
+                            <CardDescription>See how each habit affects your stress levels</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {insights?.rawCorrelations?.habitCorrelations && insights.rawCorrelations.habitCorrelations.length > 0 ? (
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart 
+                                        data={insights.rawCorrelations.habitCorrelations.map((h: any) => {
+                                            const stressReduction = (h.avgStressWithoutHabit || 0) - (h.avgStressWithHabit || 0);
+                                            return {
+                                                name: h.habitName.length > 15 ? h.habitName.slice(0, 15) + '...' : h.habitName,
+                                                'Stress Reduction': Math.max(0, stressReduction),
+                                                'Completion Rate': h.completionRate,
+                                            };
+                                        })}
+                                        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                                        <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} height={60} />
+                                        <YAxis tick={{ fontSize: 11 }} />
+                                        <Tooltip 
+                                            formatter={(value: number, name: string) => [`${value}${name.includes('Rate') ? '%' : ' pts'}`, name]}
+                                            contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} 
+                                        />
+                                        <Legend />
+                                        <Bar dataKey="Stress Reduction" name="Stress Reduction (pts)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="Completion Rate" name="Completion Rate %" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                    <TrendingUp className="w-10 h-10 mb-3 opacity-30" />
+                                    <p className="text-sm">Complete habits and log stress levels to see correlations</p>
+                                </div>
                             )}
                         </CardContent>
                     </Card>
