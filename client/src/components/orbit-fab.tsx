@@ -357,20 +357,20 @@ export function OrbitFab() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="fixed bottom-20 right-4 md:right-8 w-80 h-96 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-50"
+            className="fixed bottom-20 right-4 md:right-8 w-80 h-96 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden z-50"
           >
-            <div className="flex items-center justify-between p-3 border-b border-slate-700 bg-gradient-to-r from-indigo-600/20 to-purple-600/20">
+            <div className="flex items-center justify-between p-3 border-b border-border bg-primary/5">
               <div className="flex items-center gap-2">
-                <Orbit className="w-4 h-4 text-indigo-400" />
-                <span className="font-semibold text-sm text-slate-100">Orbit</span>
+                <Orbit className="w-4 h-4 text-primary" />
+                <span className="font-semibold text-sm">Orbit</span>
               </div>
               <div className="flex items-center gap-1">
                 <Link href="/orbit">
-                  <Button variant="ghost" size="icon" className="w-6 h-6 text-slate-400 hover:text-slate-100">
+                  <Button variant="ghost" size="icon" className="w-6 h-6 text-muted-foreground hover:text-foreground">
                     <ExternalLink className="w-3 h-3" />
                   </Button>
                 </Link>
-                <Button variant="ghost" size="icon" className="w-6 h-6 text-slate-400 hover:text-slate-100" onClick={() => setIsOpen(false)}>
+                <Button variant="ghost" size="icon" className="w-6 h-6 text-muted-foreground hover:text-foreground" onClick={() => setIsOpen(false)}>
                   <X className="w-4 h-4" />
                 </Button>
               </div>
@@ -380,11 +380,11 @@ export function OrbitFab() {
               <div className="space-y-3">
                 {messages.length === 0 && (
                   <div className="text-center py-6">
-                    <Sparkles className="w-8 h-8 mx-auto text-indigo-400/50 mb-2" />
+                    <Sparkles className="w-8 h-8 mx-auto text-primary/50 mb-2" />
                     <p className="text-xs text-muted-foreground">Quick access to Orbit</p>
                     <div className="flex flex-wrap gap-1 justify-center mt-3">
                       {QUICK_PROMPTS.map((p) => (
-                        <Button key={p} variant="outline" size="sm" onClick={() => handleSend(p)} className="text-[10px] h-6 px-2 bg-slate-800 border-slate-600">
+                        <Button key={p} variant="outline" size="sm" onClick={() => handleSend(p)} className="text-[10px] h-6 px-2">
                           {p}
                         </Button>
                       ))}
@@ -396,8 +396,10 @@ export function OrbitFab() {
                   <div key={message.id}>
                     <div
                       className={cn(
-                        "text-xs rounded-xl px-3 py-2 max-w-[85%] whitespace-pre-wrap",
-                        message.role === "user" ? "bg-indigo-600 text-white ml-auto" : "bg-slate-800 text-slate-100"
+                        "text-xs rounded-xl px-3 py-2 max-w-[85%] whitespace-pre-wrap leading-relaxed shadow-sm",
+                        message.role === "user" 
+                          ? "bg-primary text-primary-foreground ml-auto" 
+                          : "bg-muted/80 text-foreground border border-border/50"
                       )}
                     >
                       {message.content}
@@ -406,7 +408,7 @@ export function OrbitFab() {
                       <div className="flex gap-2 mt-2 ml-0">
                         <Button 
                           size="sm" 
-                          className="h-6 px-2 text-[10px] bg-green-600 hover:bg-green-700"
+                          className="h-6 px-2 text-[10px] bg-amber-600 hover:bg-amber-700 text-white"
                           onClick={() => handleConfirmAction(message.id, message.pendingAction, true)}
                           data-testid="button-confirm-action"
                         >
@@ -415,7 +417,7 @@ export function OrbitFab() {
                         <Button 
                           size="sm" 
                           variant="outline"
-                          className="h-6 px-2 text-[10px] bg-slate-700 border-slate-600"
+                          className="h-6 px-2 text-[10px]"
                           onClick={() => handleConfirmAction(message.id, message.pendingAction, false)}
                           data-testid="button-cancel-action"
                         >
@@ -427,15 +429,15 @@ export function OrbitFab() {
                 ))}
                 
                 {isLoading && (
-                  <div className="bg-slate-800 rounded-xl px-3 py-2 w-fit">
-                    <Loader2 className="w-3 h-3 animate-spin text-indigo-400" />
+                  <div className="bg-muted/80 border border-border/50 rounded-xl px-3 py-2 w-fit shadow-sm">
+                    <Loader2 className="w-3 h-3 animate-spin text-primary" />
                   </div>
                 )}
                 <div ref={messagesEndRef} />
               </div>
             </div>
 
-            <div className="p-2 border-t border-slate-700">
+            <div className="p-2 border-t border-border">
               <div className="flex gap-2">
                 <Input
                   ref={inputRef}
@@ -444,10 +446,10 @@ export function OrbitFab() {
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
                   placeholder="Ask Orbit..."
                   disabled={isLoading}
-                  className="flex-1 h-8 text-xs bg-slate-800 border-slate-600"
+                  className="flex-1 h-8 text-xs bg-background border-input"
                   data-testid="input-orbit-fab"
                 />
-                <Button onClick={() => handleSend()} disabled={isLoading || !input.trim()} size="icon" className="h-8 w-8 bg-indigo-600 hover:bg-indigo-700" data-testid="button-send-orbit-fab">
+                <Button onClick={() => handleSend()} disabled={isLoading || !input.trim()} size="icon" className="h-8 w-8" data-testid="button-send-orbit-fab">
                   <Send className="w-3 h-3" />
                 </Button>
               </div>
@@ -462,7 +464,7 @@ export function OrbitFab() {
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "fixed bottom-4 right-4 md:right-8 w-12 h-12 rounded-full shadow-lg flex items-center justify-center z-50 transition-colors",
-          isOpen ? "bg-slate-700 text-slate-300" : "bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-indigo-500/30"
+          isOpen ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground shadow-primary/30"
         )}
         data-testid="button-orbit-fab"
       >
