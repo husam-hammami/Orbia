@@ -559,7 +559,7 @@ export async function registerRoutes(
       const days = parseInt(req.query.days as string) || 14;
       
       // Fetch all linked data for analysis
-      const [entries, habits, completions, routineBlocks, routineActivities, routineLogs, members, dailySummaries] = await Promise.all([
+      const [entries, habits, completions, routineBlocks, routineActivities, routineLogs, members, dailySummaries, journalEntries] = await Promise.all([
         storage.getAllTrackerEntries(),
         storage.getAllHabits(),
         storage.getAllHabitCompletions(),
@@ -567,7 +567,8 @@ export async function registerRoutes(
         storage.getAllRoutineActivities(),
         storage.getAllRoutineLogs(),
         storage.getAllMembers(),
-        storage.getAllDailySummaries()
+        storage.getAllDailySummaries(),
+        storage.getAllJournalEntries()
       ]);
       
       // Filter to recent data
@@ -577,6 +578,7 @@ export async function registerRoutes(
       const recentEntries = entries.filter(e => new Date(e.timestamp) >= cutoffDate);
       const recentCompletions = completions.filter(c => new Date(c.completedDate) >= cutoffDate);
       const recentRoutineLogs = routineLogs.filter(l => new Date(l.completedDate) >= cutoffDate);
+      const recentJournalEntries = journalEntries.filter(j => new Date(j.createdAt) >= cutoffDate);
       
       // Parse all entries once and cache results for efficiency
       const parsedEntries = recentEntries.map(e => ({
@@ -1113,13 +1115,54 @@ export async function registerRoutes(
           role: m.role,
           traits: m.traits
         })),
+        journalEntries: recentJournalEntries.map(j => ({
+          id: j.id,
+          date: j.createdAt,
+          entryType: j.entryType,
+          mood: j.mood,
+          energy: j.energy,
+          timeOfDay: j.timeOfDay,
+          tags: j.tags,
+          isPrivate: j.isPrivate,
+          authorName: j.authorId ? members.find(m => m.id === j.authorId)?.name : null,
+          contentPreview: j.content.length > 300 ? j.content.slice(0, 300) + "..." : j.content
+        })),
+        journalAnalytics: (() => {
+          const typeBreakdown = recentJournalEntries.reduce((acc, j) => {
+            acc[j.entryType] = (acc[j.entryType] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          
+          const tagFrequency = recentJournalEntries.reduce((acc, j) => {
+            (j.tags || []).forEach((tag: string) => {
+              acc[tag] = (acc[tag] || 0) + 1;
+            });
+            return acc;
+          }, {} as Record<string, number>);
+          
+          const withMood = recentJournalEntries.filter(j => j.mood !== null);
+          const withEnergy = recentJournalEntries.filter(j => j.energy !== null);
+          
+          return {
+            totalEntries: recentJournalEntries.length,
+            typeBreakdown,
+            tagFrequency: Object.entries(tagFrequency).sort((a, b) => b[1] - a[1]).slice(0, 10),
+            avgMood: withMood.length > 0 ? (withMood.reduce((s, j) => s + (j.mood || 0), 0) / withMood.length).toFixed(1) : null,
+            avgEnergy: withEnergy.length > 0 ? (withEnergy.reduce((s, j) => s + (j.energy || 0), 0) / withEnergy.length).toFixed(1) : null,
+            entriesByTimeOfDay: recentJournalEntries.reduce((acc, j) => {
+              if (j.timeOfDay) acc[j.timeOfDay] = (acc[j.timeOfDay] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>)
+          };
+        })(),
         dataQualitySummary: {
           totalMoodEntries: parsedEntries.length,
           entriesWithSleep: parsedEntries.filter(({ parsed }) => parsed.normalizedMetrics.sleepHours !== null).length,
           entriesWithTriggers: parsedEntries.filter(({ parsed }) => parsed.triggers.length > 0).length,
           entriesWithMeals: parsedEntries.filter(({ parsed }) => parsed.meals.length > 0).length,
           habitsTracked: habits.length,
-          routineBlocksActive: routineBlocks.length
+          routineBlocksActive: routineBlocks.length,
+          journalEntriesCount: recentJournalEntries.length
         },
         preComputedCorrelations: correlations
       };
@@ -1155,7 +1198,27 @@ KEY DATA AVAILABLE:
    - sleepHabitInteraction: How sleep quality modifies habit effectiveness
    - bestWorstDaysAnalysis: Pattern analysis of your best vs worst mood days
 
-7. NEW CONTEXT FIELDS - Use these for deeper pattern analysis:
+7. journalEntries - Full journal data with:
+   - entryType: reflection/vent/gratitude/grounding/memory/system_note
+   - mood and energy scores, timeOfDay, tags
+   - authorName (which system member wrote it)
+   - contentPreview (first 300 chars of content)
+
+8. journalAnalytics - Aggregated journal statistics:
+   - typeBreakdown: Count of entries by type (vent vs gratitude vs reflection, etc.)
+   - tagFrequency: Most common tags used
+   - avgMood/avgEnergy: Journal-specific averages
+   - entriesByTimeOfDay: When journaling happens most
+
+JOURNAL-SPECIFIC PATTERNS TO LOOK FOR:
+- Vent entry frequency correlating with stress/dissociation levels
+- Gratitude entries correlating with improved mood
+- Which system members write which types of entries
+- Tags that appear more frequently on high-stress days
+- Time-of-day patterns in journaling (night venting vs morning reflection)
+- Mood/energy differences between entry types
+
+9. NEW CONTEXT FIELDS - Use these for deeper pattern analysis:
    - capacity (0-5): How much they can handle RIGHT NOW (distinct from mood/energy - someone can be calm but have low capacity)
    - triggerTag: What influenced the entry (work, loneliness, pain, noise, sleep, body, unknown)
    - workLoad (0-10): How hostile/draining was work? (0 = no work, 5 = difficult, 10 = toxic/unsafe)
@@ -1181,7 +1244,7 @@ CRITICAL INSTRUCTIONS:
 - Reference SPECIFIC habits, routines, and members by name
 - State effect size: "strong", "moderate", or "weak" 
 - Highlight SYNERGY effects (e.g., "Doing X AND Y together yields +2.3 mood points")
-- Group insights by category: SLEEP, HABITS, ROUTINES, SYSTEM DYNAMICS, SYNERGIES
+- Group insights by category: SLEEP, HABITS, ROUTINES, SYSTEM DYNAMICS, SYNERGIES, JOURNAL
 
 Be supportive, non-judgmental, and use trauma-informed language. Keep insights QUANTITATIVE and ACTIONABLE.`;
 
@@ -1199,7 +1262,7 @@ Format as JSON:
 {
   "insights": [
     {
-      "category": "sleep" | "habits" | "routines" | "system" | "context" | "overall",
+      "category": "sleep" | "habits" | "routines" | "system" | "context" | "journal" | "overall",
       "title": "Brief title",
       "observation": "The pattern with SPECIFIC NUMBERS (e.g., 'Mood averages 7.2 on days you complete Morning Routine vs 5.1 without - a 2.1 point improvement')",
       "dataPoint": "The key metric (e.g., '+41% mood improvement')",
@@ -1711,12 +1774,17 @@ EXPENSES:
 - update_expense: {"expense_id": "...", "amount": number, "status": "paid/pending/variable", "name": "..."}
 - delete_expense: {"expense_id": "..."} - ALWAYS set confirm:true
 
+JOURNAL ENTRIES:
+- create_journal: {"content": "...", "entry_type": "reflection/vent/gratitude/grounding/memory/system_note", "mood": 1-10 (optional), "energy": 1-10 (optional), "tags": ["anxiety", "calm", etc] (optional), "is_private": true/false (optional)}
+- update_journal: {"entry_id": "...", "content": "...", "entry_type": "...", "mood": ..., "energy": ..., "tags": [...]}
+- delete_journal: {"entry_id": "..."} - ALWAYS set confirm:true
+
 LOW-CAPACITY MODE:
 - set_low_capacity_mode: {} (enables low-capacity overlay for today)
 - unset_low_capacity_mode: {} (disables low-capacity mode)
 
 CONFIRMATION RULES:
-- ALWAYS set confirm:true and confirm_text for: delete_habit, delete_task, delete_routine_activity, delete_career_project, delete_career_task, delete_expense
+- ALWAYS set confirm:true and confirm_text for: delete_habit, delete_task, delete_routine_activity, delete_career_project, delete_career_task, delete_expense, delete_journal
 - confirm_text should briefly describe what will happen, e.g. "Delete project 'Portfolio Redesign'?"
 
 LOW-CAPACITY MODE: When user says they're overwhelmed, offer to switch to low-capacity mode. When activated, highlight 3 core actions:
