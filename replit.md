@@ -84,11 +84,27 @@ Orbit is a calm, operational co-pilot chat interface that helps users operate th
 - Quick chips for common queries ("Today summary", "What's left?", "Low-capacity mode")
 - Action execution system for read/write operations
 
-**Supported Actions**:
+**Supported Actions (with confirmation for destructive operations)**:
+
+Habits:
 - `mark_habit`: Toggle habit completion for a date
+- `create_habit`: Create a new habit with title, category, description, target, unit
+- `update_habit`: Modify an existing habit's properties
+- `delete_habit`: Remove a habit (requires confirmation)
+
+Tasks:
 - `add_task`: Create a new todo with priority
 - `mark_task`: Toggle task completion status
-- `mark_routine_activity`: Toggle routine activity with linked habit
+- `update_task`: Modify task title or priority
+- `delete_task`: Remove a task (requires confirmation)
+
+Routine Activities:
+- `mark_routine_activity`: Toggle routine activity completion with linked habit
+- `create_routine_activity`: Add activity to a routine block
+- `update_routine_activity`: Modify activity name, time, or description
+- `delete_routine_activity`: Remove activity (requires confirmation)
+
+Low-Capacity Mode:
 - `set_low_capacity_mode` / `unset_low_capacity_mode`: Toggle low-capacity overlay
 
 **Low-Capacity Mode**:

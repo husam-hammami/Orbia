@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Orbit, X, Send, Loader2, Sparkles, ExternalLink } from "lucide-react";
+import { Orbit, X, Send, Loader2, Sparkles, ExternalLink, Check, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,14 @@ import {
   useRemoveHabitCompletion,
   useCreateTodo,
   useUpdateTodo,
-  useToggleRoutineActivity
+  useDeleteTodo,
+  useToggleRoutineActivity,
+  useCreateHabit,
+  useUpdateHabit,
+  useDeleteHabit,
+  useCreateRoutineActivity,
+  useUpdateRoutineActivity,
+  useDeleteRoutineActivity
 } from "@/lib/api-hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -27,6 +34,7 @@ interface QuickMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  pendingAction?: any;
 }
 
 const QUICK_PROMPTS = [
@@ -77,7 +85,14 @@ export function OrbitFab() {
   const removeHabitCompletion = useRemoveHabitCompletion();
   const createTodo = useCreateTodo();
   const updateTodo = useUpdateTodo();
+  const deleteTodo = useDeleteTodo();
   const toggleRoutineActivity = useToggleRoutineActivity();
+  const createHabit = useCreateHabit();
+  const updateHabit = useUpdateHabit();
+  const deleteHabit = useDeleteHabit();
+  const createRoutineActivity = useCreateRoutineActivity();
+  const updateRoutineActivity = useUpdateRoutineActivity();
+  const deleteRoutineActivity = useDeleteRoutineActivity();
 
   useEffect(() => {
     scrollToBottom();
@@ -118,8 +133,10 @@ export function OrbitFab() {
       snapshot: { habitsCompleted: habitsCompletedToday, totalHabits, routinePercent, latestFronter },
       incompleteHabits: incompleteHabits.slice(0, 5).map(h => ({ id: h.id, name: h.title, category: h.category })),
       incompleteTodos: incompleteTodos.slice(0, 5).map(t => ({ id: t.id, title: t.title, priority: t.priority })),
-      allHabits: habits?.map(h => ({ id: h.id, name: h.title })) || [],
-      allTodos: todos?.map(t => ({ id: t.id, title: t.title, completed: !!t.completed })) || []
+      allHabits: habits?.map(h => ({ id: h.id, name: h.title, category: h.category })) || [],
+      allTodos: todos?.map(t => ({ id: t.id, title: t.title, completed: !!t.completed, priority: t.priority })) || [],
+      allRoutineActivities: routineActivities?.map(a => ({ id: a.id, name: a.name, habitId: a.habitId, blockId: a.blockId })) || [],
+      allRoutineBlocks: routineBlocks?.map(b => ({ id: b.id, name: b.name, emoji: b.emoji })) || []
     };
   };
 
@@ -133,6 +150,31 @@ export function OrbitFab() {
           const habit = habits?.find(h => h.id === habit_id);
           return { success: true, message: `${done ? "Marked" : "Unmarked"} "${habit?.title || habit_id}"` };
         }
+        case "create_habit": {
+          const { title, category, description, target, unit } = action.args;
+          await createHabit.mutateAsync({
+            title,
+            category: category || "health",
+            description: description || null,
+            target: target || 1,
+            unit: unit || "times",
+            frequency: "daily",
+            color: `hsl(${Math.floor(Math.random() * 360)} 60% 50%)`
+          });
+          return { success: true, message: `Created: "${title}"` };
+        }
+        case "update_habit": {
+          const { habit_id, ...updates } = action.args;
+          await updateHabit.mutateAsync({ id: habit_id, ...updates });
+          const habit = habits?.find(h => h.id === habit_id);
+          return { success: true, message: `Updated: "${habit?.title || habit_id}"` };
+        }
+        case "delete_habit": {
+          const { habit_id } = action.args;
+          const habit = habits?.find(h => h.id === habit_id);
+          await deleteHabit.mutateAsync(habit_id);
+          return { success: true, message: `Deleted: "${habit?.title || habit_id}"` };
+        }
         case "add_task": {
           const { title, priority } = action.args;
           await createTodo.mutateAsync({ title, priority: priority || "medium" });
@@ -144,17 +186,80 @@ export function OrbitFab() {
           const task = todos?.find(t => t.id === task_id);
           return { success: true, message: `${completed ? "Done" : "Reopened"}: "${task?.title || task_id}"` };
         }
+        case "update_task": {
+          const { task_id, ...updates } = action.args;
+          await updateTodo.mutateAsync({ id: task_id, ...updates });
+          const task = todos?.find(t => t.id === task_id);
+          return { success: true, message: `Updated: "${task?.title || task_id}"` };
+        }
+        case "delete_task": {
+          const { task_id } = action.args;
+          const task = todos?.find(t => t.id === task_id);
+          await deleteTodo.mutateAsync(task_id);
+          return { success: true, message: `Deleted: "${task?.title || task_id}"` };
+        }
         case "mark_routine_activity": {
           const { activity_id, date, done, habit_id } = action.args;
           await toggleRoutineActivity.mutateAsync({ activityId: activity_id, date, habitId: habit_id || null, action: done ? "add" : "remove" });
           const activity = routineActivities?.find(a => a.id === activity_id);
           return { success: true, message: `${done ? "Done" : "Undid"}: "${activity?.name || activity_id}"` };
         }
+        case "create_routine_activity": {
+          const { block_id, name, time, description, habit_id } = action.args;
+          const block = routineBlocks?.find(b => b.id === block_id);
+          const existingActivities = routineActivities?.filter(a => a.blockId === block_id) || [];
+          await createRoutineActivity.mutateAsync({
+            blockId: block_id,
+            name,
+            time: time || null,
+            description: description || null,
+            habitId: habit_id || null,
+            order: existingActivities.length
+          });
+          return { success: true, message: `Added "${name}" to ${block?.name || "routine"}` };
+        }
+        case "update_routine_activity": {
+          const { activity_id, ...updates } = action.args;
+          await updateRoutineActivity.mutateAsync({ id: activity_id, ...updates });
+          const activity = routineActivities?.find(a => a.id === activity_id);
+          return { success: true, message: `Updated: "${activity?.name || activity_id}"` };
+        }
+        case "delete_routine_activity": {
+          const { activity_id } = action.args;
+          const activity = routineActivities?.find(a => a.id === activity_id);
+          await deleteRoutineActivity.mutateAsync(activity_id);
+          return { success: true, message: `Deleted: "${activity?.name || activity_id}"` };
+        }
         default:
           return { success: false, message: `Unknown action` };
       }
     } catch (error: any) {
       return { success: false, message: error.message || "Failed" };
+    }
+  };
+
+  const handleConfirmAction = async (messageId: string, action: any, confirmed: boolean) => {
+    setMessages(prev => prev.map(m => {
+      if (m.id === messageId) {
+        return { ...m, pendingAction: undefined };
+      }
+      return m;
+    }));
+
+    if (confirmed) {
+      const result = await executeAction(action);
+      setMessages(prev => prev.map(m => 
+        m.id === messageId 
+          ? { ...m, content: m.content + (result.success ? ` ✓ ${result.message}` : ` ✗ ${result.message}`) }
+          : m
+      ));
+      queryClient.invalidateQueries();
+    } else {
+      setMessages(prev => prev.map(m => 
+        m.id === messageId 
+          ? { ...m, content: m.content + " (Cancelled)" }
+          : m
+      ));
     }
   };
 
@@ -210,14 +315,22 @@ export function OrbitFab() {
 
       const { action, cleanContent } = parseActionFromContent(fullContent);
       
-      if (action && !action.confirm) {
-        const result = await executeAction(action);
-        setMessages(prev => prev.map(m => 
-          m.id === assistantMessageId 
-            ? { ...m, content: cleanContent + (result.success ? ` ✓ ${result.message}` : ` ✗ ${result.message}`) }
-            : m
-        ));
-        queryClient.invalidateQueries();
+      if (action) {
+        if (action.confirm) {
+          setMessages(prev => prev.map(m => 
+            m.id === assistantMessageId 
+              ? { ...m, content: cleanContent || action.confirm_text || "Confirm action?", pendingAction: action }
+              : m
+          ));
+        } else {
+          const result = await executeAction(action);
+          setMessages(prev => prev.map(m => 
+            m.id === assistantMessageId 
+              ? { ...m, content: cleanContent + (result.success ? ` ✓ ${result.message}` : ` ✗ ${result.message}`) }
+              : m
+          ));
+          queryClient.invalidateQueries();
+        }
       } else {
         setMessages(prev => prev.map(m => m.id === assistantMessageId ? { ...m, content: cleanContent } : m));
       }
@@ -280,14 +393,36 @@ export function OrbitFab() {
                 )}
                 
                 {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={cn(
-                      "text-xs rounded-xl px-3 py-2 max-w-[85%] whitespace-pre-wrap",
-                      message.role === "user" ? "bg-indigo-600 text-white ml-auto" : "bg-slate-800 text-slate-100"
+                  <div key={message.id}>
+                    <div
+                      className={cn(
+                        "text-xs rounded-xl px-3 py-2 max-w-[85%] whitespace-pre-wrap",
+                        message.role === "user" ? "bg-indigo-600 text-white ml-auto" : "bg-slate-800 text-slate-100"
+                      )}
+                    >
+                      {message.content}
+                    </div>
+                    {message.pendingAction && (
+                      <div className="flex gap-2 mt-2 ml-0">
+                        <Button 
+                          size="sm" 
+                          className="h-6 px-2 text-[10px] bg-green-600 hover:bg-green-700"
+                          onClick={() => handleConfirmAction(message.id, message.pendingAction, true)}
+                          data-testid="button-confirm-action"
+                        >
+                          <Check className="w-3 h-3 mr-1" /> Confirm
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="h-6 px-2 text-[10px] bg-slate-700 border-slate-600"
+                          onClick={() => handleConfirmAction(message.id, message.pendingAction, false)}
+                          data-testid="button-cancel-action"
+                        >
+                          <XCircle className="w-3 h-3 mr-1" /> Cancel
+                        </Button>
+                      </div>
                     )}
-                  >
-                    {message.content}
                   </div>
                 ))}
                 

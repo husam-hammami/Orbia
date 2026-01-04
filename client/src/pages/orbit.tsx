@@ -37,8 +37,15 @@ import {
   useRemoveHabitCompletion,
   useCreateTodo,
   useUpdateTodo,
+  useDeleteTodo,
   useToggleRoutineActivity,
-  useCreateTrackerEntry
+  useCreateTrackerEntry,
+  useCreateHabit,
+  useUpdateHabit,
+  useDeleteHabit,
+  useCreateRoutineActivity,
+  useUpdateRoutineActivity,
+  useDeleteRoutineActivity
 } from "@/lib/api-hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -81,18 +88,37 @@ WHAT YOU MUST NOT DO:
 - Use motivational pressure or shame
 
 WHEN TO USE ACTIONS:
-If the user asks to mark something done, add a habit, toggle a task, etc., output ONLY a JSON action object like:
+If the user asks to mark something done, add/edit/delete a habit, task, or routine activity, output ONLY a JSON action object like:
 {"type":"action","name":"mark_habit","args":{"habit_id":"...","date":"YYYY-MM-DD","done":true},"confirm":false}
 
 SUPPORTED ACTIONS:
+
+HABITS:
 - mark_habit: {"habit_id": "...", "date": "YYYY-MM-DD", "done": true/false}
+- create_habit: {"title": "...", "category": "health/movement/mental/work/mindfulness/creativity", "description": "..." (optional), "target": number (optional), "unit": "times/minutes/ml/etc" (optional)}
+- update_habit: {"habit_id": "...", "title": "..." (optional), "category": "..." (optional), "description": "..." (optional)}
+- delete_habit: {"habit_id": "..."} - ALWAYS set confirm:true for this
+
+TASKS:
 - add_task: {"title": "...", "priority": "low/medium/high"}
 - mark_task: {"task_id": "...", "completed": true/false}
+- update_task: {"task_id": "...", "title": "..." (optional), "priority": "..." (optional)}
+- delete_task: {"task_id": "..."} - ALWAYS set confirm:true for this
+
+ROUTINE ACTIVITIES:
 - mark_routine_activity: {"activity_id": "...", "date": "YYYY-MM-DD", "done": true/false, "habit_id": "..." or null}
+- create_routine_activity: {"block_id": "...", "name": "...", "time": "HH:MM" (optional), "description": "..." (optional), "habit_id": "..." (optional to link to habit)}
+- update_routine_activity: {"activity_id": "...", "name": "..." (optional), "time": "..." (optional), "description": "..." (optional)}
+- delete_routine_activity: {"activity_id": "..."} - ALWAYS set confirm:true for this
+
+LOW-CAPACITY MODE:
 - set_low_capacity_mode: {} (enables low-capacity overlay for today)
 - unset_low_capacity_mode: {} (disables low-capacity mode)
 
-For destructive actions (removing habits, major changes), set confirm:true with confirm_text.
+CONFIRMATION RULES:
+- ALWAYS set confirm:true and confirm_text for: delete_habit, delete_task, delete_routine_activity
+- Set confirm:true for any action that seems risky or the user expressed uncertainty about
+- confirm_text should briefly describe what will happen, e.g. "Delete habit 'Walk 20 minutes'?"
 
 LOW-CAPACITY MODE: When activated, highlight 3 core actions:
 1) 1-minute grounding
@@ -119,8 +145,15 @@ export default function OrbitPage() {
   const removeHabitCompletion = useRemoveHabitCompletion();
   const createTodo = useCreateTodo();
   const updateTodo = useUpdateTodo();
+  const deleteTodo = useDeleteTodo();
   const toggleRoutineActivity = useToggleRoutineActivity();
   const createTrackerEntry = useCreateTrackerEntry();
+  const createHabit = useCreateHabit();
+  const updateHabit = useUpdateHabit();
+  const deleteHabit = useDeleteHabit();
+  const createRoutineActivity = useCreateRoutineActivity();
+  const updateRoutineActivity = useUpdateRoutineActivity();
+  const deleteRoutineActivity = useDeleteRoutineActivity();
 
   const [messages, setMessages] = useState<OrbitMessage[]>(() => {
     const saved = localStorage.getItem("orbit_messages");
@@ -235,15 +268,17 @@ export default function OrbitPage() {
         dissociation: e.dissociation,
         fronter: members?.find(m => m.id === e.frontingMemberId)?.name
       })),
-      allHabits: habits?.map(h => ({ id: h.id, name: h.title })) || [],
-      allTodos: todos?.map(t => ({ id: t.id, title: t.title, completed: !!t.completed })) || [],
-      allRoutineActivities: routineActivities?.map(a => ({ id: a.id, name: a.name, habitId: a.habitId })) || []
+      allHabits: habits?.map(h => ({ id: h.id, name: h.title, category: h.category })) || [],
+      allTodos: todos?.map(t => ({ id: t.id, title: t.title, completed: !!t.completed, priority: t.priority })) || [],
+      allRoutineActivities: routineActivities?.map(a => ({ id: a.id, name: a.name, habitId: a.habitId, blockId: a.blockId })) || [],
+      allRoutineBlocks: routineBlocks?.map(b => ({ id: b.id, name: b.name, emoji: b.emoji, startTime: b.startTime, endTime: b.endTime })) || []
     };
   };
 
   const executeAction = async (action: OrbitAction): Promise<{ success: boolean; message: string }> => {
     try {
       switch (action.name) {
+        // HABIT ACTIONS
         case "mark_habit": {
           const { habit_id, date, done } = action.args;
           if (done) {
@@ -255,6 +290,35 @@ export default function OrbitPage() {
           return { success: true, message: `${done ? "Marked" : "Unmarked"} "${habit?.title || habit_id}"` };
         }
         
+        case "create_habit": {
+          const { title, category, description, target, unit } = action.args;
+          await createHabit.mutateAsync({
+            title,
+            category: category || "health",
+            description: description || null,
+            target: target || 1,
+            unit: unit || "times",
+            frequency: "daily",
+            color: `hsl(${Math.floor(Math.random() * 360)} 60% 50%)`
+          });
+          return { success: true, message: `Created habit: "${title}"` };
+        }
+        
+        case "update_habit": {
+          const { habit_id, ...updates } = action.args;
+          await updateHabit.mutateAsync({ id: habit_id, ...updates });
+          const habit = habits?.find(h => h.id === habit_id);
+          return { success: true, message: `Updated habit: "${habit?.title || habit_id}"` };
+        }
+        
+        case "delete_habit": {
+          const { habit_id } = action.args;
+          const habit = habits?.find(h => h.id === habit_id);
+          await deleteHabit.mutateAsync(habit_id);
+          return { success: true, message: `Deleted habit: "${habit?.title || habit_id}"` };
+        }
+        
+        // TASK ACTIONS
         case "add_task": {
           const { title, priority } = action.args;
           await createTodo.mutateAsync({ title, priority: priority || "medium" });
@@ -268,6 +332,21 @@ export default function OrbitPage() {
           return { success: true, message: `${completed ? "Completed" : "Reopened"} "${task?.title || task_id}"` };
         }
         
+        case "update_task": {
+          const { task_id, ...updates } = action.args;
+          await updateTodo.mutateAsync({ id: task_id, ...updates });
+          const task = todos?.find(t => t.id === task_id);
+          return { success: true, message: `Updated task: "${task?.title || task_id}"` };
+        }
+        
+        case "delete_task": {
+          const { task_id } = action.args;
+          const task = todos?.find(t => t.id === task_id);
+          await deleteTodo.mutateAsync(task_id);
+          return { success: true, message: `Deleted task: "${task?.title || task_id}"` };
+        }
+        
+        // ROUTINE ACTIVITY ACTIONS
         case "mark_routine_activity": {
           const { activity_id, date, done, habit_id } = action.args;
           await toggleRoutineActivity.mutateAsync({
@@ -280,6 +359,36 @@ export default function OrbitPage() {
           return { success: true, message: `${done ? "Completed" : "Undid"} "${activity?.name || activity_id}"` };
         }
         
+        case "create_routine_activity": {
+          const { block_id, name, time, description, habit_id } = action.args;
+          const block = routineBlocks?.find(b => b.id === block_id);
+          const existingActivities = routineActivities?.filter(a => a.blockId === block_id) || [];
+          await createRoutineActivity.mutateAsync({
+            blockId: block_id,
+            name,
+            time: time || null,
+            description: description || null,
+            habitId: habit_id || null,
+            order: existingActivities.length
+          });
+          return { success: true, message: `Added "${name}" to ${block?.name || "routine"}` };
+        }
+        
+        case "update_routine_activity": {
+          const { activity_id, ...updates } = action.args;
+          await updateRoutineActivity.mutateAsync({ id: activity_id, ...updates });
+          const activity = routineActivities?.find(a => a.id === activity_id);
+          return { success: true, message: `Updated: "${activity?.name || activity_id}"` };
+        }
+        
+        case "delete_routine_activity": {
+          const { activity_id } = action.args;
+          const activity = routineActivities?.find(a => a.id === activity_id);
+          await deleteRoutineActivity.mutateAsync(activity_id);
+          return { success: true, message: `Deleted: "${activity?.name || activity_id}"` };
+        }
+        
+        // LOW-CAPACITY MODE
         case "set_low_capacity_mode": {
           setLowCapacityMode(true);
           localStorage.setItem(`orbit_low_capacity_${today}`, "true");

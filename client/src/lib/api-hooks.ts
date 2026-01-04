@@ -235,11 +235,11 @@ export function useHabits() {
 export function useCreateHabit() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Omit<Habit, "id" | "createdAt">) =>
+    mutationFn: (data: Omit<Habit, "id" | "createdAt" | "streak"> & { streak?: number }) =>
       fetchAPI("/api/habits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ streak: 0, ...data }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["habits"] });
@@ -250,7 +250,7 @@ export function useCreateHabit() {
 export function useUpdateHabit() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Omit<Habit, "id" | "createdAt">> }) =>
+    mutationFn: ({ id, ...data }: { id: string } & Partial<Omit<Habit, "id" | "createdAt">>) =>
       fetchAPI(`/api/habits/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -505,7 +505,7 @@ export function useCreateRoutineActivity() {
 export function useUpdateRoutineActivity() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string; blockId: string; name: string; time: string | null; description: string | null; habitId: string | null; order: number }) =>
+    mutationFn: ({ id, ...data }: { id: string } & Partial<Omit<RoutineActivity, "id" | "createdAt">>) =>
       fetchAPI(`/api/routine-activities/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
