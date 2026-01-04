@@ -111,6 +111,7 @@ export default function DeepMind() {
         time: format(new Date(entry.timestamp), "h:mm a"),
         externalLoad: Math.min(100, Math.max(0, externalLoad)),
         internalStability: Math.min(100, Math.max(0, internalStability)),
+        raw: entry
       };
     });
 
@@ -304,47 +305,46 @@ export default function DeepMind() {
       return "stable";
     };
     
-    const dissNowRaw = calcAvg(entries24h, e => e.dissociation || 0);
-    const dissPrev = calcAvg(olderEntries, e => 100 - (e.dissociation || 0));
-    
-    const commNowRaw = calcAvg(entries24h, e => (e.energy || 5) * 10);
-    const commPrev = calcAvg(olderEntries, e => (e.energy || 5) * 10);
-    
-    const regPrev = calcAvg(olderEntries, e => 100 - (e.stress || 0));
-    const groundPrev = calcAvg(olderEntries, e => (e.mood || 5) * 10);
-    
-    const capacityNowRaw = calcAvg(entries24h, e => (e.capacity ?? 3) * 20);
-    const capacityPrev = calcAvg(olderEntries, e => (e.capacity ?? 3) * 20);
-    
-    // Derived Pillar Calculation Logic
+    // Base Metrics from last 24h
     const entries24h_mood = calcAvg(entries24h, e => e.mood || 5);
     const entries24h_stress = calcAvg(entries24h, e => e.stress || 0);
+    const entries24h_diss = calcAvg(entries24h, e => e.dissociation || 0);
     const entries24h_cap = calcAvg(entries24h, e => e.capacity ?? 3);
+    const entries24h_energy = calcAvg(entries24h, e => e.energy || 5);
+
+    // Baseline fallback values if no entries
+    const defaultVal = 50;
     
-    // Dissociation: primary from entries, secondary from time of day (night/early morning = higher)
+    // Calculation Logic
+    // Dissociation: primary from entries, secondary from time of day
     const h = new Date().getHours();
-    const timeBonus = (h < 6 || h > 22) ? -10 : 0;
-    const dissNow = 100 - (dissNowRaw ?? 50) + timeBonus;
+    const timePenalty = (h < 6 || h > 22) ? 15 : 0;
+    const dissNowVal = entries24h_diss !== null ? (100 - entries24h_diss - timePenalty) : defaultVal;
+    const dissPrevVal = calcAvg(olderEntries, e => 100 - (e.dissociation || 0)) ?? defaultVal;
     
-    // Communication: energy + routine adherence
-    const commNow = ((commNowRaw ?? 50) + (entries24h.length * 5)) / 1.2;
+    // Communication: energy + recent activity frequency
+    const commNowVal = entries24h_energy !== null ? (entries24h_energy * 10 + (entries24h.length * 2)) : defaultVal;
+    const commPrevVal = calcAvg(olderEntries, e => (e.energy || 5) * 10) ?? defaultVal;
     
     // Regulation: 100 - stress
-    const regNow = 100 - (entries24h_stress ?? 50);
+    const regNowVal = entries24h_stress !== null ? (100 - entries24h_stress) : defaultVal;
+    const regPrevVal = calcAvg(olderEntries, e => 100 - (e.stress || 0)) ?? defaultVal;
     
-    // Grounding: mood
-    const groundNow = (entries24h_mood ?? 5) * 10;
+    // Grounding: mood score
+    const groundNowVal = entries24h_mood !== null ? (entries24h_mood * 10) : defaultVal;
+    const groundPrevVal = calcAvg(olderEntries, e => (e.mood || 5) * 10) ?? defaultVal;
     
-    // Capacity: base capacity + lack of work load
-    const workPenalty = calcAvg(entries24h, e => (e.workLoad || 0) * 5) ?? 0;
-    const capacityNow = (entries24h_cap ?? 3) * 20 - workPenalty;
+    // Capacity: base capacity minus work load
+    const workLoad = calcAvg(entries24h, e => (e.workLoad || 0) * 5) ?? 0;
+    const capacityNowVal = entries24h_cap !== null ? (entries24h_cap * 20 - workLoad) : defaultVal;
+    const capacityPrevVal = calcAvg(olderEntries, e => (e.capacity ?? 3) * 20) ?? defaultVal;
     
     return [
-      { name: "Dissociation", icon: "🧠", value: Math.max(12, Math.min(100, dissNow || 50)), trend: getTrend(dissNow, dissPrev) },
-      { name: "Communication", icon: "💬", value: Math.max(12, Math.min(100, commNow || 50)), trend: getTrend(commNow, commPrev) },
-      { name: "Regulation", icon: "⚖️", value: Math.max(12, Math.min(100, regNow || 50)), trend: getTrend(regNow, regPrev) },
-      { name: "Grounding", icon: "🧘", value: Math.max(12, Math.min(100, groundNow || 50)), trend: getTrend(groundNow, groundPrev) },
-      { name: "Capacity", icon: "🔋", value: Math.max(12, Math.min(100, capacityNow || 50)), trend: getTrend(capacityNow, capacityPrev) },
+      { name: "Dissociation", icon: "🧠", value: Math.max(12, Math.min(100, dissNowVal)), trend: getTrend(dissNowVal, dissPrevVal) },
+      { name: "Communication", icon: "💬", value: Math.max(12, Math.min(100, commNowVal)), trend: getTrend(commNowVal, commPrevVal) },
+      { name: "Regulation", icon: "⚖️", value: Math.max(12, Math.min(100, regNowVal)), trend: getTrend(regNowVal, regPrevVal) },
+      { name: "Grounding", icon: "🧘", value: Math.max(12, Math.min(100, groundNowVal)), trend: getTrend(groundNowVal, groundPrevVal) },
+      { name: "Capacity", icon: "🔋", value: Math.max(12, Math.min(100, capacityNowVal)), trend: getTrend(capacityNowVal, capacityPrevVal) },
     ];
   })();
 
@@ -413,9 +413,9 @@ export default function DeepMind() {
                               </CardTitle>
                               <div className="flex items-center gap-3">
                                 {safeAction && (
-                                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 max-w-[200px] overflow-hidden">
-                                    <Lightbulb className="w-3 h-3 text-indigo-600 shrink-0" />
-                                    <span className="text-[10px] font-medium text-slate-800 truncate" title={safeAction}>
+                                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-indigo-500 border border-indigo-400/50 max-w-[250px] overflow-hidden shadow-lg shadow-indigo-500/20">
+                                    <Lightbulb className="w-3.5 h-3.5 text-indigo-950 shrink-0" />
+                                    <span className="text-[10px] font-bold text-indigo-950 truncate" title={safeAction}>
                                       {safeAction}
                                     </span>
                                   </div>
@@ -521,42 +521,48 @@ export default function DeepMind() {
                         </CardHeader>
                         <CardContent className="h-[320px] pt-8 pb-4">
                             <div className="relative h-full flex items-end justify-between gap-6 px-6">
-                                <div className="absolute top-[35%] left-0 right-0 h-[30%] bg-indigo-500/5 border-y border-indigo-500/10 pointer-events-none" />
+                                <div className="absolute top-[35%] left-0 right-0 h-[30%] bg-indigo-500/10 border-y border-indigo-500/20 pointer-events-none flex items-center justify-center">
+                                  <span className="text-[10px] font-bold text-indigo-400/40 uppercase tracking-[0.3em]">Stable Range</span>
+                                </div>
                                 
                                 {balancePillars.map((pillar, i) => {
                                   const heightPercent = Math.max(12, Math.min(95, pillar.value));
                                   const isInRange = pillar.value >= 35 && pillar.value <= 65;
                                   
                                   return (
-                                    <div key={i} className="flex flex-col items-center gap-4 flex-1 group/pillar">
-                                      <div className="relative w-full h-full bg-slate-900/50 rounded-2xl overflow-hidden border border-slate-800 shadow-inner group-hover/pillar:border-slate-700 transition-colors">
+                                    <div key={i} className="flex flex-col items-center gap-4 flex-1 group/pillar max-w-[120px]">
+                                      <div className="relative w-full h-full bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-inner group-hover/pillar:border-slate-600 transition-colors">
                                         <motion.div 
                                           initial={{ height: 0 }}
                                           animate={{ height: `${heightPercent}%` }}
                                           transition={{ type: "spring", stiffness: 50, damping: 15 }}
                                           className={cn(
-                                            "absolute bottom-0 left-0 right-0 transition-all duration-500 shadow-[0_-4px_12px_rgba(0,0,0,0.3)]",
-                                            isInRange ? "bg-gradient-to-t from-emerald-600/60 to-emerald-400/40" :
-                                            pillar.value > 65 ? "bg-gradient-to-t from-amber-600/60 to-amber-400/40" :
-                                            "bg-gradient-to-t from-indigo-600/60 to-indigo-400/40"
+                                            "absolute bottom-0 left-0 right-0 transition-all duration-500 shadow-[0_-4px_12px_rgba(0,0,0,0.4)]",
+                                            isInRange ? "bg-gradient-to-t from-emerald-600 to-emerald-400" :
+                                            pillar.value > 65 ? "bg-gradient-to-t from-amber-600 to-amber-400" :
+                                            "bg-gradient-to-t from-indigo-600 to-indigo-400"
                                           )}
                                         >
-                                          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:100%_4px]" />
+                                          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.15)_1px,transparent_1px)] bg-[size:100%_6px]" />
                                         </motion.div>
                                         
-                                        <div className="absolute top-3 left-0 right-0 flex justify-center opacity-40 group-hover/pillar:opacity-100 transition-opacity">
-                                          <span className={cn(
-                                            "text-xs font-mono font-bold",
-                                            pillar.trend === "up" ? "text-emerald-400" : pillar.trend === "down" ? "text-amber-400" : "text-slate-500"
+                                        <div className="absolute top-3 left-0 right-0 flex justify-center">
+                                          <div className={cn(
+                                            "px-1.5 py-0.5 rounded text-[10px] font-mono font-black",
+                                            pillar.trend === "up" ? "bg-emerald-500 text-emerald-950" : 
+                                            pillar.trend === "down" ? "bg-amber-500 text-amber-950" : 
+                                            "bg-slate-800 text-slate-400"
                                           )}>
                                             {pillar.trend === "up" ? "▲" : pillar.trend === "down" ? "▼" : "•"}
-                                          </span>
+                                          </div>
                                         </div>
                                       </div>
                                       
-                                      <div className="text-center space-y-1">
-                                        <div className="text-2xl filter grayscale group-hover/pillar:grayscale-0 transition-all scale-90 group-hover/pillar:scale-100">{pillar.icon}</div>
-                                        <div className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 group-hover/pillar:text-slate-300 transition-colors leading-tight">
+                                      <div className="text-center space-y-1.5">
+                                        <div className="text-2xl drop-shadow-md filter group-hover/pillar:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all">
+                                          {pillar.icon}
+                                        </div>
+                                        <div className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 group-hover/pillar:text-slate-200 transition-colors leading-tight">
                                           {pillar.name}
                                         </div>
                                       </div>
