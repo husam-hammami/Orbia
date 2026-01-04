@@ -23,7 +23,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { format } from "date-fns";
-import { Activity, Calendar, Sparkles, LayoutGrid, List, Flower2, Loader2, NotebookPen, ListTodo, BookOpen } from "lucide-react";
+import { Activity, Calendar, Sparkles, LayoutGrid, List, Flower2, Loader2, NotebookPen, ListTodo, BookOpen, Timer } from "lucide-react";
+import { WorkTimer } from "@/components/work-timer";
 import { Habit } from "@/lib/types";
 import { toast } from "sonner";
 import { useHabits, useCreateHabit, useDeleteHabit, useUpdateHabit, useAddHabitCompletion, useRemoveHabitCompletion } from "@/lib/api-hooks";
@@ -150,30 +151,33 @@ export default function TrackerPage() {
   return (
     <Layout>
       <div className="space-y-6 animate-in fade-in duration-500">
-        <div className="flex items-end justify-between gap-4">
-          <div>
+        <div className="flex items-start justify-between gap-4">
+          <div className="pt-2">
             <p className="text-muted-foreground font-medium mb-1">{format(new Date(), "EEEE, MMMM do")}</p>
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
               Daily Tracker
             </h1>
           </div>
           
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-primary/20 text-primary hover:bg-primary/5" title="System Journal" data-testid="button-open-journal">
-                <NotebookPen className="w-5 h-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="w-[400px] sm:w-[540px]">
-              <SheetHeader className="mb-4">
-                <SheetTitle>System Journal</SheetTitle>
-                <SheetDescription>
-                  A shared space for notes, reminders, and communication.
-                </SheetDescription>
-              </SheetHeader>
-              <SystemJournal />
-            </SheetContent>
-          </Sheet>
+          <div className="flex items-start gap-4">
+            <WorkTimer />
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-primary/20 text-primary hover:bg-primary/5 mt-4" title="System Journal" data-testid="button-open-journal">
+                  <NotebookPen className="w-5 h-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-[400px] sm:w-[540px]">
+                <SheetHeader className="mb-4">
+                  <SheetTitle>System Journal</SheetTitle>
+                  <SheetDescription>
+                    A shared space for notes, reminders, and communication.
+                  </SheetDescription>
+                </SheetHeader>
+                <SystemJournal />
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
