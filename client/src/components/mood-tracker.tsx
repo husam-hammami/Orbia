@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Smile, Frown, Meh, Zap, BatteryFull, Activity, UserCircle2, CloudFog, AlertCircle, Flame, MessageSquare, ChevronDown, ChevronUp, Clock, Loader2, TrendingUp, Calendar } from "lucide-react";
+import { Smile, Frown, Meh, Zap, BatteryFull, Activity, UserCircle2, CloudFog, AlertCircle, Flame, MessageSquare, ChevronDown, ChevronUp, Clock, Loader2, TrendingUp, Calendar, HeartPulse, BedDouble, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
