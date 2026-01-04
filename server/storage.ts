@@ -51,6 +51,8 @@ export interface IStorage {
   getAllTrackerEntries(): Promise<TrackerEntry[]>;
   getTrackerEntry(id: string): Promise<TrackerEntry | undefined>;
   createTrackerEntry(entry: InsertTrackerEntry): Promise<TrackerEntry>;
+  updateTrackerEntry(id: string, entry: Partial<InsertTrackerEntry>): Promise<TrackerEntry | undefined>;
+  deleteTrackerEntry(id: string): Promise<boolean>;
   getRecentTrackerEntries(limit: number): Promise<TrackerEntry[]>;
 
   // System Messages
@@ -156,6 +158,16 @@ export class DatabaseStorage implements IStorage {
   async createTrackerEntry(entry: InsertTrackerEntry): Promise<TrackerEntry> {
     const result = await db.insert(trackerEntries).values(entry).returning();
     return result[0];
+  }
+
+  async updateTrackerEntry(id: string, entry: Partial<InsertTrackerEntry>): Promise<TrackerEntry | undefined> {
+    const result = await db.update(trackerEntries).set(entry).where(eq(trackerEntries.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteTrackerEntry(id: string): Promise<boolean> {
+    const result = await db.delete(trackerEntries).where(eq(trackerEntries.id, id)).returning();
+    return result.length > 0;
   }
 
   async getRecentTrackerEntries(limit: number): Promise<TrackerEntry[]> {

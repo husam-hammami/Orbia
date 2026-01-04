@@ -86,6 +86,34 @@ export function useCreateTrackerEntry() {
   });
 }
 
+export function useUpdateTrackerEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<TrackerEntry> }) =>
+      fetchAPI(`/api/tracker/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tracker"] });
+    },
+  });
+}
+
+export function useDeleteTrackerEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchAPI(`/api/tracker/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tracker"] });
+    },
+  });
+}
+
 // System Messages Hooks
 export function useMessages() {
   return useQuery<SystemMessage[]>({

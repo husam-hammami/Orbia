@@ -1,23 +1,36 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Smile, Frown, Meh, Zap, BatteryFull, Activity, UserCircle2, CloudFog, AlertCircle, Flame, MessageSquare, ChevronDown, ChevronUp, Clock, Loader2, TrendingUp, Calendar, HeartPulse, BedDouble, Moon } from "lucide-react";
+import { Smile, Frown, Meh, Zap, BatteryFull, Activity, UserCircle2, CloudFog, AlertCircle, Flame, MessageSquare, ChevronDown, ChevronUp, Clock, Loader2, TrendingUp, Calendar, HeartPulse, BedDouble, Moon, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useMembers, useTrackerEntries, useCreateTrackerEntry } from "@/lib/api-hooks";
+import { useMembers, useTrackerEntries, useCreateTrackerEntry, useUpdateTrackerEntry, useDeleteTrackerEntry } from "@/lib/api-hooks";
 import { toast } from "sonner";
 import { format, subDays } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { parseTrackerNotes } from "@/lib/parse-notes";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import type { TrackerEntry } from "@shared/schema";
 
 export function MoodTracker() {
   const { data: members, isLoading: membersLoading } = useMembers();
   const { data: trackerEntries, isLoading: entriesLoading } = useTrackerEntries(30);
   const createEntryMutation = useCreateTrackerEntry();
+  const updateEntryMutation = useUpdateTrackerEntry();
+  const deleteEntryMutation = useDeleteTrackerEntry();
 
   const [isExpanded, setIsExpanded] = useState(true);
+  const [editingEntry, setEditingEntry] = useState<TrackerEntry | null>(null);
+  const [deletingEntryId, setDeletingEntryId] = useState<string | null>(null);
+  const [editMood, setEditMood] = useState([5]);
+  const [editEnergy, setEditEnergy] = useState([5]);
+  const [editStress, setEditStress] = useState([3]);
+  const [editDissociation, setEditDissociation] = useState([2]);
+  const [editCapacity, setEditCapacity] = useState([3]);
+  const [editNotes, setEditNotes] = useState("");
   const [mood, setMood] = useState<string | null>(null);
   const [motivation, setMotivation] = useState([5]);
   const [comfort, setComfort] = useState([5]); 
@@ -130,6 +143,53 @@ export function MoodTracker() {
         setWorkTag(null);
       },
       onError: () => toast.error("Failed to log entry"),
+    });
+  };
+
+  const openEditDialog = (entry: TrackerEntry) => {
+    setEditingEntry(entry);
+    setEditMood([entry.mood]);
+    setEditEnergy([entry.energy]);
+    setEditStress([Math.round(entry.stress / 10)]);
+    setEditDissociation([Math.round(entry.dissociation / 10)]);
+    setEditCapacity([entry.capacity ?? 3]);
+    const parsed = parseTrackerNotes(entry.notes);
+    setEditNotes(parsed.text || "");
+  };
+
+  const handleUpdateEntry = () => {
+    if (!editingEntry) return;
+    
+    const noteParts = [];
+    if (editNotes) noteParts.push(editNotes);
+    
+    updateEntryMutation.mutate({
+      id: editingEntry.id,
+      data: {
+        mood: editMood[0],
+        energy: editEnergy[0],
+        stress: editStress[0] * 10,
+        dissociation: editDissociation[0] * 10,
+        capacity: editCapacity[0],
+        notes: noteParts.length > 0 ? noteParts.join(" | ") : editingEntry.notes,
+      }
+    }, {
+      onSuccess: () => {
+        toast.success("Entry updated!");
+        setEditingEntry(null);
+      },
+      onError: () => toast.error("Failed to update entry"),
+    });
+  };
+
+  const handleDeleteEntry = () => {
+    if (!deletingEntryId) return;
+    deleteEntryMutation.mutate(deletingEntryId, {
+      onSuccess: () => {
+        toast.success("Entry deleted");
+        setDeletingEntryId(null);
+      },
+      onError: () => toast.error("Failed to delete entry"),
     });
   };
 
@@ -534,6 +594,24 @@ export function MoodTracker() {
                         </span>
                       )}
                       <span>{format(new Date(entry.timestamp), "MMM d, h:mm a")}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => openEditDialog(entry)}
+                        data-testid={`button-edit-entry-${entry.id}`}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => setDeletingEntryId(entry.id)}
+                        data-testid={`button-delete-entry-${entry.id}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </div>
 
@@ -636,6 +714,126 @@ export function MoodTracker() {
         )}
       </CardContent>
     </Card>
+
+    {/* Edit Entry Dialog */}
+    <Dialog open={!!editingEntry} onOpenChange={(open) => !open && setEditingEntry(null)}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Entry</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Mood (1-10)</label>
+            <Slider
+              value={editMood}
+              onValueChange={setEditMood}
+              min={1}
+              max={10}
+              step={1}
+              className="w-full"
+              data-testid="slider-edit-mood"
+            />
+            <div className="text-xs text-muted-foreground text-center">{editMood[0]}/10</div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Energy (1-10)</label>
+            <Slider
+              value={editEnergy}
+              onValueChange={setEditEnergy}
+              min={1}
+              max={10}
+              step={1}
+              className="w-full"
+              data-testid="slider-edit-energy"
+            />
+            <div className="text-xs text-muted-foreground text-center">{editEnergy[0]}/10</div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Stress (0-10)</label>
+            <Slider
+              value={editStress}
+              onValueChange={setEditStress}
+              min={0}
+              max={10}
+              step={1}
+              className="w-full"
+              data-testid="slider-edit-stress"
+            />
+            <div className="text-xs text-muted-foreground text-center">{editStress[0] * 10}%</div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Dissociation (0-10)</label>
+            <Slider
+              value={editDissociation}
+              onValueChange={setEditDissociation}
+              min={0}
+              max={10}
+              step={1}
+              className="w-full"
+              data-testid="slider-edit-dissociation"
+            />
+            <div className="text-xs text-muted-foreground text-center">{editDissociation[0] * 10}%</div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Capacity (0-5)</label>
+            <Slider
+              value={editCapacity}
+              onValueChange={setEditCapacity}
+              min={0}
+              max={5}
+              step={1}
+              className="w-full"
+              data-testid="slider-edit-capacity"
+            />
+            <div className="text-xs text-muted-foreground text-center">{editCapacity[0]}/5</div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Notes</label>
+            <Textarea
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              placeholder="Update your notes..."
+              className="min-h-[80px]"
+              data-testid="input-edit-notes"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setEditingEntry(null)} data-testid="button-cancel-edit">
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleUpdateEntry} 
+            disabled={updateEntryMutation.isPending}
+            data-testid="button-save-edit"
+          >
+            {updateEntryMutation.isPending ? "Saving..." : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Delete Confirmation Dialog */}
+    <AlertDialog open={!!deletingEntryId} onOpenChange={(open) => !open && setDeletingEntryId(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete this mood entry.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={handleDeleteEntry}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            data-testid="button-confirm-delete"
+          >
+            {deleteEntryMutation.isPending ? "Deleting..." : "Delete"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }

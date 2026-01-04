@@ -138,6 +138,32 @@ export async function registerRoutes(
     }
   });
 
+  app.put("/api/tracker/:id", async (req, res) => {
+    try {
+      const validatedData = insertTrackerEntrySchema.partial().parse(req.body);
+      const entry = await storage.updateTrackerEntry(req.params.id, validatedData);
+      if (!entry) {
+        return res.status(404).json({ error: "Tracker entry not found" });
+      }
+      res.json(entry);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/tracker/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteTrackerEntry(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Tracker entry not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete tracker entry" });
+    }
+  });
+
   // System Messages Routes
   app.get("/api/messages", async (req, res) => {
     try {
