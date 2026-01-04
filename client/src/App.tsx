@@ -10,6 +10,7 @@ import Analytics from "@/pages/analytics";
 import SystemInsight from "@/pages/system-insight";
 import GeniusAI from "@/pages/deep-mind";
 import FinancePage from "@/pages/finance";
+import OrbitPage from "@/pages/orbit";
 
 import Settings from "@/pages/settings";
 import TrackerPage from "@/pages/tracker";
@@ -19,6 +20,7 @@ function Router() {
     <Switch>
       <Route path="/" component={TrackerPage} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/orbit" component={OrbitPage} />
       <Route path="/career" component={CareerPage} />
       <Route path="/finance" component={FinancePage} />
       <Route path="/analytics" component={Analytics} />

@@ -1448,6 +1448,92 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
     }
   });
 
+  // Orbit Chat Route
+  app.post("/api/orbit/chat", async (req, res) => {
+    try {
+      const { message, context, history } = req.body;
+      
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      const orbitSystemPrompt = `You are Orbit, a calm operational co-pilot for NeuroZen. You only use NeuroZen data provided in context. You help the user operate the app: summarize today briefly, suggest the smallest next step when asked, and execute user requests by returning at most one action JSON object.
+
+TONE: Calm, brief, operational. No "you should", no praise/shame, no deep emotional probing. Uses data-grounded language: "Based on today's logs…"
+
+WHAT YOU MUST NOT DO:
+- Diagnose or interpret psychology
+- Explain "why you feel this way"  
+- Encourage dependence ("I'm always here for you")
+- Invent data or pretend you completed actions
+- Use motivational pressure or shame
+
+WHEN TO USE ACTIONS:
+If the user asks to mark something done, add a habit, toggle a task, etc., output ONLY a JSON action object like:
+{"type":"action","name":"mark_habit","args":{"habit_id":"...","date":"YYYY-MM-DD","done":true},"confirm":false}
+
+SUPPORTED ACTIONS:
+- mark_habit: {"habit_id": "...", "date": "YYYY-MM-DD", "done": true/false}
+- add_task: {"title": "...", "priority": "low/medium/high"}
+- mark_task: {"task_id": "...", "completed": true/false}
+- mark_routine_activity: {"activity_id": "...", "date": "YYYY-MM-DD", "done": true/false, "habit_id": "..." or null}
+- set_low_capacity_mode: {} (enables low-capacity overlay for today)
+- unset_low_capacity_mode: {} (disables low-capacity mode)
+
+For destructive actions (removing habits, major changes), set confirm:true with confirm_text.
+
+LOW-CAPACITY MODE: When user says they're overwhelmed, offer to switch to low-capacity mode. When activated, highlight 3 core actions:
+1) 1-minute grounding
+2) Stretch back 5 minutes  
+3) Leave the house once OR walk 10-20 min
+
+If unsure about user intent, ask ONE clarifying question. Keep responses brief and operational.
+
+CURRENT CONTEXT:
+${JSON.stringify(context, null, 2)}`;
+
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.setHeader("Transfer-Encoding", "chunked");
+      
+      const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
+        { role: "system", content: orbitSystemPrompt }
+      ];
+      
+      if (history && Array.isArray(history)) {
+        for (const h of history.slice(-10)) {
+          if (h.role === "user" || h.role === "assistant") {
+            messages.push({ role: h.role, content: h.content });
+          }
+        }
+      }
+      
+      messages.push({ role: "user", content: message });
+
+      const stream = await openai.chat.completions.create({
+        model: "gpt-5.1",
+        messages,
+        stream: true,
+        max_completion_tokens: 800
+      });
+      
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || "";
+        if (content) {
+          res.write(content);
+        }
+      }
+      
+      res.end();
+    } catch (error) {
+      console.error("Orbit chat error:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to process chat" });
+      } else {
+        res.end();
+      }
+    }
+  });
+
   // Daily Summary Routes
   app.get("/api/daily-summaries", async (req, res) => {
     try {
