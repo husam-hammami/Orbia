@@ -506,19 +506,6 @@ export default function FinancePage() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-indigo-500/5 border-indigo-500/20">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base flex items-center gap-2">
-                            <TrendingUp className="w-4 h-4 text-indigo-500" />
-                            Insight
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground">
-                            Your <strong className="text-foreground">Groceries</strong> spending is 15% lower than last month. Great job sticking to the meal plan!
-                        </p>
-                    </CardContent>
-                </Card>
             </div>
         </div>
 
