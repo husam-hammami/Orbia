@@ -147,7 +147,7 @@ export default function SystemInsight() {
     
     try {
       if (editingMember) {
-        await updateMember.mutateAsync({ id: editingMember.id, ...payload });
+        await updateMember.mutateAsync({ id: editingMember.id, data: payload });
         toast.success(`Updated ${payload.name}`);
         if (activeMember?.id === editingMember.id) {
           setActiveMember({ ...editingMember, ...payload, traits });
