@@ -196,18 +196,34 @@ export default function CareerPage() {
     });
   };
 
-  const handleUpdateProject = (updatedProject: CareerProject) => {
-    updateProject.mutate({
-      id: updatedProject.id,
-      title: updatedProject.title,
-      description: updatedProject.description,
-      status: updatedProject.status,
-      progress: updatedProject.progress,
-      deadline: updatedProject.deadline,
-      nextAction: updatedProject.nextAction,
-      color: updatedProject.color,
-      tags: updatedProject.tags,
-    });
+  const handleSaveProject = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject?.title) return;
+    
+    if (selectedProject.id) {
+      updateProject.mutate({
+        id: selectedProject.id,
+        title: selectedProject.title,
+        description: selectedProject.description,
+        status: selectedProject.status,
+        progress: selectedProject.progress,
+        deadline: selectedProject.deadline,
+        nextAction: selectedProject.nextAction,
+        color: selectedProject.color,
+        tags: selectedProject.tags,
+      });
+    } else {
+      createProject.mutate({
+        title: selectedProject.title,
+        description: selectedProject.description || "",
+        status: selectedProject.status || "planning",
+        progress: selectedProject.progress || 0,
+        deadline: selectedProject.deadline || "",
+        nextAction: selectedProject.nextAction || "",
+        color: selectedProject.color || "bg-indigo-500",
+        tags: selectedProject.tags || [],
+      });
+    }
     setIsProjectDialogOpen(false);
   };
 
@@ -286,7 +302,13 @@ export default function CareerPage() {
                   <TrendingUp className="w-4 h-4" /> Board
                </Button>
              </div>
-             <Button className="h-10 px-5 bg-foreground text-background hover:bg-foreground/90 font-medium shadow-lg shadow-foreground/10 transition-all">
+             <Button 
+               className="h-10 px-5 bg-foreground text-background hover:bg-foreground/90 font-medium shadow-lg shadow-foreground/10 transition-all"
+               onClick={() => {
+                 setSelectedProject(null);
+                 setIsProjectDialogOpen(true);
+               }}
+             >
                 <Plus className="w-4 h-4 mr-2" /> New Initiative
              </Button>
           </div>
@@ -430,8 +452,15 @@ export default function CareerPage() {
                            </div>
                         );
                      })}
-                     <Button variant="outline" className="w-full py-8 border-dashed text-muted-foreground hover:text-foreground hover:border-indigo-500/50 hover:bg-indigo-500/5 group">
-                        <Plus className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" /> Add New Project
+                     <Button 
+                        variant="outline" 
+                        className="w-full py-8 border-dashed text-muted-foreground hover:text-foreground hover:border-indigo-500/50 hover:bg-indigo-500/5 group"
+                        onClick={() => {
+                           setSelectedProject(null);
+                           setIsProjectDialogOpen(true);
+                        }}
+                     >
+                        <Plus className="w-4 h-4 mr-2" /> Add New Project
                      </Button>
                 </div>
               ) : (
@@ -450,7 +479,15 @@ export default function CareerPage() {
                                     {projects.filter(p => p.status === status).length}
                                  </span>
                               </div>
-                              <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6"
+                                onClick={() => {
+                                  setSelectedProject({ status } as any);
+                                  setIsProjectDialogOpen(true);
+                                }}
+                              >
                                  <Plus className="w-3 h-3" />
                               </Button>
                            </div>
@@ -491,7 +528,14 @@ export default function CareerPage() {
                                    </Card>
                                 ))}
                                 
-                                <Button variant="ghost" className="w-full py-6 text-xs font-medium text-muted-foreground border border-dashed border-border/60 rounded-lg hover:bg-muted/30 hover:text-foreground hover:border-border transition-all">
+                                <Button 
+                                  variant="ghost" 
+                                  className="w-full py-6 text-xs font-medium text-muted-foreground border border-dashed border-border/60 rounded-lg hover:bg-muted/30 hover:text-foreground hover:border-border transition-all"
+                                  onClick={() => {
+                                    setSelectedProject({ status } as any);
+                                    setIsProjectDialogOpen(true);
+                                  }}
+                                >
                                    <Plus className="w-3.5 h-3.5 mr-2" /> Add Project
                                 </Button>
                            </div>
@@ -788,8 +832,8 @@ export default function CareerPage() {
               </div>
             )}
             <DialogFooter>
-              <Button onClick={() => selectedProject && handleUpdateProject(selectedProject)} disabled={updateProject.isPending}>
-                {updateProject.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              <Button onClick={() => selectedProject && handleSaveProject({ preventDefault: () => {} } as any)} disabled={updateProject.isPending || createProject.isPending}>
+                {(updateProject.isPending || createProject.isPending) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Save Changes
               </Button>
             </DialogFooter>
