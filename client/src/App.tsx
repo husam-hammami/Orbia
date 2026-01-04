@@ -11,6 +11,7 @@ import SystemInsight from "@/pages/system-insight";
 import GeniusAI from "@/pages/deep-mind";
 import FinancePage from "@/pages/finance";
 import OrbitPage from "@/pages/orbit";
+import { OrbitFab } from "@/components/orbit-fab";
 
 import Settings from "@/pages/settings";
 import TrackerPage from "@/pages/tracker";
@@ -38,6 +39,7 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <Router />
+        <OrbitFab />
       </TooltipProvider>
     </QueryClientProvider>
   );
