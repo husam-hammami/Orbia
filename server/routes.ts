@@ -16,7 +16,8 @@ import {
   insertDailySummarySchema,
   insertCareerProjectSchema,
   insertCareerTaskSchema,
-  insertExpenseSchema
+  insertExpenseSchema,
+  insertCareerVisionSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { registerChatRoutes } from "./replit_integrations/chat";
@@ -1607,6 +1608,27 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete expense" });
+    }
+  });
+
+  // Career Vision Routes
+  app.get("/api/vision", async (req, res) => {
+    try {
+      const vision = await storage.getVision();
+      res.json(vision);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch vision" });
+    }
+  });
+
+  app.post("/api/vision", async (req, res) => {
+    try {
+      const validatedData = z.array(insertCareerVisionSchema).parse(req.body);
+      const vision = await storage.updateVision(validatedData);
+      res.json(vision);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
     }
   });
 

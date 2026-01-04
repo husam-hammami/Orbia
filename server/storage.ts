@@ -29,6 +29,8 @@ import {
   type InsertCareerTask,
   type Expense,
   type InsertExpense,
+  type CareerVision,
+  type InsertCareerVision,
   systemMembers,
   trackerEntries,
   systemMessages,
@@ -43,10 +45,11 @@ import {
   dailySummaries,
   careerProjects,
   careerTasks,
-  expenses
+  expenses,
+  careerVision
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, asc } from "drizzle-orm";
 
 export interface IStorage {
   // System Members
@@ -533,6 +536,24 @@ export class DatabaseStorage implements IStorage {
   async deleteExpense(id: string): Promise<boolean> {
     const result = await db.delete(expenses).where(eq(expenses.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Career Vision
+  async getVision(): Promise<CareerVision[]> {
+    return await db.select().from(careerVision).orderBy(asc(careerVision.order));
+  }
+
+  async updateVision(items: InsertCareerVision[]): Promise<CareerVision[]> {
+    try {
+      return await db.transaction(async (tx) => {
+        await tx.delete(careerVision);
+        if (items.length === 0) return [];
+        return await tx.insert(careerVision).values(items).returning();
+      });
+    } catch (error) {
+      console.error("Failed to update vision:", error);
+      throw error;
+    }
   }
 }
 

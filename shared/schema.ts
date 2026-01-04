@@ -303,3 +303,21 @@ export const insertExpenseSchema = createInsertSchema(expenses).omit({
 
 export type Expense = typeof expenses.$inferSelect;
 export type InsertExpense = z.infer<typeof insertExpenseSchema>;
+
+// Career Vision
+export const careerVision = pgTable("career_vision", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  timeframe: text("timeframe").notNull(),
+  color: text("color").notNull().default("text-blue-500"),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCareerVisionSchema = createInsertSchema(careerVision).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type CareerVision = typeof careerVision.$inferSelect;
+export type InsertCareerVision = z.infer<typeof insertCareerVisionSchema>;

@@ -168,12 +168,12 @@ export default function CareerPage() {
   };
 
   const openEditProject = (project: CareerProject) => {
-    setSelectedProject(project);
+    setSelectedProject({ ...project });
     setIsProjectDialogOpen(true);
   };
 
   const openViewProject = (project: CareerProject) => {
-    setSelectedProject(project);
+    setSelectedProject({ ...project });
     setIsProjectDetailsOpen(true);
   };
 
@@ -189,7 +189,7 @@ export default function CareerPage() {
     }, {
       onSuccess: (newTaskData) => {
         if (newTaskData) {
-          setSelectedTask(newTaskData);
+          setSelectedTask({ ...newTaskData });
           setIsTaskDialogOpen(true);
         }
       }
@@ -200,31 +200,27 @@ export default function CareerPage() {
     e.preventDefault();
     if (!selectedProject?.title) return;
     
+    const projectData = {
+      title: selectedProject.title,
+      description: selectedProject.description || "",
+      status: selectedProject.status || "planning",
+      progress: selectedProject.progress || 0,
+      deadline: selectedProject.deadline || "",
+      nextAction: selectedProject.nextAction || "",
+      color: selectedProject.color || "bg-indigo-500",
+      tags: selectedProject.tags || [],
+    };
+
     if (selectedProject.id) {
       updateProject.mutate({
         id: selectedProject.id,
-        title: selectedProject.title,
-        description: selectedProject.description,
-        status: selectedProject.status,
-        progress: selectedProject.progress,
-        deadline: selectedProject.deadline,
-        nextAction: selectedProject.nextAction,
-        color: selectedProject.color,
-        tags: selectedProject.tags,
+        ...projectData
       });
     } else {
-      createProject.mutate({
-        title: selectedProject.title,
-        description: selectedProject.description || "",
-        status: selectedProject.status || "planning",
-        progress: selectedProject.progress || 0,
-        deadline: selectedProject.deadline || "",
-        nextAction: selectedProject.nextAction || "",
-        color: selectedProject.color || "bg-indigo-500",
-        tags: selectedProject.tags || [],
-      });
+      createProject.mutate(projectData);
     }
     setIsProjectDialogOpen(false);
+    setSelectedProject(null);
   };
 
   const handleSaveTask = () => {
@@ -241,6 +237,7 @@ export default function CareerPage() {
       });
     }
     setIsTaskDialogOpen(false);
+    setSelectedTask(null);
   };
 
   const getProjectTitle = (projectId: string | null) => {
@@ -738,101 +735,122 @@ export default function CareerPage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isProjectDialogOpen} onOpenChange={setIsProjectDialogOpen}>
+        <Dialog open={isProjectDialogOpen} onOpenChange={(open) => {
+          setIsProjectDialogOpen(open);
+          if (!open) setSelectedProject(null);
+        }}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
-              <DialogTitle>Edit Project</DialogTitle>
+              <DialogTitle>{selectedProject?.id ? "Edit Project" : "New Initiative"}</DialogTitle>
+              <DialogDescription>
+                {selectedProject?.id ? "Update your project details and tracking." : "Define a new goal or professional project."}
+              </DialogDescription>
             </DialogHeader>
-            {selectedProject && (
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="project-title">Project Title</Label>
-                  <Input 
-                    id="project-title" 
-                    value={selectedProject.title} 
-                    onChange={(e) => setSelectedProject({...selectedProject, title: e.target.value})}
-                  />
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="project-desc">Description</Label>
-                  <Textarea 
-                    id="project-desc" 
-                    value={selectedProject.description || ""} 
-                    className="min-h-[100px]"
-                    onChange={(e) => setSelectedProject({...selectedProject, description: e.target.value})}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="grid gap-2">
-                      <Label>Status</Label>
-                      <Select 
-                        value={selectedProject.status} 
-                        onValueChange={(val) => setSelectedProject({...selectedProject, status: val})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="planning">Planning</SelectItem>
-                          <SelectItem value="in_progress">In Progress</SelectItem>
-                          <SelectItem value="ongoing">Ongoing</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                   </div>
-                   <div className="grid gap-2">
-                      <Label>Deadline</Label>
-                      <Input 
-                         type="date"
-                         value={selectedProject.deadline || ""}
-                         onChange={(e) => setSelectedProject({...selectedProject, deadline: e.target.value})}
-                      />
-                   </div>
-                </div>
-
-                <div className="grid gap-2">
-                   <div className="flex justify-between">
-                      <Label>Progress ({selectedProject.progress}%)</Label>
-                   </div>
-                   <Progress value={selectedProject.progress} className="h-2" indicatorClassName={selectedProject.color} />
-                   <input 
-                      type="range" 
-                      min="0" 
-                      max="100" 
-                      value={selectedProject.progress} 
-                      className="w-full mt-2"
-                      onChange={(e) => setSelectedProject({...selectedProject, progress: parseInt(e.target.value)})}
-                   />
-                </div>
-
-                <div className="grid gap-2">
-                   <Label>Next Action</Label>
-                   <div className="flex gap-2">
-                      <Input 
-                         value={selectedProject.nextAction || ""}
-                         onChange={(e) => setSelectedProject({...selectedProject, nextAction: e.target.value})}
-                         placeholder="What's the immediate next step?"
-                      />
-                   </div>
-                </div>
-                
-                <div className="grid gap-2">
-                   <Label>Tags</Label>
-                   <div className="flex flex-wrap gap-2">
-                      {selectedProject.tags?.map(tag => (
-                         <Badge key={tag} variant="secondary">{tag}</Badge>
-                      ))}
-                      <Button variant="outline" size="sm" className="h-6 text-xs border-dashed">
-                         + Add Tag
-                      </Button>
-                   </div>
-                </div>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="project-title">Project Title</Label>
+                <Input 
+                  id="project-title" 
+                  value={selectedProject?.title || ""} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedProject(prev => prev ? ({...prev, title: val}) : ({ title: val, status: "planning", progress: 0, color: "bg-indigo-500", tags: [] } as any));
+                  }}
+                  placeholder="e.g. Portfolio Redesign"
+                />
               </div>
-            )}
+              
+              <div className="grid gap-2">
+                <Label htmlFor="project-desc">Description</Label>
+                <Textarea 
+                  id="project-desc" 
+                  value={selectedProject?.description || ""} 
+                  className="min-h-[100px]"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedProject(prev => prev ? ({...prev, description: val}) : ({ description: val } as any));
+                  }}
+                  placeholder="What is this project about?"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="grid gap-2">
+                    <Label>Status</Label>
+                    <Select 
+                      value={selectedProject?.status || "planning"} 
+                      onValueChange={(val) => setSelectedProject(prev => prev ? ({...prev, status: val}) : ({ status: val } as any))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="planning">Planning</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="ongoing">Ongoing</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                 </div>
+                 <div className="grid gap-2">
+                    <Label>Deadline</Label>
+                    <Input 
+                       type="date"
+                       value={selectedProject?.deadline || ""}
+                       onChange={(e) => {
+                         const val = e.target.value;
+                         setSelectedProject(prev => prev ? ({...prev, deadline: val}) : ({ deadline: val } as any));
+                       }}
+                    />
+                 </div>
+              </div>
+
+              <div className="grid gap-2">
+                 <div className="flex justify-between">
+                    <Label>Progress ({selectedProject?.progress || 0}%)</Label>
+                 </div>
+                 <Progress value={selectedProject?.progress || 0} className="h-2" indicatorClassName={selectedProject?.color || "bg-indigo-500"} />
+                 <input 
+                    type="range" 
+                    min="0" 
+                    max="100" 
+                    value={selectedProject?.progress || 0} 
+                    className="w-full mt-2"
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      setSelectedProject(prev => prev ? ({...prev, progress: val}) : ({ progress: val } as any));
+                    }}
+                 />
+              </div>
+
+              <div className="grid gap-2">
+                 <Label>Next Action</Label>
+                 <div className="flex gap-2">
+                    <Input 
+                       value={selectedProject?.nextAction || ""}
+                       onChange={(e) => {
+                         const val = e.target.value;
+                         setSelectedProject(prev => prev ? ({...prev, nextAction: val}) : ({ nextAction: val } as any));
+                       }}
+                       placeholder="What's the immediate next step?"
+                    />
+                 </div>
+              </div>
+              
+              <div className="grid gap-2">
+                 <Label>Tags</Label>
+                 <div className="flex flex-wrap gap-2">
+                    {selectedProject?.tags?.map(tag => (
+                       <Badge key={tag} variant="secondary">{tag}</Badge>
+                    ))}
+                    <Button variant="outline" size="sm" className="h-6 text-xs border-dashed">
+                       + Add Tag
+                    </Button>
+                 </div>
+              </div>
+            </div>
             <DialogFooter>
-              <Button onClick={() => selectedProject && handleSaveProject({ preventDefault: () => {} } as any)} disabled={updateProject.isPending || createProject.isPending}>
+              <Button onClick={(e) => handleSaveProject(e)} disabled={updateProject.isPending || createProject.isPending}>
                 {(updateProject.isPending || createProject.isPending) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Save Changes
               </Button>
