@@ -13,7 +13,10 @@ import {
   insertRoutineActivitySchema,
   insertRoutineActivityLogSchema,
   insertTodoSchema,
-  insertDailySummarySchema
+  insertDailySummarySchema,
+  insertCareerProjectSchema,
+  insertCareerTaskSchema,
+  insertExpenseSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { registerChatRoutes } from "./replit_integrations/chat";
@@ -1448,6 +1451,165 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
     }
   });
 
+  // Career Projects Routes
+  app.get("/api/career-projects", async (req, res) => {
+    try {
+      const projects = await storage.getAllCareerProjects();
+      res.json(projects);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch career projects" });
+    }
+  });
+
+  app.get("/api/career-projects/:id", async (req, res) => {
+    try {
+      const project = await storage.getCareerProject(req.params.id);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      res.json(project);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch project" });
+    }
+  });
+
+  app.post("/api/career-projects", async (req, res) => {
+    try {
+      const validatedData = insertCareerProjectSchema.parse(req.body);
+      const project = await storage.createCareerProject(validatedData);
+      res.status(201).json(project);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.patch("/api/career-projects/:id", async (req, res) => {
+    try {
+      const validatedData = insertCareerProjectSchema.partial().parse(req.body);
+      const project = await storage.updateCareerProject(req.params.id, validatedData);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      res.json(project);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/career-projects/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteCareerProject(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete project" });
+    }
+  });
+
+  // Career Tasks Routes
+  app.get("/api/career-tasks", async (req, res) => {
+    try {
+      const projectId = req.query.projectId as string | undefined;
+      const tasks = projectId 
+        ? await storage.getCareerTasksByProject(projectId)
+        : await storage.getAllCareerTasks();
+      res.json(tasks);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch career tasks" });
+    }
+  });
+
+  app.post("/api/career-tasks", async (req, res) => {
+    try {
+      const validatedData = insertCareerTaskSchema.parse(req.body);
+      const task = await storage.createCareerTask(validatedData);
+      res.status(201).json(task);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.patch("/api/career-tasks/:id", async (req, res) => {
+    try {
+      const validatedData = insertCareerTaskSchema.partial().parse(req.body);
+      const task = await storage.updateCareerTask(req.params.id, validatedData);
+      if (!task) {
+        return res.status(404).json({ error: "Task not found" });
+      }
+      res.json(task);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/career-tasks/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteCareerTask(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Task not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete task" });
+    }
+  });
+
+  // Expenses Routes
+  app.get("/api/expenses", async (req, res) => {
+    try {
+      const month = req.query.month as string | undefined;
+      const expenses = month
+        ? await storage.getExpensesByMonth(month)
+        : await storage.getAllExpenses();
+      res.json(expenses);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch expenses" });
+    }
+  });
+
+  app.post("/api/expenses", async (req, res) => {
+    try {
+      const validatedData = insertExpenseSchema.parse(req.body);
+      const expense = await storage.createExpense(validatedData);
+      res.status(201).json(expense);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.patch("/api/expenses/:id", async (req, res) => {
+    try {
+      const validatedData = insertExpenseSchema.partial().parse(req.body);
+      const expense = await storage.updateExpense(req.params.id, validatedData);
+      if (!expense) {
+        return res.status(404).json({ error: "Expense not found" });
+      }
+      res.json(expense);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/expenses/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteExpense(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Expense not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete expense" });
+    }
+  });
+
   // Orbit Chat Route
   app.post("/api/orbit/chat", async (req, res) => {
     try {
@@ -1473,14 +1635,47 @@ If the user asks to mark something done, add a habit, toggle a task, etc., outpu
 {"type":"action","name":"mark_habit","args":{"habit_id":"...","date":"YYYY-MM-DD","done":true},"confirm":false}
 
 SUPPORTED ACTIONS:
+
+HABITS:
 - mark_habit: {"habit_id": "...", "date": "YYYY-MM-DD", "done": true/false}
+- create_habit: {"title": "...", "category": "health/movement/mental/work/mindfulness/creativity", "description": "...", "target": number, "unit": "times/minutes/ml/etc"}
+- update_habit: {"habit_id": "...", "title": "...", "category": "...", "description": "..."}
+- delete_habit: {"habit_id": "..."} - ALWAYS set confirm:true
+
+TASKS:
 - add_task: {"title": "...", "priority": "low/medium/high"}
 - mark_task: {"task_id": "...", "completed": true/false}
+- update_task: {"task_id": "...", "title": "...", "priority": "..."}
+- delete_task: {"task_id": "..."} - ALWAYS set confirm:true
+
+ROUTINE ACTIVITIES:
 - mark_routine_activity: {"activity_id": "...", "date": "YYYY-MM-DD", "done": true/false, "habit_id": "..." or null}
+- create_routine_activity: {"block_id": "...", "name": "...", "time": "HH:MM", "description": "...", "habit_id": "..."}
+- update_routine_activity: {"activity_id": "...", "name": "...", "time": "...", "description": "..."}
+- delete_routine_activity: {"activity_id": "..."} - ALWAYS set confirm:true
+
+CAREER PROJECTS:
+- create_career_project: {"title": "...", "description": "...", "status": "planning/in_progress/ongoing/completed", "deadline": "YYYY-MM-DD", "color": "bg-indigo-500/bg-rose-500/bg-emerald-500/etc"}
+- update_career_project: {"project_id": "...", "title": "...", "status": "...", "progress": 0-100, "description": "...", "nextAction": "..."}
+- delete_career_project: {"project_id": "..."} - ALWAYS set confirm:true
+
+CAREER TASKS:
+- create_career_task: {"title": "...", "project_id": "..." or null, "priority": "low/medium/high", "due": "Today/Tomorrow/YYYY-MM-DD", "description": "..."}
+- update_career_task: {"task_id": "...", "title": "...", "priority": "...", "completed": 0/1}
+- delete_career_task: {"task_id": "..."} - ALWAYS set confirm:true
+
+EXPENSES:
+- create_expense: {"name": "...", "amount": number, "budget": number, "category": "Fixed/Variable/Savings/Debt", "status": "paid/pending/variable", "date": "Jan 1", "month": "January"}
+- update_expense: {"expense_id": "...", "amount": number, "status": "paid/pending/variable", "name": "..."}
+- delete_expense: {"expense_id": "..."} - ALWAYS set confirm:true
+
+LOW-CAPACITY MODE:
 - set_low_capacity_mode: {} (enables low-capacity overlay for today)
 - unset_low_capacity_mode: {} (disables low-capacity mode)
 
-For destructive actions (removing habits, major changes), set confirm:true with confirm_text.
+CONFIRMATION RULES:
+- ALWAYS set confirm:true and confirm_text for: delete_habit, delete_task, delete_routine_activity, delete_career_project, delete_career_task, delete_expense
+- confirm_text should briefly describe what will happen, e.g. "Delete project 'Portfolio Redesign'?"
 
 LOW-CAPACITY MODE: When user says they're overwhelmed, offer to switch to low-capacity mode. When activated, highlight 3 core actions:
 1) 1-minute grounding

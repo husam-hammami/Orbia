@@ -23,6 +23,12 @@ import {
   type InsertTodo,
   type DailySummary,
   type InsertDailySummary,
+  type CareerProject,
+  type InsertCareerProject,
+  type CareerTask,
+  type InsertCareerTask,
+  type Expense,
+  type InsertExpense,
   systemMembers,
   trackerEntries,
   systemMessages,
@@ -34,7 +40,10 @@ import {
   routineActivities,
   routineActivityLogs,
   todos,
-  dailySummaries
+  dailySummaries,
+  careerProjects,
+  careerTasks,
+  expenses
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -117,6 +126,27 @@ export interface IStorage {
   getAllDailySummaries(): Promise<DailySummary[]>;
   getDailySummary(date: string): Promise<DailySummary | undefined>;
   upsertDailySummary(summary: InsertDailySummary): Promise<DailySummary>;
+
+  // Career Projects
+  getAllCareerProjects(): Promise<CareerProject[]>;
+  getCareerProject(id: string): Promise<CareerProject | undefined>;
+  createCareerProject(project: InsertCareerProject): Promise<CareerProject>;
+  updateCareerProject(id: string, project: Partial<InsertCareerProject>): Promise<CareerProject | undefined>;
+  deleteCareerProject(id: string): Promise<boolean>;
+
+  // Career Tasks
+  getAllCareerTasks(): Promise<CareerTask[]>;
+  getCareerTasksByProject(projectId: string): Promise<CareerTask[]>;
+  createCareerTask(task: InsertCareerTask): Promise<CareerTask>;
+  updateCareerTask(id: string, task: Partial<InsertCareerTask>): Promise<CareerTask | undefined>;
+  deleteCareerTask(id: string): Promise<boolean>;
+
+  // Expenses
+  getAllExpenses(): Promise<Expense[]>;
+  getExpensesByMonth(month: string): Promise<Expense[]>;
+  createExpense(expense: InsertExpense): Promise<Expense>;
+  updateExpense(id: string, expense: Partial<InsertExpense>): Promise<Expense | undefined>;
+  deleteExpense(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -429,6 +459,80 @@ export class DatabaseStorage implements IStorage {
     }
     const result = await db.insert(dailySummaries).values(summary).returning();
     return result[0];
+  }
+
+  // Career Projects
+  async getAllCareerProjects(): Promise<CareerProject[]> {
+    return await db.select().from(careerProjects).orderBy(desc(careerProjects.createdAt));
+  }
+
+  async getCareerProject(id: string): Promise<CareerProject | undefined> {
+    const result = await db.select().from(careerProjects).where(eq(careerProjects.id, id));
+    return result[0];
+  }
+
+  async createCareerProject(project: InsertCareerProject): Promise<CareerProject> {
+    const result = await db.insert(careerProjects).values(project).returning();
+    return result[0];
+  }
+
+  async updateCareerProject(id: string, project: Partial<InsertCareerProject>): Promise<CareerProject | undefined> {
+    const result = await db.update(careerProjects).set(project).where(eq(careerProjects.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteCareerProject(id: string): Promise<boolean> {
+    await db.update(careerTasks).set({ projectId: null }).where(eq(careerTasks.projectId, id));
+    const result = await db.delete(careerProjects).where(eq(careerProjects.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Career Tasks
+  async getAllCareerTasks(): Promise<CareerTask[]> {
+    return await db.select().from(careerTasks).orderBy(desc(careerTasks.createdAt));
+  }
+
+  async getCareerTasksByProject(projectId: string): Promise<CareerTask[]> {
+    return await db.select().from(careerTasks).where(eq(careerTasks.projectId, projectId)).orderBy(desc(careerTasks.createdAt));
+  }
+
+  async createCareerTask(task: InsertCareerTask): Promise<CareerTask> {
+    const result = await db.insert(careerTasks).values(task).returning();
+    return result[0];
+  }
+
+  async updateCareerTask(id: string, task: Partial<InsertCareerTask>): Promise<CareerTask | undefined> {
+    const result = await db.update(careerTasks).set(task).where(eq(careerTasks.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteCareerTask(id: string): Promise<boolean> {
+    const result = await db.delete(careerTasks).where(eq(careerTasks.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Expenses
+  async getAllExpenses(): Promise<Expense[]> {
+    return await db.select().from(expenses).orderBy(desc(expenses.createdAt));
+  }
+
+  async getExpensesByMonth(month: string): Promise<Expense[]> {
+    return await db.select().from(expenses).where(eq(expenses.month, month)).orderBy(expenses.date);
+  }
+
+  async createExpense(expense: InsertExpense): Promise<Expense> {
+    const result = await db.insert(expenses).values(expense).returning();
+    return result[0];
+  }
+
+  async updateExpense(id: string, expense: Partial<InsertExpense>): Promise<Expense | undefined> {
+    const result = await db.update(expenses).set(expense).where(eq(expenses.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteExpense(id: string): Promise<boolean> {
+    const result = await db.delete(expenses).where(eq(expenses.id, id)).returning();
+    return result.length > 0;
   }
 }
 

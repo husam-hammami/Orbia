@@ -45,7 +45,19 @@ import {
   useDeleteHabit,
   useCreateRoutineActivity,
   useUpdateRoutineActivity,
-  useDeleteRoutineActivity
+  useDeleteRoutineActivity,
+  useCareerProjects,
+  useCareerTasks,
+  useCreateCareerProject,
+  useUpdateCareerProject,
+  useDeleteCareerProject,
+  useCreateCareerTask,
+  useUpdateCareerTask,
+  useDeleteCareerTask,
+  useExpenses,
+  useCreateExpense,
+  useUpdateExpense,
+  useDeleteExpense
 } from "@/lib/api-hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -111,14 +123,29 @@ ROUTINE ACTIVITIES:
 - update_routine_activity: {"activity_id": "...", "name": "..." (optional), "time": "..." (optional), "description": "..." (optional)}
 - delete_routine_activity: {"activity_id": "..."} - ALWAYS set confirm:true for this
 
+CAREER PROJECTS:
+- create_career_project: {"title": "...", "description": "...", "status": "planning/in_progress/ongoing/completed", "deadline": "YYYY-MM-DD", "color": "bg-indigo-500/bg-rose-500/bg-emerald-500"}
+- update_career_project: {"project_id": "...", "title": "...", "status": "...", "progress": 0-100, "description": "...", "nextAction": "..."}
+- delete_career_project: {"project_id": "..."} - ALWAYS set confirm:true for this
+
+CAREER TASKS:
+- create_career_task: {"title": "...", "project_id": "..." or null, "priority": "low/medium/high", "due": "Today/Tomorrow/YYYY-MM-DD", "description": "..."}
+- update_career_task: {"task_id": "...", "title": "...", "priority": "...", "completed": 0/1}
+- delete_career_task: {"task_id": "..."} - ALWAYS set confirm:true for this
+
+EXPENSES:
+- create_expense: {"name": "...", "amount": number, "budget": number, "category": "Fixed/Variable/Savings/Debt", "status": "paid/pending/variable", "date": "Jan 1", "month": "January"}
+- update_expense: {"expense_id": "...", "amount": number, "status": "paid/pending/variable", "name": "..."}
+- delete_expense: {"expense_id": "..."} - ALWAYS set confirm:true for this
+
 LOW-CAPACITY MODE:
 - set_low_capacity_mode: {} (enables low-capacity overlay for today)
 - unset_low_capacity_mode: {} (disables low-capacity mode)
 
 CONFIRMATION RULES:
-- ALWAYS set confirm:true and confirm_text for: delete_habit, delete_task, delete_routine_activity
+- ALWAYS set confirm:true and confirm_text for: delete_habit, delete_task, delete_routine_activity, delete_career_project, delete_career_task, delete_expense
 - Set confirm:true for any action that seems risky or the user expressed uncertainty about
-- confirm_text should briefly describe what will happen, e.g. "Delete habit 'Walk 20 minutes'?"
+- confirm_text should briefly describe what will happen, e.g. "Delete project 'Portfolio Redesign'?"
 
 LOW-CAPACITY MODE: When activated, highlight 3 core actions:
 1) 1-minute grounding
@@ -141,6 +168,10 @@ export default function OrbitPage() {
   const { data: trackerEntries } = useTrackerEntries(7);
   const { data: members } = useMembers();
   
+  const { data: careerProjects } = useCareerProjects();
+  const { data: careerTasks } = useCareerTasks();
+  const { data: expenses } = useExpenses();
+  
   const addHabitCompletion = useAddHabitCompletion();
   const removeHabitCompletion = useRemoveHabitCompletion();
   const createTodo = useCreateTodo();
@@ -154,6 +185,15 @@ export default function OrbitPage() {
   const createRoutineActivity = useCreateRoutineActivity();
   const updateRoutineActivity = useUpdateRoutineActivity();
   const deleteRoutineActivity = useDeleteRoutineActivity();
+  const createCareerProject = useCreateCareerProject();
+  const updateCareerProject = useUpdateCareerProject();
+  const deleteCareerProject = useDeleteCareerProject();
+  const createCareerTask = useCreateCareerTask();
+  const updateCareerTask = useUpdateCareerTask();
+  const deleteCareerTask = useDeleteCareerTask();
+  const createExpense = useCreateExpense();
+  const updateExpense = useUpdateExpense();
+  const deleteExpense = useDeleteExpense();
 
   const [messages, setMessages] = useState<OrbitMessage[]>(() => {
     const saved = localStorage.getItem("orbit_messages");
@@ -271,7 +311,10 @@ export default function OrbitPage() {
       allHabits: habits?.map(h => ({ id: h.id, name: h.title, category: h.category })) || [],
       allTodos: todos?.map(t => ({ id: t.id, title: t.title, completed: !!t.completed, priority: t.priority })) || [],
       allRoutineActivities: routineActivities?.map(a => ({ id: a.id, name: a.name, habitId: a.habitId, blockId: a.blockId })) || [],
-      allRoutineBlocks: routineBlocks?.map(b => ({ id: b.id, name: b.name, emoji: b.emoji, startTime: b.startTime, endTime: b.endTime })) || []
+      allRoutineBlocks: routineBlocks?.map(b => ({ id: b.id, name: b.name, emoji: b.emoji, startTime: b.startTime, endTime: b.endTime })) || [],
+      allCareerProjects: careerProjects?.map(p => ({ id: p.id, title: p.title, status: p.status, progress: p.progress, deadline: p.deadline })) || [],
+      allCareerTasks: careerTasks?.map(t => ({ id: t.id, title: t.title, projectId: t.projectId, completed: !!t.completed, priority: t.priority, due: t.due })) || [],
+      allExpenses: expenses?.map(e => ({ id: e.id, name: e.name, amount: e.amount, budget: e.budget, category: e.category, status: e.status, month: e.month })) || []
     };
   };
 
@@ -386,6 +429,94 @@ export default function OrbitPage() {
           const activity = routineActivities?.find(a => a.id === activity_id);
           await deleteRoutineActivity.mutateAsync(activity_id);
           return { success: true, message: `Deleted: "${activity?.name || activity_id}"` };
+        }
+        
+        // CAREER PROJECT ACTIONS
+        case "create_career_project": {
+          const { title, description, status, deadline, color } = action.args;
+          await createCareerProject.mutateAsync({
+            title,
+            description: description || null,
+            status: status || "planning",
+            progress: 0,
+            deadline: deadline || null,
+            nextAction: null,
+            color: color || "bg-indigo-500",
+            tags: []
+          });
+          return { success: true, message: `Created project: "${title}"` };
+        }
+        
+        case "update_career_project": {
+          const { project_id, ...updates } = action.args;
+          await updateCareerProject.mutateAsync({ id: project_id, ...updates });
+          const project = careerProjects?.find(p => p.id === project_id);
+          return { success: true, message: `Updated project: "${project?.title || project_id}"` };
+        }
+        
+        case "delete_career_project": {
+          const { project_id } = action.args;
+          const project = careerProjects?.find(p => p.id === project_id);
+          await deleteCareerProject.mutateAsync(project_id);
+          return { success: true, message: `Deleted project: "${project?.title || project_id}"` };
+        }
+        
+        // CAREER TASK ACTIONS
+        case "create_career_task": {
+          const { title, project_id, priority, due, description } = action.args;
+          await createCareerTask.mutateAsync({
+            title,
+            projectId: project_id || null,
+            priority: priority || "medium",
+            due: due || null,
+            description: description || null,
+            completed: 0,
+            tags: []
+          });
+          return { success: true, message: `Created career task: "${title}"` };
+        }
+        
+        case "update_career_task": {
+          const { task_id, ...updates } = action.args;
+          await updateCareerTask.mutateAsync({ id: task_id, ...updates });
+          const task = careerTasks?.find(t => t.id === task_id);
+          return { success: true, message: `Updated career task: "${task?.title || task_id}"` };
+        }
+        
+        case "delete_career_task": {
+          const { task_id } = action.args;
+          const task = careerTasks?.find(t => t.id === task_id);
+          await deleteCareerTask.mutateAsync(task_id);
+          return { success: true, message: `Deleted career task: "${task?.title || task_id}"` };
+        }
+        
+        // EXPENSE ACTIONS
+        case "create_expense": {
+          const { name, amount, budget, category, status, date, month } = action.args;
+          await createExpense.mutateAsync({
+            name,
+            amount: amount || 0,
+            budget: budget || amount || 0,
+            category: category || "Variable",
+            status: status || "pending",
+            date: date || format(new Date(), "MMM d"),
+            month: month || format(new Date(), "MMMM")
+          });
+          return { success: true, message: `Created expense: "${name}"` };
+        }
+        
+        case "update_expense": {
+          const { expense_id, ...updates } = action.args;
+          await updateExpense.mutateAsync({ id: expense_id, ...updates });
+          const expense = expenses?.find(e => e.id === expense_id);
+          return { success: true, message: `Updated expense: "${expense?.name || expense_id}"` };
+        }
+        
+        case "delete_expense": {
+          const { expense_id } = action.args;
+          const expense = expenses?.find(e => e.id === expense_id);
+          await deleteExpense.mutateAsync(expense_id);
+          return { success: true, message: `Deleted expense: "${expense?.name || expense_id}"` };
         }
         
         // LOW-CAPACITY MODE

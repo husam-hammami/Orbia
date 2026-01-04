@@ -25,7 +25,19 @@ import {
   useDeleteHabit,
   useCreateRoutineActivity,
   useUpdateRoutineActivity,
-  useDeleteRoutineActivity
+  useDeleteRoutineActivity,
+  useCareerProjects,
+  useCareerTasks,
+  useCreateCareerProject,
+  useUpdateCareerProject,
+  useDeleteCareerProject,
+  useCreateCareerTask,
+  useUpdateCareerTask,
+  useDeleteCareerTask,
+  useExpenses,
+  useCreateExpense,
+  useUpdateExpense,
+  useDeleteExpense
 } from "@/lib/api-hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -80,6 +92,9 @@ export function OrbitFab() {
   const { data: todos } = useTodos();
   const { data: trackerEntries } = useTrackerEntries(7);
   const { data: members } = useMembers();
+  const { data: careerProjects } = useCareerProjects();
+  const { data: careerTasks } = useCareerTasks();
+  const { data: expenses } = useExpenses();
 
   const addHabitCompletion = useAddHabitCompletion();
   const removeHabitCompletion = useRemoveHabitCompletion();
@@ -93,6 +108,15 @@ export function OrbitFab() {
   const createRoutineActivity = useCreateRoutineActivity();
   const updateRoutineActivity = useUpdateRoutineActivity();
   const deleteRoutineActivity = useDeleteRoutineActivity();
+  const createCareerProject = useCreateCareerProject();
+  const updateCareerProject = useUpdateCareerProject();
+  const deleteCareerProject = useDeleteCareerProject();
+  const createCareerTask = useCreateCareerTask();
+  const updateCareerTask = useUpdateCareerTask();
+  const deleteCareerTask = useDeleteCareerTask();
+  const createExpense = useCreateExpense();
+  const updateExpense = useUpdateExpense();
+  const deleteExpense = useDeleteExpense();
 
   useEffect(() => {
     scrollToBottom();
@@ -136,7 +160,10 @@ export function OrbitFab() {
       allHabits: habits?.map(h => ({ id: h.id, name: h.title, category: h.category })) || [],
       allTodos: todos?.map(t => ({ id: t.id, title: t.title, completed: !!t.completed, priority: t.priority })) || [],
       allRoutineActivities: routineActivities?.map(a => ({ id: a.id, name: a.name, habitId: a.habitId, blockId: a.blockId })) || [],
-      allRoutineBlocks: routineBlocks?.map(b => ({ id: b.id, name: b.name, emoji: b.emoji })) || []
+      allRoutineBlocks: routineBlocks?.map(b => ({ id: b.id, name: b.name, emoji: b.emoji })) || [],
+      allCareerProjects: careerProjects?.map(p => ({ id: p.id, title: p.title, status: p.status, progress: p.progress })) || [],
+      allCareerTasks: careerTasks?.map(t => ({ id: t.id, title: t.title, projectId: t.projectId, completed: !!t.completed, priority: t.priority })) || [],
+      allExpenses: expenses?.map(e => ({ id: e.id, name: e.name, amount: e.amount, category: e.category, status: e.status })) || []
     };
   };
 
@@ -229,6 +256,82 @@ export function OrbitFab() {
           const activity = routineActivities?.find(a => a.id === activity_id);
           await deleteRoutineActivity.mutateAsync(activity_id);
           return { success: true, message: `Deleted: "${activity?.name || activity_id}"` };
+        }
+        case "create_career_project": {
+          const { title, description, status, deadline, color } = action.args;
+          await createCareerProject.mutateAsync({
+            title,
+            description: description || null,
+            status: status || "planning",
+            progress: 0,
+            deadline: deadline || null,
+            nextAction: null,
+            color: color || "bg-indigo-500",
+            tags: []
+          });
+          return { success: true, message: `Created project: "${title}"` };
+        }
+        case "update_career_project": {
+          const { project_id, ...updates } = action.args;
+          await updateCareerProject.mutateAsync({ id: project_id, ...updates });
+          const project = careerProjects?.find(p => p.id === project_id);
+          return { success: true, message: `Updated: "${project?.title || project_id}"` };
+        }
+        case "delete_career_project": {
+          const { project_id } = action.args;
+          const project = careerProjects?.find(p => p.id === project_id);
+          await deleteCareerProject.mutateAsync(project_id);
+          return { success: true, message: `Deleted: "${project?.title || project_id}"` };
+        }
+        case "create_career_task": {
+          const { title, project_id, priority, due, description } = action.args;
+          await createCareerTask.mutateAsync({
+            title,
+            projectId: project_id || null,
+            priority: priority || "medium",
+            due: due || null,
+            description: description || null,
+            completed: 0,
+            tags: []
+          });
+          return { success: true, message: `Created: "${title}"` };
+        }
+        case "update_career_task": {
+          const { task_id, ...updates } = action.args;
+          await updateCareerTask.mutateAsync({ id: task_id, ...updates });
+          const task = careerTasks?.find(t => t.id === task_id);
+          return { success: true, message: `Updated: "${task?.title || task_id}"` };
+        }
+        case "delete_career_task": {
+          const { task_id } = action.args;
+          const task = careerTasks?.find(t => t.id === task_id);
+          await deleteCareerTask.mutateAsync(task_id);
+          return { success: true, message: `Deleted: "${task?.title || task_id}"` };
+        }
+        case "create_expense": {
+          const { name, amount, budget, category, status, date, month } = action.args;
+          await createExpense.mutateAsync({
+            name,
+            amount: amount || 0,
+            budget: budget || amount || 0,
+            category: category || "Variable",
+            status: status || "pending",
+            date: date || format(new Date(), "MMM d"),
+            month: month || format(new Date(), "MMMM")
+          });
+          return { success: true, message: `Created: "${name}"` };
+        }
+        case "update_expense": {
+          const { expense_id, ...updates } = action.args;
+          await updateExpense.mutateAsync({ id: expense_id, ...updates });
+          const expense = expenses?.find(e => e.id === expense_id);
+          return { success: true, message: `Updated: "${expense?.name || expense_id}"` };
+        }
+        case "delete_expense": {
+          const { expense_id } = action.args;
+          const expense = expenses?.find(e => e.id === expense_id);
+          await deleteExpense.mutateAsync(expense_id);
+          return { success: true, message: `Deleted: "${expense?.name || expense_id}"` };
         }
         default:
           return { success: false, message: `Unknown action` };

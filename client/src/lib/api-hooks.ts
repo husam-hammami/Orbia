@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo, DailySummary } from "@shared/schema";
+import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo, DailySummary, CareerProject, CareerTask, Expense } from "@shared/schema";
 
 // Helper to handle API calls
 async function fetchAPI(url: string, options?: RequestInit) {
@@ -608,6 +608,160 @@ export function useUpsertDailySummary() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dailySummaries"] });
       queryClient.invalidateQueries({ queryKey: ["dailySummary"] });
+    },
+  });
+}
+
+// Career Projects Hooks
+export function useCareerProjects() {
+  return useQuery<CareerProject[]>({
+    queryKey: ["careerProjects"],
+    queryFn: () => fetchAPI("/api/career-projects"),
+  });
+}
+
+export function useCreateCareerProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Omit<CareerProject, "id" | "createdAt">) =>
+      fetchAPI("/api/career-projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["careerProjects"] });
+    },
+  });
+}
+
+export function useUpdateCareerProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string } & Partial<Omit<CareerProject, "id" | "createdAt">>) =>
+      fetchAPI(`/api/career-projects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["careerProjects"] });
+    },
+  });
+}
+
+export function useDeleteCareerProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchAPI(`/api/career-projects/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["careerProjects"] });
+      queryClient.invalidateQueries({ queryKey: ["careerTasks"] });
+    },
+  });
+}
+
+// Career Tasks Hooks
+export function useCareerTasks(projectId?: string) {
+  return useQuery<CareerTask[]>({
+    queryKey: ["careerTasks", projectId],
+    queryFn: () => fetchAPI(`/api/career-tasks${projectId ? `?projectId=${projectId}` : ""}`),
+  });
+}
+
+export function useCreateCareerTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Omit<CareerTask, "id" | "createdAt">) =>
+      fetchAPI("/api/career-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["careerTasks"] });
+    },
+  });
+}
+
+export function useUpdateCareerTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string } & Partial<Omit<CareerTask, "id" | "createdAt">>) =>
+      fetchAPI(`/api/career-tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["careerTasks"] });
+    },
+  });
+}
+
+export function useDeleteCareerTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchAPI(`/api/career-tasks/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["careerTasks"] });
+    },
+  });
+}
+
+// Expenses Hooks
+export function useExpenses(month?: string) {
+  return useQuery<Expense[]>({
+    queryKey: ["expenses", month],
+    queryFn: () => fetchAPI(`/api/expenses${month ? `?month=${month}` : ""}`),
+  });
+}
+
+export function useCreateExpense() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Omit<Expense, "id" | "createdAt">) =>
+      fetchAPI("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    },
+  });
+}
+
+export function useUpdateExpense() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string } & Partial<Omit<Expense, "id" | "createdAt">>) =>
+      fetchAPI(`/api/expenses/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    },
+  });
+}
+
+export function useDeleteExpense() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchAPI(`/api/expenses/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
     },
   });
 }

@@ -239,3 +239,67 @@ export const insertTodoSchema = createInsertSchema(todos).omit({
 
 export type Todo = typeof todos.$inferSelect;
 export type InsertTodo = z.infer<typeof insertTodoSchema>;
+
+// Career Projects
+export const careerProjects = pgTable("career_projects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("planning"), // "planning" | "in_progress" | "ongoing" | "completed"
+  progress: integer("progress").notNull().default(0), // 0-100
+  deadline: text("deadline"), // "2026-02-15" format or null
+  nextAction: text("next_action"),
+  color: text("color").notNull().default("bg-indigo-500"),
+  tags: jsonb("tags").$type<string[]>().default(sql`'[]'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCareerProjectSchema = createInsertSchema(careerProjects).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type CareerProject = typeof careerProjects.$inferSelect;
+export type InsertCareerProject = z.infer<typeof insertCareerProjectSchema>;
+
+// Career Tasks (linked to projects)
+export const careerTasks = pgTable("career_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").references(() => careerProjects.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  completed: integer("completed").notNull().default(0), // 0 = false, 1 = true
+  priority: text("priority").notNull().default("medium"), // "low" | "medium" | "high"
+  due: text("due"), // "Today", "Tomorrow", "2026-01-15", etc.
+  tags: jsonb("tags").$type<string[]>().default(sql`'[]'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCareerTaskSchema = createInsertSchema(careerTasks).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type CareerTask = typeof careerTasks.$inferSelect;
+export type InsertCareerTask = z.infer<typeof insertCareerTaskSchema>;
+
+// Finance Expenses
+export const expenses = pgTable("expenses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  amount: integer("amount").notNull(), // in cents or whole numbers
+  budget: integer("budget").notNull(), // budgeted amount
+  category: text("category").notNull().default("Variable"), // "Fixed" | "Variable" | "Savings" | "Debt"
+  status: text("status").notNull().default("pending"), // "paid" | "pending" | "variable"
+  date: text("date").notNull(), // "Jan 1", "Feb 5", etc.
+  month: text("month").notNull(), // "January", "February", etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertExpenseSchema = createInsertSchema(expenses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Expense = typeof expenses.$inferSelect;
+export type InsertExpense = z.infer<typeof insertExpenseSchema>;
