@@ -338,26 +338,34 @@ export default function CareerPage() {
                           </Badge>
                        </div>
                        
-                       <div className="flex flex-col gap-1 pt-1">
-                          {vision.length > 0 && (
-                             <div className="text-lg font-medium leading-tight text-foreground flex items-center gap-2">
-                                {vision[0].title}
-                                <span className="text-xs font-normal text-muted-foreground border-l border-border/50 pl-2 ml-2">
-                                   {vision[0].timeframe}
-                                </span>
-                             </div>
-                          )}
-                          
-                          {vision.length > 1 && (
-                             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                                {vision.slice(1).map((item) => (
-                                   <div key={item.id} className="flex items-center text-xs text-muted-foreground">
-                                      <div className={cn("w-1.5 h-1.5 rounded-full mr-2 opacity-70", item.color)} />
-                                      {item.title}
-                                   </div>
-                                ))}
-                             </div>
-                          )}
+                       <div className="flex flex-col gap-2 pt-1">
+                          {vision.map((item, index) => {
+                             const dotColorMap: Record<string, string> = {
+                               'text-blue-500': '#3b82f6',
+                               'text-purple-500': '#a855f7',
+                               'text-amber-500': '#f59e0b',
+                               'text-emerald-500': '#10b981',
+                               'text-green-500': '#22c55e',
+                               'text-cyan-500': '#06b6d4',
+                               'text-red-500': '#ef4444',
+                               'text-indigo-500': '#6366f1',
+                             };
+                             return (
+                               <div key={item.id} className={cn(
+                                 "flex items-center gap-2",
+                                 index === 0 ? "text-base font-medium text-foreground" : "text-sm text-muted-foreground"
+                               )}>
+                                  <div 
+                                    className="w-2 h-2 rounded-full shrink-0" 
+                                    style={{ backgroundColor: dotColorMap[item.color] || '#f59e0b' }}
+                                  />
+                                  <span>{item.title}</span>
+                                  <span className="text-xs text-muted-foreground/70">
+                                     {item.timeframe}
+                                  </span>
+                               </div>
+                             );
+                          })}
                        </div>
                     </div>
                  </div>
