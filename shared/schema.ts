@@ -34,6 +34,9 @@ export const trackerEntries = pgTable("tracker_entries", {
   dissociation: integer("dissociation").notNull(), // 0-100
   stress: integer("stress").notNull(), // 0-100
   energy: integer("energy").notNull(), // 1-10 scale
+  capacity: integer("capacity"), // 0-5 scale (how much capacity do I have right now?)
+  triggerTag: text("trigger_tag"), // "work" | "loneliness" | "pain" | "noise" | "sleep" | "body" | "unknown"
+  timeOfDay: text("time_of_day"), // "morning" | "afternoon" | "evening" | "night" (auto-set)
   frontingMemberId: varchar("fronting_member_id").references(() => systemMembers.id),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -48,6 +51,22 @@ export const insertTrackerEntrySchema = createInsertSchema(trackerEntries, {
 
 export type TrackerEntry = typeof trackerEntries.$inferSelect;
 export type InsertTrackerEntry = z.infer<typeof insertTrackerEntrySchema>;
+
+// Daily Summary (end-of-day reflection)
+export const dailySummaries = pgTable("daily_summaries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  date: text("date").notNull().unique(), // "2026-01-04" format
+  feeling: text("feeling").notNull(), // "lighter" | "average" | "heavier"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDailySummarySchema = createInsertSchema(dailySummaries).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type DailySummary = typeof dailySummaries.$inferSelect;
+export type InsertDailySummary = z.infer<typeof insertDailySummarySchema>;
 
 // System Communication Messages (sticky notes)
 export const systemMessages = pgTable("system_messages", {
