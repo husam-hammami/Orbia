@@ -2,9 +2,20 @@ import { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { format, subDays, isSameDay, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Flame, Trophy, Trash2 } from "lucide-react";
+import { Check, Flame, Trophy, Trash2, Heart, Briefcase, Brain, Palette, Users, PiggyBank, Accessibility, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HabitEditForm } from "./habit-edit-form";
+
+const CategoryIcons: Record<string, any> = {
+  Health: Heart,
+  Work: Briefcase,
+  Mindfulness: Brain,
+  Creativity: Palette,
+  Social: Users,
+  Finance: PiggyBank,
+  Recovery: Accessibility,
+  System: Sparkles
+};
 
 interface HabitGridProps {
   habits: Habit[];
@@ -63,7 +74,10 @@ export function HabitGrid({ habits, onToggle, onDelete, onEdit }: HabitGridProps
                   className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shadow-sm shrink-0"
                   style={{ backgroundColor: `${habit.color}15`, color: habit.color }}
                 >
-                  {habit.title.charAt(0)}
+                  {(() => {
+                    const Icon = CategoryIcons[habit.category] || Sparkles;
+                    return <Icon className="w-6 h-6" />;
+                  })()}
                 </div>
                 <div className="min-w-0">
                   <h3 className="font-display font-semibold text-foreground truncate">{habit.title}</h3>

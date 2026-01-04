@@ -20,7 +20,8 @@ const CategoryIcons: Record<string, any> = {
   Creativity: Palette,
   Social: Users,
   Finance: PiggyBank,
-  Recovery: Accessibility
+  Recovery: Accessibility,
+  System: Sparkles
 };
 
 // Procedural plant generator based on habit data
