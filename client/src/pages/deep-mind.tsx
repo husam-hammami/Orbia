@@ -140,6 +140,70 @@ export default function DeepMind() {
   })();
   
   const latestEntry = trackerEntries?.[0];
+  const previousEntry = trackerEntries?.[1];
+
+  const getSystemStatus = () => {
+    if (!latestEntry) return { status: "Unknown", pressure: "None", capacity: "Unknown" };
+    
+    const stability = 100 - ((latestEntry.dissociation || 0) + (100 - (latestEntry.capacity ?? 3) * 20) + (latestEntry.stress || 0)) / 3;
+    let status = "Stable";
+    if (stability < 40) status = "Fragile";
+    else if (stability < 60) status = "Variable";
+    
+    let pressure = "None";
+    const pressures = [
+      { name: "Work", val: (latestEntry.workLoad || 0) * 10 },
+      { name: "Pain", val: latestEntry.triggerTag === "pain" ? 80 : 0 },
+      { name: "Sleep", val: latestEntry.triggerTag === "sleep" ? 80 : 0 },
+      { name: "Stress", val: latestEntry.stress }
+    ].sort((a, b) => b.val - a.val);
+    if (pressures[0].val > 30) pressure = pressures[0].name;
+
+    const cap = latestEntry.capacity ?? 3;
+    let capacityLabel = "Moderate";
+    if (cap <= 1) capacityLabel = "Low";
+    else if (cap >= 4) capacityLabel = "High";
+
+    return { status, pressure, capacity: capacityLabel };
+  };
+
+  const statusSummary = getSystemStatus();
+
+  const getDeltas = () => {
+    if (!latestEntry || !previousEntry) return null;
+    
+    const timeDiff = Math.round((new Date(latestEntry.timestamp).getTime() - new Date(previousEntry.timestamp).getTime()) / (1000 * 60 * 60));
+    
+    const stressDiff = latestEntry.stress - previousEntry.stress;
+    const stabilityDiff = (100 - latestEntry.dissociation) - (100 - previousEntry.dissociation);
+
+    return {
+      timeAgo: timeDiff,
+      pressureTrend: stressDiff > 5 ? "↑ slight" : stressDiff < -5 ? "↓ slight" : "→ steady",
+      stabilityTrend: stabilityDiff > 5 ? "↑ improving" : stabilityDiff < -5 ? "↓ fragile" : "→ steady"
+    };
+  };
+
+  const deltas = getDeltas();
+
+  const pressureChips = (() => {
+    if (!latestEntry) return [];
+    const chips = [];
+    if (latestEntry.workLoad && latestEntry.workLoad > 3) chips.push({ label: "Work", trend: "↑" });
+    if (latestEntry.triggerTag === "pain") chips.push({ label: "Pain", trend: "→" });
+    if (latestEntry.triggerTag === "sleep") chips.push({ label: "Sleep", trend: "↓" });
+    return chips.slice(0, 3);
+  })();
+
+  const safeAction = (() => {
+    if (!latestEntry) return null;
+    const stability = 100 - latestEntry.dissociation;
+    if (stability < 40) return "Grounding exercise (5-4-3-2-1 technique)";
+    if (latestEntry.stress > 60) return "Short quiet walk or box breathing";
+    if (latestEntry.capacity && latestEntry.capacity > 4) return "Progress on one small task";
+    return null;
+  })();
+
   const systemStats = latestEntry ? [
     { subject: 'Dissociation', A: 100 - (latestEntry.dissociation || 0), fullMark: 100 },
     { subject: 'Communication', A: latestEntry.energy ? latestEntry.energy * 20 : 50, fullMark: 100 },
@@ -239,27 +303,47 @@ export default function DeepMind() {
       return "stable";
     };
     
-    const dissNow = calcAvg(entries24h, e => 100 - (e.dissociation || 0));
+    const dissNowRaw = calcAvg(entries24h, e => e.dissociation || 0);
     const dissPrev = calcAvg(olderEntries, e => 100 - (e.dissociation || 0));
     
-    const commNow = calcAvg(entries24h, e => (e.energy || 5) * 10);
+    const commNowRaw = calcAvg(entries24h, e => (e.energy || 5) * 10);
     const commPrev = calcAvg(olderEntries, e => (e.energy || 5) * 10);
     
-    const regNow = calcAvg(entries24h, e => 100 - (e.stress || 0));
     const regPrev = calcAvg(olderEntries, e => 100 - (e.stress || 0));
-    
-    const groundNow = calcAvg(entries24h, e => (e.mood || 5) * 10);
     const groundPrev = calcAvg(olderEntries, e => (e.mood || 5) * 10);
     
-    const capacityNow = calcAvg(entries24h, e => (e.capacity ?? 3) * 20);
+    const capacityNowRaw = calcAvg(entries24h, e => (e.capacity ?? 3) * 20);
     const capacityPrev = calcAvg(olderEntries, e => (e.capacity ?? 3) * 20);
     
+    // Derived Pillar Calculation Logic
+    const entries24h_mood = calcAvg(entries24h, e => e.mood || 5);
+    const entries24h_stress = calcAvg(entries24h, e => e.stress || 0);
+    const entries24h_cap = calcAvg(entries24h, e => e.capacity ?? 3);
+    
+    // Dissociation: primary from entries, secondary from time of day (night/early morning = higher)
+    const h = new Date().getHours();
+    const timeBonus = (h < 6 || h > 22) ? -10 : 0;
+    const dissNow = 100 - (dissNowRaw ?? 50) + timeBonus;
+    
+    // Communication: energy + routine adherence
+    const commNow = ((commNowRaw ?? 50) + (entries24h.length * 5)) / 1.2;
+    
+    // Regulation: 100 - stress
+    const regNow = 100 - (entries24h_stress ?? 50);
+    
+    // Grounding: mood
+    const groundNow = (entries24h_mood ?? 5) * 10;
+    
+    // Capacity: base capacity + lack of work load
+    const workPenalty = calcAvg(entries24h, e => (e.workLoad || 0) * 5) ?? 0;
+    const capacityNow = (entries24h_cap ?? 3) * 20 - workPenalty;
+    
     return [
-      { name: "Dissociation", icon: "🧠", value: dissNow ?? 50, trend: getTrend(dissNow, dissPrev) },
-      { name: "Communication", icon: "💬", value: commNow ?? 50, trend: getTrend(commNow, commPrev) },
-      { name: "Regulation", icon: "⚖️", value: regNow ?? 50, trend: getTrend(regNow, regPrev) },
-      { name: "Grounding", icon: "🧘", value: groundNow ?? 50, trend: getTrend(groundNow, groundPrev) },
-      { name: "Capacity", icon: "🔋", value: capacityNow ?? 50, trend: getTrend(capacityNow, capacityPrev) },
+      { name: "Dissociation", icon: "🧠", value: Math.max(0, Math.min(100, dissNow)), trend: getTrend(dissNow, dissPrev) },
+      { name: "Communication", icon: "💬", value: Math.max(0, Math.min(100, commNow)), trend: getTrend(commNow, commPrev) },
+      { name: "Regulation", icon: "⚖️", value: Math.max(0, Math.min(100, regNow)), trend: getTrend(regNow, regPrev) },
+      { name: "Grounding", icon: "🧘", value: Math.max(0, Math.min(100, groundNow)), trend: getTrend(groundNow, groundPrev) },
+      { name: "Capacity", icon: "🔋", value: Math.max(0, Math.min(100, capacityNow)), trend: getTrend(capacityNow, capacityPrev) },
     ];
   })();
 
@@ -307,7 +391,23 @@ export default function DeepMind() {
 
             <TabsContent value="monitor" className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
                 <div className="grid grid-cols-1 gap-6">
-                    
+                    <div className="flex items-center gap-6 px-4 py-2 bg-slate-900/50 border border-slate-800 rounded-lg text-[11px] font-mono tracking-tight uppercase">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-slate-500">System Status:</span>
+                        <span className={cn(
+                          statusSummary.status === "Stable" ? "text-emerald-400" : "text-amber-400"
+                        )}>{statusSummary.status}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-slate-500">Primary Pressure:</span>
+                        <span className="text-slate-200">{statusSummary.pressure}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-slate-500">Capacity:</span>
+                        <span className="text-slate-200">{statusSummary.capacity}</span>
+                      </div>
+                    </div>
+
                     <Card className="bg-slate-950 border-slate-800 shadow-2xl overflow-hidden relative group">
                         <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f46e520_1px,transparent_1px),linear-gradient(to_bottom,#4f46e520_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
                         <CardHeader className="relative z-10 pb-2">
@@ -375,7 +475,42 @@ export default function DeepMind() {
                               <span>stable band: 35-65%</span>
                             </div>
                         </CardContent>
+                        {deltas && (
+                          <div className="px-4 py-2 bg-slate-900/30 border-t border-slate-800/50 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                            <div className="flex items-center gap-4">
+                              <span>Since last log ({deltas.timeAgo}h ago):</span>
+                              <div className="flex items-center gap-1.5">
+                                <span>External Pressure</span>
+                                <span className="text-slate-300">{deltas.pressureTrend}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span>Internal Stability</span>
+                                <span className="text-slate-300">{deltas.stabilityTrend}</span>
+                              </div>
+                            </div>
+                            {pressureChips.length > 0 && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-[9px] text-slate-500">Pressure:</span>
+                                {pressureChips.map((chip, i) => (
+                                  <Badge key={i} variant="outline" className="text-[9px] py-0 h-4 bg-slate-800/50 border-slate-700 text-slate-300">
+                                    {chip.label} {chip.trend}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                     </Card>
+
+                    {safeAction && (
+                      <div className="px-4 py-3 bg-indigo-500/5 border border-indigo-500/20 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-700">
+                        <Lightbulb className="w-4 h-4 text-indigo-400" />
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-indigo-400/80 uppercase tracking-widest leading-none mb-1">Safe Next Action</span>
+                          <span className="text-sm text-slate-300">{safeAction}</span>
+                        </div>
+                      </div>
+                    )}
 
                     <Card className="border-border shadow-md">
                         <CardHeader className="pb-2">
