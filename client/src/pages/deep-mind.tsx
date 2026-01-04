@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,10 @@ import {
   YAxis,
   ZAxis,
   Cell,
-  Tooltip
+  Tooltip,
+  LineChart,
+  Line,
+  Legend
 } from "recharts";
 import { 
   Brain, 
@@ -38,10 +41,12 @@ import {
   Layers,
   Search,
   Plus,
-  Loader2
+  Loader2,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMembers, useTrackerEntries, useCreateTrackerEntry } from "@/lib/api-hooks";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -60,6 +65,16 @@ export default function DeepMind() {
   const { data: members, isLoading: membersLoading } = useMembers();
   const { data: trackerEntries, isLoading: entriesLoading } = useTrackerEntries(10);
   const createEntryMutation = useCreateTrackerEntry();
+  
+  const { data: insights, isLoading: insightsLoading } = useQuery({
+    queryKey: ["/api/insights"],
+    queryFn: async () => {
+      const res = await fetch("/api/insights?days=14");
+      if (!res.ok) throw new Error("Failed to fetch insights");
+      return res.json();
+    },
+    enabled: activeTab === "analysis",
+  });
 
   const [dissociation, setDissociation] = useState([30]);
   const [stress, setStress] = useState([40]);
@@ -68,6 +83,27 @@ export default function DeepMind() {
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   
   const selectedMember = members?.find(m => m.id === selectedMemberId) || members?.[0];
+  
+  const coherenceChartData = (trackerEntries || [])
+    .slice()
+    .reverse()
+    .map(entry => ({
+      time: format(new Date(entry.timestamp), "h:mm a"),
+      dissociation: entry.dissociation || 0,
+      stress: entry.stress || 0,
+      mood: (entry.mood || 5) * 10,
+      energy: (entry.energy || 5) * 10,
+    }));
+  
+  const latestEntry = trackerEntries?.[0];
+  const systemStats = latestEntry ? [
+    { subject: 'Dissociation', A: 100 - (latestEntry.dissociation || 0), fullMark: 100 },
+    { subject: 'Communication', A: latestEntry.energy ? latestEntry.energy * 20 : 50, fullMark: 100 },
+    { subject: 'Memory Access', A: 70, fullMark: 100 },
+    { subject: 'Emotional Reg', A: 100 - (latestEntry.stress || 0), fullMark: 100 },
+    { subject: 'Grounding', A: latestEntry.mood ? latestEntry.mood * 20 : 50, fullMark: 100 },
+    { subject: 'Co-con', A: 60, fullMark: 100 },
+  ] : SYSTEM_STATS;
 
   const handleCommitLog = () => {
     if (!selectedMember) {
@@ -262,12 +298,32 @@ export default function DeepMind() {
                                     <Activity className="w-4 h-4 text-emerald-400" /> Real-time System Coherence
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="h-[250px] relative z-10 pl-0 flex items-center justify-center">
-                                <div className="text-center space-y-2">
-                                    <Activity className="w-8 h-8 text-slate-700 mx-auto animate-pulse" />
-                                    <p className="text-slate-500 text-sm">Awaiting Data Points</p>
-                                    <p className="text-slate-600 text-xs">Log multiple entries to visualize coherence trends.</p>
-                                </div>
+                            <CardContent className="h-[250px] relative z-10 pl-0">
+                                {coherenceChartData.length > 0 ? (
+                                  <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={coherenceChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                                      <XAxis dataKey="time" stroke="#64748b" fontSize={10} />
+                                      <YAxis stroke="#64748b" fontSize={10} domain={[0, 100]} />
+                                      <Tooltip 
+                                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                                        labelStyle={{ color: '#94a3b8' }}
+                                      />
+                                      <Legend wrapperStyle={{ fontSize: '10px' }} />
+                                      <Line type="monotone" dataKey="dissociation" stroke="#f43f5e" strokeWidth={2} dot={{ fill: '#f43f5e', r: 3 }} name="Dissociation" />
+                                      <Line type="monotone" dataKey="stress" stroke="#f59e0b" strokeWidth={2} dot={{ fill: '#f59e0b', r: 3 }} name="Stress" />
+                                      <Line type="monotone" dataKey="mood" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981', r: 3 }} name="Mood" />
+                                    </LineChart>
+                                  </ResponsiveContainer>
+                                ) : (
+                                  <div className="h-full flex items-center justify-center text-center space-y-2">
+                                    <div>
+                                      <Activity className="w-8 h-8 text-slate-700 mx-auto animate-pulse" />
+                                      <p className="text-slate-500 text-sm mt-2">Awaiting Data Points</p>
+                                      <p className="text-slate-600 text-xs">Log multiple entries to visualize coherence trends.</p>
+                                    </div>
+                                  </div>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -318,7 +374,7 @@ export default function DeepMind() {
                             </CardHeader>
                             <CardContent className="h-[250px] flex items-center justify-center">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={SYSTEM_STATS}>
+                                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={systemStats}>
                                         <PolarGrid stroke="#e2e8f0" strokeOpacity={0.5} />
                                         <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10 }} />
                                         <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
@@ -341,13 +397,13 @@ export default function DeepMind() {
 
             <TabsContent value="analysis" className="animate-in slide-in-from-bottom-4 duration-500">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                     <Card className="md:col-span-2">
+                     <Card className="md:col-span-2 lg:col-span-2">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <Search className="w-5 h-5 text-indigo-500" />
-                                Pattern Recognition Engine
+                                <Sparkles className="w-5 h-5 text-indigo-500" />
+                                AI Pattern Analysis
                             </CardTitle>
-                            <CardDescription>AI-detected correlations between triggers and system responses.</CardDescription>
+                            <CardDescription>Deep Mind's analysis of your mood, habits, and routine patterns.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-600 dark:text-blue-400 flex items-start gap-2">
@@ -357,14 +413,51 @@ export default function DeepMind() {
                                     Fluctuations in stress and dissociation throughout the day are weighted heavily to prevent data flattening.
                                 </div>
                             </div>
-                            <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+                            {insightsLoading ? (
+                              <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+                                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                                <p className="text-muted-foreground text-sm">Analyzing patterns...</p>
+                              </div>
+                            ) : insights?.analysis ? (
+                              <div className="space-y-4">
+                                <div className="prose prose-sm dark:prose-invert max-w-none">
+                                  <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                                    {insights.analysis}
+                                  </div>
+                                </div>
+                                {insights.dataQuality && (
+                                  <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-border/50">
+                                    <p className="text-xs font-medium text-muted-foreground mb-2">Data Quality Summary</p>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                                      <div className="bg-background/50 p-2 rounded">
+                                        <span className="text-muted-foreground">Mood Entries:</span>
+                                        <span className="font-mono ml-1">{insights.dataQuality.moodEntriesCount || 0}</span>
+                                      </div>
+                                      <div className="bg-background/50 p-2 rounded">
+                                        <span className="text-muted-foreground">Habits:</span>
+                                        <span className="font-mono ml-1">{insights.dataQuality.habitsCount || 0}</span>
+                                      </div>
+                                      <div className="bg-background/50 p-2 rounded">
+                                        <span className="text-muted-foreground">Completions:</span>
+                                        <span className="font-mono ml-1">{insights.dataQuality.completionsCount || 0}</span>
+                                      </div>
+                                      <div className="bg-background/50 p-2 rounded">
+                                        <span className="text-muted-foreground">Routine Logs:</span>
+                                        <span className="font-mono ml-1">{insights.dataQuality.routineLogsCount || 0}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
                                 <Search className="w-12 h-12 text-muted-foreground/20" />
                                 <p className="text-muted-foreground text-sm font-medium">No Patterns Detected Yet</p>
                                 <p className="text-muted-foreground/60 text-xs max-w-xs">
-                                    Pattern recognition requires at least 3-5 days of consistent logging.
-                                    Continue logging daily mood, stress, and dissociation levels.
+                                    Pattern recognition requires logged data. Continue logging daily mood, stress, and habits.
                                 </p>
-                            </div>
+                              </div>
+                            )}
                         </CardContent>
                     </Card>
 
@@ -376,13 +469,27 @@ export default function DeepMind() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="flex flex-col items-center justify-center py-8 text-center space-y-2">
+                            {insights?.frontingPatterns && insights.frontingPatterns.length > 0 ? (
+                              <div className="space-y-3">
+                                {insights.frontingPatterns.map((pattern: any, i: number) => (
+                                  <div key={i} className="p-3 bg-muted/30 rounded-lg border border-border/50">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="font-semibold text-sm" style={{ color: pattern.color }}>{pattern.name}</span>
+                                      <Badge variant="secondary" className="text-[10px]">{pattern.count} entries</Badge>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">Avg stress: {pattern.avgStress}% | Avg dissociation: {pattern.avgDissociation}%</p>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center py-8 text-center space-y-2">
                                 <Users className="w-10 h-10 text-muted-foreground/20" />
                                 <p className="text-sm text-muted-foreground">Insufficient Data</p>
                                 <p className="text-xs text-muted-foreground/60">
                                     Log "Who is Fronting" consistently to enable fragment analysis.
                                 </p>
-                            </div>
+                              </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
