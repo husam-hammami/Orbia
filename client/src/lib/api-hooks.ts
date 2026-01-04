@@ -797,3 +797,35 @@ export function useUpdateCareerVision() {
     },
   });
 }
+
+// Finance Settings Hooks
+interface FinanceSettingsData {
+  id?: string;
+  monthlyBudget: number;
+  debtTotal: number;
+  debtPaid: number;
+  debtMonthlyPayment: number;
+  updatedAt?: Date;
+}
+
+export function useFinanceSettings() {
+  return useQuery<FinanceSettingsData>({
+    queryKey: ["financeSettings"],
+    queryFn: () => fetchAPI("/api/finance-settings"),
+  });
+}
+
+export function useUpdateFinanceSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<Omit<FinanceSettingsData, "id" | "updatedAt">>) =>
+      fetchAPI("/api/finance-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["financeSettings"] });
+    },
+  });
+}

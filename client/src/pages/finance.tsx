@@ -55,25 +55,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense } from "@/lib/api-hooks";
+import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useFinanceSettings, useUpdateFinanceSettings } from "@/lib/api-hooks";
 import type { Expense } from "@shared/schema";
 
 type ExpenseCategory = "Fixed" | "Variable" | "Savings" | "Debt";
 type ExpenseStatus = "paid" | "pending" | "variable";
 
-const MONTHLY_BUDGET = 15000;
-const DAYS_LEFT = 12;
-
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-const LOAN_PROGRESS = {
-    total: 90000,
-    paid: 30000,
-    monthlyPayment: 1650,
-    remainingMonths: 36
-};
-
 const formatAED = (amount: number) => `AED ${amount.toLocaleString()}`;
+
+const getDaysLeftInMonth = () => {
+  const now = new Date();
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return lastDay.getDate() - now.getDate();
+};
 
 // Helper icons map
 const getCategoryIcon = (category: ExpenseCategory) => {
@@ -94,17 +90,32 @@ const COLORS = {
 };
 
 export default function FinancePage() {
-  const [currentMonthIndex, setCurrentMonthIndex] = useState(0); // 0 = January
+  const [currentMonthIndex, setCurrentMonthIndex] = useState(new Date().getMonth());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false);
+  const [isDebtDialogOpen, setIsDebtDialogOpen] = useState(false);
 
   const currentMonth = MONTHS[currentMonthIndex];
+  const daysLeft = getDaysLeftInMonth();
 
   // Database hooks
   const { data: monthlyExpenses = [], isLoading } = useExpenses(currentMonth);
+  const { data: financeSettings } = useFinanceSettings();
+  const updateFinanceSettings = useUpdateFinanceSettings();
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
   const deleteExpense = useDeleteExpense();
+
+  // Settings with defaults
+  const monthlyBudget = financeSettings?.monthlyBudget || 15000;
+  const debtTotal = financeSettings?.debtTotal || 0;
+  const debtPaid = financeSettings?.debtPaid || 0;
+  const debtMonthlyPayment = financeSettings?.debtMonthlyPayment || 0;
+
+  // Settings form state
+  const [budgetForm, setBudgetForm] = useState(monthlyBudget);
+  const [debtForm, setDebtForm] = useState({ total: debtTotal, paid: debtPaid, monthly: debtMonthlyPayment });
 
   // Form State
   const [formData, setFormData] = useState<{
@@ -125,7 +136,7 @@ export default function FinancePage() {
 
   // Calculations
   const totalSpent = useMemo(() => monthlyExpenses.reduce((acc, curr) => acc + curr.amount, 0), [monthlyExpenses]);
-  const percentSpent = (totalSpent / MONTHLY_BUDGET) * 100;
+  const percentSpent = monthlyBudget > 0 ? (totalSpent / monthlyBudget) * 100 : 0;
   
   const spendingData = useMemo(() => {
     const data: Record<string, number> = { Fixed: 0, Variable: 0, Debt: 0, Savings: 0 };
@@ -135,7 +146,7 @@ export default function FinancePage() {
       }
     });
     // Add remaining budget as "Savings/Buffer" if under budget
-    const remaining = Math.max(0, MONTHLY_BUDGET - totalSpent);
+    const remaining = Math.max(0, monthlyBudget - totalSpent);
     
     return [
       { name: 'Fixed', value: data.Fixed, color: COLORS.Fixed },
@@ -143,7 +154,40 @@ export default function FinancePage() {
       { name: 'Debt', value: data.Debt, color: COLORS.Debt },
       { name: 'Remaining', value: remaining, color: COLORS.Savings },
     ].filter(item => item.value > 0);
-  }, [monthlyExpenses, totalSpent]);
+  }, [monthlyExpenses, totalSpent, monthlyBudget]);
+
+  // Handlers for settings dialogs
+  const handleOpenBudgetDialog = () => {
+    setBudgetForm(monthlyBudget);
+    setIsBudgetDialogOpen(true);
+  };
+
+  const handleSaveBudget = () => {
+    updateFinanceSettings.mutate({ monthlyBudget: budgetForm }, {
+      onSuccess: () => {
+        toast.success("Budget updated");
+        setIsBudgetDialogOpen(false);
+      }
+    });
+  };
+
+  const handleOpenDebtDialog = () => {
+    setDebtForm({ total: debtTotal, paid: debtPaid, monthly: debtMonthlyPayment });
+    setIsDebtDialogOpen(true);
+  };
+
+  const handleSaveDebt = () => {
+    updateFinanceSettings.mutate({ 
+      debtTotal: debtForm.total, 
+      debtPaid: debtForm.paid, 
+      debtMonthlyPayment: debtForm.monthly 
+    }, {
+      onSuccess: () => {
+        toast.success("Debt settings updated");
+        setIsDebtDialogOpen(false);
+      }
+    });
+  };
 
   // Handlers
   const handleMonthChange = (direction: 'prev' | 'next') => {
@@ -275,14 +319,17 @@ export default function FinancePage() {
 
         {/* Top Level Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="border-border/50 shadow-sm">
+            <Card className="border-border/50 shadow-sm cursor-pointer hover:border-indigo-500/30 transition-colors" onClick={handleOpenBudgetDialog}>
                 <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Monthly Budget</CardTitle>
+                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+                        Monthly Budget
+                        <Pencil className="w-3 h-3 opacity-50" />
+                    </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="text-3xl font-bold flex items-baseline gap-1">
                         <span className="text-base text-muted-foreground align-top mt-1">AED</span>
-                        {MONTHLY_BUDGET.toLocaleString()}
+                        {monthlyBudget.toLocaleString()}
                     </div>
                     <div className="mt-4 space-y-2">
                         <div className="flex justify-between text-sm">
@@ -301,33 +348,36 @@ export default function FinancePage() {
                 <CardContent>
                     <div className="text-3xl font-bold flex items-baseline gap-1 text-emerald-600">
                         <span className="text-base text-emerald-600/60 align-top mt-1">AED</span>
-                        {(MONTHLY_BUDGET - totalSpent).toLocaleString()}
+                        {(monthlyBudget - totalSpent).toLocaleString()}
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                        With {DAYS_LEFT} days left in the month.
+                        With {daysLeft} days left in the month.
                     </p>
                     <div className="mt-4 text-xs font-medium text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded inline-block">
-                        Safe daily spend: AED {Math.max(0, (MONTHLY_BUDGET - totalSpent) / DAYS_LEFT).toFixed(0)}
+                        Safe daily spend: AED {daysLeft > 0 ? Math.max(0, (monthlyBudget - totalSpent) / daysLeft).toFixed(0) : 0}
                     </div>
                 </CardContent>
             </Card>
 
-            <Card className="border-border/50 shadow-sm">
+            <Card className="border-border/50 shadow-sm cursor-pointer hover:border-indigo-500/30 transition-colors" onClick={handleOpenDebtDialog}>
                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Debt Repayment</CardTitle>
+                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+                        Debt Repayment
+                        <Pencil className="w-3 h-3 opacity-50" />
+                    </CardTitle>
                 </CardHeader>
                 <CardContent>
                      <div className="text-3xl font-bold flex items-baseline gap-1">
                         <span className="text-base text-muted-foreground align-top mt-1">AED</span>
-                        {LOAN_PROGRESS.paid.toLocaleString()}
-                        <span className="text-base font-normal text-muted-foreground"> / {LOAN_PROGRESS.total.toLocaleString()}</span>
+                        {debtPaid.toLocaleString()}
+                        <span className="text-base font-normal text-muted-foreground"> / {debtTotal.toLocaleString()}</span>
                     </div>
                     <div className="mt-4 space-y-2">
                         <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Progress</span>
-                            <span className="font-medium text-indigo-600">{((LOAN_PROGRESS.paid / LOAN_PROGRESS.total) * 100).toFixed(1)}%</span>
+                            <span className="font-medium text-indigo-600">{debtTotal > 0 ? ((debtPaid / debtTotal) * 100).toFixed(1) : 0}%</span>
                         </div>
-                        <Progress value={(LOAN_PROGRESS.paid / LOAN_PROGRESS.total) * 100} className="h-2 bg-indigo-500/10" indicatorClassName="bg-indigo-500" />
+                        <Progress value={debtTotal > 0 ? (debtPaid / debtTotal) * 100 : 0} className="h-2 bg-indigo-500/10" indicatorClassName="bg-indigo-500" />
                     </div>
                 </CardContent>
             </Card>
@@ -549,6 +599,88 @@ export default function FinancePage() {
                 </div>
                 <DialogFooter>
                     <Button type="submit" onClick={handleSave}>Save Expense</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* Budget Edit Dialog */}
+        <Dialog open={isBudgetDialogOpen} onOpenChange={setIsBudgetDialogOpen}>
+            <DialogContent className="sm:max-w-[400px]">
+                <DialogHeader>
+                    <DialogTitle>Edit Monthly Budget</DialogTitle>
+                    <DialogDescription>
+                        Set your monthly spending budget in AED.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="monthlyBudget" className="text-right">Budget (AED)</Label>
+                        <Input 
+                            id="monthlyBudget" 
+                            type="number"
+                            value={budgetForm} 
+                            onChange={(e) => setBudgetForm(parseFloat(e.target.value) || 0)}
+                            className="col-span-3" 
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsBudgetDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleSaveBudget} disabled={updateFinanceSettings.isPending}>
+                        {updateFinanceSettings.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        Save
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* Debt Edit Dialog */}
+        <Dialog open={isDebtDialogOpen} onOpenChange={setIsDebtDialogOpen}>
+            <DialogContent className="sm:max-w-[400px]">
+                <DialogHeader>
+                    <DialogTitle>Edit Debt Settings</DialogTitle>
+                    <DialogDescription>
+                        Track your debt repayment progress.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="debtTotal" className="text-right">Total Debt (AED)</Label>
+                        <Input 
+                            id="debtTotal" 
+                            type="number"
+                            value={debtForm.total} 
+                            onChange={(e) => setDebtForm({...debtForm, total: parseFloat(e.target.value) || 0})}
+                            className="col-span-3" 
+                        />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="debtPaid" className="text-right">Amount Paid (AED)</Label>
+                        <Input 
+                            id="debtPaid" 
+                            type="number"
+                            value={debtForm.paid} 
+                            onChange={(e) => setDebtForm({...debtForm, paid: parseFloat(e.target.value) || 0})}
+                            className="col-span-3" 
+                        />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="debtMonthly" className="text-right">Monthly Payment (AED)</Label>
+                        <Input 
+                            id="debtMonthly" 
+                            type="number"
+                            value={debtForm.monthly} 
+                            onChange={(e) => setDebtForm({...debtForm, monthly: parseFloat(e.target.value) || 0})}
+                            className="col-span-3" 
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsDebtDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleSaveDebt} disabled={updateFinanceSettings.isPending}>
+                        {updateFinanceSettings.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        Save
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

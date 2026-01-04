@@ -31,6 +31,8 @@ import {
   type InsertExpense,
   type CareerVision,
   type InsertCareerVision,
+  type FinanceSettings,
+  type InsertFinanceSettings,
   systemMembers,
   trackerEntries,
   systemMessages,
@@ -46,7 +48,8 @@ import {
   careerProjects,
   careerTasks,
   expenses,
-  careerVision
+  careerVision,
+  financeSettings
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, asc } from "drizzle-orm";
@@ -150,6 +153,10 @@ export interface IStorage {
   createExpense(expense: InsertExpense): Promise<Expense>;
   updateExpense(id: string, expense: Partial<InsertExpense>): Promise<Expense | undefined>;
   deleteExpense(id: string): Promise<boolean>;
+
+  // Finance Settings
+  getFinanceSettings(): Promise<FinanceSettings | undefined>;
+  updateFinanceSettings(settings: Partial<InsertFinanceSettings>): Promise<FinanceSettings>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -553,6 +560,28 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Failed to update vision:", error);
       throw error;
+    }
+  }
+
+  // Finance Settings
+  async getFinanceSettings(): Promise<FinanceSettings | undefined> {
+    const result = await db.select().from(financeSettings);
+    return result[0];
+  }
+
+  async updateFinanceSettings(settings: Partial<InsertFinanceSettings>): Promise<FinanceSettings> {
+    const existing = await this.getFinanceSettings();
+    if (existing) {
+      const result = await db.update(financeSettings)
+        .set({ ...settings, updatedAt: new Date() })
+        .where(eq(financeSettings.id, existing.id))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db.insert(financeSettings)
+        .values({ ...settings } as InsertFinanceSettings)
+        .returning();
+      return result[0];
     }
   }
 }

@@ -321,3 +321,21 @@ export const insertCareerVisionSchema = createInsertSchema(careerVision).omit({
 
 export type CareerVision = typeof careerVision.$inferSelect;
 export type InsertCareerVision = z.infer<typeof insertCareerVisionSchema>;
+
+// Finance Settings (budget and debt tracking)
+export const financeSettings = pgTable("finance_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  monthlyBudget: integer("monthly_budget").notNull().default(15000),
+  debtTotal: integer("debt_total").notNull().default(0),
+  debtPaid: integer("debt_paid").notNull().default(0),
+  debtMonthlyPayment: integer("debt_monthly_payment").notNull().default(0),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertFinanceSettingsSchema = createInsertSchema(financeSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type FinanceSettings = typeof financeSettings.$inferSelect;
+export type InsertFinanceSettings = z.infer<typeof insertFinanceSettingsSchema>;

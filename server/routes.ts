@@ -1632,6 +1632,25 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
     }
   });
 
+  // Finance Settings Routes
+  app.get("/api/finance-settings", async (req, res) => {
+    try {
+      const settings = await storage.getFinanceSettings();
+      res.json(settings || { monthlyBudget: 15000, debtTotal: 0, debtPaid: 0, debtMonthlyPayment: 0 });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch finance settings" });
+    }
+  });
+
+  app.patch("/api/finance-settings", async (req, res) => {
+    try {
+      const settings = await storage.updateFinanceSettings(req.body);
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update finance settings" });
+    }
+  });
+
   // Orbit Chat Route
   app.post("/api/orbit/chat", async (req, res) => {
     try {
