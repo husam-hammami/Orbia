@@ -428,23 +428,16 @@ export default function DeepMind() {
             </TabsContent>
 
             <TabsContent value="analysis" className="animate-in slide-in-from-bottom-4 duration-500">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                     <Card className="md:col-span-2 lg:col-span-2">
+                <div className="space-y-6">
+                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Sparkles className="w-5 h-5 text-indigo-500" />
-                                AI Pattern Analysis
+                                Pattern Analysis
                             </CardTitle>
-                            <CardDescription>Deep Mind's analysis of your mood, habits, and routine patterns.</CardDescription>
+                            <CardDescription>Insights from your mood, habit, and routine data.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-600 dark:text-blue-400 flex items-start gap-2">
-                                <Activity className="w-4 h-4 shrink-0 mt-0.5" />
-                                <div>
-                                    <strong>High-Resolution Analysis Active:</strong> Deep Mind is analyzing intra-day variance. 
-                                    Fluctuations in stress and dissociation throughout the day are weighted heavily to prevent data flattening.
-                                </div>
-                            </div>
                             {insightsLoading ? (
                               <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
                                 <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
@@ -458,31 +451,44 @@ export default function DeepMind() {
                                   </div>
                                 )}
                                 
-                                {insights.correlationHighlights && insights.correlationHighlights.length > 0 && (
-                                  <div className="p-4 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-lg border border-indigo-500/20">
-                                    <h4 className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-3 flex items-center gap-2">
-                                      <TrendingUp className="w-4 h-4" />
-                                      Key Correlations Detected
-                                    </h4>
-                                    <div className="grid gap-2">
-                                      {insights.correlationHighlights.map((corr: any, i: number) => (
-                                        <div key={i} className="flex items-center gap-2 text-xs bg-background/50 p-2 rounded">
-                                          <span className="font-medium">{corr.factor1}</span>
-                                          <span className={cn(
-                                            "px-1.5 py-0.5 rounded text-[10px] font-bold",
-                                            corr.relationship === 'positive' ? 'bg-emerald-500/20 text-emerald-600' :
-                                            corr.relationship === 'negative' ? 'bg-rose-500/20 text-rose-600' :
-                                            'bg-slate-500/20 text-slate-600'
-                                          )}>
-                                            {corr.relationship === 'positive' ? '↑' : corr.relationship === 'negative' ? '↓' : '~'}
-                                          </span>
-                                          <span className="font-medium">{corr.factor2}</span>
-                                          <Badge variant="outline" className="ml-auto text-[10px]">{corr.strength}</Badge>
-                                        </div>
-                                      ))}
+                                {(() => {
+                                  const meaningfulCorrelations = insights.correlationHighlights?.filter((c: any) => 
+                                    c.strength === 'strong' || c.strength === 'moderate'
+                                  ) || [];
+                                  
+                                  if (meaningfulCorrelations.length === 0) return null;
+                                  
+                                  return (
+                                    <div className="p-4 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-lg border border-indigo-500/20">
+                                      <h4 className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-3 flex items-center gap-2">
+                                        <TrendingUp className="w-4 h-4" />
+                                        Validated Correlations
+                                      </h4>
+                                      <div className="grid md:grid-cols-2 gap-3">
+                                        {meaningfulCorrelations.map((corr: any, i: number) => (
+                                          <div key={i} className="flex items-center gap-3 bg-background/50 p-3 rounded-lg">
+                                            <div className={cn(
+                                              "w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold shrink-0",
+                                              corr.relationship === 'positive' ? 'bg-emerald-500/20 text-emerald-600' :
+                                              corr.relationship === 'negative' ? 'bg-rose-500/20 text-rose-600' :
+                                              'bg-slate-500/20 text-slate-600'
+                                            )}>
+                                              {corr.relationship === 'positive' ? '↑' : corr.relationship === 'negative' ? '↓' : '~'}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <div className="text-sm font-medium truncate">{corr.factor1} → {corr.factor2}</div>
+                                              <div className="text-xs text-muted-foreground">{corr.summary}</div>
+                                            </div>
+                                            <Badge variant="outline" className={cn(
+                                              "shrink-0 text-[10px]",
+                                              corr.strength === 'strong' ? 'border-emerald-500 text-emerald-600' : 'border-amber-500 text-amber-600'
+                                            )}>{corr.strength}</Badge>
+                                          </div>
+                                        ))}
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
+                                  );
+                                })()}
                                 
                                 <div className="space-y-3">
                                   {(() => {
@@ -536,26 +542,37 @@ export default function DeepMind() {
                                             </div>
                                           ))
                                         ) : (
-                                          <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                                            <div className="flex items-center gap-2 mb-2">
-                                              <Activity className="w-4 h-4 text-amber-600" />
-                                              <span className="font-medium text-sm text-amber-700 dark:text-amber-400">Building Your Insights</span>
-                                            </div>
-                                            <p className="text-xs text-muted-foreground mb-3">
-                                              High-confidence patterns require more data. Keep logging daily to unlock meaningful correlations.
-                                            </p>
-                                            <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                                              <div className="p-2 bg-background/50 rounded">
-                                                <div className="font-bold text-amber-600">{insights.dataRange?.entriesAnalyzed || 0}/7</div>
-                                                <div className="text-muted-foreground">Days logged</div>
+                                          <div className="p-6 bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20 rounded-lg">
+                                            <div className="flex items-start gap-4">
+                                              <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                                                <Activity className="w-6 h-6 text-amber-600" />
                                               </div>
-                                              <div className="p-2 bg-background/50 rounded">
-                                                <div className="font-bold text-amber-600">{insights.rawCorrelations?.overallMetrics?.totalHabitCompletions || 0}</div>
-                                                <div className="text-muted-foreground">Habit completions</div>
-                                              </div>
-                                              <div className="p-2 bg-background/50 rounded">
-                                                <div className="font-bold text-amber-600">{insights.rawCorrelations?.overallMetrics?.totalRoutineCompletions || 0}</div>
-                                                <div className="text-muted-foreground">Routine completions</div>
+                                              <div className="flex-1">
+                                                <h3 className="font-semibold text-lg text-amber-700 dark:text-amber-400 mb-1">Collecting Data for Insights</h3>
+                                                <p className="text-sm text-muted-foreground mb-4">
+                                                  Meaningful patterns need at least 7 days of tracking. Keep logging daily to unlock personalized correlations.
+                                                </p>
+                                                <div className="grid grid-cols-4 gap-4">
+                                                  <div className="text-center">
+                                                    <div className="text-2xl font-bold text-amber-600">{insights.dataRange?.entriesAnalyzed || 0}</div>
+                                                    <div className="text-xs text-muted-foreground">Days Logged</div>
+                                                    <div className="mt-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                                                      <div className="h-full bg-amber-500 rounded-full" style={{ width: `${Math.min(100, ((insights.dataRange?.entriesAnalyzed || 0) / 7) * 100)}%` }}></div>
+                                                    </div>
+                                                  </div>
+                                                  <div className="text-center">
+                                                    <div className="text-2xl font-bold text-emerald-600">{insights.rawCorrelations?.overallMetrics?.totalHabitCompletions || 0}</div>
+                                                    <div className="text-xs text-muted-foreground">Habit Completions</div>
+                                                  </div>
+                                                  <div className="text-center">
+                                                    <div className="text-2xl font-bold text-blue-600">{insights.rawCorrelations?.overallMetrics?.totalRoutineCompletions || 0}</div>
+                                                    <div className="text-xs text-muted-foreground">Routine Completions</div>
+                                                  </div>
+                                                  <div className="text-center">
+                                                    <div className="text-2xl font-bold text-purple-600">{Math.max(0, 7 - (insights.dataRange?.entriesAnalyzed || 0))}</div>
+                                                    <div className="text-xs text-muted-foreground">Days Until Insights</div>
+                                                  </div>
+                                                </div>
                                               </div>
                                             </div>
                                           </div>
