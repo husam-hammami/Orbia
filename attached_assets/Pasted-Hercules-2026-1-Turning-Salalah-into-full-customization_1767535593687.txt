@@ -1,0 +1,56 @@
+Hercules 2026:
+1.	Turning Salalah into full customization and configuration
+2.	Offset addresses will be configurable from PLC Tag mapping, each will have a unique Tag ID which can be used later in groups, sections and report builder.
+3.	PLC settings page.
+4.	Mapping page and options.
+5.	Tags management as well as data type and units if any.
+6.	IN the same for Tag ID we can have option to have a customized formula but the final result will also have a unique ID.
+7.	Any report for Siemens/S7 can be integrated in this module. Without need for any developing from Hercules side.
+8.	How much changes are needed to accept other protocols like TCP/IP/ OCP/UA/ Modbus etc.
+9.	Need to pay attention to acquisition rate and should be configurable.
+10.	Indexing and aggregating to enhance DB performance.
+11.	Check why Frontend having issues loading react dashboards.
+12.	UX should understand requirements of each project after then discuss with me, then we move to development plan. With Full UI flow.
+13.	We need to remember to give all export options orrectly along with SMTP options to send emails with reports, or saved automatically to hard drive.
+14.	Energy monitoring [Complete UI/UX rework needed] to be discussed with Bhuwaneshwar. Should also be configurable.
+15.	The sections and grouping options of tags, should be further researched 
+16.	Maybe Plant Monitor is on top
+17.	We need to make sure the system can be reproducable without the potential hacking.
+18.	Potential enhancements for Salalah and/or Final configurable module.
+a.	Some tags/formulas.groups/sections can be checked as Tracked. These Starred signals can be tracked and linked to ML model which will be used on prediction of this value over next 15 minutes or 30 -> 24 hours.
+b.	The AI module will have options to discuss production/signals ore reports data using AI assistant and give insights or suggestions accordingly.
+c.	The AI will give optimization suggestions for the Starred tags.
+d.	Need pics of the flourmill of Salalah [B, C, D] for 3D Potential Digital twin
+19.	Some users will need access to Mill B only or A only etc. but some super users will need Full access to all Mills. Preferrable online?[Herculesv2.com]
+20.	Dasbhoards will be easily based on the tags/formulas set by user or groups or sections.
+21.	Live monitor should be inspired by Portal oscillators data. Psame for historical reports or trends.
+22.	Making sure this module works for flour feed etc.
+23.	Need focus to handle very specific case which is the data being retrieved from Simatic Batch Siemens Database in SQL Server not Constant Direct PLC polling.  
+1.	What configuration needed from Hercules [SQL Server IP]
+2.	Which data points to get from Simatic Batch [If not as default of NFM]
+3.	Which conditions should be met for each data point to be included in the collected data.from Simatic Batch.
+4.	Maybe the ETL pipe line can be automatically configured from Hercules directly to SQL server.
+5.	Studying options to poll directly from PLC instead of dealing with Simatic Batch complexity.
+6.	Report Builder is all batch related similar format to NFM? Or more flexibility. If yes we need to think of ways to make clients configure fully. Instead of Power BI.
+24.	For Energy monitor /live and historical we need to add anomaly detecting model Isolation forrest for predictive maintenance [Simple and Easy]
+25.	We need to have these AI suggestions in charts and simple attractive UX way for clients.
+26.	Cybersecruity Protocol Standards to be followed.
+27.	 to check which things monitored needed for management to be put in Plant Monitor as 3D components, maybe Silo capacity and which intake or which materials in or out. Maintenance status or performance, conditioning , dosing etc. and discuss with Yasser how to get each and to standardize this for Plant Monitoring 3D.
+28.	Setting accepted range for each signal coming from tag and set the behavior when values are out of range. 
+
+29.	Need to pay attention to scalability of system to store data for long time while keeping good performance.
+30.	Hosting on domain on Herculesv2.com outside of replit.
+31.	Also microdosing should also be fully configurable and customizable and ready to be sold.
+
+
+ERP Integration **
+We will need to make it also fully configurable for flourmilling  or feed etc. 
+We will need the following:
+1.	Full list of PLC addresses for the equpments to be monitored 
+2.	Endpoint of the ERP for Communication channel [PUSH and PULL]
+3.	Could be VPN connection as well.
+4.	We need JSON Payload architecture For expected Orders, codes and quantities etc.
+a.	As well as the payload for PUSHing Confirmations/comments scraps etc.
+b.	Ability to adjust KPI formulas for Milling and packing by admin user, accordingly the dashboards will be configurable.
+c.	Ability to set up connection with SQL server from Hercules itself, where users can select which IP, which server Which DB which table which columns. And if there are any needed formulas on the received data.
+d.	`
