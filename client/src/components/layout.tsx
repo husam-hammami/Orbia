@@ -197,18 +197,18 @@ function Sidebar({ className }: SidebarProps) {
           const Icon = link.icon;
           const isActive = location === link.href;
           return (
-            <Link key={link.href} href={link.href}>
-              <a
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
-                  isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
-                <Icon className={cn("w-5 h-5", isActive ? "stroke-2" : "stroke-1.5")} />
-                <span className={cn("font-medium", isActive ? "font-semibold" : "")}>{link.label}</span>
-              </a>
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
+                isActive
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              )}
+            >
+              <Icon className={cn("w-5 h-5", isActive ? "stroke-2" : "stroke-1.5")} />
+              <span className={cn("font-medium", isActive ? "font-semibold" : "")}>{link.label}</span>
             </Link>
           );
         })}
