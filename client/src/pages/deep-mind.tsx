@@ -485,7 +485,14 @@ export default function DeepMind() {
                                 )}
                                 
                                 <div className="space-y-3">
-                                  {insights.insights.map((insight: any, i: number) => {
+                                  {(() => {
+                                    const highConfidenceInsights = insights.insights.filter((i: any) => 
+                                      i.confidence === 'strong' || i.confidence === 'moderate'
+                                    );
+                                    const limitedInsights = insights.insights.filter((i: any) => 
+                                      i.confidence !== 'strong' && i.confidence !== 'moderate'
+                                    );
+                                    
                                     const categoryColors: Record<string, string> = {
                                       sleep: 'border-l-blue-500 bg-blue-500/5',
                                       habits: 'border-l-emerald-500 bg-emerald-500/5',
@@ -496,44 +503,87 @@ export default function DeepMind() {
                                     const categoryIcons: Record<string, string> = {
                                       sleep: '😴', habits: '✓', routines: '📅', system: '👥', overall: '📊'
                                     };
+                                    
                                     return (
-                                      <div key={i} className={cn(
-                                        "p-4 rounded-lg border-l-4",
-                                        categoryColors[insight.category] || 'border-l-slate-500 bg-muted/30'
-                                      )}>
-                                        <div className="flex items-start justify-between gap-2 mb-2">
-                                          <div className="flex items-center gap-2">
-                                            <span className="text-lg">{categoryIcons[insight.category] || '💡'}</span>
-                                            <h4 className="font-semibold text-sm text-foreground">{insight.title}</h4>
+                                      <>
+                                        {highConfidenceInsights.length > 0 ? (
+                                          highConfidenceInsights.map((insight: any, i: number) => (
+                                            <div key={i} className={cn(
+                                              "p-3 rounded-lg border-l-4",
+                                              categoryColors[insight.category] || 'border-l-slate-500 bg-muted/30'
+                                            )}>
+                                              <div className="flex items-start justify-between gap-2 mb-1">
+                                                <div className="flex items-center gap-2">
+                                                  <span>{categoryIcons[insight.category] || '💡'}</span>
+                                                  <h4 className="font-semibold text-sm text-foreground">{insight.title}</h4>
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                  {insight.dataPoint && (
+                                                    <Badge className="bg-primary/20 text-primary text-[10px] font-bold">
+                                                      {insight.dataPoint}
+                                                    </Badge>
+                                                  )}
+                                                  <Badge variant="outline" className={cn(
+                                                    "text-[10px]",
+                                                    insight.confidence === 'strong' ? 'border-emerald-500 text-emerald-600' :
+                                                    'border-amber-500 text-amber-600'
+                                                  )}>
+                                                    {insight.confidence}
+                                                  </Badge>
+                                                </div>
+                                              </div>
+                                              <p className="text-xs text-muted-foreground">{insight.observation}</p>
+                                            </div>
+                                          ))
+                                        ) : (
+                                          <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <Activity className="w-4 h-4 text-amber-600" />
+                                              <span className="font-medium text-sm text-amber-700 dark:text-amber-400">Building Your Insights</span>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground mb-3">
+                                              High-confidence patterns require more data. Keep logging daily to unlock meaningful correlations.
+                                            </p>
+                                            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                                              <div className="p-2 bg-background/50 rounded">
+                                                <div className="font-bold text-amber-600">{insights.dataRange?.entriesAnalyzed || 0}/7</div>
+                                                <div className="text-muted-foreground">Days logged</div>
+                                              </div>
+                                              <div className="p-2 bg-background/50 rounded">
+                                                <div className="font-bold text-amber-600">{insights.rawCorrelations?.overallMetrics?.totalHabitCompletions || 0}</div>
+                                                <div className="text-muted-foreground">Habit completions</div>
+                                              </div>
+                                              <div className="p-2 bg-background/50 rounded">
+                                                <div className="font-bold text-amber-600">{insights.rawCorrelations?.overallMetrics?.totalRoutineCompletions || 0}</div>
+                                                <div className="text-muted-foreground">Routine completions</div>
+                                              </div>
+                                            </div>
                                           </div>
-                                          <div className="flex items-center gap-1.5">
-                                            {insight.dataPoint && (
-                                              <Badge className="bg-primary/20 text-primary text-[10px] font-bold">
-                                                {insight.dataPoint}
-                                              </Badge>
-                                            )}
-                                            {insight.confidence && (
-                                              <Badge variant="outline" className={cn(
-                                                "text-[10px]",
-                                                insight.confidence === 'strong' ? 'border-emerald-500 text-emerald-600' :
-                                                insight.confidence === 'moderate' ? 'border-amber-500 text-amber-600' :
-                                                'border-slate-400 text-slate-500'
-                                              )}>
-                                                {insight.confidence}
-                                              </Badge>
-                                            )}
-                                          </div>
-                                        </div>
-                                        <p className="text-sm text-muted-foreground mb-2">{insight.observation}</p>
-                                        {insight.suggestion && (
-                                          <p className="text-xs text-primary/80 bg-primary/10 p-2 rounded flex items-start gap-1.5">
-                                            <Lightbulb className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                                            <span>{insight.suggestion}</span>
-                                          </p>
                                         )}
-                                      </div>
+                                        
+                                        {limitedInsights.length > 0 && (
+                                          <details className="mt-2">
+                                            <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground py-1">
+                                              {limitedInsights.length} preliminary observation{limitedInsights.length > 1 ? 's' : ''} (needs more data)
+                                            </summary>
+                                            <div className="mt-2 space-y-2 pl-2 border-l border-muted">
+                                              {limitedInsights.slice(0, 3).map((insight: any, i: number) => (
+                                                <div key={i} className="text-xs text-muted-foreground py-1">
+                                                  <span className="mr-1">{categoryIcons[insight.category] || '💡'}</span>
+                                                  <span className="font-medium">{insight.title}</span>
+                                                </div>
+                                              ))}
+                                              {limitedInsights.length > 3 && (
+                                                <div className="text-xs text-muted-foreground/60">
+                                                  +{limitedInsights.length - 3} more...
+                                                </div>
+                                              )}
+                                            </div>
+                                          </details>
+                                        )}
+                                      </>
                                     );
-                                  })}
+                                  })()}
                                 </div>
                                 
                                 {insights.dataRange && (
@@ -576,37 +626,23 @@ export default function DeepMind() {
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Fingerprint className="w-5 h-5 text-purple-500" />
-                                Identity Fragment Analysis
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {frontingPatterns.length > 0 ? (
-                              <div className="space-y-3">
-                                {frontingPatterns.map((pattern, i) => (
-                                  <div key={i} className="p-3 bg-muted/30 rounded-lg border border-border/50">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="font-semibold text-sm" style={{ color: pattern.color }}>{pattern.name}</span>
-                                      <Badge variant="secondary" className="text-[10px]">{pattern.count} entries</Badge>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">Avg stress: {pattern.avgStress}% | Avg dissociation: {pattern.avgDissociation}%</p>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="flex flex-col items-center justify-center py-8 text-center space-y-2">
-                                <Users className="w-10 h-10 text-muted-foreground/20" />
-                                <p className="text-sm text-muted-foreground">Insufficient Data</p>
-                                <p className="text-xs text-muted-foreground/60">
-                                    Log "Who is Fronting" consistently to enable fragment analysis.
-                                </p>
-                              </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                    {frontingPatterns.length > 1 && (
+                      <div className="p-3 bg-purple-500/5 border border-purple-500/20 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Fingerprint className="w-4 h-4 text-purple-500" />
+                          <span className="text-sm font-medium">System Member Activity</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {frontingPatterns.map((pattern, i) => (
+                            <div key={i} className="flex items-center gap-1.5 px-2 py-1 bg-background/50 rounded text-xs">
+                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: pattern.color }}></span>
+                              <span className="font-medium">{pattern.name}</span>
+                              <span className="text-muted-foreground">({pattern.count})</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                 </div>
             </TabsContent>
 
