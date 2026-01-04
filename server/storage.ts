@@ -21,6 +21,8 @@ import {
   type InsertRoutineActivityLog,
   type Todo,
   type InsertTodo,
+  type DailySummary,
+  type InsertDailySummary,
   systemMembers,
   trackerEntries,
   systemMessages,
@@ -31,7 +33,8 @@ import {
   routineBlocks,
   routineActivities,
   routineActivityLogs,
-  todos
+  todos,
+  dailySummaries
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -107,6 +110,11 @@ export interface IStorage {
   createTodo(todo: InsertTodo): Promise<Todo>;
   updateTodo(id: string, todo: Partial<InsertTodo>): Promise<Todo | undefined>;
   deleteTodo(id: string): Promise<boolean>;
+
+  // Daily Summaries
+  getAllDailySummaries(): Promise<DailySummary[]>;
+  getDailySummary(date: string): Promise<DailySummary | undefined>;
+  upsertDailySummary(summary: InsertDailySummary): Promise<DailySummary>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -389,6 +397,26 @@ export class DatabaseStorage implements IStorage {
   async deleteTodo(id: string): Promise<boolean> {
     const result = await db.delete(todos).where(eq(todos.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Daily Summaries
+  async getAllDailySummaries(): Promise<DailySummary[]> {
+    return await db.select().from(dailySummaries).orderBy(desc(dailySummaries.date));
+  }
+
+  async getDailySummary(date: string): Promise<DailySummary | undefined> {
+    const result = await db.select().from(dailySummaries).where(eq(dailySummaries.date, date));
+    return result[0];
+  }
+
+  async upsertDailySummary(summary: InsertDailySummary): Promise<DailySummary> {
+    const existing = await this.getDailySummary(summary.date);
+    if (existing) {
+      const result = await db.update(dailySummaries).set({ feeling: summary.feeling }).where(eq(dailySummaries.date, summary.date)).returning();
+      return result[0];
+    }
+    const result = await db.insert(dailySummaries).values(summary).returning();
+    return result[0];
   }
 }
 

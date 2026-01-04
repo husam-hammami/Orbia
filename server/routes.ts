@@ -12,7 +12,8 @@ import {
   insertRoutineBlockSchema,
   insertRoutineActivitySchema,
   insertRoutineActivityLogSchema,
-  insertTodoSchema
+  insertTodoSchema,
+  insertDailySummarySchema
 } from "@shared/schema";
 import { z } from "zod";
 import { registerChatRoutes } from "./replit_integrations/chat";
@@ -1386,6 +1387,36 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete todo" });
+    }
+  });
+
+  // Daily Summary Routes
+  app.get("/api/daily-summaries", async (req, res) => {
+    try {
+      const summaries = await storage.getAllDailySummaries();
+      res.json(summaries);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch daily summaries" });
+    }
+  });
+
+  app.get("/api/daily-summaries/:date", async (req, res) => {
+    try {
+      const summary = await storage.getDailySummary(req.params.date);
+      res.json(summary || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch daily summary" });
+    }
+  });
+
+  app.post("/api/daily-summaries", async (req, res) => {
+    try {
+      const validatedData = insertDailySummarySchema.parse(req.body);
+      const summary = await storage.upsertDailySummary(validatedData);
+      res.status(201).json(summary);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
     }
   });
 
