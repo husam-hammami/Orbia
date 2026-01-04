@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Smile, Frown, Meh, Zap, BatteryLow, BatteryFull, Activity, HeartPulse, UserCircle2, CloudFog, Moon, BedDouble, AlertCircle, Sparkles, Flame, MessageSquare, MicOff, Mic, ChevronDown, ChevronUp, Utensils, Coffee, Sun, MoonStar, Cookie, Clock, History, Loader2, TrendingUp, Calendar } from "lucide-react";
+import { Smile, Frown, Meh, Zap, BatteryFull, Activity, UserCircle2, CloudFog, AlertCircle, Flame, MessageSquare, ChevronDown, ChevronUp, Clock, Loader2, TrendingUp, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,6 @@ export function MoodTracker() {
   const [selectedFronterId, setSelectedFronterId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [note, setNote] = useState("");
-  const [meals, setMeals] = useState({ breakfast: false, lunch: false, dinner: false, snack: false });
   const [entryTime, setEntryTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
 
   // Auto-calculate time of day based on current hour
@@ -64,9 +63,6 @@ export function MoodTracker() {
     mood: entry.mood <= 2 ? "bad" : entry.mood <= 3 ? "neutral" : "good"
   }));
 
-  const toggleMeal = (meal: keyof typeof meals) => {
-    setMeals(prev => ({ ...prev, [meal]: !prev[meal] }));
-  };
 
   const moods = [
     { value: "terrible", icon: Frown, color: "text-red-500", bg: "bg-red-100", label: "Terrible" },
@@ -95,8 +91,6 @@ export function MoodTracker() {
     const noteParts = [];
     if (note) noteParts.push(note);
     if (selectedTags.length > 0) noteParts.push(`Tags: ${selectedTags.join(", ")}`);
-    const mealsEaten = Object.entries(meals).filter(([_, eaten]) => eaten).map(([meal]) => meal);
-    if (mealsEaten.length > 0) noteParts.push(`Meals: ${mealsEaten.join(", ")}`);
     noteParts.push(`Comfort: ${comfort[0]}/10`);
     noteParts.push(`System Comm: ${systemComm[0]}/10`);
     noteParts.push(`Sleep: ${sleep[0]}h`);
@@ -276,42 +270,6 @@ export function MoodTracker() {
                 <div className="space-y-4">
                     <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Body Vitals</h4>
                     
-                    {/* Meal Tracking (New) */}
-                    <div className="bg-orange-50/50 dark:bg-orange-900/10 p-3 rounded-lg border border-orange-100 dark:border-orange-900/30">
-                       <div className="flex items-center gap-1.5 text-orange-600 mb-2">
-                          <Utensils className="w-3.5 h-3.5" />
-                          <span className="text-xs font-semibold">Nourishment</span>
-                       </div>
-                       
-                       <div className="flex justify-between gap-1">
-                          {[
-                            { key: 'breakfast', icon: Coffee, label: 'AM' },
-                            { key: 'lunch', icon: Sun, label: 'Noon' },
-                            { key: 'dinner', icon: MoonStar, label: 'PM' },
-                            { key: 'snack', icon: Cookie, label: 'Snack' },
-                          ].map((meal) => {
-                             const Icon = meal.icon;
-                             const isActive = meals[meal.key as keyof typeof meals];
-                             return (
-                                <button
-                                  key={meal.key}
-                                  onClick={() => toggleMeal(meal.key as keyof typeof meals)}
-                                  className={cn(
-                                    "flex-1 flex flex-col items-center gap-1 p-1.5 rounded-md border transition-all",
-                                    isActive
-                                      ? "bg-orange-100 border-orange-200 text-orange-700 dark:bg-orange-900/40 dark:text-orange-100"
-                                      : "bg-background border-border text-muted-foreground hover:bg-muted"
-                                  )}
-                                  title={`Did you eat ${meal.key}?`}
-                                >
-                                   <Icon className={cn("w-3.5 h-3.5", isActive && "fill-current")} />
-                                   <span className="text-[9px] font-medium uppercase">{meal.label}</span>
-                                </button>
-                             );
-                          })}
-                       </div>
-                    </div>
-
                     {/* Pain */}
                     <div>
                        <div className="flex justify-between text-xs mb-1.5">
@@ -337,6 +295,15 @@ export function MoodTracker() {
                           <span className="font-mono">{motivation[0]}/10</span>
                        </div>
                        <Slider value={motivation} onValueChange={setMotivation} max={10} step={1} />
+                    </div>
+
+                    {/* Stress */}
+                    <div>
+                       <div className="flex justify-between text-xs mb-1.5">
+                          <span className="text-muted-foreground">Stress Level</span>
+                          <span className="font-mono">{stress[0]}/10</span>
+                       </div>
+                       <Slider value={stress} onValueChange={setStress} max={10} step={1} />
                     </div>
                 </div>
 
@@ -398,15 +365,6 @@ export function MoodTracker() {
                           </span>
                        </div>
                        <Slider value={urges} onValueChange={setUrges} max={10} step={1} className="h-4 [&_.bg-primary]:bg-orange-500" />
-                    </div>
-
-                    {/* Stress Level */}
-                    <div>
-                       <div className="flex justify-between text-xs mb-1.5">
-                          <span className="text-muted-foreground">Stress Level</span>
-                          <span className="font-mono">{stress[0]}/10</span>
-                       </div>
-                       <Slider value={stress} onValueChange={setStress} max={10} step={1} />
                     </div>
 
                     {/* Note */}
