@@ -23,7 +23,6 @@ export function WorkTimer() {
   const {
     state,
     remainingSeconds,
-    totalSeconds,
     progress,
     start,
     pause,
@@ -42,224 +41,208 @@ export function WorkTimer() {
   const seconds = remainingSeconds % 60;
   const timeDisplay = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 
-  const circumference = 2 * Math.PI * 90;
+  const circumference = 2 * Math.PI * 28;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   const getStateColor = () => {
     switch (state) {
       case "running":
-        return "text-emerald-500";
+        return "text-primary";
       case "paused":
-        return "text-amber-500";
+        return "text-amber-600";
       case "completed":
-        return "text-violet-500";
+        return "text-violet-600";
       default:
-        return "text-slate-400";
+        return "text-muted-foreground";
     }
   };
 
-  const getGradientColors = () => {
+  const getStrokeColor = () => {
     switch (state) {
       case "running":
-        return { from: "#10b981", to: "#3b82f6" };
+        return "stroke-primary";
       case "paused":
-        return { from: "#f59e0b", to: "#ef4444" };
+        return "stroke-amber-500";
       case "completed":
-        return { from: "#8b5cf6", to: "#ec4899" };
+        return "stroke-violet-500";
       default:
-        return { from: "#64748b", to: "#94a3b8" };
+        return "stroke-muted-foreground/30";
     }
   };
-
-  const colors = getGradientColors();
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9, y: -20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      className="relative"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="flex items-center gap-3"
       data-testid="work-timer-container"
     >
       <div className={cn(
-        "relative bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl rounded-2xl p-4 shadow-2xl border border-slate-700/50",
-        state === "running" && "ring-2 ring-emerald-500/30"
+        "flex items-center gap-3 px-4 py-2.5 rounded-xl border bg-card/80 backdrop-blur-sm shadow-sm",
+        state === "running" && "border-primary/30 bg-primary/5"
       )}>
-        {state === "running" && (
-          <motion.div
-            className="absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-blue-500/10"
-            animate={{ opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-        )}
-
-        <div className="relative z-10 flex flex-col items-center gap-3">
-          <div className="flex items-center gap-2 text-xs font-medium">
-            {isInWorkBlock ? (
+        <div className="relative w-14 h-14 flex-shrink-0">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
+            <circle
+              cx="32"
+              cy="32"
+              r="28"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="4"
+              className="text-muted/20"
+            />
+            <motion.circle
+              cx="32"
+              cy="32"
+              r="28"
+              fill="none"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              className={getStrokeColor()}
+              initial={false}
+              animate={{ strokeDashoffset }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            {state === "running" ? (
               <motion.div
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 rounded-full"
-                animate={{ scale: [1, 1.02, 1] }}
+                animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
+                className="w-2 h-2 rounded-full bg-primary"
+              />
+            ) : state === "completed" ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="text-violet-500"
               >
-                <Zap className="w-3 h-3" />
-                <span>{currentBlockName}</span>
+                ✓
               </motion.div>
-            ) : (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-700/50 text-slate-400 rounded-full">
-                <Clock className="w-3 h-3" />
-                <span>Outside work hours</span>
-              </div>
-            )}
+            ) : null}
           </div>
+        </div>
 
-          <div className="relative w-48 h-48">
-            <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
-              <defs>
-                <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor={colors.from} />
-                  <stop offset="100%" stopColor={colors.to} />
-                </linearGradient>
-                <filter id="glow">
-                  <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                  <feMerge>
-                    <feMergeNode in="coloredBlur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
-
-              <circle
-                cx="100"
-                cy="100"
-                r="90"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="8"
-                className="text-slate-700/30"
-              />
-
-              <motion.circle
-                cx="100"
-                cy="100"
-                r="90"
-                fill="none"
-                stroke="url(#timerGradient)"
-                strokeWidth="8"
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={strokeDashoffset}
-                filter="url(#glow)"
-                initial={false}
-                animate={{ strokeDashoffset }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-              />
-            </svg>
-
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <motion.span
-                className={cn("font-mono text-4xl font-bold tracking-tight", getStateColor())}
-                animate={state === "running" ? { scale: [1, 1.02, 1] } : {}}
-                transition={{ duration: 1, repeat: Infinity }}
-                data-testid="timer-display"
-              >
-                {timeDisplay}
-              </motion.span>
-              <span className="text-xs text-slate-500 mt-1">
-                {state === "idle" && "Ready to focus"}
-                {state === "running" && "In focus mode"}
-                {state === "paused" && "Paused"}
-                {state === "completed" && "Session complete!"}
+        <div className="flex flex-col min-w-[80px]">
+          <motion.span
+            className={cn("font-mono text-2xl font-bold tracking-tight leading-none", getStateColor())}
+            data-testid="timer-display"
+          >
+            {timeDisplay}
+          </motion.span>
+          <span className="text-[10px] text-muted-foreground mt-0.5">
+            {isInWorkBlock ? (
+              <span className="flex items-center gap-1 text-primary">
+                <Zap className="w-2.5 h-2.5" />
+                {currentBlockName}
               </span>
-            </div>
-          </div>
+            ) : state === "running" ? (
+              "Focus mode"
+            ) : state === "paused" ? (
+              "Paused"
+            ) : state === "completed" ? (
+              "Complete!"
+            ) : (
+              <span className="flex items-center gap-1">
+                <Clock className="w-2.5 h-2.5" />
+                Ready
+              </span>
+            )}
+          </span>
+        </div>
 
-          <div className="flex items-center gap-2">
-            {state === "idle" && (
+        <div className="flex items-center gap-1 ml-1">
+          {state === "idle" && (
+            <Button
+              onClick={start}
+              size="sm"
+              className="h-8 px-3 bg-primary hover:bg-primary/90 text-primary-foreground"
+              data-testid="timer-start-button"
+            >
+              <Play className="w-3.5 h-3.5 mr-1" />
+              Start
+            </Button>
+          )}
+
+          {state === "running" && (
+            <Button
+              onClick={pause}
+              size="sm"
+              variant="outline"
+              className="h-8 px-3 border-amber-500/30 text-amber-600 hover:bg-amber-50"
+              data-testid="timer-pause-button"
+            >
+              <Pause className="w-3.5 h-3.5 mr-1" />
+              Pause
+            </Button>
+          )}
+
+          {state === "paused" && (
+            <>
               <Button
-                onClick={start}
+                onClick={resume}
                 size="sm"
-                className="bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600 text-white shadow-lg"
-                data-testid="timer-start-button"
+                className="h-8 px-3 bg-primary hover:bg-primary/90 text-primary-foreground"
+                data-testid="timer-resume-button"
               >
-                <Play className="w-4 h-4 mr-1.5" />
-                Start Focus
+                <Play className="w-3.5 h-3.5" />
               </Button>
-            )}
-
-            {state === "running" && (
-              <Button
-                onClick={pause}
-                size="sm"
-                variant="secondary"
-                className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border-amber-500/30"
-                data-testid="timer-pause-button"
-              >
-                <Pause className="w-4 h-4 mr-1.5" />
-                Pause
-              </Button>
-            )}
-
-            {state === "paused" && (
-              <>
-                <Button
-                  onClick={resume}
-                  size="sm"
-                  className="bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600 text-white"
-                  data-testid="timer-resume-button"
-                >
-                  <Play className="w-4 h-4 mr-1.5" />
-                  Resume
-                </Button>
-                <Button
-                  onClick={reset}
-                  size="sm"
-                  variant="ghost"
-                  className="text-slate-400 hover:text-slate-300"
-                  data-testid="timer-reset-button"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </Button>
-              </>
-            )}
-
-            {state === "completed" && (
               <Button
                 onClick={reset}
-                size="sm"
-                className="bg-gradient-to-r from-violet-500 to-pink-500 hover:from-violet-600 hover:to-pink-600 text-white"
-                data-testid="timer-restart-button"
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                data-testid="timer-reset-button"
               >
-                <RotateCcw className="w-4 h-4 mr-1.5" />
-                New Session
+                <RotateCcw className="w-3.5 h-3.5" />
               </Button>
-            )}
+            </>
+          )}
 
+          {state === "completed" && (
+            <Button
+              onClick={reset}
+              size="sm"
+              variant="outline"
+              className="h-8 px-3 border-violet-500/30 text-violet-600 hover:bg-violet-50"
+              data-testid="timer-restart-button"
+            >
+              <RotateCcw className="w-3.5 h-3.5 mr-1" />
+              Again
+            </Button>
+          )}
+
+          <div className="flex items-center border-l border-border/50 ml-1 pl-1">
             <Button
               onClick={toggleMute}
-              size="sm"
+              size="icon"
               variant="ghost"
-              className="text-slate-400 hover:text-slate-300"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
               data-testid="timer-mute-button"
             >
-              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
             </Button>
 
             <Popover>
               <PopoverTrigger asChild>
                 <Button
-                  size="sm"
+                  size="icon"
                   variant="ghost"
-                  className="text-slate-400 hover:text-slate-300"
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
                   data-testid="timer-settings-button"
                 >
-                  <Settings2 className="w-4 h-4" />
+                  <Settings2 className="w-3.5 h-3.5" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 bg-slate-900/95 border-slate-700/50" align="end">
+              <PopoverContent className="w-64" align="end">
                 <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-slate-200">Timer Settings</h4>
+                  <h4 className="text-sm font-medium">Timer Settings</h4>
                   <div className="flex items-center justify-between">
-                    <label htmlFor="auto-start" className="text-sm text-slate-400">
-                      Auto-start during work blocks
+                    <label htmlFor="auto-start" className="text-sm text-muted-foreground">
+                      Auto-start in work blocks
                     </label>
                     <Switch
                       id="auto-start"
@@ -268,8 +251,8 @@ export function WorkTimer() {
                       data-testid="timer-autostart-switch"
                     />
                   </div>
-                  <p className="text-xs text-slate-500">
-                    Automatically starts when entering Work Block 1 (9am-1pm) or Work Block 2 (2pm-6pm)
+                  <p className="text-xs text-muted-foreground">
+                    Auto-starts during Work Block 1 (9am-1pm) or Work Block 2 (2pm-6pm)
                   </p>
                 </div>
               </PopoverContent>
@@ -281,33 +264,12 @@ export function WorkTimer() {
       <AnimatePresence>
         {state === "completed" && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute -inset-4 pointer-events-none"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0 }}
+            className="text-lg"
           >
-            {[...Array(12)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-2 h-2 rounded-full bg-gradient-to-r from-violet-500 to-pink-500"
-                initial={{
-                  left: "50%",
-                  top: "50%",
-                  scale: 0,
-                }}
-                animate={{
-                  left: `${50 + Math.cos((i * Math.PI * 2) / 12) * 60}%`,
-                  top: `${50 + Math.sin((i * Math.PI * 2) / 12) * 60}%`,
-                  scale: [0, 1, 0],
-                }}
-                transition={{
-                  duration: 1.5,
-                  delay: i * 0.05,
-                  repeat: Infinity,
-                  repeatDelay: 2,
-                }}
-              />
-            ))}
+            🎉
           </motion.div>
         )}
       </AnimatePresence>

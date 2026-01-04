@@ -8,22 +8,13 @@ import { HabitGrid } from "@/components/habit-grid";
 import { HabitGarden } from "@/components/habit-garden";
 import { HabitListCompact } from "@/components/habit-list-compact";
 import { HabitForm } from "@/components/habit-form";
-import { SystemJournal } from "@/components/system-journal";
 import { TodoList } from "@/components/todo-list";
 import { DailySummary } from "@/components/daily-summary";
 import { JournalTab } from "@/components/journal-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { format } from "date-fns";
-import { Activity, Calendar, Sparkles, LayoutGrid, List, Flower2, Loader2, NotebookPen, ListTodo, BookOpen, Timer } from "lucide-react";
+import { Activity, Calendar, Sparkles, LayoutGrid, List, Flower2, Loader2, ListTodo, BookOpen } from "lucide-react";
 import { WorkTimer } from "@/components/work-timer";
 import { Habit } from "@/lib/types";
 import { toast } from "sonner";
@@ -151,33 +142,15 @@ export default function TrackerPage() {
   return (
     <Layout>
       <div className="space-y-6 animate-in fade-in duration-500">
-        <div className="flex items-start justify-between gap-4">
-          <div className="pt-2">
+        <div className="flex items-center justify-between gap-4">
+          <div>
             <p className="text-muted-foreground font-medium mb-1">{format(new Date(), "EEEE, MMMM do")}</p>
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
               Daily Tracker
             </h1>
           </div>
           
-          <div className="flex items-start gap-4">
-            <WorkTimer />
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-primary/20 text-primary hover:bg-primary/5 mt-4" title="System Journal" data-testid="button-open-journal">
-                  <NotebookPen className="w-5 h-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="w-[400px] sm:w-[540px]">
-                <SheetHeader className="mb-4">
-                  <SheetTitle>System Journal</SheetTitle>
-                  <SheetDescription>
-                    A shared space for notes, reminders, and communication.
-                  </SheetDescription>
-                </SheetHeader>
-                <SystemJournal />
-              </SheetContent>
-            </Sheet>
-          </div>
+          <WorkTimer />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
