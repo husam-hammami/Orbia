@@ -1,359 +1,194 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useMemo } from "react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { User, Shield, Ghost, Brain, Zap, Plus, MoreHorizontal, UserCog, Crown, Eye, Mic, Armchair, DoorOpen, Coffee, Edit, Trash2, Settings2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Activity, Clock } from "lucide-react";
+import { useMembers, useTrackerEntries } from "@/lib/api-hooks";
+import { format, subHours, isAfter, parseISO, startOfHour } from "date-fns";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useMembers, useCreateMember, useUpdateMember, useDeleteMember } from "@/lib/api-hooks";
-import { toast } from "sonner";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-// --- Headspace Rooms Configuration ---
-const DEFAULT_ROOMS = [
-  { id: 'front', name: 'Front Room', icon: Armchair, description: "Direct control of the body", color: "border-indigo-500/50 bg-indigo-500/5" },
-  { id: 'meeting', name: 'Meeting Room', icon: Coffee, description: "Internal communication", color: "border-amber-500/50 bg-amber-500/5" },
-  { id: 'inner', name: 'Inner World', icon: DoorOpen, description: "Deep resting place", color: "border-purple-500/50 bg-purple-500/5" },
-];
+interface TimelineSegment {
+  time: Date;
+  member: { id: string; name: string; color: string } | null;
+  entry: any | null;
+  label: string;
+}
+
+function buildTimelineSegments(
+  entries: any[],
+  members: any[],
+  timeBlocks: Date[]
+): TimelineSegment[] {
+  if (entries.length === 0) return [];
+
+  return timeBlocks.map(blockTime => {
+    const entry = entries
+      .filter(e => isAfter(parseISO(e.timestamp), subHours(blockTime, 1)) && !isAfter(parseISO(e.timestamp), blockTime))
+      .sort((a, b) => parseISO(b.timestamp).getTime() - parseISO(a.timestamp).getTime())[0];
+
+    const lastEntry = entry || entries
+      .filter(e => !isAfter(parseISO(e.timestamp), blockTime))
+      .sort((a, b) => parseISO(b.timestamp).getTime() - parseISO(a.timestamp).getTime())[0];
+
+    const frontingMember = lastEntry ? members.find(m => m.id === lastEntry.frontingMemberId) : null;
+    
+    return {
+      time: blockTime,
+      member: frontingMember ? { id: frontingMember.id, name: frontingMember.name, color: frontingMember.color } : null,
+      entry: lastEntry,
+      label: format(blockTime, "HH:mm")
+    };
+  });
+}
 
 export function HeadspaceMap() {
-  const { data: members = [], isLoading } = useMembers();
-  const createMember = useCreateMember();
-  const updateMember = useUpdateMember();
-  const deleteMember = useDeleteMember();
+  const { data: members = [], isLoading: membersLoading } = useMembers();
+  const { data: entries = [], isLoading: entriesLoading } = useTrackerEntries();
 
-  // State for customizable rooms
-  const [rooms, setRooms] = useState(DEFAULT_ROOMS);
-  const [isEditingRooms, setIsEditingRooms] = useState(false);
-
-  const handleUpdateRoom = (roomId: string, field: 'name' | 'description', value: string) => {
-    setRooms(prev => prev.map(room => 
-      room.id === roomId ? { ...room, [field]: value } : room
-    ));
-  };
-
-  const moveMember = (memberId: string, roomId: string) => {
-    updateMember.mutate({ 
-      id: memberId, 
-      data: { location: roomId } 
+  const now = new Date();
+  const timeBlocks = useMemo(() => {
+    return Array.from({ length: 24 }).map((_, i) => {
+      const time = subHours(startOfHour(now), 23 - i);
+      return time;
     });
-  };
+  }, []);
 
-  const roomOrder = ['front', 'meeting', 'inner'];
+  const timelineData = useMemo(() => {
+    return buildTimelineSegments(entries, members, timeBlocks);
+  }, [entries, members, timeBlocks]);
 
-  const getNextRoomId = (currentRoomId: string | null) => {
-    if (!currentRoomId) return 'front';
-    const currentIndex = roomOrder.indexOf(currentRoomId);
-    if (currentIndex === -1) return 'front';
-    return roomOrder[(currentIndex + 1) % roomOrder.length];
-  };
-  
-  // Manage Member State
-  const [isAdding, setIsAdding] = useState(false);
-  const [isEditing, setIsEditing] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", role: "Unknown", color: "#6366f1", traits: [""], avatar: "user", description: "" });
-
-  const handleAddMember = () => {
-     createMember.mutate({
-         name: editForm.name || "New Alter",
-         role: editForm.role,
-         color: editForm.color,
-         traits: editForm.traits.filter(t => t.trim()),
-         avatar: editForm.avatar,
-         description: editForm.description || "New system member.",
-         location: 'meeting'
-     }, {
-       onSuccess: () => {
-         setIsAdding(false);
-         setEditForm({ name: "", role: "Unknown", color: "#6366f1", traits: [""], avatar: "user", description: "" });
-         toast.success("Member added");
-       }
-     });
-  };
-
-  const handleUpdateMember = () => {
-      if (!isEditing) return;
-      updateMember.mutate({ 
-        id: isEditing, 
-        data: {
-          name: editForm.name,
-          role: editForm.role,
-          color: editForm.color,
-          traits: editForm.traits.filter(t => t.trim()),
-          avatar: editForm.avatar,
-          description: editForm.description
-        }
-      }, {
-        onSuccess: () => {
-          setIsEditing(null);
-          toast.success("Member updated");
-        }
-      });
-  };
-  
-  const handleDeleteMember = (id: string) => {
-      deleteMember.mutate(id, {
-        onSuccess: () => {
-          setIsEditing(null);
-          toast.success("Member removed");
-        }
-      });
-  };
-
-  const openEdit = (member: any) => {
-      setEditForm({ 
-        name: member.name, 
-        role: member.role, 
-        color: member.color,
-        traits: member.traits || [""],
-        avatar: member.avatar || "user",
-        description: member.description || ""
-      });
-      setIsEditing(member.id);
+  if (membersLoading || entriesLoading) {
+    return (
+      <div className="flex items-center justify-center py-12 text-muted-foreground" data-testid="headspace-loading">
+        <Clock className="w-4 h-4 mr-2 animate-spin" />
+        Generating timeline...
+      </div>
+    );
   }
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center py-12 text-muted-foreground">Loading headspace...</div>;
+  if (timelineData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-2" data-testid="headspace-empty">
+        <Activity className="w-8 h-8 opacity-30" />
+        <p className="text-sm">No tracker entries yet</p>
+        <p className="text-xs">Log your first entry to see presence over time.</p>
+      </div>
+    );
   }
 
   return (
-    <div className="bg-card rounded-2xl border border-border shadow-sm min-h-[500px] flex flex-col relative overflow-hidden">
-      <div className="p-6 border-b border-border flex justify-between items-center bg-muted/10">
-        <div className="flex items-center gap-2">
-           <Brain className="w-5 h-5 text-indigo-500" />
-           <div>
-             <h3 className="font-display font-semibold text-lg leading-none">Visual Headspace</h3>
-             <p className="text-xs text-muted-foreground">Drag & Drop Simulation (Click to move)</p>
-           </div>
-        </div>
-        
+    <div className="space-y-6 py-4" data-testid="headspace-timeline">
+      <div className="flex items-center justify-between px-2 flex-wrap gap-2">
         <div className="flex items-center gap-4">
-             <div className="flex gap-2 text-xs text-muted-foreground mr-4 hidden md:flex">
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Active</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-400"></span> Resting</span>
-            </div>
-
-            <Dialog open={isEditingRooms} onOpenChange={setIsEditingRooms}>
-                <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                        <Settings2 className="w-4 h-4" /> Config
-                    </Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Configure Headspace Areas</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-6 py-4">
-                        <p className="text-sm text-muted-foreground">Customize these areas to match your own internal landscape. Not every system uses "Rooms" - feel free to rename them to Zones, States, or Locations.</p>
-                        {rooms.map((room) => (
-                            <div key={room.id} className="space-y-2 border-b border-border/50 pb-4 last:border-0">
-                                <div className="flex items-center gap-2 font-medium text-sm">
-                                    <room.icon className="w-4 h-4 text-muted-foreground" />
-                                    <span className="capitalize">{room.id} Area</span>
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label className="text-xs">Display Name</Label>
-                                    <Input 
-                                        value={room.name} 
-                                        onChange={(e) => handleUpdateRoom(room.id, 'name', e.target.value)}
-                                        className="h-8"
-                                    />
-                                    <Label className="text-xs">Description</Label>
-                                    <Input 
-                                        value={room.description} 
-                                        onChange={(e) => handleUpdateRoom(room.id, 'description', e.target.value)}
-                                        className="h-8 text-xs text-muted-foreground"
-                                    />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </DialogContent>
-            </Dialog>
-            
-            <Dialog open={isAdding} onOpenChange={setIsAdding}>
-                <DialogTrigger asChild>
-                    <Button size="sm" className="gap-2">
-                        <Plus className="w-4 h-4" /> Add Member
-                    </Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Add New System Member</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label>Name</Label>
-                            <Input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} placeholder="Alter name" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Role</Label>
-                             <Select value={editForm.role} onValueChange={v => setEditForm({...editForm, role: v})}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Host">Host</SelectItem>
-                                    <SelectItem value="Protector">Protector</SelectItem>
-                                    <SelectItem value="Little">Little</SelectItem>
-                                    <SelectItem value="Trauma Holder">Trauma Holder</SelectItem>
-                                    <SelectItem value="Gatekeeper">Gatekeeper</SelectItem>
-                                    <SelectItem value="Manager">Manager</SelectItem>
-                                    <SelectItem value="Unknown">Unknown</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Color (Hex)</Label>
-                            <div className="flex gap-2">
-                                <Input type="color" className="w-12 p-1 cursor-pointer" value={editForm.color} onChange={e => setEditForm({...editForm, color: e.target.value})} />
-                                <Input value={editForm.color} onChange={e => setEditForm({...editForm, color: e.target.value})} placeholder="#000000" />
-                            </div>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button onClick={handleAddMember}>Create Member</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-            
-            {/* Edit Dialog */}
-            <Dialog open={!!isEditing} onOpenChange={(open) => !open && setIsEditing(null)}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Edit Member Details</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                         <div className="space-y-2">
-                            <Label>Name</Label>
-                            <Input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Role</Label>
-                             <Select value={editForm.role} onValueChange={v => setEditForm({...editForm, role: v})}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Host">Host</SelectItem>
-                                    <SelectItem value="Protector">Protector</SelectItem>
-                                    <SelectItem value="Little">Little</SelectItem>
-                                    <SelectItem value="Trauma Holder">Trauma Holder</SelectItem>
-                                    <SelectItem value="Gatekeeper">Gatekeeper</SelectItem>
-                                    <SelectItem value="Manager">Manager</SelectItem>
-                                    <SelectItem value="Unknown">Unknown</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Color</Label>
-                             <div className="flex gap-2">
-                                <Input type="color" className="w-12 p-1 cursor-pointer" value={editForm.color} onChange={e => setEditForm({...editForm, color: e.target.value})} />
-                                <Input value={editForm.color} onChange={e => setEditForm({...editForm, color: e.target.value})} />
-                            </div>
-                        </div>
-                    </div>
-                    <DialogFooter className="flex justify-between sm:justify-between w-full">
-                        <Button variant="destructive" size="sm" onClick={() => isEditing && handleDeleteMember(isEditing)}>
-                            <Trash2 className="w-4 h-4 mr-2" /> Delete
-                        </Button>
-                        <Button onClick={handleUpdateMember}>Save Changes</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-sm bg-indigo-500/20 border border-indigo-500/40" />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Presence History</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Activity className="w-3 h-3 text-emerald-500" />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Transition Events</span>
+          </div>
+        </div>
+        <div className="text-[10px] font-mono text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">
+          Last 24 Hours
         </div>
       </div>
 
-      {/* Visualization Area */}
-      <div className="flex-1 bg-slate-50/50 dark:bg-slate-950/50 p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-         
-         {rooms.map(room => {
-            const RoomIcon = room.icon;
-            const roomMembers = (members || []).filter(m => {
-              const memberLocation = m.location || 'front';
-              return memberLocation === room.id;
-            });
-
-            return (
-                <div key={room.id} className={cn("rounded-xl border-2 border-dashed p-4 flex flex-col gap-4 transition-colors relative group", room.color)}>
-                    {/* Room Label */}
-                    <div className="flex items-center justify-between text-muted-foreground group-hover:text-foreground transition-colors">
-                        <div className="flex items-center gap-2">
-                            <RoomIcon className="w-4 h-4" />
-                            <span className="font-semibold text-sm">{room.name}</span>
-                        </div>
-                        <span className="text-[10px] uppercase tracking-wider opacity-50">{roomMembers.length}</span>
-                    </div>
-
-                    {/* Drop Zone */}
-                    <div className="flex-1 flex flex-wrap content-start gap-3 min-h-[100px]">
-                        <AnimatePresence>
-                            {roomMembers.map(member => (
-                                <motion.div
-                                    key={member.id}
-                                    layoutId={member.id}
-                                    initial={{ scale: 0.8, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    exit={{ scale: 0.5, opacity: 0 }}
-                                    className="relative group/avatar"
-                                >
-                                    {/* Action Menu (Hover) */}
-                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-[10px] p-1 rounded shadow-md opacity-0 group-hover/avatar:opacity-100 transition-opacity z-20 whitespace-nowrap flex gap-1 items-center border">
-                                        <span className="px-1">{member.role}</span>
-                                        <div className="w-[1px] h-3 bg-border"></div>
-                                        <button onClick={(e) => { e.stopPropagation(); openEdit(member); }} className="hover:bg-muted p-1 rounded cursor-pointer">
-                                            <Edit className="w-3 h-3" />
-                                        </button>
-                                    </div>
-
-                                    {/* Avatar */}
-                                    <div 
-                                        className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-background shadow-sm cursor-grab active:cursor-grabbing hover:scale-110 transition-transform relative"
-                                        style={{ borderColor: member.color || "#6366f1" }}
-                                        // Simple click-to-move logic for prototype
-                                        onClick={() => {
-                                            const nextRoomId = getNextRoomId(member.location);
-                                            moveMember(member.id, nextRoomId);
-                                        }}
-                                    >
-                                        <User className="w-6 h-6" style={{ color: member.color || "#6366f1" }} />
-                                        
-                                        {/* Crown for Front */}
-                                        {room.id === 'front' && (
-                                            <div className="absolute -top-2 -right-1 text-yellow-500 drop-shadow-sm">
-                                                <Crown className="w-4 h-4 fill-yellow-500" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="text-[10px] text-center font-medium mt-1 truncate max-w-[60px]">{member.name}</div>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
-                        
-                        {roomMembers.length === 0 && (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground/20 text-xs italic">
-                                Empty
-                            </div>
+      <div className="relative group">
+        <div className="flex h-16 w-full gap-0.5 items-stretch bg-muted/20 rounded-lg overflow-hidden border border-border/50 p-1">
+          <TooltipProvider delayDuration={0}>
+            {timelineData.map((slot, i) => {
+              const isTransition = i > 0 && slot.member?.id !== timelineData[i-1].member?.id;
+              
+              return (
+                <Tooltip key={i}>
+                  <TooltipTrigger asChild>
+                    <div className="flex-1 relative cursor-help" data-testid={`timeline-slot-${i}`}>
+                      <motion.div
+                        initial={{ opacity: 0, scaleY: 0.5 }}
+                        animate={{ opacity: 1, scaleY: 1 }}
+                        transition={{ delay: i * 0.015 }}
+                        className={cn(
+                          "w-full h-full transition-all duration-300 rounded-sm",
+                          slot.member ? "opacity-100" : "opacity-10"
                         )}
+                        style={{ 
+                          backgroundColor: slot.member?.color || "var(--muted)",
+                          borderLeft: isTransition ? "2px solid rgba(255,255,255,0.4)" : "none"
+                        }}
+                      />
+                      {isTransition && (
+                        <div className="absolute top-0 left-0 w-0.5 h-full bg-white/30 z-10" />
+                      )}
                     </div>
-                </div>
-            )
-         })}
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="p-3 max-w-[220px] space-y-2">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-[10px] font-mono font-bold">{slot.label}</span>
+                      {slot.member && (
+                        <span 
+                          className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider text-white"
+                          style={{ backgroundColor: slot.member.color }}
+                        >
+                          {slot.member.name}
+                        </span>
+                      )}
+                    </div>
+                    {slot.entry ? (
+                      <div className="space-y-1">
+                        <div className="text-[10px] text-muted-foreground line-clamp-2 italic">
+                          "{slot.entry.notes || "No notes logged"}"
+                        </div>
+                        <div className="grid grid-cols-2 gap-1 pt-1 border-t border-border/50">
+                          <div className="text-[9px]">Mood: {slot.entry.mood}/10</div>
+                          <div className="text-[9px]">Stress: {slot.entry.stress}%</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-muted-foreground italic">No data recorded</div>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </TooltipProvider>
+        </div>
 
+        <div className="flex justify-between mt-2 px-1 text-[9px] font-mono text-muted-foreground">
+          <span>{format(subHours(now, 24), "HH:mm")}</span>
+          <span>{format(subHours(now, 12), "HH:mm")}</span>
+          <span>Now</span>
+        </div>
       </div>
-      
-      <div className="p-4 border-t border-border bg-muted/10 text-xs text-center text-muted-foreground">
-        Click on an alter to move them to the next room. ({rooms.map(r => r.name).join(' → ')} → {rooms[0].name})
+
+      <div className="flex flex-wrap gap-3 pt-4">
+        {members.map(member => {
+          const hours = timelineData.filter(d => d.member?.id === member.id).length;
+          return (
+            <div 
+              key={member.id} 
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-border/50"
+              data-testid={`member-presence-${member.id}`}
+            >
+              <div 
+                className="w-6 h-6 rounded-full border-2 flex items-center justify-center bg-background shrink-0"
+                style={{ borderColor: member.color }}
+              >
+                <div className="text-[8px] font-bold" style={{ color: member.color }}>
+                  {member.name.substring(0, 2).toUpperCase()}
+                </div>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-sm font-semibold">{member.name}</span>
+                <span className="text-xs text-muted-foreground">{hours}h</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

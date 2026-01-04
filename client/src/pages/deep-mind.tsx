@@ -52,8 +52,10 @@ import {
   Lightbulb,
   BarChart2,
   Moon,
-  Target
+  Target,
+  Clock
 } from "lucide-react";
+import { HeadspaceMap } from "@/components/headspace-map";
 import { cn } from "@/lib/utils";
 import { useMembers, useTrackerEntries, useCreateTrackerEntry } from "@/lib/api-hooks";
 import { useQuery } from "@tanstack/react-query";
@@ -1098,92 +1100,16 @@ export default function DeepMind() {
             </TabsContent>
 
             <TabsContent value="map" className="animate-in slide-in-from-bottom-4 duration-500">
-                <Card className="bg-slate-950 border-slate-800 overflow-hidden relative min-h-[500px]">
-                    <CardHeader className="relative z-10 border-b border-slate-800/50 bg-slate-900/50 backdrop-blur-sm">
-                        <div className="flex justify-between items-center">
-                            <CardTitle className="text-slate-100 flex items-center gap-2">
-                                <Network className="w-5 h-5 text-indigo-400" /> 
-                                System Presence Map
-                            </CardTitle>
-                            <div className="flex gap-4 text-xs text-slate-400 font-mono">
-                                <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-indigo-500"></span> Active Now</div>
-                                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-violet-500"></span> Co-Active</div>
-                                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-slate-600"></span> Resting</div>
-                            </div>
-                        </div>
+                <Card className="border-border shadow-md overflow-hidden">
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-indigo-500" />
+                            System Presence Timeline
+                        </CardTitle>
+                        <CardDescription className="text-xs">Visualizing transitions and duration over the last 24 hours</CardDescription>
                     </CardHeader>
-                    <CardContent className="p-6 relative min-h-[450px]">
-                        {membersLoading ? (
-                          <div className="flex items-center justify-center h-full">
-                            <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
-                          </div>
-                        ) : alterPositions.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                            <Users className="w-12 h-12 mb-3 opacity-30" />
-                            <p>No members to display</p>
-                            <p className="text-xs text-slate-600 mt-1">Add members in System Insight to see them here</p>
-                          </div>
-                        ) : (
-                          <div className="space-y-8">
-                            {["Active Now", "Co-Active", "Resting"].map((laneName, laneIdx) => {
-                              const laneMembers = alterPositions.filter(m => m.lane === laneName);
-                              return (
-                                <div key={laneName} className="space-y-3">
-                                  <div className="flex items-center gap-3">
-                                    <span className={cn(
-                                      "text-xs font-mono uppercase tracking-wider px-2 py-1 rounded",
-                                      laneIdx === 0 ? "bg-indigo-500/20 text-indigo-400" :
-                                      laneIdx === 1 ? "bg-violet-500/20 text-violet-400" :
-                                      "bg-slate-800 text-slate-500"
-                                    )}>
-                                      {laneName}
-                                    </span>
-                                    <div className="flex-1 border-t border-slate-800" />
-                                    <span className="text-[10px] text-slate-600">{laneMembers.length} member{laneMembers.length !== 1 ? 's' : ''}</span>
-                                  </div>
-                                  
-                                  <div className="flex flex-wrap gap-4 min-h-[60px] items-center pl-4">
-                                    {laneMembers.length === 0 ? (
-                                      <span className="text-xs text-slate-700 italic">—</span>
-                                    ) : (
-                                      laneMembers.map((member, i) => (
-                                        <div 
-                                          key={i}
-                                          className="flex flex-col items-center gap-1 group cursor-default"
-                                          title={`${member.name}: ${member.timeActive} entries (24h), Load: ${Math.round(member.load)}%`}
-                                        >
-                                          <div 
-                                            className={cn(
-                                              "rounded-full flex items-center justify-center font-bold text-white shadow-lg transition-transform group-hover:scale-110",
-                                              laneIdx === 0 ? "ring-2 ring-indigo-400/50 animate-pulse" : ""
-                                            )}
-                                            style={{ 
-                                              width: member.size, 
-                                              height: member.size,
-                                              backgroundColor: member.color || '#6366f1',
-                                              opacity: member.opacity,
-                                              boxShadow: laneIdx === 0 ? `0 0 20px ${member.color || '#6366f1'}40` : undefined
-                                            }}
-                                          >
-                                            <span className="text-[10px]">{member.name.charAt(0)}</span>
-                                          </div>
-                                          <span className="text-[10px] text-slate-400 group-hover:text-slate-200 transition-colors">
-                                            {member.name}
-                                          </span>
-                                          {member.timeActive > 0 && (
-                                            <span className="text-[8px] text-slate-600">
-                                              {member.timeActive}× today
-                                            </span>
-                                          )}
-                                        </div>
-                                      ))
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
+                    <CardContent className="pt-0">
+                        <HeadspaceMap />
                     </CardContent>
                 </Card>
             </TabsContent>
