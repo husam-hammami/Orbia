@@ -27,7 +27,8 @@ import {
   BarChart,
   Bar,
   ComposedChart,
-  Area
+  Area,
+  ReferenceArea
 } from "recharts";
 import { 
   Brain, 
@@ -96,13 +97,23 @@ export default function DeepMind() {
   const coherenceChartData = (trackerEntries || [])
     .slice()
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    .map(entry => ({
-      time: format(new Date(entry.timestamp), "h:mm a"),
-      dissociation: entry.dissociation || 0,
-      stress: entry.stress || 0,
-      mood: (entry.mood || 5) * 20,
-      energy: (entry.energy || 5) * 20,
-    }));
+    .map(entry => {
+      const externalLoad = Math.round(
+        ((entry.workLoad || 0) * 10 + (entry.stress || 0)) / 2
+      );
+      const internalStability = Math.round(
+        100 - ((entry.dissociation || 0) + (100 - (entry.capacity ?? 3) * 20) + (100 - (entry.mood || 5) * 10)) / 3
+      );
+      return {
+        time: format(new Date(entry.timestamp), "h:mm a"),
+        externalLoad: Math.min(100, Math.max(0, externalLoad)),
+        internalStability: Math.min(100, Math.max(0, internalStability)),
+      };
+    });
+
+  const isStable = coherenceChartData.length >= 3 && 
+    coherenceChartData.every(d => d.internalStability >= 35 && d.internalStability <= 65) &&
+    Math.max(...coherenceChartData.map(d => d.internalStability)) - Math.min(...coherenceChartData.map(d => d.internalStability)) < 15;
   
   const frontingPatterns = (() => {
     if (!trackerEntries || !members) return [];
@@ -142,12 +153,20 @@ export default function DeepMind() {
       return;
     }
 
+    const hour = new Date().getHours();
+    const timeOfDay = hour >= 5 && hour < 12 ? "morning" : hour >= 12 && hour < 17 ? "afternoon" : hour >= 17 && hour < 21 ? "evening" : "night";
+    
     createEntryMutation.mutate({
       frontingMemberId: selectedMember.id,
       mood: Math.round((100 - stress[0]) / 20),
       energy: Math.round(communication[0] / 20),
       stress: stress[0],
       dissociation: dissociation[0],
+      capacity: null,
+      triggerTag: null,
+      workLoad: null,
+      workTag: null,
+      timeOfDay,
       notes: `Dissociation: ${dissociation[0]}%, Communication: ${communication[0]}%, Stress: ${stress[0]}%, Urges: ${urges[0]}%`,
       timestamp: new Date(),
     }, {
@@ -167,13 +186,80 @@ export default function DeepMind() {
     };
   });
 
-  const alterPositions = (members || []).map((member, i) => ({
-    name: member.name,
-    x: 30 + (i % 3) * 25,
-    y: 30 + Math.floor(i / 3) * 25,
-    z: member.location === "front" ? 90 : 50,
-    status: member.location === "front" ? "Fronting" : member.location || "Internal",
-  }));
+  const getMemberActivityState = (member: any) => {
+    const recentFronting = (trackerEntries || []).filter(e => 
+      e.frontingMemberId === member.id && 
+      new Date(e.timestamp) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+    );
+    const timeActive = recentFronting.length;
+    const avgLoad = recentFronting.length > 0 
+      ? recentFronting.reduce((sum, e) => sum + (e.stress || 0) + (e.dissociation || 0), 0) / (recentFronting.length * 2)
+      : 0;
+    
+    if (member.location === "front") return { lane: "Active Now", laneIndex: 0, timeActive, load: avgLoad };
+    if (timeActive > 0) return { lane: "Co-Active", laneIndex: 1, timeActive, load: avgLoad };
+    return { lane: "Resting", laneIndex: 2, timeActive: 0, load: 0 };
+  };
+
+  const alterPositions = (members || []).map((member, i) => {
+    const activity = getMemberActivityState(member);
+    return {
+      name: member.name,
+      color: member.color,
+      lane: activity.lane,
+      laneIndex: activity.laneIndex,
+      timeActive: activity.timeActive,
+      load: activity.load,
+      size: Math.max(20, Math.min(60, 20 + activity.timeActive * 8)),
+      opacity: Math.max(0.3, 1 - activity.load / 150),
+    };
+  });
+
+  const balancePillars = (() => {
+    const entries48h = (trackerEntries || []).filter(e => 
+      new Date(e.timestamp) > new Date(Date.now() - 48 * 60 * 60 * 1000)
+    );
+    const entries24h = entries48h.filter(e => 
+      new Date(e.timestamp) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+    );
+    const olderEntries = entries48h.filter(e => 
+      new Date(e.timestamp) <= new Date(Date.now() - 24 * 60 * 60 * 1000)
+    );
+    
+    const calcAvg = (arr: any[], fn: (e: any) => number) => 
+      arr.length > 0 ? arr.reduce((sum, e) => sum + fn(e), 0) / arr.length : null;
+    
+    const getTrend = (current: number | null, previous: number | null) => {
+      if (current === null || previous === null) return "stable";
+      const diff = current - previous;
+      if (diff > 5) return "up";
+      if (diff < -5) return "down";
+      return "stable";
+    };
+    
+    const dissNow = calcAvg(entries24h, e => 100 - (e.dissociation || 0));
+    const dissPrev = calcAvg(olderEntries, e => 100 - (e.dissociation || 0));
+    
+    const commNow = calcAvg(entries24h, e => (e.energy || 5) * 10);
+    const commPrev = calcAvg(olderEntries, e => (e.energy || 5) * 10);
+    
+    const regNow = calcAvg(entries24h, e => 100 - (e.stress || 0));
+    const regPrev = calcAvg(olderEntries, e => 100 - (e.stress || 0));
+    
+    const groundNow = calcAvg(entries24h, e => (e.mood || 5) * 10);
+    const groundPrev = calcAvg(olderEntries, e => (e.mood || 5) * 10);
+    
+    const capacityNow = calcAvg(entries24h, e => (e.capacity ?? 3) * 20);
+    const capacityPrev = calcAvg(olderEntries, e => (e.capacity ?? 3) * 20);
+    
+    return [
+      { name: "Dissociation", icon: "🧠", value: dissNow ?? 50, trend: getTrend(dissNow, dissPrev) },
+      { name: "Communication", icon: "💬", value: commNow ?? 50, trend: getTrend(commNow, commPrev) },
+      { name: "Regulation", icon: "⚖️", value: regNow ?? 50, trend: getTrend(regNow, regPrev) },
+      { name: "Grounding", icon: "🧘", value: groundNow ?? 50, trend: getTrend(groundNow, groundPrev) },
+      { name: "Capacity", icon: "🔋", value: capacityNow ?? 50, trend: getTrend(capacityNow, capacityPrev) },
+    ];
+  })();
 
   return (
     <Layout>
@@ -326,36 +412,59 @@ export default function DeepMind() {
                         <Card className="md:col-span-2 bg-slate-950 border-slate-800 shadow-2xl overflow-hidden relative group">
                             <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f46e520_1px,transparent_1px),linear-gradient(to_bottom,#4f46e520_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
                             <CardHeader className="relative z-10 pb-2">
-                                <CardTitle className="text-slate-100 flex items-center gap-2 text-base font-mono">
-                                    <Activity className="w-4 h-4 text-emerald-400" /> Real-time System Coherence
-                                </CardTitle>
+                                <div className="flex items-center justify-between">
+                                  <CardTitle className="text-slate-100 flex items-center gap-2 text-base font-mono">
+                                      <Activity className="w-4 h-4 text-emerald-400" /> System Load vs Stability
+                                  </CardTitle>
+                                  {isStable && coherenceChartData.length >= 3 && (
+                                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">
+                                      Regulated
+                                    </Badge>
+                                  )}
+                                </div>
                             </CardHeader>
                             <CardContent className="h-[250px] relative z-10 pl-0">
                                 {coherenceChartData.length > 0 ? (
                                   <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={coherenceChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                    <ComposedChart data={coherenceChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                                       <XAxis dataKey="time" stroke="#64748b" fontSize={10} />
                                       <YAxis stroke="#64748b" fontSize={10} domain={[0, 100]} />
                                       <Tooltip 
                                         contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
                                         labelStyle={{ color: '#94a3b8' }}
+                                        formatter={(value: number, name: string) => [
+                                          `${value}%`,
+                                          name === 'externalLoad' ? 'External Load' : 'Internal Stability'
+                                        ]}
                                       />
-                                      <Legend wrapperStyle={{ fontSize: '10px' }} />
-                                      <Line type="monotone" dataKey="dissociation" stroke="#f43f5e" strokeWidth={2} dot={{ fill: '#f43f5e', r: 3 }} name="Dissociation" />
-                                      <Line type="monotone" dataKey="stress" stroke="#f59e0b" strokeWidth={2} dot={{ fill: '#f59e0b', r: 3 }} name="Stress" />
-                                      <Line type="monotone" dataKey="mood" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981', r: 3 }} name="Mood" />
-                                    </LineChart>
+                                      <ReferenceArea 
+                                        y1={35} 
+                                        y2={65} 
+                                        fill="#10b981"
+                                        fillOpacity={0.1}
+                                        stroke="#10b981"
+                                        strokeOpacity={0.2}
+                                        strokeDasharray="3 3"
+                                      />
+                                      <Line type="monotone" dataKey="externalLoad" stroke="#f59e0b" strokeWidth={2.5} dot={{ fill: '#f59e0b', r: 3 }} name="External Load" />
+                                      <Line type="monotone" dataKey="internalStability" stroke="#10b981" strokeWidth={2.5} dot={{ fill: '#10b981', r: 3 }} name="Internal Stability" />
+                                    </ComposedChart>
                                   </ResponsiveContainer>
                                 ) : (
                                   <div className="h-full flex items-center justify-center text-center space-y-2">
                                     <div>
                                       <Activity className="w-8 h-8 text-slate-700 mx-auto animate-pulse" />
                                       <p className="text-slate-500 text-sm mt-2">Awaiting Data Points</p>
-                                      <p className="text-slate-600 text-xs">Log multiple entries to visualize coherence trends.</p>
+                                      <p className="text-slate-600 text-xs">Log entries to see load vs stability trends.</p>
                                     </div>
                                   </div>
                                 )}
+                                <div className="absolute bottom-2 left-4 right-4 flex justify-between text-[9px] text-slate-600 font-mono">
+                                  <span>🟠 External pressure</span>
+                                  <span className="text-slate-700">stable band: 35-65%</span>
+                                  <span>🟢 Internal stability</span>
+                                </div>
                             </CardContent>
                         </Card>
 
@@ -403,23 +512,50 @@ export default function DeepMind() {
                                     <Layers className="w-4 h-4 text-muted-foreground" />
                                     System Balance
                                 </CardTitle>
+                                <CardDescription className="text-xs">Load distribution across capacities</CardDescription>
                             </CardHeader>
-                            <CardContent className="h-[250px] flex items-center justify-center">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={systemStats}>
-                                        <PolarGrid stroke="#e2e8f0" strokeOpacity={0.5} />
-                                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10 }} />
-                                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                                        <Radar
-                                            name="System State"
-                                            dataKey="A"
-                                            stroke="#8b5cf6"
-                                            strokeWidth={2}
-                                            fill="#8b5cf6"
-                                            fillOpacity={0.3}
-                                        />
-                                    </RadarChart>
-                                </ResponsiveContainer>
+                            <CardContent className="h-[250px] flex flex-col justify-end pb-4">
+                                <div className="relative h-full flex items-end justify-around gap-2 px-2">
+                                    <div className="absolute top-[35%] left-0 right-0 h-[30%] bg-emerald-500/5 border-y border-emerald-500/20 pointer-events-none" />
+                                    <div className="absolute top-[48%] left-0 right-0 flex items-center pointer-events-none">
+                                      <div className="flex-1 border-t border-dashed border-slate-300/30" />
+                                      <span className="text-[8px] text-slate-400 px-1 bg-card">usable range</span>
+                                      <div className="flex-1 border-t border-dashed border-slate-300/30" />
+                                    </div>
+                                    
+                                    {balancePillars.map((pillar, i) => {
+                                      const heightPercent = Math.max(10, Math.min(95, pillar.value));
+                                      const isInRange = pillar.value >= 35 && pillar.value <= 65;
+                                      const isHigh = pillar.value > 65;
+                                      
+                                      return (
+                                        <div key={i} className="flex flex-col items-center gap-1 flex-1 max-w-[60px]">
+                                          <div className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                            {pillar.trend === "up" && <span className="text-emerald-500">↑</span>}
+                                            {pillar.trend === "down" && <span className="text-amber-500">↓</span>}
+                                            {pillar.trend === "stable" && <span className="text-slate-400">→</span>}
+                                          </div>
+                                          <div className="relative w-full h-[180px] bg-slate-100 dark:bg-slate-900 rounded-lg overflow-hidden border border-border/50">
+                                            <div 
+                                              className={cn(
+                                                "absolute bottom-0 left-0 right-0 rounded-b-md transition-all duration-500",
+                                                isInRange ? "bg-gradient-to-t from-emerald-500/60 to-emerald-400/30" :
+                                                isHigh ? "bg-gradient-to-t from-amber-500/60 to-amber-400/30" :
+                                                "bg-gradient-to-t from-violet-500/60 to-violet-400/30"
+                                              )}
+                                              style={{ height: `${heightPercent}%` }}
+                                            />
+                                          </div>
+                                          <div className="text-center">
+                                            <div className="text-sm">{pillar.icon}</div>
+                                            <div className="text-[9px] text-muted-foreground leading-tight truncate w-full">
+                                              {pillar.name.split(' ')[0]}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                </div>
                             </CardContent>
                         </Card>
 
@@ -1097,20 +1233,20 @@ export default function DeepMind() {
 
             <TabsContent value="map" className="animate-in slide-in-from-bottom-4 duration-500">
                 <Card className="bg-slate-950 border-slate-800 overflow-hidden relative min-h-[500px]">
-                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
                     <CardHeader className="relative z-10 border-b border-slate-800/50 bg-slate-900/50 backdrop-blur-sm">
                         <div className="flex justify-between items-center">
                             <CardTitle className="text-slate-100 flex items-center gap-2">
                                 <Network className="w-5 h-5 text-indigo-400" /> 
-                                Topographical System Map
+                                System Presence Map
                             </CardTitle>
                             <div className="flex gap-4 text-xs text-slate-400 font-mono">
-                                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> Front</div>
-                                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-slate-600"></span> Deep Internal</div>
+                                <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-indigo-500"></span> Active Now</div>
+                                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-violet-500"></span> Co-Active</div>
+                                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-slate-600"></span> Resting</div>
                             </div>
                         </div>
                     </CardHeader>
-                    <CardContent className="p-0 relative h-[500px]">
+                    <CardContent className="p-6 relative min-h-[450px]">
                         {membersLoading ? (
                           <div className="flex items-center justify-center h-full">
                             <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
@@ -1122,41 +1258,66 @@ export default function DeepMind() {
                             <p className="text-xs text-slate-600 mt-1">Add members in System Insight to see them here</p>
                           </div>
                         ) : (
-                          <ResponsiveContainer width="100%" height="100%">
-                              <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.3} />
-                                  <XAxis type="number" dataKey="x" name="stiffness" hide domain={[0, 100]} />
-                                  <YAxis type="number" dataKey="y" name="stiffness" hide domain={[0, 100]} />
-                                  <ZAxis type="number" dataKey="z" range={[60, 400]} name="score" />
-                                  <Tooltip 
-                                      cursor={{ strokeDasharray: '3 3' }} 
-                                      content={({ active, payload }) => {
-                                          if (active && payload && payload.length) {
-                                              const data = payload[0].payload;
-                                              return (
-                                                  <div className="bg-slate-900 border border-indigo-500/50 p-3 rounded shadow-xl text-slate-100">
-                                                      <p className="font-bold mb-1">{data.name}</p>
-                                                      <p className="text-xs text-indigo-300">{data.status}</p>
-                                                      <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wide">Proximity: {data.z}%</p>
-                                                  </div>
-                                              );
-                                          }
-                                          return null;
-                                      }}
-                                  />
-                                  <Scatter name="Alters" data={alterPositions} fill="#8884d8">
-                                      {alterPositions.map((entry, index) => (
-                                          <Cell key={`cell-${index}`} fill={entry.status === 'Fronting' ? '#6366f1' : entry.status === 'Co-con' ? '#a855f7' : '#64748b'} />
-                                      ))}
-                                  </Scatter>
-                              </ScatterChart>
-                          </ResponsiveContainer>
+                          <div className="space-y-8">
+                            {["Active Now", "Co-Active", "Resting"].map((laneName, laneIdx) => {
+                              const laneMembers = alterPositions.filter(m => m.lane === laneName);
+                              return (
+                                <div key={laneName} className="space-y-3">
+                                  <div className="flex items-center gap-3">
+                                    <span className={cn(
+                                      "text-xs font-mono uppercase tracking-wider px-2 py-1 rounded",
+                                      laneIdx === 0 ? "bg-indigo-500/20 text-indigo-400" :
+                                      laneIdx === 1 ? "bg-violet-500/20 text-violet-400" :
+                                      "bg-slate-800 text-slate-500"
+                                    )}>
+                                      {laneName}
+                                    </span>
+                                    <div className="flex-1 border-t border-slate-800" />
+                                    <span className="text-[10px] text-slate-600">{laneMembers.length} member{laneMembers.length !== 1 ? 's' : ''}</span>
+                                  </div>
+                                  
+                                  <div className="flex flex-wrap gap-4 min-h-[60px] items-center pl-4">
+                                    {laneMembers.length === 0 ? (
+                                      <span className="text-xs text-slate-700 italic">—</span>
+                                    ) : (
+                                      laneMembers.map((member, i) => (
+                                        <div 
+                                          key={i}
+                                          className="flex flex-col items-center gap-1 group cursor-default"
+                                          title={`${member.name}: ${member.timeActive} entries (24h), Load: ${Math.round(member.load)}%`}
+                                        >
+                                          <div 
+                                            className={cn(
+                                              "rounded-full flex items-center justify-center font-bold text-white shadow-lg transition-transform group-hover:scale-110",
+                                              laneIdx === 0 ? "ring-2 ring-indigo-400/50 animate-pulse" : ""
+                                            )}
+                                            style={{ 
+                                              width: member.size, 
+                                              height: member.size,
+                                              backgroundColor: member.color || '#6366f1',
+                                              opacity: member.opacity,
+                                              boxShadow: laneIdx === 0 ? `0 0 20px ${member.color || '#6366f1'}40` : undefined
+                                            }}
+                                          >
+                                            <span className="text-[10px]">{member.name.charAt(0)}</span>
+                                          </div>
+                                          <span className="text-[10px] text-slate-400 group-hover:text-slate-200 transition-colors">
+                                            {member.name}
+                                          </span>
+                                          {member.timeActive > 0 && (
+                                            <span className="text-[8px] text-slate-600">
+                                              {member.timeActive}× today
+                                            </span>
+                                          )}
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
-                        
-                        <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-10">
-                            <div className="w-[200px] h-[200px] rounded-full border border-indigo-500"></div>
-                            <div className="absolute w-[400px] h-[400px] rounded-full border border-indigo-500"></div>
-                        </div>
                     </CardContent>
                 </Card>
             </TabsContent>
