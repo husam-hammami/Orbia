@@ -547,8 +547,8 @@ export default function OrbitPage() {
       <div className="h-[calc(100vh-120px)] flex flex-col animate-in fade-in duration-500">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-              <OrbitIcon className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
+              <OrbitIcon className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-2xl font-display font-bold tracking-tight">Orbit</h1>
@@ -568,42 +568,42 @@ export default function OrbitPage() {
           </div>
         </div>
 
-        <Card className="bg-slate-900/50 border-slate-800 mb-4">
+        <Card className="bg-card/80 border-border/50 mb-4 shadow-sm">
           <CardContent className="p-3">
-            <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-6 text-sm flex-wrap">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span className="text-slate-400">Habits:</span>
-                <span className="font-mono font-bold text-slate-100">{habitsCompletedToday}/{totalHabits}</span>
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span className="text-muted-foreground">Habits:</span>
+                <span className="font-mono font-bold">{habitsCompletedToday}/{totalHabits}</span>
               </div>
-              <div className="w-px h-4 bg-slate-700" />
+              <div className="w-px h-4 bg-border" />
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-blue-500" />
-                <span className="text-slate-400">Routine:</span>
-                <span className="font-mono font-bold text-slate-100">{routinePercent}%</span>
+                <Clock className="w-4 h-4 text-blue-600" />
+                <span className="text-muted-foreground">Routine:</span>
+                <span className="font-mono font-bold">{routinePercent}%</span>
               </div>
               {latestFronter && (
                 <>
-                  <div className="w-px h-4 bg-slate-700" />
+                  <div className="w-px h-4 bg-border" />
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-500" />
-                    <span className="text-slate-400">Front:</span>
-                    <span className="font-medium text-slate-100">{latestFronter}</span>
+                    <Sparkles className="w-4 h-4 text-violet-600" />
+                    <span className="text-muted-foreground">Front:</span>
+                    <span className="font-medium">{latestFronter}</span>
                   </div>
                 </>
               )}
               {externalPressure !== null && (
                 <>
-                  <div className="w-px h-4 bg-slate-700" />
+                  <div className="w-px h-4 bg-border" />
                   <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-amber-500" />
-                    <span className="text-slate-400">Load:</span>
-                    <span className="font-mono font-bold text-amber-400">{externalPressure}%</span>
+                    <Zap className="w-4 h-4 text-amber-600" />
+                    <span className="text-muted-foreground">Load:</span>
+                    <span className="font-mono font-bold text-amber-600">{externalPressure}%</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-emerald-500" />
-                    <span className="text-slate-400">Stable:</span>
-                    <span className="font-mono font-bold text-emerald-400">{internalStability}%</span>
+                    <Activity className="w-4 h-4 text-emerald-600" />
+                    <span className="text-muted-foreground">Stable:</span>
+                    <span className="font-mono font-bold text-emerald-600">{internalStability}%</span>
                   </div>
                 </>
               )}
@@ -636,10 +636,10 @@ export default function OrbitPage() {
             <div className="space-y-4 pb-4">
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-600/20 flex items-center justify-center mb-4">
-                    <OrbitIcon className="w-8 h-8 text-indigo-400" />
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                    <OrbitIcon className="w-8 h-8 text-primary" />
                   </div>
-                  <h3 className="text-lg font-semibold text-slate-200 mb-2">Ready to help</h3>
+                  <h3 className="text-lg font-semibold mb-2">Ready to help</h3>
                   <p className="text-sm text-muted-foreground max-w-sm">
                     Ask me what to do next, get a summary of today, or say you're overwhelmed for low-capacity mode.
                   </p>
@@ -659,23 +659,23 @@ export default function OrbitPage() {
                     )}
                   >
                     <div className={cn(
-                      "max-w-[80%] rounded-2xl px-4 py-3",
+                      "max-w-[80%] rounded-2xl px-4 py-3 shadow-sm",
                       message.role === "user" 
-                        ? "bg-indigo-600 text-white" 
-                        : "bg-slate-800 text-slate-100"
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-muted/80 text-foreground border border-border/50"
                     )}>
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
                       
                       {message.action && !message.actionResult && pendingAction?.messageId === message.id && (
-                        <div className="mt-3 p-3 rounded-lg bg-amber-500/20 border border-amber-500/30">
-                          <p className="text-xs font-medium text-amber-400 mb-2">
+                        <div className="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                          <p className="text-xs font-medium text-amber-800 dark:text-amber-200 mb-2">
                             {message.action.confirm_text || "Confirm this action?"}
                           </p>
                           <div className="flex gap-2">
-                            <Button size="sm" onClick={confirmAction} className="bg-amber-500 hover:bg-amber-600 text-amber-950">
+                            <Button size="sm" onClick={confirmAction} className="bg-amber-600 hover:bg-amber-700 text-white">
                               <Check className="w-3 h-3 mr-1" /> Confirm
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={cancelAction}>
+                            <Button size="sm" variant="outline" onClick={cancelAction}>
                               Cancel
                             </Button>
                           </div>
@@ -685,7 +685,7 @@ export default function OrbitPage() {
                       {message.actionResult && (
                         <div className={cn(
                           "mt-2 flex items-center gap-2 text-xs",
-                          message.actionResult.success ? "text-emerald-400" : "text-red-400"
+                          message.actionResult.success ? "text-emerald-600" : "text-destructive"
                         )}>
                           {message.actionResult.success 
                             ? <CheckCircle2 className="w-3 h-3" />
@@ -695,7 +695,7 @@ export default function OrbitPage() {
                         </div>
                       )}
                       
-                      <p className="text-[10px] opacity-50 mt-1">
+                      <p className="text-[10px] text-muted-foreground/70 mt-1">
                         {format(message.timestamp, "h:mm a")}
                       </p>
                     </div>
@@ -705,8 +705,8 @@ export default function OrbitPage() {
               
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-slate-800 rounded-2xl px-4 py-3">
-                    <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+                  <div className="bg-muted/80 border border-border/50 rounded-2xl px-4 py-3 shadow-sm">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
                   </div>
                 </div>
               )}
@@ -721,7 +721,7 @@ export default function OrbitPage() {
                 size="sm"
                 onClick={() => handleSend(chip.prompt)}
                 disabled={isLoading}
-                className="text-xs bg-slate-900/50 border-slate-700 hover:bg-slate-800 hover:border-slate-600"
+                className="text-xs hover:bg-accent hover:text-accent-foreground"
                 data-testid={`chip-${chip.label.toLowerCase().replace(/\s+/g, "-")}`}
               >
                 {chip.label}
@@ -737,13 +737,12 @@ export default function OrbitPage() {
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
               placeholder="Ask Orbit anything..."
               disabled={isLoading}
-              className="flex-1 bg-slate-900 border-slate-700 focus:border-indigo-500"
+              className="flex-1 bg-background border-input focus:border-primary"
               data-testid="input-orbit-message"
             />
             <Button 
               onClick={() => handleSend()} 
               disabled={isLoading || !input.trim()}
-              className="bg-indigo-600 hover:bg-indigo-700"
               data-testid="button-send-orbit"
             >
               <Send className="w-4 h-4" />
