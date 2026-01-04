@@ -304,262 +304,128 @@ export default function DeepMind() {
             </TabsList>
 
             <TabsContent value="monitor" className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                     
-                    <Card className="lg:col-span-4 border-l-4 border-l-indigo-500 shadow-lg">
-                        <CardHeader className="bg-muted/10 pb-4">
-                            <CardTitle className="flex items-center justify-between text-lg">
-                                <span>Neural Logger</span>
-                                <Cpu className="w-4 h-4 text-indigo-500 animate-pulse" />
-                            </CardTitle>
-                            <CardDescription>Log current system parameters</CardDescription>
+                    <Card className="bg-slate-950 border-slate-800 shadow-2xl overflow-hidden relative group">
+                        <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f46e520_1px,transparent_1px),linear-gradient(to_bottom,#4f46e520_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+                        <CardHeader className="relative z-10 pb-2">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-slate-100 flex items-center gap-2 text-base font-mono">
+                                  <Activity className="w-4 h-4 text-emerald-400" /> System Load vs Stability
+                              </CardTitle>
+                              <div className="flex items-center gap-3">
+                                {isStable && coherenceChartData.length >= 3 && (
+                                  <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">
+                                    Regulated
+                                  </Badge>
+                                )}
+                                <div className="hidden md:flex items-center gap-4 text-[10px] font-mono">
+                                  <div className="flex items-center gap-1.5 text-amber-500">
+                                    <div className="w-2 h-2 rounded-full bg-amber-500" />
+                                    <span>External Pressure</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-emerald-400">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                                    <span>Internal Stability</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
                         </CardHeader>
-                        <CardContent className="space-y-6 pt-6">
-                            
-                            <div className="space-y-3">
-                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                                    <Users className="w-3.5 h-3.5" /> Active Front
-                                </label>
-                                {membersLoading ? (
-                                  <div className="flex items-center justify-center py-4">
-                                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                                  </div>
-                                ) : members && members.length > 0 ? (
-                                  <div className="grid grid-cols-3 gap-2">
-                                      {members.slice(0, 6).map(member => (
-                                          <button
-                                              key={member.id}
-                                              onClick={() => setSelectedMemberId(member.id)}
-                                              data-testid={`button-select-member-${member.id}`}
-                                              className={cn(
-                                                  "text-xs p-2 rounded border transition-all text-center font-medium truncate",
-                                                  selectedMember?.id === member.id 
-                                                      ? "bg-indigo-500 text-white border-indigo-600 shadow-md transform scale-105" 
-                                                      : "bg-background border-border hover:bg-muted text-muted-foreground"
-                                              )}
-                                              style={{ 
-                                                  borderColor: selectedMember?.id === member.id ? member.color : undefined,
-                                                  backgroundColor: selectedMember?.id === member.id ? member.color : undefined
-                                              }}
-                                          >
-                                              {member.name}
-                                          </button>
-                                      ))}
-                                      <button className="text-xs p-2 rounded border border-dashed border-border text-muted-foreground hover:bg-muted flex items-center justify-center">
-                                          <Plus className="w-3 h-3" />
-                                      </button>
-                                  </div>
-                                ) : (
-                                  <div className="text-center py-4 text-muted-foreground text-sm">
-                                    No members yet. Add members in System Insight.
-                                  </div>
-                                )}
+                        <CardContent className="h-[350px] relative z-10 pl-0">
+                            {coherenceChartData.length > 0 ? (
+                              <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={coherenceChartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                                  <XAxis dataKey="time" stroke="#64748b" fontSize={10} />
+                                  <YAxis stroke="#64748b" fontSize={10} domain={[0, 100]} />
+                                  <Tooltip 
+                                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                                    labelStyle={{ color: '#94a3b8' }}
+                                    formatter={(value: number, name: string) => [
+                                      `${value}%`,
+                                      name === 'externalLoad' ? 'External Load' : 'Internal Stability'
+                                    ]}
+                                  />
+                                  <ReferenceArea 
+                                    y1={35} 
+                                    y2={65} 
+                                    fill="#10b981"
+                                    fillOpacity={0.1}
+                                    stroke="#10b981"
+                                    strokeOpacity={0.2}
+                                    strokeDasharray="3 3"
+                                  />
+                                  <Line type="monotone" dataKey="externalLoad" stroke="#f59e0b" strokeWidth={2.5} dot={{ fill: '#f59e0b', r: 3 }} name="externalLoad" />
+                                  <Line type="monotone" dataKey="internalStability" stroke="#10b981" strokeWidth={2.5} dot={{ fill: '#10b981', r: 3 }} name="internalStability" />
+                                </ComposedChart>
+                              </ResponsiveContainer>
+                            ) : (
+                              <div className="h-full flex items-center justify-center text-center space-y-2">
+                                <div>
+                                  <Activity className="w-8 h-8 text-slate-700 mx-auto animate-pulse" />
+                                  <p className="text-slate-500 text-sm mt-2">Awaiting Data Points</p>
+                                  <p className="text-slate-600 text-xs">Log entries to see load vs stability trends.</p>
+                                </div>
+                              </div>
+                            )}
+                            <div className="absolute bottom-2 left-0 right-0 flex justify-center text-[9px] text-slate-600 font-mono">
+                              <span>stable band: 35-65%</span>
                             </div>
-
-                            <div className="space-y-6">
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-xs font-medium">
-                                        <span className="flex items-center gap-1.5"><Ghost className="w-3.5 h-3.5 text-purple-500" /> Dissociation</span>
-                                        <span className="font-mono">{dissociation}%</span>
-                                    </div>
-                                    <Slider value={dissociation} onValueChange={setDissociation} max={100} step={1} className="[&>span:first-child]:bg-purple-500/20 [&_[role=slider]]:bg-purple-500" />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-xs font-medium">
-                                        <span className="flex items-center gap-1.5"><Mic2 className="w-3.5 h-3.5 text-blue-500" /> Communication</span>
-                                        <span className="font-mono">{communication}%</span>
-                                    </div>
-                                    <Slider value={communication} onValueChange={setCommunication} max={100} step={1} className="[&>span:first-child]:bg-blue-500/20 [&_[role=slider]]:bg-blue-500" />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-xs font-medium">
-                                        <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-amber-500" /> System Stress</span>
-                                        <span className="font-mono">{stress}%</span>
-                                    </div>
-                                    <Slider value={stress} onValueChange={setStress} max={100} step={1} className="[&>span:first-child]:bg-amber-500/20 [&_[role=slider]]:bg-amber-500" />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-xs font-medium">
-                                        <span className="flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-rose-500" /> Intrusive Urges</span>
-                                        <span className="font-mono">{urges}%</span>
-                                    </div>
-                                    <Slider value={urges} onValueChange={setUrges} max={100} step={1} className="[&>span:first-child]:bg-rose-500/20 [&_[role=slider]]:bg-rose-500" />
-                                </div>
-                            </div>
-                            
-                            <Button 
-                              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20" 
-                              size="lg"
-                              onClick={handleCommitLog}
-                              disabled={createEntryMutation.isPending || !selectedMember}
-                              data-testid="button-commit-log"
-                            >
-                                {createEntryMutation.isPending ? (
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                ) : (
-                                  <Save className="w-4 h-4 mr-2" />
-                                )}
-                                Commit System Log
-                            </Button>
                         </CardContent>
                     </Card>
 
-                    <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                        
-                        <Card className="md:col-span-2 bg-slate-950 border-slate-800 shadow-2xl overflow-hidden relative group">
-                            <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f46e520_1px,transparent_1px),linear-gradient(to_bottom,#4f46e520_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
-                            <CardHeader className="relative z-10 pb-2">
-                                <div className="flex items-center justify-between">
-                                  <CardTitle className="text-slate-100 flex items-center gap-2 text-base font-mono">
-                                      <Activity className="w-4 h-4 text-emerald-400" /> System Load vs Stability
-                                  </CardTitle>
-                                  {isStable && coherenceChartData.length >= 3 && (
-                                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">
-                                      Regulated
-                                    </Badge>
-                                  )}
+                    <Card className="border-border shadow-md">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base flex items-center gap-2">
+                                <Layers className="w-4 h-4 text-indigo-500" /> System Balance
+                            </CardTitle>
+                            <CardDescription className="text-xs">Load distribution across capacities</CardDescription>
+                        </CardHeader>
+                        <CardContent className="h-[300px] pt-6">
+                            <div className="relative h-full flex items-end justify-between gap-4 px-4 md:px-8">
+                                <div className="absolute top-[35%] left-0 right-0 h-[30%] bg-emerald-500/5 border-y border-emerald-500/20 pointer-events-none" />
+                                <div className="absolute top-[48%] left-0 right-0 flex items-center pointer-events-none">
+                                  <div className="flex-1 border-t border-dashed border-slate-300/30" />
+                                  <span className="text-[8px] text-slate-400 px-1 bg-background">usable range</span>
+                                  <div className="flex-1 border-t border-dashed border-slate-300/30" />
                                 </div>
-                            </CardHeader>
-                            <CardContent className="h-[250px] relative z-10 pl-0">
-                                {coherenceChartData.length > 0 ? (
-                                  <ResponsiveContainer width="100%" height="100%">
-                                    <ComposedChart data={coherenceChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                                      <XAxis dataKey="time" stroke="#64748b" fontSize={10} />
-                                      <YAxis stroke="#64748b" fontSize={10} domain={[0, 100]} />
-                                      <Tooltip 
-                                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                                        labelStyle={{ color: '#94a3b8' }}
-                                        formatter={(value: number, name: string) => [
-                                          `${value}%`,
-                                          name === 'externalLoad' ? 'External Load' : 'Internal Stability'
-                                        ]}
-                                      />
-                                      <ReferenceArea 
-                                        y1={35} 
-                                        y2={65} 
-                                        fill="#10b981"
-                                        fillOpacity={0.1}
-                                        stroke="#10b981"
-                                        strokeOpacity={0.2}
-                                        strokeDasharray="3 3"
-                                      />
-                                      <Line type="monotone" dataKey="externalLoad" stroke="#f59e0b" strokeWidth={2.5} dot={{ fill: '#f59e0b', r: 3 }} name="External Load" />
-                                      <Line type="monotone" dataKey="internalStability" stroke="#10b981" strokeWidth={2.5} dot={{ fill: '#10b981', r: 3 }} name="Internal Stability" />
-                                    </ComposedChart>
-                                  </ResponsiveContainer>
-                                ) : (
-                                  <div className="h-full flex items-center justify-center text-center space-y-2">
-                                    <div>
-                                      <Activity className="w-8 h-8 text-slate-700 mx-auto animate-pulse" />
-                                      <p className="text-slate-500 text-sm mt-2">Awaiting Data Points</p>
-                                      <p className="text-slate-600 text-xs">Log entries to see load vs stability trends.</p>
-                                    </div>
-                                  </div>
-                                )}
-                                <div className="absolute bottom-2 left-4 right-4 flex justify-between text-[9px] text-slate-600 font-mono">
-                                  <span>🟠 External pressure</span>
-                                  <span className="text-slate-700">stable band: 35-65%</span>
-                                  <span>🟢 Internal stability</span>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="flex flex-col">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="flex items-center gap-2 text-base">
-                                    <History className="w-4 h-4 text-muted-foreground" />
-                                    Recent Logs
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex-1 p-0">
-                                <ScrollArea className="h-[250px] px-4">
-                                    {entriesLoading ? (
-                                      <div className="flex items-center justify-center py-8">
-                                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                                
+                                {balancePillars.map((pillar, i) => {
+                                  const heightPercent = Math.max(10, Math.min(95, pillar.value));
+                                  const isInRange = pillar.value >= 35 && pillar.value <= 65;
+                                  const isHigh = pillar.value > 65;
+                                  
+                                  return (
+                                    <div key={i} className="flex flex-col items-center gap-3 flex-1 max-w-[100px]">
+                                      <div className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
+                                        {pillar.trend === "up" && <span className="text-emerald-500">↑</span>}
+                                        {pillar.trend === "down" && <span className="text-amber-500">↓</span>}
+                                        {pillar.trend === "stable" && <span className="text-slate-400">→</span>}
                                       </div>
-                                    ) : recentLogs.length > 0 ? (
-                                      <div className="space-y-4 pb-4">
-                                          {recentLogs.map((log, i) => (
-                                              <div key={i} className="flex gap-3 items-start p-3 rounded-lg bg-muted/30 border border-border/50 text-sm">
-                                                  <div className="min-w-[60px] font-mono text-xs text-muted-foreground pt-0.5">{log.time}</div>
-                                                  <div className="space-y-1 flex-1">
-                                                      <div className="flex justify-between items-center">
-                                                          <span className="font-semibold text-indigo-500">{log.front}</span>
-                                                          <Badge variant="outline" className="text-[10px] h-4 px-1">Dis: {log.dissociation}%</Badge>
-                                                      </div>
-                                                      {log.note && <p className="text-muted-foreground text-xs leading-snug">{log.note}</p>}
-                                                  </div>
-                                              </div>
-                                          ))}
+                                      <div className="relative w-full h-[180px] bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden border border-border/50">
+                                        <div 
+                                          className={cn(
+                                            "absolute bottom-0 left-0 right-0 transition-all duration-1000",
+                                            isInRange ? "bg-gradient-to-t from-emerald-500/60 to-emerald-400/30" :
+                                            isHigh ? "bg-gradient-to-t from-amber-500/60 to-amber-400/30" :
+                                            "bg-gradient-to-t from-violet-500/60 to-violet-400/30"
+                                          )}
+                                          style={{ height: `${heightPercent}%` }}
+                                        />
                                       </div>
-                                    ) : (
-                                      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                                        <History className="w-8 h-8 mb-2 opacity-30" />
-                                        <p className="text-sm">No logs yet</p>
-                                      </div>
-                                    )}
-                                </ScrollArea>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                             <CardHeader className="pb-2">
-                                <CardTitle className="flex items-center gap-2 text-base">
-                                    <Layers className="w-4 h-4 text-muted-foreground" />
-                                    System Balance
-                                </CardTitle>
-                                <CardDescription className="text-xs">Load distribution across capacities</CardDescription>
-                            </CardHeader>
-                            <CardContent className="h-[250px] flex flex-col justify-end pb-4">
-                                <div className="relative h-full flex items-end justify-around gap-2 px-2">
-                                    <div className="absolute top-[35%] left-0 right-0 h-[30%] bg-emerald-500/5 border-y border-emerald-500/20 pointer-events-none" />
-                                    <div className="absolute top-[48%] left-0 right-0 flex items-center pointer-events-none">
-                                      <div className="flex-1 border-t border-dashed border-slate-300/30" />
-                                      <span className="text-[8px] text-slate-400 px-1 bg-card">usable range</span>
-                                      <div className="flex-1 border-t border-dashed border-slate-300/30" />
-                                    </div>
-                                    
-                                    {balancePillars.map((pillar, i) => {
-                                      const heightPercent = Math.max(10, Math.min(95, pillar.value));
-                                      const isInRange = pillar.value >= 35 && pillar.value <= 65;
-                                      const isHigh = pillar.value > 65;
-                                      
-                                      return (
-                                        <div key={i} className="flex flex-col items-center gap-1 flex-1 max-w-[60px]">
-                                          <div className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                                            {pillar.trend === "up" && <span className="text-emerald-500">↑</span>}
-                                            {pillar.trend === "down" && <span className="text-amber-500">↓</span>}
-                                            {pillar.trend === "stable" && <span className="text-slate-400">→</span>}
-                                          </div>
-                                          <div className="relative w-full h-[180px] bg-slate-100 dark:bg-slate-900 rounded-lg overflow-hidden border border-border/50">
-                                            <div 
-                                              className={cn(
-                                                "absolute bottom-0 left-0 right-0 rounded-b-md transition-all duration-500",
-                                                isInRange ? "bg-gradient-to-t from-emerald-500/60 to-emerald-400/30" :
-                                                isHigh ? "bg-gradient-to-t from-amber-500/60 to-amber-400/30" :
-                                                "bg-gradient-to-t from-violet-500/60 to-violet-400/30"
-                                              )}
-                                              style={{ height: `${heightPercent}%` }}
-                                            />
-                                          </div>
-                                          <div className="text-center">
-                                            <div className="text-sm">{pillar.icon}</div>
-                                            <div className="text-[9px] text-muted-foreground leading-tight truncate w-full">
-                                              {pillar.name.split(' ')[0]}
-                                            </div>
-                                          </div>
+                                      <div className="text-center space-y-1">
+                                        <div className="text-xl">{pillar.icon}</div>
+                                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground leading-tight">
+                                          {pillar.name}
                                         </div>
-                                      );
-                                    })}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                    </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </TabsContent>
 
