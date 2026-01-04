@@ -838,6 +838,207 @@ export default function DeepMind() {
                             )}
                         </CardContent>
                     </Card>
+
+                    {insights?.rawCorrelations?.highConfidence && (
+                        <Card className="border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Sparkles className="w-5 h-5 text-amber-500" />
+                                    High-Confidence Multi-Factor Insights
+                                </CardTitle>
+                                <CardDescription>Statistically validated correlations linking habits, mood, and routines together</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {insights.rawCorrelations.highConfidence.routineMoodCorrelation && (
+                                    <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                            <span className="font-medium text-emerald-700 dark:text-emerald-400">Routine → Mood Impact</span>
+                                            <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
+                                                insights.rawCorrelations.highConfidence.routineMoodCorrelation.confidence?.level === 'high' 
+                                                    ? 'bg-emerald-500/20 text-emerald-600' 
+                                                    : 'bg-amber-500/20 text-amber-600'
+                                            }`}>
+                                                {insights.rawCorrelations.highConfidence.routineMoodCorrelation.confidence?.level} confidence
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xl font-bold text-emerald-600">{insights.rawCorrelations.highConfidence.routineMoodCorrelation.avgMoodHighRoutine}</div>
+                                                <div className="text-[10px] text-muted-foreground">Mood (60%+ routine)</div>
+                                            </div>
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xl font-bold text-slate-500">{insights.rawCorrelations.highConfidence.routineMoodCorrelation.avgMoodLowRoutine}</div>
+                                                <div className="text-[10px] text-muted-foreground">Mood (30%- routine)</div>
+                                            </div>
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xl font-bold text-blue-600">+{insights.rawCorrelations.highConfidence.routineMoodCorrelation.moodImprovement}</div>
+                                                <div className="text-[10px] text-muted-foreground">Mood difference</div>
+                                            </div>
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xl font-bold text-purple-600">-{insights.rawCorrelations.highConfidence.routineMoodCorrelation.stressReduction}%</div>
+                                                <div className="text-[10px] text-muted-foreground">Stress reduction</div>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-3">
+                                            On {insights.rawCorrelations.highConfidence.routineMoodCorrelation.highRoutineDays} days with 60%+ routine completion, your mood averaged {insights.rawCorrelations.highConfidence.routineMoodCorrelation.avgMoodHighRoutine}/10 compared to {insights.rawCorrelations.highConfidence.routineMoodCorrelation.avgMoodLowRoutine}/10 on {insights.rawCorrelations.highConfidence.routineMoodCorrelation.lowRoutineDays} low-routine days.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {insights.rawCorrelations.highConfidence.habitRoutineSynergy && insights.rawCorrelations.highConfidence.habitRoutineSynergy.length > 0 && (
+                                    <div className="p-4 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                            <span className="font-medium text-indigo-700 dark:text-indigo-400">Habit + Routine Synergy Effects</span>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {insights.rawCorrelations.highConfidence.habitRoutineSynergy.slice(0, 3).map((syn: any, i: number) => (
+                                                syn && (
+                                                    <div key={i} className="flex items-center justify-between p-2 bg-background/50 rounded text-sm">
+                                                        <span className="font-medium">{syn.habitName}</span>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="text-center">
+                                                                <div className="text-xs text-muted-foreground">Both</div>
+                                                                <div className="font-bold text-emerald-600">{syn.avgMoodBoth || '-'}</div>
+                                                            </div>
+                                                            <div className="text-center">
+                                                                <div className="text-xs text-muted-foreground">Neither</div>
+                                                                <div className="font-bold text-slate-500">{syn.avgMoodNeither || '-'}</div>
+                                                            </div>
+                                                            <div className="text-center min-w-[60px]">
+                                                                <div className="text-xs text-muted-foreground">Synergy</div>
+                                                                <div className={`font-bold ${parseFloat(syn.synergyBonus || 0) > 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                                                    {parseFloat(syn.synergyBonus || 0) > 0 ? '+' : ''}{syn.synergyBonus || '0'}
+                                                                </div>
+                                                            </div>
+                                                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                                                syn.confidence?.level === 'high' ? 'bg-emerald-500/20 text-emerald-600' : 'bg-amber-500/20 text-amber-600'
+                                                            }`}>
+                                                                {syn.confidence?.level}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            ))}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-3">
+                                            Synergy bonus shows the mood improvement from doing both the habit AND routine together vs doing neither.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis && (
+                                    <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                                            <span className="font-medium text-purple-700 dark:text-purple-400">Best vs Worst Days Pattern</span>
+                                            <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
+                                                insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.confidence?.level === 'high' 
+                                                    ? 'bg-emerald-500/20 text-emerald-600' 
+                                                    : 'bg-amber-500/20 text-amber-600'
+                                            }`}>
+                                                {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.confidence?.level} confidence
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                                                <div className="text-sm font-medium text-emerald-600 mb-2">Best Days (avg mood {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.avgMoodBestDays})</div>
+                                                <div className="space-y-1 text-xs text-muted-foreground">
+                                                    <div>Sleep: {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.bestDaysPatterns.avgSleep}h avg</div>
+                                                    <div>Routine: {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.bestDaysPatterns.routineCompletionRate}% completion</div>
+                                                    {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.bestDaysPatterns.topHabits.length > 0 && (
+                                                        <div>Top habits: {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.bestDaysPatterns.topHabits.map((h: any) => `${h.name} (${h.frequency}%)`).join(', ')}</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                                                <div className="text-sm font-medium text-red-600 mb-2">Worst Days (avg mood {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.avgMoodWorstDays})</div>
+                                                <div className="space-y-1 text-xs text-muted-foreground">
+                                                    <div>Sleep: {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.worstDaysPatterns.avgSleep}h avg</div>
+                                                    <div>Routine: {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.worstDaysPatterns.routineCompletionRate}% completion</div>
+                                                    {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.worstDaysPatterns.topHabits.length > 0 && (
+                                                        <div>Top habits: {insights.rawCorrelations.highConfidence.bestWorstDaysAnalysis.worstDaysPatterns.topHabits.map((h: any) => `${h.name} (${h.frequency}%)`).join(', ')}</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {insights.rawCorrelations.highConfidence.sleepHabitInteraction && (
+                                    <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                            <span className="font-medium text-blue-700 dark:text-blue-400">Sleep × {insights.rawCorrelations.highConfidence.sleepHabitInteraction.habitName} Interaction</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center text-sm">
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xs text-muted-foreground mb-1">Good Sleep + Habit</div>
+                                                <div className="font-bold text-emerald-600">{insights.rawCorrelations.highConfidence.sleepHabitInteraction.goodSleepWithHabitMood || '-'}</div>
+                                                <div className="text-[10px] text-muted-foreground">({insights.rawCorrelations.highConfidence.sleepHabitInteraction.goodSleepWithHabitCount} days)</div>
+                                            </div>
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xs text-muted-foreground mb-1">Good Sleep Only</div>
+                                                <div className="font-bold text-blue-600">{insights.rawCorrelations.highConfidence.sleepHabitInteraction.goodSleepNoHabitMood || '-'}</div>
+                                                <div className="text-[10px] text-muted-foreground">({insights.rawCorrelations.highConfidence.sleepHabitInteraction.goodSleepNoHabitCount} days)</div>
+                                            </div>
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xs text-muted-foreground mb-1">Bad Sleep + Habit</div>
+                                                <div className="font-bold text-amber-600">{insights.rawCorrelations.highConfidence.sleepHabitInteraction.badSleepWithHabitMood || '-'}</div>
+                                                <div className="text-[10px] text-muted-foreground">({insights.rawCorrelations.highConfidence.sleepHabitInteraction.badSleepWithHabitCount} days)</div>
+                                            </div>
+                                            <div className="p-2 bg-background/50 rounded">
+                                                <div className="text-xs text-muted-foreground mb-1">Bad Sleep Only</div>
+                                                <div className="font-bold text-red-600">{insights.rawCorrelations.highConfidence.sleepHabitInteraction.badSleepNoHabitMood || '-'}</div>
+                                                <div className="text-[10px] text-muted-foreground">({insights.rawCorrelations.highConfidence.sleepHabitInteraction.badSleepNoHabitCount} days)</div>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-3">
+                                            This shows how sleep quality affects the mood impact of your most impactful habit.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {insights.rawCorrelations.highConfidence.highConfidenceHabits && insights.rawCorrelations.highConfidence.highConfidenceHabits.length > 0 && (
+                                    <div className="p-4 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-2 h-2 rounded-full bg-cyan-500"></div>
+                                            <span className="font-medium text-cyan-700 dark:text-cyan-400">Statistically Validated Habit Impacts</span>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {insights.rawCorrelations.highConfidence.highConfidenceHabits.slice(0, 4).map((h: any, i: number) => (
+                                                <div key={i} className="flex items-center justify-between p-2 bg-background/50 rounded text-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`w-2 h-2 rounded-full ${
+                                                            h.impactDirection === 'positive' ? 'bg-emerald-500' : 
+                                                            h.impactDirection === 'negative' ? 'bg-red-500' : 'bg-slate-500'
+                                                        }`}></span>
+                                                        <span className="font-medium">{h.habitName}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="text-right">
+                                                            <div className={`font-bold ${parseFloat(h.moodDifference) > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                                                {parseFloat(h.moodDifference) > 0 ? '+' : ''}{h.moodDifference} mood
+                                                            </div>
+                                                            <div className="text-[10px] text-muted-foreground">{h.avgMoodWithHabit} vs {h.avgMoodWithoutHabit}</div>
+                                                        </div>
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                                                h.effectSize === 'strong' ? 'bg-emerald-500/20 text-emerald-600' :
+                                                                h.effectSize === 'moderate' ? 'bg-amber-500/20 text-amber-600' : 'bg-slate-500/20 text-slate-600'
+                                                            }`}>{h.effectSize}</span>
+                                                            <span className="text-[10px] text-muted-foreground">{h.confidence?.level}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             </TabsContent>
 

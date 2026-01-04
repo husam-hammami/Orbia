@@ -75,6 +75,15 @@ The AI insights system:
 - Provides trauma-informed, DID-aware analysis
 - Includes data quality summary for context awareness
 
+High-Confidence Multi-Factor Correlation Engine:
+- **routineMoodCorrelation**: Compares mood on high routine completion days (60%+) vs low completion days (30%-)
+- **habitRoutineSynergy**: Analyzes mood when habits AND routines are completed together vs separately
+- **highConfidenceHabits**: Only includes habits with statistically meaningful sample sizes (4+ days)
+- **sleepHabitInteraction**: 2x2 analysis of sleep quality × habit completion impact on mood
+- **bestWorstDaysAnalysis**: Pattern analysis comparing top 20% mood days vs bottom 20%
+- **Confidence scoring**: Automated confidence levels (high/moderate/low) based on sample sizes
+- **Effect size calculation**: Cohen's d approximation for correlation strength (strong/moderate/weak)
+
 ### Build and Development
 
 - Development: `npm run dev` runs Express with Vite middleware

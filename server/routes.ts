@@ -681,7 +681,318 @@ export async function registerRoutes(
           totalRoutineCompletions: recentRoutineLogs.length,
         };
         
-        return { habitCorrelations, sleepCorrelations, routineAdherence, frontingPatterns, overallMetrics };
+        // === HIGH CONFIDENCE MULTI-FACTOR CORRELATIONS ===
+        
+        // Helper: Calculate confidence level based on sample size
+        const getConfidence = (n: number): { level: 'high' | 'moderate' | 'low' | 'insufficient', minSamples: number } => {
+          if (n >= 7) return { level: 'high', minSamples: n };
+          if (n >= 4) return { level: 'moderate', minSamples: n };
+          if (n >= 2) return { level: 'low', minSamples: n };
+          return { level: 'insufficient', minSamples: n };
+        };
+        
+        // Helper: Calculate effect size (Cohen's d approximation)
+        const calcEffectSize = (mean1: number, mean2: number, pooledStd: number = 2): number => {
+          if (pooledStd === 0) return 0;
+          return Math.abs(mean1 - mean2) / pooledStd;
+        };
+        
+        // 1. ROUTINE-MOOD DIRECT CORRELATION
+        // Compare mood on days with high routine completion vs low completion
+        const routineMoodCorrelation = (() => {
+          if (parsedEntries.length < 3) return null;
+          
+          const dateRoutineCompletion = new Map<string, { completed: number; total: number }>();
+          
+          // Calculate routine completion per day
+          routineBlocks.forEach(block => {
+            const blockActivities = routineActivities.filter(a => a.blockId === block.id);
+            blockActivities.forEach(activity => {
+              recentRoutineLogs
+                .filter(l => l.activityId === activity.id)
+                .forEach(log => {
+                  const existing = dateRoutineCompletion.get(log.completedDate) || { completed: 0, total: 0 };
+                  existing.completed++;
+                  dateRoutineCompletion.set(log.completedDate, existing);
+                });
+            });
+          });
+          
+          // Count total activities per day
+          const totalActivitiesPerDay = routineActivities.length;
+          
+          // Categorize days by routine completion percentage
+          const highRoutineDays: typeof parsedEntries = [];
+          const lowRoutineDays: typeof parsedEntries = [];
+          
+          parsedEntries.forEach(pe => {
+            const date = new Date(pe.entry.timestamp).toISOString().split('T')[0];
+            const dayCompletion = dateRoutineCompletion.get(date);
+            const completionRate = dayCompletion && totalActivitiesPerDay > 0 
+              ? (dayCompletion.completed / totalActivitiesPerDay) * 100 
+              : 0;
+            
+            if (completionRate >= 60) highRoutineDays.push(pe);
+            else if (completionRate <= 30) lowRoutineDays.push(pe);
+          });
+          
+          if (highRoutineDays.length < 2 || lowRoutineDays.length < 2) return null;
+          
+          const avgMoodHighRoutine = highRoutineDays.reduce((s, pe) => s + (pe.entry.mood || 5), 0) / highRoutineDays.length;
+          const avgMoodLowRoutine = lowRoutineDays.reduce((s, pe) => s + (pe.entry.mood || 5), 0) / lowRoutineDays.length;
+          const avgStressHighRoutine = highRoutineDays.reduce((s, pe) => s + (pe.entry.stress || 0), 0) / highRoutineDays.length;
+          const avgStressLowRoutine = lowRoutineDays.reduce((s, pe) => s + (pe.entry.stress || 0), 0) / lowRoutineDays.length;
+          const avgDissociationHighRoutine = highRoutineDays.reduce((s, pe) => s + (pe.entry.dissociation || 0), 0) / highRoutineDays.length;
+          const avgDissociationLowRoutine = lowRoutineDays.reduce((s, pe) => s + (pe.entry.dissociation || 0), 0) / lowRoutineDays.length;
+          
+          const moodDiff = avgMoodHighRoutine - avgMoodLowRoutine;
+          const stressDiff = avgStressLowRoutine - avgStressHighRoutine;
+          const dissociationDiff = avgDissociationLowRoutine - avgDissociationHighRoutine;
+          
+          return {
+            highRoutineDays: highRoutineDays.length,
+            lowRoutineDays: lowRoutineDays.length,
+            avgMoodHighRoutine: avgMoodHighRoutine.toFixed(1),
+            avgMoodLowRoutine: avgMoodLowRoutine.toFixed(1),
+            moodImprovement: moodDiff.toFixed(1),
+            moodImprovementPercent: avgMoodLowRoutine > 0 ? Math.round((moodDiff / avgMoodLowRoutine) * 100) : 0,
+            avgStressHighRoutine: Math.round(avgStressHighRoutine),
+            avgStressLowRoutine: Math.round(avgStressLowRoutine),
+            stressReduction: Math.round(stressDiff),
+            avgDissociationHighRoutine: Math.round(avgDissociationHighRoutine),
+            avgDissociationLowRoutine: Math.round(avgDissociationLowRoutine),
+            dissociationReduction: Math.round(dissociationDiff),
+            confidence: getConfidence(Math.min(highRoutineDays.length, lowRoutineDays.length)),
+            effectSize: calcEffectSize(avgMoodHighRoutine, avgMoodLowRoutine) > 0.5 ? 'strong' : calcEffectSize(avgMoodHighRoutine, avgMoodLowRoutine) > 0.2 ? 'moderate' : 'weak',
+          };
+        })();
+        
+        // 2. COMBINED HABIT + ROUTINE SYNERGY
+        // Find habits that, when combined with routine completion, have the biggest mood impact
+        const habitRoutineSynergy = habits.map(h => {
+          const habitCompletionDates = new Set(
+            (habitCompletionsByHabit.get(h.id) || []).map(c => c.completedDate)
+          );
+          
+          const dateRoutineRate = new Map<string, number>();
+          parsedEntries.forEach(pe => {
+            const date = new Date(pe.entry.timestamp).toISOString().split('T')[0];
+            const totalActivities = routineActivities.length;
+            if (totalActivities === 0) {
+              dateRoutineRate.set(date, 0);
+              return;
+            }
+            const dayLogs = recentRoutineLogs.filter(l => l.completedDate === date);
+            dateRoutineRate.set(date, (dayLogs.length / totalActivities) * 100);
+          });
+          
+          // Four categories: habit+routine, habit only, routine only, neither
+          const habitAndRoutine: typeof parsedEntries = [];
+          const habitOnly: typeof parsedEntries = [];
+          const routineOnly: typeof parsedEntries = [];
+          const neither: typeof parsedEntries = [];
+          
+          parsedEntries.forEach(pe => {
+            const date = new Date(pe.entry.timestamp).toISOString().split('T')[0];
+            const hasHabit = habitCompletionDates.has(date);
+            const hasRoutine = (dateRoutineRate.get(date) || 0) >= 50;
+            
+            if (hasHabit && hasRoutine) habitAndRoutine.push(pe);
+            else if (hasHabit) habitOnly.push(pe);
+            else if (hasRoutine) routineOnly.push(pe);
+            else neither.push(pe);
+          });
+          
+          // Need sufficient data for meaningful comparison
+          const minSamples = Math.min(habitAndRoutine.length, neither.length);
+          if (minSamples < 2) return null;
+          
+          const avgMoodBoth = habitAndRoutine.length > 0 
+            ? habitAndRoutine.reduce((s, pe) => s + (pe.entry.mood || 5), 0) / habitAndRoutine.length 
+            : null;
+          const avgMoodNeither = neither.length > 0 
+            ? neither.reduce((s, pe) => s + (pe.entry.mood || 5), 0) / neither.length 
+            : null;
+          const avgMoodHabitOnly = habitOnly.length > 0 
+            ? habitOnly.reduce((s, pe) => s + (pe.entry.mood || 5), 0) / habitOnly.length 
+            : null;
+          const avgMoodRoutineOnly = routineOnly.length > 0 
+            ? routineOnly.reduce((s, pe) => s + (pe.entry.mood || 5), 0) / routineOnly.length 
+            : null;
+          
+          // Calculate synergy: is doing both better than expected?
+          const synergyBonus = avgMoodBoth !== null && avgMoodNeither !== null
+            ? avgMoodBoth - avgMoodNeither
+            : null;
+          
+          return {
+            habitName: h.title,
+            category: h.category,
+            daysBothCompleted: habitAndRoutine.length,
+            daysHabitOnly: habitOnly.length,
+            daysRoutineOnly: routineOnly.length,
+            daysNeither: neither.length,
+            avgMoodBoth: avgMoodBoth?.toFixed(1) || null,
+            avgMoodHabitOnly: avgMoodHabitOnly?.toFixed(1) || null,
+            avgMoodRoutineOnly: avgMoodRoutineOnly?.toFixed(1) || null,
+            avgMoodNeither: avgMoodNeither?.toFixed(1) || null,
+            synergyBonus: synergyBonus?.toFixed(1) || null,
+            confidence: getConfidence(minSamples),
+          };
+        }).filter(s => s !== null && s.confidence.level !== 'insufficient');
+        
+        // 3. HIGH-CONFIDENCE HABIT INSIGHTS (filter to only statistically meaningful)
+        const highConfidenceHabits = habitCorrelations
+          .map(h => {
+            const moodWith = parseFloat(h.avgMoodWithHabit || '0');
+            const moodWithout = parseFloat(h.avgMoodWithoutHabit || '0');
+            const moodDiff = moodWith - moodWithout;
+            const stressDiff = (h.avgStressWithoutHabit || 0) - (h.avgStressWithHabit || 0);
+            const minSamples = Math.min(h.daysCompleted, parsedEntries.length - h.daysCompleted);
+            const confidence = getConfidence(minSamples);
+            
+            // Only include if confidence is at least moderate
+            if (confidence.level === 'insufficient' || confidence.level === 'low') return null;
+            
+            const effectSize = calcEffectSize(moodWith, moodWithout);
+            
+            return {
+              ...h,
+              moodDifference: moodDiff.toFixed(1),
+              moodDifferencePercent: moodWithout > 0 ? Math.round((moodDiff / moodWithout) * 100) : 0,
+              stressReduction: stressDiff,
+              stressReductionPercent: (h.avgStressWithoutHabit || 0) > 0 ? Math.round((stressDiff / (h.avgStressWithoutHabit || 1)) * 100) : 0,
+              confidence,
+              effectSize: effectSize > 0.5 ? 'strong' : effectSize > 0.2 ? 'moderate' : 'weak',
+              impactDirection: moodDiff > 0.3 ? 'positive' : moodDiff < -0.3 ? 'negative' : 'neutral',
+            };
+          })
+          .filter(h => h !== null)
+          .sort((a, b) => parseFloat(b!.moodDifference) - parseFloat(a!.moodDifference));
+        
+        // 4. SLEEP-HABIT-MOOD TRIPLE CORRELATION
+        // Does sleep quality affect how much habits impact mood?
+        const sleepHabitInteraction = (() => {
+          const entriesWithSleep = parsedEntries.filter(pe => pe.parsed.normalizedMetrics.sleepHours !== null);
+          if (entriesWithSleep.length < 4) return null;
+          
+          // Find the most impactful habit
+          const topHabit = highConfidenceHabits[0];
+          if (!topHabit) return null;
+          
+          const topHabitDates = new Set(
+            (habitCompletionsByHabit.get(habits.find(h => h.title === topHabit.habitName)?.id || '') || []).map(c => c.completedDate)
+          );
+          
+          // Categorize: good sleep + habit, good sleep no habit, bad sleep + habit, bad sleep no habit
+          const goodSleepWithHabit: typeof entriesWithSleep = [];
+          const goodSleepNoHabit: typeof entriesWithSleep = [];
+          const badSleepWithHabit: typeof entriesWithSleep = [];
+          const badSleepNoHabit: typeof entriesWithSleep = [];
+          
+          entriesWithSleep.forEach(pe => {
+            const date = new Date(pe.entry.timestamp).toISOString().split('T')[0];
+            const hasHabit = topHabitDates.has(date);
+            const goodSleep = (pe.parsed.normalizedMetrics.sleepHours || 0) >= 7;
+            
+            if (goodSleep && hasHabit) goodSleepWithHabit.push(pe);
+            else if (goodSleep) goodSleepNoHabit.push(pe);
+            else if (hasHabit) badSleepWithHabit.push(pe);
+            else badSleepNoHabit.push(pe);
+          });
+          
+          const avgMood = (arr: typeof entriesWithSleep) => 
+            arr.length > 0 ? arr.reduce((s, pe) => s + (pe.entry.mood || 5), 0) / arr.length : null;
+          
+          return {
+            habitName: topHabit.habitName,
+            goodSleepWithHabitMood: avgMood(goodSleepWithHabit)?.toFixed(1) || null,
+            goodSleepNoHabitMood: avgMood(goodSleepNoHabit)?.toFixed(1) || null,
+            badSleepWithHabitMood: avgMood(badSleepWithHabit)?.toFixed(1) || null,
+            badSleepNoHabitMood: avgMood(badSleepNoHabit)?.toFixed(1) || null,
+            goodSleepWithHabitCount: goodSleepWithHabit.length,
+            goodSleepNoHabitCount: goodSleepNoHabit.length,
+            badSleepWithHabitCount: badSleepWithHabit.length,
+            badSleepNoHabitCount: badSleepNoHabit.length,
+            confidence: getConfidence(Math.min(
+              goodSleepWithHabit.length, goodSleepNoHabit.length,
+              badSleepWithHabit.length, badSleepNoHabit.length
+            )),
+          };
+        })();
+        
+        // 5. BEST & WORST DAYS PATTERN ANALYSIS
+        // What combinations lead to best/worst days?
+        const bestWorstDaysAnalysis = (() => {
+          if (parsedEntries.length < 5) return null;
+          
+          const sorted = [...parsedEntries].sort((a, b) => (b.entry.mood || 5) - (a.entry.mood || 5));
+          const bestDays = sorted.slice(0, Math.max(2, Math.floor(sorted.length * 0.2)));
+          const worstDays = sorted.slice(-Math.max(2, Math.floor(sorted.length * 0.2)));
+          
+          // Analyze patterns on best days
+          const analyzePatterns = (daysArr: typeof parsedEntries) => {
+            const avgSleep = daysArr.filter(pe => pe.parsed.normalizedMetrics.sleepHours !== null)
+              .reduce((s, pe) => s + (pe.parsed.normalizedMetrics.sleepHours || 0), 0) / 
+              Math.max(1, daysArr.filter(pe => pe.parsed.normalizedMetrics.sleepHours !== null).length);
+            
+            const habitCounts = new Map<string, number>();
+            daysArr.forEach(pe => {
+              const date = new Date(pe.entry.timestamp).toISOString().split('T')[0];
+              habits.forEach(h => {
+                const completions = habitCompletionsByHabit.get(h.id) || [];
+                if (completions.some(c => c.completedDate === date)) {
+                  habitCounts.set(h.title, (habitCounts.get(h.title) || 0) + 1);
+                }
+              });
+            });
+            
+            const routineCompletionRate = (() => {
+              if (routineActivities.length === 0) return 0;
+              let totalCompleted = 0;
+              daysArr.forEach(pe => {
+                const date = new Date(pe.entry.timestamp).toISOString().split('T')[0];
+                totalCompleted += recentRoutineLogs.filter(l => l.completedDate === date).length;
+              });
+              return Math.round((totalCompleted / (routineActivities.length * daysArr.length)) * 100);
+            })();
+            
+            return {
+              avgSleep: avgSleep.toFixed(1),
+              topHabits: Array.from(habitCounts.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(([name, count]) => ({ name, frequency: Math.round((count / daysArr.length) * 100) })),
+              routineCompletionRate,
+            };
+          };
+          
+          return {
+            bestDaysCount: bestDays.length,
+            worstDaysCount: worstDays.length,
+            avgMoodBestDays: (bestDays.reduce((s, pe) => s + (pe.entry.mood || 5), 0) / bestDays.length).toFixed(1),
+            avgMoodWorstDays: (worstDays.reduce((s, pe) => s + (pe.entry.mood || 5), 0) / worstDays.length).toFixed(1),
+            bestDaysPatterns: analyzePatterns(bestDays),
+            worstDaysPatterns: analyzePatterns(worstDays),
+            confidence: getConfidence(Math.min(bestDays.length, worstDays.length)),
+          };
+        })();
+        
+        return { 
+          habitCorrelations, 
+          sleepCorrelations, 
+          routineAdherence, 
+          frontingPatterns, 
+          overallMetrics,
+          // High-confidence multi-factor insights
+          highConfidence: {
+            routineMoodCorrelation,
+            habitRoutineSynergy: habitRoutineSynergy.slice(0, 5),
+            highConfidenceHabits: highConfidenceHabits.slice(0, 5),
+            sleepHabitInteraction,
+            bestWorstDaysAnalysis,
+          }
+        };
       };
       
       const correlations = computeCorrelations();
@@ -794,12 +1105,22 @@ KEY DATA AVAILABLE:
 
 5. preComputedCorrelations.overallMetrics - Period averages
 
+6. preComputedCorrelations.highConfidence - HIGH-CONFIDENCE MULTI-FACTOR INSIGHTS (PRIORITIZE THESE):
+   - routineMoodCorrelation: Mood on high routine completion days vs low (with confidence level)
+   - habitRoutineSynergy: How combining habits + routines creates synergy effects
+   - highConfidenceHabits: Only habits with statistically meaningful sample sizes
+   - sleepHabitInteraction: How sleep quality modifies habit effectiveness
+   - bestWorstDaysAnalysis: Pattern analysis of your best vs worst mood days
+
 CRITICAL INSTRUCTIONS:
+- PRIORITIZE insights from highConfidence section - these have validated sample sizes
+- Only report correlations with "high" or "moderate" confidence levels
 - Use SPECIFIC NUMBERS from the correlations (e.g., "Mood is 7.2 on days you complete X vs 5.1 on days without")
 - Calculate and state DIFFERENCES (e.g., "23% lower stress", "+1.5 mood points")
 - Reference SPECIFIC habits, routines, and members by name
-- State the STRENGTH of correlations (strong, moderate, weak)
-- Group insights by category: SLEEP, HABITS, ROUTINES, SYSTEM DYNAMICS
+- State effect size: "strong", "moderate", or "weak" 
+- Highlight SYNERGY effects (e.g., "Doing X AND Y together yields +2.3 mood points")
+- Group insights by category: SLEEP, HABITS, ROUTINES, SYSTEM DYNAMICS, SYNERGIES
 
 Be supportive, non-judgmental, and use trauma-informed language. Keep insights QUANTITATIVE and ACTIONABLE.`;
 
