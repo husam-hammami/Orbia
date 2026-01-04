@@ -1,12 +1,25 @@
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, RotateCcw, Volume2, VolumeX, Clock, Zap } from "lucide-react";
+import { Play, Pause, RotateCcw, Volume2, VolumeX, Clock, Zap, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useWorkTimer } from "@/hooks/use-work-timer";
 import { cn } from "@/lib/utils";
 
 const WORK_SESSION_MINUTES = 45;
+const AUTO_START_STORAGE_KEY = "neurozen-timer-autostart";
 
 export function WorkTimer() {
+  const [autoStartEnabled, setAutoStartEnabled] = useState(() => {
+    const stored = localStorage.getItem(AUTO_START_STORAGE_KEY);
+    return stored === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem(AUTO_START_STORAGE_KEY, String(autoStartEnabled));
+  }, [autoStartEnabled]);
+
   const {
     state,
     remainingSeconds,
@@ -22,7 +35,7 @@ export function WorkTimer() {
     toggleMute,
   } = useWorkTimer({
     durationMinutes: WORK_SESSION_MINUTES,
-    autoStartEnabled: false,
+    autoStartEnabled,
   });
 
   const minutes = Math.floor(remainingSeconds / 60);
@@ -229,6 +242,38 @@ export function WorkTimer() {
             >
               {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </Button>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-slate-400 hover:text-slate-300"
+                  data-testid="timer-settings-button"
+                >
+                  <Settings2 className="w-4 h-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 bg-slate-900/95 border-slate-700/50" align="end">
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-slate-200">Timer Settings</h4>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="auto-start" className="text-sm text-slate-400">
+                      Auto-start during work blocks
+                    </label>
+                    <Switch
+                      id="auto-start"
+                      checked={autoStartEnabled}
+                      onCheckedChange={setAutoStartEnabled}
+                      data-testid="timer-autostart-switch"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Automatically starts when entering Work Block 1 (9am-1pm) or Work Block 2 (2pm-6pm)
+                  </p>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       </div>
