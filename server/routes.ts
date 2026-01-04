@@ -558,6 +558,134 @@ export async function registerRoutes(
         habitCompletionsByHabit.set(h.id, recentCompletions.filter(c => c.habitId === h.id));
       });
       
+      // Pre-compute correlation statistics for more meaningful insights
+      const computeCorrelations = () => {
+        const dateToEntry = new Map(parsedEntries.map(pe => [
+          new Date(pe.entry.timestamp).toISOString().split('T')[0],
+          pe
+        ]));
+        
+        // Habit-mood correlations
+        const habitCorrelations = habits.map(h => {
+          const completionDates = new Set(
+            (habitCompletionsByHabit.get(h.id) || []).map(c => c.completedDate)
+          );
+          
+          let moodWithHabit = 0, moodWithoutHabit = 0;
+          let stressWithHabit = 0, stressWithoutHabit = 0;
+          let energyWithHabit = 0, energyWithoutHabit = 0;
+          let daysWithHabit = 0, daysWithoutHabit = 0;
+          
+          parsedEntries.forEach(({ entry }) => {
+            const date = new Date(entry.timestamp).toISOString().split('T')[0];
+            if (completionDates.has(date)) {
+              moodWithHabit += entry.mood || 5;
+              stressWithHabit += entry.stress || 0;
+              energyWithHabit += entry.energy || 5;
+              daysWithHabit++;
+            } else {
+              moodWithoutHabit += entry.mood || 5;
+              stressWithoutHabit += entry.stress || 0;
+              energyWithoutHabit += entry.energy || 5;
+              daysWithoutHabit++;
+            }
+          });
+          
+          return {
+            habitName: h.title,
+            category: h.category,
+            completionRate: parsedEntries.length > 0 
+              ? Math.round((completionDates.size / days) * 100) 
+              : 0,
+            daysCompleted: completionDates.size,
+            avgMoodWithHabit: daysWithHabit > 0 ? (moodWithHabit / daysWithHabit).toFixed(1) : null,
+            avgMoodWithoutHabit: daysWithoutHabit > 0 ? (moodWithoutHabit / daysWithoutHabit).toFixed(1) : null,
+            avgStressWithHabit: daysWithHabit > 0 ? Math.round(stressWithHabit / daysWithHabit) : null,
+            avgStressWithoutHabit: daysWithoutHabit > 0 ? Math.round(stressWithoutHabit / daysWithoutHabit) : null,
+            avgEnergyWithHabit: daysWithHabit > 0 ? (energyWithHabit / daysWithHabit).toFixed(1) : null,
+            avgEnergyWithoutHabit: daysWithoutHabit > 0 ? (energyWithoutHabit / daysWithoutHabit).toFixed(1) : null,
+          };
+        }).filter(c => c.daysCompleted > 0);
+        
+        // Sleep-mood correlations
+        const sleepCorrelations = (() => {
+          const entriesWithSleep = parsedEntries.filter(pe => pe.parsed.normalizedMetrics.sleepHours !== null);
+          if (entriesWithSleep.length < 2) return null;
+          
+          const lowSleep = entriesWithSleep.filter(pe => (pe.parsed.normalizedMetrics.sleepHours || 0) < 6);
+          const goodSleep = entriesWithSleep.filter(pe => (pe.parsed.normalizedMetrics.sleepHours || 0) >= 7);
+          
+          return {
+            entriesWithSleepData: entriesWithSleep.length,
+            avgSleepHours: (entriesWithSleep.reduce((sum, pe) => sum + (pe.parsed.normalizedMetrics.sleepHours || 0), 0) / entriesWithSleep.length).toFixed(1),
+            lowSleepDays: lowSleep.length,
+            goodSleepDays: goodSleep.length,
+            avgMoodLowSleep: lowSleep.length > 0 ? (lowSleep.reduce((sum, pe) => sum + (pe.entry.mood || 5), 0) / lowSleep.length).toFixed(1) : null,
+            avgMoodGoodSleep: goodSleep.length > 0 ? (goodSleep.reduce((sum, pe) => sum + (pe.entry.mood || 5), 0) / goodSleep.length).toFixed(1) : null,
+            avgDissociationLowSleep: lowSleep.length > 0 ? Math.round(lowSleep.reduce((sum, pe) => sum + (pe.entry.dissociation || 0), 0) / lowSleep.length) : null,
+            avgDissociationGoodSleep: goodSleep.length > 0 ? Math.round(goodSleep.reduce((sum, pe) => sum + (pe.entry.dissociation || 0), 0) / goodSleep.length) : null,
+          };
+        })();
+        
+        // Routine block adherence
+        const routineAdherence = routineBlocks.map(block => {
+          const blockActivities = routineActivities.filter(a => a.blockId === block.id);
+          const totalPossible = blockActivities.length * days;
+          const completed = blockActivities.reduce((sum, a) => {
+            return sum + recentRoutineLogs.filter(l => l.activityId === a.id).length;
+          }, 0);
+          
+          return {
+            blockName: block.name,
+            purpose: block.purpose,
+            activityCount: blockActivities.length,
+            completionRate: totalPossible > 0 ? Math.round((completed / totalPossible) * 100) : 0,
+            totalCompleted: completed,
+          };
+        });
+        
+        // Fronting member patterns
+        const frontingPatterns = (() => {
+          const memberStats = new Map<string, { count: number; totalMood: number; totalStress: number; totalDissociation: number; name: string; role: string }>();
+          parsedEntries.forEach(({ entry, frontingMember }) => {
+            if (frontingMember) {
+              const existing = memberStats.get(frontingMember.id) || { 
+                count: 0, totalMood: 0, totalStress: 0, totalDissociation: 0, 
+                name: frontingMember.name, role: frontingMember.role || ''
+              };
+              existing.count++;
+              existing.totalMood += entry.mood || 5;
+              existing.totalStress += entry.stress || 0;
+              existing.totalDissociation += entry.dissociation || 0;
+              memberStats.set(frontingMember.id, existing);
+            }
+          });
+          return Array.from(memberStats.values()).map(s => ({
+            name: s.name,
+            role: s.role,
+            entriesCount: s.count,
+            percentageOfEntries: parsedEntries.length > 0 ? Math.round((s.count / parsedEntries.length) * 100) : 0,
+            avgMood: (s.totalMood / s.count).toFixed(1),
+            avgStress: Math.round(s.totalStress / s.count),
+            avgDissociation: Math.round(s.totalDissociation / s.count),
+          }));
+        })();
+        
+        // Overall trends
+        const overallMetrics = {
+          avgMood: parsedEntries.length > 0 ? (parsedEntries.reduce((sum, pe) => sum + (pe.entry.mood || 5), 0) / parsedEntries.length).toFixed(1) : null,
+          avgStress: parsedEntries.length > 0 ? Math.round(parsedEntries.reduce((sum, pe) => sum + (pe.entry.stress || 0), 0) / parsedEntries.length) : null,
+          avgDissociation: parsedEntries.length > 0 ? Math.round(parsedEntries.reduce((sum, pe) => sum + (pe.entry.dissociation || 0), 0) / parsedEntries.length) : null,
+          avgEnergy: parsedEntries.length > 0 ? (parsedEntries.reduce((sum, pe) => sum + (pe.entry.energy || 5), 0) / parsedEntries.length).toFixed(1) : null,
+          totalHabitCompletions: recentCompletions.length,
+          totalRoutineCompletions: recentRoutineLogs.length,
+        };
+        
+        return { habitCorrelations, sleepCorrelations, routineAdherence, frontingPatterns, overallMetrics };
+      };
+      
+      const correlations = computeCorrelations();
+      
       // Build comprehensive context for AI analysis including all parsed tracker data
       const context = {
         moodEntries: parsedEntries.map(({ entry: e, parsed, frontingMember }) => ({
@@ -638,53 +766,76 @@ export async function registerRoutes(
           entriesWithMeals: parsedEntries.filter(({ parsed }) => parsed.meals.length > 0).length,
           habitsTracked: habits.length,
           routineBlocksActive: routineBlocks.length
-        }
+        },
+        preComputedCorrelations: correlations
       };
       
       // Generate AI insights using GPT-5.1
-      const systemPrompt = `You are a compassionate mental health insights assistant for NeuroZen, an app designed for individuals with dissociative identity disorder (DID) or complex trauma. 
+      const systemPrompt = `You are a compassionate mental health insights assistant for NeuroZen, an app designed for individuals with dissociative identity disorder (DID) or complex trauma.
 
-You have access to comprehensive tracking data including:
-- Mood, energy, stress, and dissociation levels (daily metrics)
-- Additional metrics from notes: sleep, pain, communication quality, urges, comfort levels
-- Journal text with emotional context
-- Tags describing the day (e.g., "therapy day", "work", "rest day")
-- Stress triggers identified by the user
-- Meal tracking data
-- System member (alter) fronting patterns with their roles and traits
-- Habit tracking with completion dates and targets
-- Daily routine activities linked to habits
+You have access to comprehensive tracking data WITH PRE-COMPUTED CORRELATIONS. Use these computed statistics to provide SPECIFIC, DATA-BACKED insights.
 
-Analyze this data to identify patterns and provide helpful, trauma-informed insights. Focus on:
-1. Correlations between sleep, meals, and mood/dissociation
-2. Stress trigger patterns and their impact on metrics
-3. Habit and routine consistency and their relationship to wellbeing
-4. System member fronting patterns and when different parts tend to be present
-5. Positive reinforcement for consistency and progress
-6. Gentle suggestions based on observed patterns
+KEY DATA AVAILABLE:
+1. preComputedCorrelations.habitCorrelations - Shows for each habit:
+   - completionRate (%), daysCompleted
+   - avgMoodWithHabit vs avgMoodWithoutHabit (compare these!)
+   - avgStressWithHabit vs avgStressWithoutHabit (compare these!)
+   - avgEnergyWithHabit vs avgEnergyWithoutHabit (compare these!)
 
-Be supportive, non-judgmental, and use trauma-informed language. Avoid triggering content. Keep insights actionable and specific to the data provided.`;
+2. preComputedCorrelations.sleepCorrelations - Shows:
+   - avgMoodLowSleep vs avgMoodGoodSleep
+   - avgDissociationLowSleep vs avgDissociationGoodSleep
 
-      const userPrompt = `Please analyze the following ${days}-day data snapshot and provide insights:
+3. preComputedCorrelations.routineAdherence - Shows per routine block:
+   - completionRate (%), which blocks are being followed
+
+4. preComputedCorrelations.frontingPatterns - Shows per system member:
+   - percentageOfEntries, avgMood, avgStress, avgDissociation
+
+5. preComputedCorrelations.overallMetrics - Period averages
+
+CRITICAL INSTRUCTIONS:
+- Use SPECIFIC NUMBERS from the correlations (e.g., "Mood is 7.2 on days you complete X vs 5.1 on days without")
+- Calculate and state DIFFERENCES (e.g., "23% lower stress", "+1.5 mood points")
+- Reference SPECIFIC habits, routines, and members by name
+- State the STRENGTH of correlations (strong, moderate, weak)
+- Group insights by category: SLEEP, HABITS, ROUTINES, SYSTEM DYNAMICS
+
+Be supportive, non-judgmental, and use trauma-informed language. Keep insights QUANTITATIVE and ACTIONABLE.`;
+
+      const userPrompt = `Analyze this ${days}-day data and provide insights WITH SPECIFIC NUMBERS from the correlations:
 
 ${JSON.stringify(context, null, 2)}
 
-Provide 3-5 key insights with:
-- A brief title for each insight
-- The pattern or observation
-- A gentle, actionable suggestion if applicable
+REQUIREMENTS:
+1. Each insight MUST cite specific numbers from preComputedCorrelations
+2. Calculate and state percentage differences or point differences
+3. Name specific habits, routines, or members when discussing patterns
+4. Include a "dataPoint" field with the key metric for each insight
 
-Format your response as JSON with this structure:
+Format as JSON:
 {
   "insights": [
     {
-      "title": "string",
-      "observation": "string",
-      "suggestion": "string or null"
+      "category": "sleep" | "habits" | "routines" | "system" | "overall",
+      "title": "Brief title",
+      "observation": "The pattern with SPECIFIC NUMBERS (e.g., 'Mood averages 7.2 on days you complete Morning Routine vs 5.1 without - a 2.1 point improvement')",
+      "dataPoint": "The key metric (e.g., '+41% mood improvement')",
+      "suggestion": "Actionable next step or null",
+      "confidence": "strong" | "moderate" | "limited" (based on data volume)
+    }
+  ],
+  "correlationHighlights": [
+    {
+      "factor1": "string (e.g., 'Sleep 7+ hours')",
+      "factor2": "string (e.g., 'Dissociation')", 
+      "relationship": "positive" | "negative" | "neutral",
+      "strength": "strong" | "moderate" | "weak",
+      "summary": "Brief statement with numbers"
     }
   ],
   "overallTrend": "improving" | "stable" | "needs_attention",
-  "encouragement": "A brief encouraging message"
+  "encouragement": "Brief encouraging message referencing a specific achievement"
 }`;
 
       const completion = await openai.chat.completions.create({
@@ -694,7 +845,7 @@ Format your response as JSON with this structure:
           { role: "user", content: userPrompt }
         ],
         response_format: { type: "json_object" },
-        max_completion_tokens: 1500
+        max_completion_tokens: 2500
       });
       
       const responseText = completion.choices[0]?.message?.content || "{}";
@@ -702,6 +853,7 @@ Format your response as JSON with this structure:
       
       res.json({
         ...insights,
+        rawCorrelations: correlations,
         dataRange: {
           days,
           entriesAnalyzed: recentEntries.length,

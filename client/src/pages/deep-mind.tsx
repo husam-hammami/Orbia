@@ -42,7 +42,9 @@ import {
   Search,
   Plus,
   Loader2,
-  Sparkles
+  Sparkles,
+  TrendingUp,
+  Lightbulb
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMembers, useTrackerEntries, useCreateTrackerEntry } from "@/lib/api-hooks";
@@ -438,7 +440,7 @@ export default function DeepMind() {
                             {insightsLoading ? (
                               <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
                                 <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-                                <p className="text-muted-foreground text-sm">Analyzing patterns...</p>
+                                <p className="text-muted-foreground text-sm">Analyzing patterns and correlations...</p>
                               </div>
                             ) : insights?.insights && insights.insights.length > 0 ? (
                               <div className="space-y-4">
@@ -447,26 +449,92 @@ export default function DeepMind() {
                                     {insights.encouragement}
                                   </div>
                                 )}
-                                <div className="space-y-3">
-                                  {insights.insights.map((insight: any, i: number) => (
-                                    <div key={i} className="p-4 bg-muted/30 rounded-lg border border-border/50">
-                                      <h4 className="font-semibold text-sm text-foreground mb-1">{insight.title}</h4>
-                                      <p className="text-sm text-muted-foreground mb-2">{insight.observation}</p>
-                                      {insight.suggestion && (
-                                        <p className="text-xs text-primary/80 bg-primary/10 p-2 rounded">
-                                          <strong>Suggestion:</strong> {insight.suggestion}
-                                        </p>
-                                      )}
+                                
+                                {insights.correlationHighlights && insights.correlationHighlights.length > 0 && (
+                                  <div className="p-4 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-lg border border-indigo-500/20">
+                                    <h4 className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-3 flex items-center gap-2">
+                                      <TrendingUp className="w-4 h-4" />
+                                      Key Correlations Detected
+                                    </h4>
+                                    <div className="grid gap-2">
+                                      {insights.correlationHighlights.map((corr: any, i: number) => (
+                                        <div key={i} className="flex items-center gap-2 text-xs bg-background/50 p-2 rounded">
+                                          <span className="font-medium">{corr.factor1}</span>
+                                          <span className={cn(
+                                            "px-1.5 py-0.5 rounded text-[10px] font-bold",
+                                            corr.relationship === 'positive' ? 'bg-emerald-500/20 text-emerald-600' :
+                                            corr.relationship === 'negative' ? 'bg-rose-500/20 text-rose-600' :
+                                            'bg-slate-500/20 text-slate-600'
+                                          )}>
+                                            {corr.relationship === 'positive' ? '↑' : corr.relationship === 'negative' ? '↓' : '~'}
+                                          </span>
+                                          <span className="font-medium">{corr.factor2}</span>
+                                          <Badge variant="outline" className="ml-auto text-[10px]">{corr.strength}</Badge>
+                                        </div>
+                                      ))}
                                     </div>
-                                  ))}
+                                  </div>
+                                )}
+                                
+                                <div className="space-y-3">
+                                  {insights.insights.map((insight: any, i: number) => {
+                                    const categoryColors: Record<string, string> = {
+                                      sleep: 'border-l-blue-500 bg-blue-500/5',
+                                      habits: 'border-l-emerald-500 bg-emerald-500/5',
+                                      routines: 'border-l-amber-500 bg-amber-500/5',
+                                      system: 'border-l-purple-500 bg-purple-500/5',
+                                      overall: 'border-l-indigo-500 bg-indigo-500/5',
+                                    };
+                                    const categoryIcons: Record<string, string> = {
+                                      sleep: '😴', habits: '✓', routines: '📅', system: '👥', overall: '📊'
+                                    };
+                                    return (
+                                      <div key={i} className={cn(
+                                        "p-4 rounded-lg border-l-4",
+                                        categoryColors[insight.category] || 'border-l-slate-500 bg-muted/30'
+                                      )}>
+                                        <div className="flex items-start justify-between gap-2 mb-2">
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-lg">{categoryIcons[insight.category] || '💡'}</span>
+                                            <h4 className="font-semibold text-sm text-foreground">{insight.title}</h4>
+                                          </div>
+                                          <div className="flex items-center gap-1.5">
+                                            {insight.dataPoint && (
+                                              <Badge className="bg-primary/20 text-primary text-[10px] font-bold">
+                                                {insight.dataPoint}
+                                              </Badge>
+                                            )}
+                                            {insight.confidence && (
+                                              <Badge variant="outline" className={cn(
+                                                "text-[10px]",
+                                                insight.confidence === 'strong' ? 'border-emerald-500 text-emerald-600' :
+                                                insight.confidence === 'moderate' ? 'border-amber-500 text-amber-600' :
+                                                'border-slate-400 text-slate-500'
+                                              )}>
+                                                {insight.confidence}
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground mb-2">{insight.observation}</p>
+                                        {insight.suggestion && (
+                                          <p className="text-xs text-primary/80 bg-primary/10 p-2 rounded flex items-start gap-1.5">
+                                            <Lightbulb className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                            <span>{insight.suggestion}</span>
+                                          </p>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
+                                
                                 {insights.dataRange && (
                                   <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-border/50">
                                     <p className="text-xs font-medium text-muted-foreground mb-2">Analysis Summary</p>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                                       <div className="bg-background/50 p-2 rounded">
-                                        <span className="text-muted-foreground">Days:</span>
-                                        <span className="font-mono ml-1">{insights.dataRange.days}</span>
+                                        <span className="text-muted-foreground">Period:</span>
+                                        <span className="font-mono ml-1">{insights.dataRange.days} days</span>
                                       </div>
                                       <div className="bg-background/50 p-2 rounded">
                                         <span className="text-muted-foreground">Entries:</span>
@@ -478,7 +546,11 @@ export default function DeepMind() {
                                       </div>
                                       <div className="bg-background/50 p-2 rounded">
                                         <span className="text-muted-foreground">Trend:</span>
-                                        <span className="font-mono ml-1 capitalize">{insights.overallTrend || 'stable'}</span>
+                                        <span className={cn(
+                                          "font-mono ml-1 capitalize",
+                                          insights.overallTrend === 'improving' ? 'text-emerald-600' :
+                                          insights.overallTrend === 'needs_attention' ? 'text-amber-600' : ''
+                                        )}>{insights.overallTrend || 'stable'}</span>
                                       </div>
                                     </div>
                                   </div>
