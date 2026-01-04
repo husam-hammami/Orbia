@@ -332,12 +332,12 @@ export function RoutineEditor() {
                           />
                           <div>
                             <label className="text-sm text-muted-foreground mb-1 block">Link to Habit (optional)</label>
-                            <Select value={activityForm.habitId} onValueChange={(v) => setActivityForm({ ...activityForm, habitId: v })}>
+                            <Select value={activityForm.habitId || "__none__"} onValueChange={(v) => setActivityForm({ ...activityForm, habitId: v === "__none__" ? "" : v })}>
                               <SelectTrigger data-testid="select-activity-habit">
                                 <SelectValue placeholder="None" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value="__none__">None</SelectItem>
                                 {habits?.map((h) => (
                                   <SelectItem key={h.id} value={h.id}>{h.title}</SelectItem>
                                 ))}
