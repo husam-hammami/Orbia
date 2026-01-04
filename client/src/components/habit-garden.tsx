@@ -12,17 +12,23 @@ interface HabitGardenProps {
   onEdit?: (id: string, data: Partial<Omit<Habit, "id" | "streak" | "completedToday" | "history">>) => void;
 }
 
-// Map categories to icons
-const CategoryIcons: Record<string, any> = {
-  Health: Heart,
-  Work: Briefcase,
-  Mindfulness: Brain,
-  Creativity: Palette,
-  Social: Users,
-  Finance: PiggyBank,
-  Recovery: Accessibility,
-  System: Sparkles
+// Map categories to icons (case-insensitive)
+const CategoryIconsMap: Record<string, any> = {
+  health: Heart,
+  work: Briefcase,
+  mindfulness: Brain,
+  creativity: Palette,
+  social: Users,
+  finance: PiggyBank,
+  recovery: Accessibility,
+  system: Sparkles,
+  movement: Heart,
+  mental: Brain,
 };
+
+function getCategoryIcon(category: string) {
+  return CategoryIconsMap[category.toLowerCase()] || Sparkles;
+}
 
 // Procedural plant generator based on habit data
 const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () => void; onDelete: () => void }) => {
@@ -36,7 +42,7 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
   if (streak > 10) stage = "thrive";
   if (streak > 30) stage = "master";
 
-  const CategoryIcon = CategoryIcons[habit.category] || Sparkles;
+  const CategoryIcon = getCategoryIcon(habit.category);
 
   // Visual variants
   const variants = {
@@ -111,36 +117,26 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
                        animate={{ scale: 1, rotate: 0 }}
                        className="text-foreground"
                     >
-                       {/* Show category icon instead of generic nature icons once it sprouts */}
-                       {stage === "seed" ? (
-                          <Droplets className="w-8 h-8 mx-auto mb-1 text-blue-400" />
-                       ) : (
-                          <CategoryIcon 
-                              className={cn(
-                                "mx-auto mb-1", 
-                                stage === "sprout" ? "w-8 h-8" : "w-10 h-10",
-                                stage === "thrive" || stage === "master" ? "w-12 h-12" : ""
-                              )} 
-                              style={{ color: habit.color }}
-                          />
-                       )}
-                       
+                       <CategoryIcon 
+                          className={cn(
+                            "mx-auto mb-1", 
+                            stage === "seed" || stage === "sprout" ? "w-8 h-8" : "w-10 h-10",
+                            stage === "thrive" || stage === "master" ? "w-12 h-12" : ""
+                          )} 
+                          style={{ color: habit.color }}
+                       />
                        <p className="text-xs font-bold uppercase tracking-wider opacity-60">Done</p>
                     </motion.div>
                  ) : (
                     <div className="text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">
-                       {stage === "seed" ? (
-                          <Droplets className="w-8 h-8 mx-auto mb-1" />
-                       ) : (
-                          <CategoryIcon 
-                              className={cn(
-                                "mx-auto mb-1 grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500", 
-                                stage === "sprout" ? "w-8 h-8" : "w-10 h-10",
-                                stage === "thrive" || stage === "master" ? "w-12 h-12" : ""
-                              )}
-                              style={{ color: 'currentColor' }} 
-                          />
-                       )}
+                       <CategoryIcon 
+                          className={cn(
+                            "mx-auto mb-1 grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500", 
+                            stage === "seed" || stage === "sprout" ? "w-8 h-8" : "w-10 h-10",
+                            stage === "thrive" || stage === "master" ? "w-12 h-12" : ""
+                          )}
+                          style={{ color: 'currentColor' }} 
+                       />
                        <p className="text-xs font-medium uppercase tracking-widest mb-1">Grow</p>
                     </div>
                  )}

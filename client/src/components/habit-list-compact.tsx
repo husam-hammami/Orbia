@@ -6,16 +6,23 @@ import { Check, Flame, Trophy, Trash2, Heart, Briefcase, Brain, Palette, Users, 
 import { Button } from "@/components/ui/button";
 import { HabitEditForm } from "./habit-edit-form";
 
-const CategoryIcons: Record<string, any> = {
-  Health: Heart,
-  Work: Briefcase,
-  Mindfulness: Brain,
-  Creativity: Palette,
-  Social: Users,
-  Finance: PiggyBank,
-  Recovery: Accessibility,
-  System: Sparkles
+// Map categories to icons (case-insensitive)
+const CategoryIconsMap: Record<string, any> = {
+  health: Heart,
+  work: Briefcase,
+  mindfulness: Brain,
+  creativity: Palette,
+  social: Users,
+  finance: PiggyBank,
+  recovery: Accessibility,
+  system: Sparkles,
+  movement: Heart,
+  mental: Brain,
 };
+
+function getCategoryIcon(category: string) {
+  return CategoryIconsMap[category.toLowerCase()] || Sparkles;
+}
 
 interface HabitListCompactProps {
   habits: Habit[];
@@ -47,7 +54,7 @@ export function HabitListCompact({ habits, onToggle, onDelete, onEdit }: HabitLi
                 style={{ backgroundColor: `${habit.color}15`, color: habit.color }}
               >
                 {(() => {
-                  const Icon = CategoryIcons[habit.category] || Sparkles;
+                  const Icon = getCategoryIcon(habit.category);
                   return <Icon className="w-5 h-5" />;
                 })()}
               </div>
