@@ -403,59 +403,88 @@ export default function CareerPage() {
               </div>
 
               {viewMode === "list" ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                      {projects.map(project => {
                         const daysLeft = project.deadline ? differenceInDays(new Date(project.deadline), new Date()) : null;
                         const isUrgent = daysLeft !== null && daysLeft < 7;
                         const displayStatus = STATUS_DISPLAY[project.status] || project.status;
+                        const projectTasks = getProjectTasks(project.id);
+                        const completedTasks = projectTasks.filter(t => t.completed === 1).length;
+                        const totalTasks = projectTasks.length;
+                        
+                        const colorHexMap: Record<string, string> = {
+                          'bg-blue-500': '#3b82f6',
+                          'bg-purple-500': '#a855f7',
+                          'bg-emerald-500': '#10b981',
+                          'bg-green-500': '#22c55e',
+                          'bg-cyan-500': '#06b6d4',
+                          'bg-amber-500': '#f59e0b',
+                          'bg-orange-500': '#f97316',
+                          'bg-red-500': '#ef4444',
+                          'bg-indigo-500': '#6366f1',
+                          'bg-slate-500': '#64748b',
+                        };
 
                         return (
                            <div 
                               key={project.id} 
                               onClick={() => openViewProject(project)}
-                              className="group relative flex flex-col md:flex-row md:items-center gap-4 p-5 rounded-xl border border-border/40 bg-card hover:border-indigo-500/30 hover:shadow-md transition-all cursor-pointer overflow-hidden"
+                              className="group relative flex flex-col gap-3 p-4 rounded-xl border border-border/40 bg-card hover:shadow-lg transition-all cursor-pointer"
+                              style={{ borderLeftWidth: '4px', borderLeftColor: colorHexMap[project.color] || '#6366f1' }}
                            >
-                              <div className={cn("absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b", project.color.replace('bg-', 'from-').replace('500', '500').concat(' to-transparent opacity-50'))} />
-                              
-                              <div className="flex-1 min-w-0 space-y-1">
-                                 <div className="flex items-center gap-3 mb-1">
-                                    <h3 className="font-semibold text-base tracking-tight">{project.title}</h3>
-                                    <Badge 
-                                       variant="outline" 
-                                       className={cn("text-[10px] px-2 py-0 h-5 font-normal border-0", 
-                                          project.status === "in_progress" ? "bg-blue-500/10 text-blue-500" : 
-                                          project.status === "planning" ? "bg-purple-500/10 text-purple-500" :
-                                          project.status === "completed" ? "bg-gray-500/10 text-gray-500" :
-                                          "bg-emerald-500/10 text-emerald-500"
+                              <div className="flex items-start justify-between gap-4">
+                                 <div className="flex-1 min-w-0 space-y-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                       <h3 className="font-semibold text-sm tracking-tight">{project.title}</h3>
+                                       <Badge 
+                                          variant="outline" 
+                                          className={cn("text-[10px] px-2 py-0 h-5 font-medium border-0 shrink-0", 
+                                             project.status === "in_progress" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400" : 
+                                             project.status === "planning" ? "bg-purple-500/15 text-purple-600 dark:text-purple-400" :
+                                             project.status === "completed" ? "bg-gray-500/15 text-gray-600 dark:text-gray-400" :
+                                             "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                                          )}
+                                       >
+                                          {displayStatus}
+                                       </Badge>
+                                       {totalTasks > 0 && (
+                                          <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded shrink-0">
+                                             {completedTasks}/{totalTasks} tasks
+                                          </span>
                                        )}
-                                    >
-                                       {displayStatus}
-                                    </Badge>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground line-clamp-2">{project.description}</p>
                                  </div>
-                                 <p className="text-sm text-muted-foreground line-clamp-1 pr-4">{project.description}</p>
+                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={(e) => { e.stopPropagation(); openEditProject(project); }}>
+                                    <MoreHorizontal className="w-4 h-4" />
+                                 </Button>
                               </div>
 
-                              <div className="flex flex-col md:flex-row gap-6 md:items-center min-w-[240px]">
-                                 <div className="flex-1 space-y-1.5 min-w-[120px]">
-                                    <div className="flex justify-between text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                              <div className="flex items-center gap-3 flex-wrap">
+                                 <div className="flex-1 min-w-[100px] max-w-[150px]">
+                                    <div className="flex justify-between text-[9px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
                                        <span>Progress</span>
                                        <span>{project.progress}%</span>
                                     </div>
-                                    <Progress value={project.progress} className="h-1.5 bg-muted" indicatorClassName={project.color} />
+                                    <Progress value={project.progress} className="h-1.5 bg-muted/50" indicatorClassName={project.color} />
                                  </div>
 
                                  {project.nextAction && (
-                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/40 border border-border/50 text-xs text-muted-foreground w-full md:w-auto max-w-[200px]">
-                                       <ArrowRight className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/30 text-[10px] text-muted-foreground max-w-[180px]">
+                                       <ArrowRight className="w-3 h-3 text-foreground/50 shrink-0" />
                                        <span className="truncate">{project.nextAction}</span>
                                     </div>
                                  )}
-                              </div>
-                              
-                              <div className="absolute right-4 top-4 md:relative md:right-auto md:top-auto">
-                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); openEditProject(project); }}>
-                                    <MoreHorizontal className="w-4 h-4" />
-                                 </Button>
+                                 
+                                 {project.tags && (project.tags as string[]).length > 0 && (
+                                    <div className="flex gap-1 flex-wrap">
+                                       {(project.tags as string[]).slice(0, 3).map((tag, i) => (
+                                          <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-muted/40 text-muted-foreground border border-border/30">
+                                             {tag}
+                                          </span>
+                                       ))}
+                                    </div>
+                                 )}
                               </div>
                            </div>
                         );
