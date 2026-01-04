@@ -9,6 +9,7 @@ import { HabitListCompact } from "@/components/habit-list-compact";
 import { HabitForm } from "@/components/habit-form";
 import { SystemJournal } from "@/components/system-journal";
 import { TodoList } from "@/components/todo-list";
+import { DailySummary } from "@/components/daily-summary";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -257,8 +258,9 @@ export default function TrackerPage() {
             </div>
           </TabsContent>
           
-          <TabsContent value="mood" className="mt-6" data-testid="content-mood">
+          <TabsContent value="mood" className="mt-6 space-y-6" data-testid="content-mood">
             <MoodTracker />
+            <DailySummary />
           </TabsContent>
           
           <TabsContent value="routine" className="mt-6 space-y-4" data-testid="content-routine">

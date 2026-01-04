@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo } from "@shared/schema";
+import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo, DailySummary } from "@shared/schema";
 
 // Helper to handle API calls
 async function fetchAPI(url: string, options?: RequestInit) {
@@ -549,6 +549,37 @@ export function useDeleteTodo() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
+    },
+  });
+}
+
+// Daily Summaries Hooks
+export function useDailySummaries() {
+  return useQuery<DailySummary[]>({
+    queryKey: ["dailySummaries"],
+    queryFn: () => fetchAPI("/api/daily-summaries"),
+  });
+}
+
+export function useDailySummary(date: string) {
+  return useQuery<DailySummary | null>({
+    queryKey: ["dailySummary", date],
+    queryFn: () => fetchAPI(`/api/daily-summaries/${date}`),
+  });
+}
+
+export function useUpsertDailySummary() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { date: string; feeling: string }) =>
+      fetchAPI("/api/daily-summaries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dailySummaries"] });
+      queryClient.invalidateQueries({ queryKey: ["dailySummary"] });
     },
   });
 }

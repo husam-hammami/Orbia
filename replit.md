@@ -49,6 +49,7 @@ The server handles:
 Key data models:
 - `systemMembers`: Alter/part profiles with roles, traits, and colors
 - `trackerEntries`: Daily mood, dissociation, stress, and energy tracking
+  - New fields: `capacity` (0-5 scale), `triggerTag` (work/loneliness/pain/noise/sleep/body/unknown), `timeOfDay` (auto-set: morning/afternoon/evening/night)
 - `systemMessages`: Internal sticky notes for system communication
 - `headspaceRooms`: Virtual rooms representing internal spaces
 - `systemSettings`: User preferences and configuration
@@ -57,6 +58,8 @@ Key data models:
 - `routineBlocks`: Time-based routine blocks (morning, work, evening)
 - `routineActivities`: Individual activities within routine blocks (linked to habits)
 - `routineActivityLogs`: Daily completion records for routine activities
+- `dailySummaries`: End-of-day reflection (lighter/average/heavier than usual)
+- `todos`: Simple to-do list items with priority levels
 - `conversations`: AI chat conversation threads
 - `messages`: Individual messages within AI conversations
 

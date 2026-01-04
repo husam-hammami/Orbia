@@ -528,14 +528,15 @@ export async function registerRoutes(
       const days = parseInt(req.query.days as string) || 14;
       
       // Fetch all linked data for analysis
-      const [entries, habits, completions, routineBlocks, routineActivities, routineLogs, members] = await Promise.all([
+      const [entries, habits, completions, routineBlocks, routineActivities, routineLogs, members, dailySummaries] = await Promise.all([
         storage.getAllTrackerEntries(),
         storage.getAllHabits(),
         storage.getAllHabitCompletions(),
         storage.getAllRoutineBlocks(),
         storage.getAllRoutineActivities(),
         storage.getAllRoutineLogs(),
-        storage.getAllMembers()
+        storage.getAllMembers(),
+        storage.getAllDailySummaries()
       ]);
       
       // Filter to recent data
@@ -1007,6 +1008,9 @@ export async function registerRoutes(
           energy: { value: e.energy, scale: "1-10" },
           stress: { value: e.stress, scale: "0-100" },
           dissociation: { value: e.dissociation, scale: "0-100" },
+          capacity: e.capacity !== null ? { value: e.capacity, scale: "0-5", description: "How much can they handle right now (not mood or energy)" } : null,
+          triggerTag: e.triggerTag || null,
+          timeOfDay: e.timeOfDay || null,
           frontingMember: frontingMember?.name || null,
           frontingMemberRole: frontingMember?.role || null,
           journalText: parsed.text,
@@ -1027,6 +1031,10 @@ export async function registerRoutes(
             ? { value: parsed.normalizedMetrics.urgesLevel, scale: "0-10" }
             : null,
           rawMetrics: parsed.rawMetrics
+        })),
+        dailySummaries: dailySummaries.filter(s => new Date(s.date) >= cutoffDate).map(s => ({
+          date: s.date,
+          feeling: s.feeling,
         })),
         habitData: habits.map(h => {
           const hCompletions = habitCompletionsByHabit.get(h.id) || [];
@@ -1114,6 +1122,19 @@ KEY DATA AVAILABLE:
    - sleepHabitInteraction: How sleep quality modifies habit effectiveness
    - bestWorstDaysAnalysis: Pattern analysis of your best vs worst mood days
 
+7. NEW CONTEXT FIELDS - Use these for deeper pattern analysis:
+   - capacity (0-5): How much they can handle RIGHT NOW (distinct from mood/energy - someone can be calm but have low capacity)
+   - triggerTag: What influenced the entry (work, loneliness, pain, noise, sleep, body, unknown)
+   - timeOfDay: When the entry was made (morning, afternoon, evening, night)
+   - dailySummaries: End-of-day reflections (lighter, average, heavier than usual)
+
+8. IMPORTANT DID-SPECIFIC PATTERNS TO LOOK FOR:
+   - "Guardian fronts more on high pain + work days" - correlate fronting members with trigger tags
+   - Time-of-day patterns for dissociation spikes
+   - Which members appear at which times of day
+   - Capacity vs mood discrepancies (calm but low capacity = different from high energy high capacity)
+   - Daily summary correlations with actual metrics (does "heavier" correlate with specific triggers/members?)
+
 CRITICAL INSTRUCTIONS:
 - PRIORITIZE insights from highConfidence section - these have validated sample sizes
 - Only report correlations with "high" or "moderate" confidence levels
@@ -1140,7 +1161,7 @@ Format as JSON:
 {
   "insights": [
     {
-      "category": "sleep" | "habits" | "routines" | "system" | "overall",
+      "category": "sleep" | "habits" | "routines" | "system" | "context" | "overall",
       "title": "Brief title",
       "observation": "The pattern with SPECIFIC NUMBERS (e.g., 'Mood averages 7.2 on days you complete Morning Routine vs 5.1 without - a 2.1 point improvement')",
       "dataPoint": "The key metric (e.g., '+41% mood improvement')",
@@ -1235,6 +1256,9 @@ Format as JSON:
           energy: { value: e.energy, scale: "1-10" },
           stress: { value: e.stress, scale: "0-100" },
           dissociation: { value: e.dissociation, scale: "0-100" },
+          capacity: e.capacity !== null ? { value: e.capacity, scale: "0-5", description: "How much can they handle right now" } : null,
+          triggerTag: e.triggerTag || null,
+          timeOfDay: e.timeOfDay || null,
           frontingMember: frontingMember?.name || null,
           frontingMemberRole: frontingMember?.role || null,
           journalText: parsed.text,

@@ -26,12 +26,33 @@ export function MoodTracker() {
   const [stress, setStress] = useState([3]);
   const [sleep, setSleep] = useState([7]); 
   const [systemComm, setSystemComm] = useState([5]); 
+  const [capacity, setCapacity] = useState([3]); // 0-5 capacity scale
+  const [triggerTag, setTriggerTag] = useState<string | null>(null); // optional context tag
   const [selectedFronterId, setSelectedFronterId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [stressCauses, setStressCauses] = useState<string[]>([]);
   const [note, setNote] = useState("");
   const [meals, setMeals] = useState({ breakfast: false, lunch: false, dinner: false, snack: false });
   const [entryTime, setEntryTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+
+  // Auto-calculate time of day based on current hour
+  const getTimeOfDay = (): string => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "morning";
+    if (hour >= 12 && hour < 17) return "afternoon";
+    if (hour >= 17 && hour < 21) return "evening";
+    return "night";
+  };
+
+  const triggerTags = [
+    { value: "work", label: "Work", icon: "💼" },
+    { value: "loneliness", label: "Loneliness", icon: "🫂" },
+    { value: "pain", label: "Pain", icon: "🔥" },
+    { value: "noise", label: "Noise/Env", icon: "🔊" },
+    { value: "sleep", label: "Sleep", icon: "😴" },
+    { value: "body", label: "Body/Health", icon: "🩺" },
+    { value: "unknown", label: "Unknown", icon: "❓" },
+  ];
 
   const selectedFronter = members?.find(m => m.id === selectedFronterId) || members?.[0];
 
@@ -101,6 +122,9 @@ export function MoodTracker() {
       energy: motivation[0],
       stress: stress[0] * 10,
       dissociation: dissociation[0] * 10,
+      capacity: capacity[0],
+      triggerTag: triggerTag,
+      timeOfDay: getTimeOfDay(),
       notes: noteParts.join(" | "),
       timestamp: new Date(),
     }, {
@@ -109,6 +133,7 @@ export function MoodTracker() {
         setNote("");
         setSelectedTags([]);
         setStressCauses([]);
+        setTriggerTag(null);
       },
       onError: () => toast.error("Failed to log entry"),
     });
@@ -334,6 +359,48 @@ export function MoodTracker() {
                 <div className="space-y-4">
                     <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Intensity & Context</h4>
 
+                    {/* Capacity (0-5) - Key metric for DID */}
+                    <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-3 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
+                       <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-1.5 text-emerald-600">
+                             <BatteryFull className="w-3.5 h-3.5" />
+                             <span className="text-xs font-semibold">Capacity</span>
+                          </div>
+                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-emerald-700">
+                             {capacity[0] === 0 ? "Empty" : capacity[0] <= 2 ? "Low" : capacity[0] <= 4 ? "Moderate" : "Full"}
+                          </span>
+                       </div>
+                       <Slider value={capacity} onValueChange={setCapacity} max={5} step={1} className="h-4 [&_.bg-primary]:bg-emerald-500" />
+                       <p className="text-[9px] text-muted-foreground mt-1.5">How much can you handle right now? (Not mood or energy)</p>
+                    </div>
+
+                    {/* What influenced this entry? (trigger tag) */}
+                    <div className="bg-violet-50/50 dark:bg-violet-900/10 p-3 rounded-lg border border-violet-100 dark:border-violet-900/30">
+                       <div className="flex items-center gap-1.5 text-violet-600 mb-2">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span className="text-xs font-semibold">What influenced this?</span>
+                          <span className="text-[9px] text-muted-foreground ml-1">(optional)</span>
+                       </div>
+                       <div className="flex flex-wrap gap-1.5">
+                          {triggerTags.map(tag => (
+                             <button
+                                key={tag.value}
+                                onClick={() => setTriggerTag(triggerTag === tag.value ? null : tag.value)}
+                                data-testid={`button-trigger-${tag.value}`}
+                                className={cn(
+                                   "text-[10px] px-2 py-1 rounded-full border transition-all flex items-center gap-1",
+                                   triggerTag === tag.value
+                                      ? "bg-violet-500 text-white border-violet-500"
+                                      : "bg-background border-violet-200 text-violet-600 hover:border-violet-300"
+                                )}
+                             >
+                                <span>{tag.icon}</span>
+                                {tag.label}
+                             </button>
+                          ))}
+                       </div>
+                    </div>
+
                     {/* Urges */}
                     <div className="bg-red-50/50 dark:bg-red-900/10 p-3 rounded-lg border border-red-100 dark:border-red-900/30">
                        <div className="flex justify-between items-center mb-2">
@@ -476,6 +543,16 @@ export function MoodTracker() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      {entry.timeOfDay && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 capitalize">
+                          {entry.timeOfDay}
+                        </span>
+                      )}
+                      {entry.triggerTag && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 capitalize">
+                          {entry.triggerTag}
+                        </span>
+                      )}
                       {fronter && (
                         <span className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded-full text-xs">
                           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: fronter.color }} />
@@ -488,6 +565,15 @@ export function MoodTracker() {
 
                   {/* Metrics Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {entry.capacity !== null && entry.capacity !== undefined && (
+                      <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/10 p-2 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
+                        <BatteryFull className="w-4 h-4 text-emerald-500" />
+                        <div className="text-xs">
+                          <span className="text-muted-foreground">Capacity</span>
+                          <span className="font-semibold ml-1 text-emerald-700">{entry.capacity}/5</span>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
                       <Zap className="w-4 h-4 text-yellow-500" />
                       <div className="text-xs">
