@@ -33,6 +33,8 @@ import {
   type InsertCareerVision,
   type FinanceSettings,
   type InsertFinanceSettings,
+  type JournalEntry,
+  type InsertJournalEntry,
   systemMembers,
   trackerEntries,
   systemMessages,
@@ -49,7 +51,8 @@ import {
   careerTasks,
   expenses,
   careerVision,
-  financeSettings
+  financeSettings,
+  journalEntries
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, asc } from "drizzle-orm";
@@ -157,6 +160,13 @@ export interface IStorage {
   // Finance Settings
   getFinanceSettings(): Promise<FinanceSettings | undefined>;
   updateFinanceSettings(settings: Partial<InsertFinanceSettings>): Promise<FinanceSettings>;
+
+  // Journal Entries
+  getAllJournalEntries(): Promise<JournalEntry[]>;
+  getJournalEntry(id: string): Promise<JournalEntry | undefined>;
+  createJournalEntry(entry: InsertJournalEntry): Promise<JournalEntry>;
+  updateJournalEntry(id: string, entry: Partial<InsertJournalEntry>): Promise<JournalEntry | undefined>;
+  deleteJournalEntry(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -583,6 +593,31 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return result[0];
     }
+  }
+
+  // Journal Entries
+  async getAllJournalEntries(): Promise<JournalEntry[]> {
+    return await db.select().from(journalEntries).orderBy(desc(journalEntries.createdAt));
+  }
+
+  async getJournalEntry(id: string): Promise<JournalEntry | undefined> {
+    const result = await db.select().from(journalEntries).where(eq(journalEntries.id, id));
+    return result[0];
+  }
+
+  async createJournalEntry(entry: InsertJournalEntry): Promise<JournalEntry> {
+    const result = await db.insert(journalEntries).values(entry).returning();
+    return result[0];
+  }
+
+  async updateJournalEntry(id: string, entry: Partial<InsertJournalEntry>): Promise<JournalEntry | undefined> {
+    const result = await db.update(journalEntries).set(entry).where(eq(journalEntries.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteJournalEntry(id: string): Promise<boolean> {
+    const result = await db.delete(journalEntries).where(eq(journalEntries.id, id)).returning();
+    return result.length > 0;
   }
 }
 

@@ -339,3 +339,25 @@ export const insertFinanceSettingsSchema = createInsertSchema(financeSettings).o
 
 export type FinanceSettings = typeof financeSettings.$inferSelect;
 export type InsertFinanceSettings = z.infer<typeof insertFinanceSettingsSchema>;
+
+// Journal Entries (rich journaling with mood, alter, time context)
+export const journalEntries = pgTable("journal_entries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  content: text("content").notNull(),
+  entryType: text("entry_type").notNull().default("reflection"), // "reflection" | "vent" | "gratitude" | "grounding" | "memory" | "system_note"
+  mood: integer("mood"), // 1-10 scale (optional)
+  energy: integer("energy"), // 1-10 scale (optional)
+  authorId: varchar("author_id").references(() => systemMembers.id), // which alter wrote this
+  timeOfDay: text("time_of_day"), // "morning" | "afternoon" | "evening" | "night"
+  tags: jsonb("tags").$type<string[]>().default(sql`'[]'::jsonb`),
+  isPrivate: integer("is_private").notNull().default(0), // 0 = false, 1 = true
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertJournalEntrySchema = createInsertSchema(journalEntries).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type JournalEntry = typeof journalEntries.$inferSelect;
+export type InsertJournalEntry = z.infer<typeof insertJournalEntrySchema>;
