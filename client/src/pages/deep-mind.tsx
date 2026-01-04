@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -353,30 +354,22 @@ export default function DeepMind() {
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border/40 pb-6">
             <div>
-                <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="outline" className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 px-2 py-0.5 text-xs font-mono uppercase tracking-wider">
-                        Deep Mind v4.0
-                    </Badge>
-                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-2 py-0.5 text-xs font-mono uppercase tracking-wider flex items-center gap-1.5">
-                        <span className="relative flex h-1.5 w-1.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                        </span>
-                        System Online
-                    </Badge>
-                </div>
                 <h1 className="text-3xl font-display font-bold tracking-tight">Cortex Interface</h1>
                 <p className="text-muted-foreground text-sm">Advanced system telemetry and headspace mapping.</p>
             </div>
 
-            <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-lg border border-border/50">
-                <div className="text-right px-2 border-r border-border/50">
-                    <div className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">System Noise</div>
-                    <div className="text-lg font-mono font-bold text-muted-foreground">--</div>
+            <div className="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
+                <div className="text-right px-3 border-r border-slate-800">
+                    <div className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Stability</div>
+                    <div className="text-lg font-mono font-bold text-emerald-400">
+                      {coherenceChartData[coherenceChartData.length-1]?.internalStability || "--"}%
+                    </div>
                 </div>
-                <div className="text-right px-2">
-                    <div className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Coherence</div>
-                    <div className="text-lg font-mono font-bold text-muted-foreground">--</div>
+                <div className="text-right px-3">
+                    <div className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Load</div>
+                    <div className="text-lg font-mono font-bold text-amber-400">
+                      {coherenceChartData[coherenceChartData.length-1]?.externalLoad || "--"}%
+                    </div>
                 </div>
             </div>
         </div>
@@ -391,20 +384,23 @@ export default function DeepMind() {
 
             <TabsContent value="monitor" className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
                 <div className="grid grid-cols-1 gap-6">
-                    <div className="flex items-center gap-6 px-4 py-2 bg-slate-900/50 border border-slate-800 rounded-lg text-[11px] font-mono tracking-tight uppercase">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-slate-500">System Status:</span>
+                    <div className="flex items-center gap-8 px-5 py-3 bg-slate-900 border border-slate-700 rounded-xl shadow-inner">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">System Status</span>
                         <span className={cn(
+                          "text-sm font-mono font-bold tracking-tight",
                           statusSummary.status === "Stable" ? "text-emerald-400" : "text-amber-400"
                         )}>{statusSummary.status}</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-slate-500">Primary Pressure:</span>
-                        <span className="text-slate-200">{statusSummary.pressure}</span>
+                      <div className="w-px h-8 bg-slate-800" />
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Primary Pressure</span>
+                        <span className="text-sm font-mono font-bold text-slate-100 tracking-tight">{statusSummary.pressure}</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-slate-500">Capacity:</span>
-                        <span className="text-slate-200">{statusSummary.capacity}</span>
+                      <div className="w-px h-8 bg-slate-800" />
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Capacity</span>
+                        <span className="text-sm font-mono font-bold text-slate-100 tracking-tight">{statusSummary.capacity}</span>
                       </div>
                     </div>
 
@@ -476,25 +472,31 @@ export default function DeepMind() {
                             </div>
                         </CardContent>
                         {deltas && (
-                          <div className="px-4 py-2 bg-slate-900/30 border-t border-slate-800/50 flex items-center justify-between text-[10px] font-mono text-slate-400">
-                            <div className="flex items-center gap-4">
-                              <span>Since last log ({deltas.timeAgo}h ago):</span>
-                              <div className="flex items-center gap-1.5">
-                                <span>External Pressure</span>
-                                <span className="text-slate-300">{deltas.pressureTrend}</span>
+                          <div className="px-5 py-3 bg-slate-900 border-t border-slate-800 flex items-center justify-between">
+                            <div className="flex items-center gap-6">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Delta ({deltas.timeAgo}h)</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-slate-400">Pressure:</span>
+                                <span className={cn(
+                                  "text-[11px] font-mono font-bold",
+                                  deltas.pressureTrend.includes("↑") ? "text-amber-400" : deltas.pressureTrend.includes("↓") ? "text-emerald-400" : "text-slate-300"
+                                )}>{deltas.pressureTrend}</span>
                               </div>
-                              <div className="flex items-center gap-1.5">
-                                <span>Internal Stability</span>
-                                <span className="text-slate-300">{deltas.stabilityTrend}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-slate-400">Stability:</span>
+                                <span className={cn(
+                                  "text-[11px] font-mono font-bold",
+                                  deltas.stabilityTrend.includes("↑") ? "text-emerald-400" : deltas.stabilityTrend.includes("↓") ? "text-rose-400" : "text-slate-300"
+                                )}>{deltas.stabilityTrend}</span>
                               </div>
                             </div>
                             {pressureChips.length > 0 && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-[9px] text-slate-500">Pressure:</span>
+                              <div className="flex items-center gap-3">
                                 {pressureChips.map((chip, i) => (
-                                  <Badge key={i} variant="outline" className="text-[9px] py-0 h-4 bg-slate-800/50 border-slate-700 text-slate-300">
-                                    {chip.label} {chip.trend}
-                                  </Badge>
+                                  <div key={i} className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700">
+                                    <span className="text-[10px] font-bold text-slate-300 uppercase">{chip.label}</span>
+                                    <span className="text-[10px] font-mono font-bold text-amber-400">{chip.trend}</span>
+                                  </div>
                                 ))}
                               </div>
                             )}
@@ -502,12 +504,14 @@ export default function DeepMind() {
                         )}
                     </Card>
 
-                    {safeAction && (
-                      <div className="px-4 py-3 bg-indigo-500/5 border border-indigo-500/20 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-700">
-                        <Lightbulb className="w-4 h-4 text-indigo-400" />
+                    {(safeAction || true) && (
+                      <div className="px-5 py-4 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl flex items-center gap-4 shadow-lg shadow-indigo-500/5 animate-in fade-in slide-in-from-top-2 duration-700">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center border border-indigo-500/40">
+                          <Lightbulb className="w-5 h-5 text-indigo-400" />
+                        </div>
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-indigo-400/80 uppercase tracking-widest leading-none mb-1">Safe Next Action</span>
-                          <span className="text-sm text-slate-300">{safeAction}</span>
+                          <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.2em] leading-none mb-1.5">Safe Next Action</span>
+                          <span className="text-base font-semibold text-slate-100">{safeAction || "Take a slow deep breath and notice three colors in the room"}</span>
                         </div>
                       </div>
                     )}
@@ -519,41 +523,44 @@ export default function DeepMind() {
                             </CardTitle>
                             <CardDescription className="text-xs">Load distribution across capacities</CardDescription>
                         </CardHeader>
-                        <CardContent className="h-[300px] pt-6">
-                            <div className="relative h-full flex items-end justify-between gap-4 px-4 md:px-8">
-                                <div className="absolute top-[35%] left-0 right-0 h-[30%] bg-emerald-500/5 border-y border-emerald-500/20 pointer-events-none" />
-                                <div className="absolute top-[48%] left-0 right-0 flex items-center pointer-events-none">
-                                  <div className="flex-1 border-t border-dashed border-slate-300/30" />
-                                  <span className="text-[8px] text-slate-400 px-1 bg-background">usable range</span>
-                                  <div className="flex-1 border-t border-dashed border-slate-300/30" />
-                                </div>
+                        <CardContent className="h-[320px] pt-8 pb-4">
+                            <div className="relative h-full flex items-end justify-between gap-6 px-6">
+                                <div className="absolute top-[35%] left-0 right-0 h-[30%] bg-indigo-500/5 border-y border-indigo-500/10 pointer-events-none" />
                                 
                                 {balancePillars.map((pillar, i) => {
-                                  const heightPercent = Math.max(10, Math.min(95, pillar.value));
+                                  const heightPercent = Math.max(12, Math.min(95, pillar.value));
                                   const isInRange = pillar.value >= 35 && pillar.value <= 65;
-                                  const isHigh = pillar.value > 65;
                                   
                                   return (
-                                    <div key={i} className="flex flex-col items-center gap-3 flex-1 max-w-[100px]">
-                                      <div className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
-                                        {pillar.trend === "up" && <span className="text-emerald-500">↑</span>}
-                                        {pillar.trend === "down" && <span className="text-amber-500">↓</span>}
-                                        {pillar.trend === "stable" && <span className="text-slate-400">→</span>}
-                                      </div>
-                                      <div className="relative w-full h-[180px] bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden border border-border/50">
-                                        <div 
+                                    <div key={i} className="flex flex-col items-center gap-4 flex-1 group/pillar">
+                                      <div className="relative w-full h-full bg-slate-900/50 rounded-2xl overflow-hidden border border-slate-800 shadow-inner group-hover/pillar:border-slate-700 transition-colors">
+                                        <motion.div 
+                                          initial={{ height: 0 }}
+                                          animate={{ height: `${heightPercent}%` }}
+                                          transition={{ type: "spring", stiffness: 50, damping: 15 }}
                                           className={cn(
-                                            "absolute bottom-0 left-0 right-0 transition-all duration-1000",
-                                            isInRange ? "bg-gradient-to-t from-emerald-500/60 to-emerald-400/30" :
-                                            isHigh ? "bg-gradient-to-t from-amber-500/60 to-amber-400/30" :
-                                            "bg-gradient-to-t from-violet-500/60 to-violet-400/30"
+                                            "absolute bottom-0 left-0 right-0 transition-all duration-500 shadow-[0_-4px_12px_rgba(0,0,0,0.3)]",
+                                            isInRange ? "bg-gradient-to-t from-emerald-600/60 to-emerald-400/40" :
+                                            pillar.value > 65 ? "bg-gradient-to-t from-amber-600/60 to-amber-400/40" :
+                                            "bg-gradient-to-t from-indigo-600/60 to-indigo-400/40"
                                           )}
-                                          style={{ height: `${heightPercent}%` }}
-                                        />
+                                        >
+                                          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:100%_4px]" />
+                                        </motion.div>
+                                        
+                                        <div className="absolute top-3 left-0 right-0 flex justify-center opacity-40 group-hover/pillar:opacity-100 transition-opacity">
+                                          <span className={cn(
+                                            "text-xs font-mono font-bold",
+                                            pillar.trend === "up" ? "text-emerald-400" : pillar.trend === "down" ? "text-amber-400" : "text-slate-500"
+                                          )}>
+                                            {pillar.trend === "up" ? "▲" : pillar.trend === "down" ? "▼" : "•"}
+                                          </span>
+                                        </div>
                                       </div>
+                                      
                                       <div className="text-center space-y-1">
-                                        <div className="text-xl">{pillar.icon}</div>
-                                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground leading-tight">
+                                        <div className="text-2xl filter grayscale group-hover/pillar:grayscale-0 transition-all scale-90 group-hover/pillar:scale-100">{pillar.icon}</div>
+                                        <div className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 group-hover/pillar:text-slate-300 transition-colors leading-tight">
                                           {pillar.name}
                                         </div>
                                       </div>
