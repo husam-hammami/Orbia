@@ -86,14 +86,36 @@ export default function DeepMind() {
   
   const coherenceChartData = (trackerEntries || [])
     .slice()
-    .reverse()
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
     .map(entry => ({
       time: format(new Date(entry.timestamp), "h:mm a"),
       dissociation: entry.dissociation || 0,
       stress: entry.stress || 0,
-      mood: (entry.mood || 5) * 10,
-      energy: (entry.energy || 5) * 10,
+      mood: (entry.mood || 5) * 20,
+      energy: (entry.energy || 5) * 20,
     }));
+  
+  const frontingPatterns = (() => {
+    if (!trackerEntries || !members) return [];
+    const memberStats = new Map<string, { count: number; totalStress: number; totalDissociation: number; member: any }>();
+    trackerEntries.forEach(entry => {
+      const member = members.find(m => m.id === entry.frontingMemberId);
+      if (member) {
+        const existing = memberStats.get(member.id) || { count: 0, totalStress: 0, totalDissociation: 0, member };
+        existing.count++;
+        existing.totalStress += entry.stress || 0;
+        existing.totalDissociation += entry.dissociation || 0;
+        memberStats.set(member.id, existing);
+      }
+    });
+    return Array.from(memberStats.values()).map(({ count, totalStress, totalDissociation, member }) => ({
+      name: member.name,
+      color: member.color,
+      count,
+      avgStress: Math.round(totalStress / count),
+      avgDissociation: Math.round(totalDissociation / count),
+    }));
+  })();
   
   const latestEntry = trackerEntries?.[0];
   const systemStats = latestEntry ? [
@@ -418,32 +440,45 @@ export default function DeepMind() {
                                 <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
                                 <p className="text-muted-foreground text-sm">Analyzing patterns...</p>
                               </div>
-                            ) : insights?.analysis ? (
+                            ) : insights?.insights && insights.insights.length > 0 ? (
                               <div className="space-y-4">
-                                <div className="prose prose-sm dark:prose-invert max-w-none">
-                                  <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
-                                    {insights.analysis}
+                                {insights.encouragement && (
+                                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-sm text-emerald-600 dark:text-emerald-400">
+                                    {insights.encouragement}
                                   </div>
+                                )}
+                                <div className="space-y-3">
+                                  {insights.insights.map((insight: any, i: number) => (
+                                    <div key={i} className="p-4 bg-muted/30 rounded-lg border border-border/50">
+                                      <h4 className="font-semibold text-sm text-foreground mb-1">{insight.title}</h4>
+                                      <p className="text-sm text-muted-foreground mb-2">{insight.observation}</p>
+                                      {insight.suggestion && (
+                                        <p className="text-xs text-primary/80 bg-primary/10 p-2 rounded">
+                                          <strong>Suggestion:</strong> {insight.suggestion}
+                                        </p>
+                                      )}
+                                    </div>
+                                  ))}
                                 </div>
-                                {insights.dataQuality && (
+                                {insights.dataRange && (
                                   <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-border/50">
-                                    <p className="text-xs font-medium text-muted-foreground mb-2">Data Quality Summary</p>
+                                    <p className="text-xs font-medium text-muted-foreground mb-2">Analysis Summary</p>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                                       <div className="bg-background/50 p-2 rounded">
-                                        <span className="text-muted-foreground">Mood Entries:</span>
-                                        <span className="font-mono ml-1">{insights.dataQuality.moodEntriesCount || 0}</span>
+                                        <span className="text-muted-foreground">Days:</span>
+                                        <span className="font-mono ml-1">{insights.dataRange.days}</span>
+                                      </div>
+                                      <div className="bg-background/50 p-2 rounded">
+                                        <span className="text-muted-foreground">Entries:</span>
+                                        <span className="font-mono ml-1">{insights.dataRange.entriesAnalyzed}</span>
                                       </div>
                                       <div className="bg-background/50 p-2 rounded">
                                         <span className="text-muted-foreground">Habits:</span>
-                                        <span className="font-mono ml-1">{insights.dataQuality.habitsCount || 0}</span>
+                                        <span className="font-mono ml-1">{insights.dataRange.habitsTracked}</span>
                                       </div>
                                       <div className="bg-background/50 p-2 rounded">
-                                        <span className="text-muted-foreground">Completions:</span>
-                                        <span className="font-mono ml-1">{insights.dataQuality.completionsCount || 0}</span>
-                                      </div>
-                                      <div className="bg-background/50 p-2 rounded">
-                                        <span className="text-muted-foreground">Routine Logs:</span>
-                                        <span className="font-mono ml-1">{insights.dataQuality.routineLogsCount || 0}</span>
+                                        <span className="text-muted-foreground">Trend:</span>
+                                        <span className="font-mono ml-1 capitalize">{insights.overallTrend || 'stable'}</span>
                                       </div>
                                     </div>
                                   </div>
@@ -469,9 +504,9 @@ export default function DeepMind() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {insights?.frontingPatterns && insights.frontingPatterns.length > 0 ? (
+                            {frontingPatterns.length > 0 ? (
                               <div className="space-y-3">
-                                {insights.frontingPatterns.map((pattern: any, i: number) => (
+                                {frontingPatterns.map((pattern, i) => (
                                   <div key={i} className="p-3 bg-muted/30 rounded-lg border border-border/50">
                                     <div className="flex items-center gap-2 mb-1">
                                       <span className="font-semibold text-sm" style={{ color: pattern.color }}>{pattern.name}</span>
