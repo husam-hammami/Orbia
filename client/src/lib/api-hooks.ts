@@ -765,3 +765,35 @@ export function useDeleteExpense() {
     },
   });
 }
+
+// Career Vision Hooks
+interface CareerVisionItem {
+  id: string;
+  title: string;
+  timeframe: string;
+  color: string;
+  order: number;
+  createdAt: Date;
+}
+
+export function useCareerVision() {
+  return useQuery<CareerVisionItem[]>({
+    queryKey: ["careerVision"],
+    queryFn: () => fetchAPI("/api/vision"),
+  });
+}
+
+export function useUpdateCareerVision() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { title: string; timeframe: string; color: string; order: number }[]) =>
+      fetchAPI("/api/vision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["careerVision"] });
+    },
+  });
+}

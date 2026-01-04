@@ -57,27 +57,32 @@ import {
   useCreateCareerTask,
   useUpdateCareerTask,
   useDeleteCareerTask,
+  useCareerVision,
+  useUpdateCareerVision,
 } from "@/lib/api-hooks";
 import type { CareerProject, CareerTask } from "@shared/schema";
 
-const MOCK_VISION = [
+const DEFAULT_VISION = [
   { 
-    id: 1, 
+    id: "1", 
     title: "Senior Frontend Engineer", 
     timeframe: "2 Years",
-    color: "text-blue-500"
+    color: "text-blue-500",
+    order: 0
   },
   { 
-    id: 2, 
+    id: "2", 
     title: "Launch SaaS Product", 
     timeframe: "This Year",
-    color: "text-purple-500"
+    color: "text-purple-500",
+    order: 1
   },
   { 
-    id: 3, 
+    id: "3", 
     title: "Deep Work Mastery", 
     timeframe: "Ongoing",
-    color: "text-amber-500"
+    color: "text-amber-500",
+    order: 2
   },
 ];
 
@@ -106,7 +111,11 @@ export default function CareerPage() {
   const updateTask = useUpdateCareerTask();
   const deleteTask = useDeleteCareerTask();
   
-  const [vision, setVision] = useState(MOCK_VISION);
+  const { data: visionData = [] } = useCareerVision();
+  const updateVisionMutation = useUpdateCareerVision();
+  
+  const vision = visionData.length > 0 ? visionData : DEFAULT_VISION;
+  
   const [newTask, setNewTask] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "board">("list");
   const [selectedTask, setSelectedTask] = useState<CareerTask | null>(null);
@@ -117,7 +126,7 @@ export default function CareerPage() {
   const [isProjectDetailsOpen, setIsProjectDetailsOpen] = useState(false);
   
   const [isVisionDialogOpen, setIsVisionDialogOpen] = useState(false);
-  const [editingVision, setEditingVision] = useState<typeof MOCK_VISION>([]);
+  const [editingVision, setEditingVision] = useState<typeof DEFAULT_VISION>([]);
 
   const openEditVision = () => {
     setEditingVision([...vision]);
@@ -125,11 +134,13 @@ export default function CareerPage() {
   };
 
   const saveVision = () => {
-    setVision(editingVision);
-    setIsVisionDialogOpen(false);
+    updateVisionMutation.mutate(
+      editingVision.map((v, i) => ({ title: v.title, timeframe: v.timeframe, color: v.color, order: i })),
+      { onSuccess: () => setIsVisionDialogOpen(false) }
+    );
   };
 
-  const updateVisionItem = (id: number, field: keyof typeof MOCK_VISION[0], value: string) => {
+  const updateVisionItem = (id: string, field: keyof typeof DEFAULT_VISION[0], value: string) => {
     setEditingVision(editingVision.map(v => v.id === id ? { ...v, [field]: value } : v));
   };
 
