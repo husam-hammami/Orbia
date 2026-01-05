@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Orbit, X, Send, Loader2, Sparkles, ExternalLink, Check, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -88,13 +88,8 @@ export function OrbitFab() {
   const [messages, setMessages] = useState<QuickMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
-
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
 
   const today = format(new Date(), "yyyy-MM-dd");
   
@@ -369,6 +364,7 @@ export function OrbitFab() {
           await createJournalEntry.mutateAsync({
             content,
             entryType: entry_type || "reflection",
+            entryDate: format(new Date(), "yyyy-MM-dd"),
             mood: mood || null,
             energy: energy || null,
             tags: tags || [],
@@ -379,12 +375,15 @@ export function OrbitFab() {
         }
         case "update_journal": {
           const { entry_id, content, entry_type, mood, energy, tags } = action.args;
-          const updates: any = {};
+          const updates: Record<string, any> = {};
           if (content) updates.content = content;
           if (entry_type) updates.entryType = entry_type;
           if (mood !== undefined) updates.mood = mood;
           if (energy !== undefined) updates.energy = energy;
           if (tags) updates.tags = tags;
+          if (Object.keys(updates).length === 0) {
+            return { success: false, message: "No fields to update" };
+          }
           await updateJournalEntry.mutateAsync({ id: entry_id, ...updates });
           return { success: true, message: `Updated journal entry` };
         }
@@ -596,7 +595,6 @@ export function OrbitFab() {
                     <Loader2 className="w-3 h-3 animate-spin text-primary" />
                   </div>
                 )}
-                <div ref={messagesEndRef} />
               </div>
             </div>
 
