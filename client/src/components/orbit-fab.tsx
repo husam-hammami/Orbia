@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Orbit, X, Send, Loader2, Sparkles, ExternalLink, Check, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,11 @@ import {
   useExpenses,
   useCreateExpense,
   useUpdateExpense,
-  useDeleteExpense
+  useDeleteExpense,
+  useJournalEntries,
+  useCreateJournalEntry,
+  useUpdateJournalEntry,
+  useDeleteJournalEntry
 } from "@/lib/api-hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -68,6 +72,16 @@ function parseActionFromContent(content: string): { action: any | null; cleanCon
   return { action: null, cleanContent: content };
 }
 
+function formatMarkdown(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
 export function OrbitFab() {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
@@ -95,6 +109,7 @@ export function OrbitFab() {
   const { data: careerProjects } = useCareerProjects();
   const { data: careerTasks } = useCareerTasks();
   const { data: expenses } = useExpenses();
+  const { data: journalEntries } = useJournalEntries();
 
   const addHabitCompletion = useAddHabitCompletion();
   const removeHabitCompletion = useRemoveHabitCompletion();
@@ -117,10 +132,17 @@ export function OrbitFab() {
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
   const deleteExpense = useDeleteExpense();
+  const createJournalEntry = useCreateJournalEntry();
+  const updateJournalEntry = useUpdateJournalEntry();
+  const deleteJournalEntry = useDeleteJournalEntry();
+
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -163,7 +185,16 @@ export function OrbitFab() {
       allRoutineBlocks: routineBlocks?.map(b => ({ id: b.id, name: b.name, emoji: b.emoji })) || [],
       allCareerProjects: careerProjects?.map(p => ({ id: p.id, title: p.title, status: p.status, progress: p.progress })) || [],
       allCareerTasks: careerTasks?.map(t => ({ id: t.id, title: t.title, projectId: t.projectId, completed: !!t.completed, priority: t.priority })) || [],
-      allExpenses: expenses?.map(e => ({ id: e.id, name: e.name, amount: e.amount, category: e.category, status: e.status })) || []
+      allExpenses: expenses?.map(e => ({ id: e.id, name: e.name, amount: e.amount, category: e.category, status: e.status })) || [],
+      recentJournalEntries: journalEntries?.slice(0, 10).map(j => ({ 
+        id: j.id, 
+        content: j.content.substring(0, 200), 
+        entryType: j.entryType, 
+        mood: j.mood, 
+        energy: j.energy,
+        tags: j.tags,
+        createdAt: j.createdAt
+      })) || []
     };
   };
 
@@ -333,6 +364,35 @@ export function OrbitFab() {
           await deleteExpense.mutateAsync(expense_id);
           return { success: true, message: `Deleted: "${expense?.name || expense_id}"` };
         }
+        case "create_journal": {
+          const { content, entry_type, mood, energy, tags, is_private } = action.args;
+          await createJournalEntry.mutateAsync({
+            content,
+            entryType: entry_type || "reflection",
+            mood: mood || null,
+            energy: energy || null,
+            tags: tags || [],
+            isPrivate: is_private || false,
+            alterId: null
+          });
+          return { success: true, message: `Created journal entry` };
+        }
+        case "update_journal": {
+          const { entry_id, content, entry_type, mood, energy, tags } = action.args;
+          const updates: any = {};
+          if (content) updates.content = content;
+          if (entry_type) updates.entryType = entry_type;
+          if (mood !== undefined) updates.mood = mood;
+          if (energy !== undefined) updates.energy = energy;
+          if (tags) updates.tags = tags;
+          await updateJournalEntry.mutateAsync({ id: entry_id, ...updates });
+          return { success: true, message: `Updated journal entry` };
+        }
+        case "delete_journal": {
+          const { entry_id } = action.args;
+          await deleteJournalEntry.mutateAsync(entry_id);
+          return { success: true, message: `Deleted journal entry` };
+        }
         default:
           return { success: false, message: `Unknown action` };
       }
@@ -479,7 +539,7 @@ export function OrbitFab() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-3">
               <div className="space-y-3">
                 {messages.length === 0 && (
                   <div className="text-center py-6">
@@ -505,7 +565,7 @@ export function OrbitFab() {
                           : "bg-muted/80 text-foreground border border-border/50"
                       )}
                     >
-                      {message.content}
+                      {message.role === "assistant" ? formatMarkdown(message.content) : message.content}
                     </div>
                     {message.pendingAction && (
                       <div className="flex gap-2 mt-2 ml-0">
