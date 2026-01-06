@@ -244,12 +244,20 @@ export default function OrbitPage() {
   }, [messages]);
 
   useEffect(() => {
-    setTimeout(() => {
+    const scrollToBottom = () => {
       const viewport = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
       if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight;
+        viewport.scrollTo({
+          top: viewport.scrollHeight,
+          behavior: 'smooth'
+        });
       }
-    }, 50);
+    };
+    
+    scrollToBottom();
+    // Second scroll for content that might render slightly after
+    const timer = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timer);
   }, [messages]);
 
   const todayCompletions = allCompletions?.filter(c => c.completedDate === today) || [];

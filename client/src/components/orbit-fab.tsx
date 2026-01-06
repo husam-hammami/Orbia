@@ -135,7 +135,10 @@ export function OrbitFab() {
 
   useEffect(() => {
     if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
     }
   }, [messages]);
 
@@ -364,18 +367,17 @@ export function OrbitFab() {
           await createJournalEntry.mutateAsync({
             content,
             entryType: entry_type || "reflection",
-            entryDate: format(new Date(), "yyyy-MM-dd"),
             mood: mood || null,
             energy: energy || null,
             tags: tags || [],
-            isPrivate: is_private || false,
+            isPrivate: is_private ? 1 : 0,
             alterId: null
           });
           return { success: true, message: `Created journal entry` };
         }
         case "update_journal": {
           const { entry_id, content, entry_type, mood, energy, tags } = action.args;
-          const updates: Record<string, any> = {};
+          const updates: any = {};
           if (content) updates.content = content;
           if (entry_type) updates.entryType = entry_type;
           if (mood !== undefined) updates.mood = mood;
@@ -384,7 +386,7 @@ export function OrbitFab() {
           if (Object.keys(updates).length === 0) {
             return { success: false, message: "No fields to update" };
           }
-          await updateJournalEntry.mutateAsync({ id: entry_id, ...updates });
+          await updateJournalEntry.mutateAsync({ id: entry_id, data: updates });
           return { success: true, message: `Updated journal entry` };
         }
         case "delete_journal": {
