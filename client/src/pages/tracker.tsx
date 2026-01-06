@@ -11,10 +11,11 @@ import { HabitForm } from "@/components/habit-form";
 import { TodoList } from "@/components/todo-list";
 import { DailySummary } from "@/components/daily-summary";
 import { JournalTab } from "@/components/journal-tab";
+import { FoodTracker } from "@/components/food-tracker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Activity, Calendar, Sparkles, LayoutGrid, List, Flower2, Loader2, ListTodo, BookOpen } from "lucide-react";
+import { Activity, Calendar, Sparkles, LayoutGrid, List, Flower2, Loader2, ListTodo, BookOpen, Utensils } from "lucide-react";
 import { WorkTimer } from "@/components/work-timer";
 import { Habit } from "@/lib/types";
 import { toast } from "sonner";
@@ -49,7 +50,7 @@ export default function TrackerPage() {
   const [activeTab, setActiveTab] = useState(tabFromUrl || "habits");
   
   useEffect(() => {
-    if (tabFromUrl && ["habits", "mood", "routine", "todos", "journal"].includes(tabFromUrl)) {
+    if (tabFromUrl && ["habits", "mood", "routine", "todos", "journal", "food"].includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     }
   }, [tabFromUrl]);
@@ -154,7 +155,7 @@ export default function TrackerPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-3xl grid-cols-5">
+          <TabsList className="grid w-full max-w-3xl grid-cols-6">
             <TabsTrigger value="habits" className="gap-2" data-testid="tab-habits">
               <Sparkles className="w-4 h-4" />
               Habits
@@ -166,6 +167,10 @@ export default function TrackerPage() {
             <TabsTrigger value="routine" className="gap-2" data-testid="tab-routine">
               <Calendar className="w-4 h-4" />
               Routine
+            </TabsTrigger>
+            <TabsTrigger value="food" className="gap-2" data-testid="tab-food">
+              <Utensils className="w-4 h-4" />
+              Food
             </TabsTrigger>
             <TabsTrigger value="todos" className="gap-2" data-testid="tab-todos">
               <ListTodo className="w-4 h-4" />
@@ -263,6 +268,12 @@ export default function TrackerPage() {
               <RoutineEditor />
             </div>
             <RoutineTimeline />
+          </TabsContent>
+          
+          <TabsContent value="food" className="mt-6" data-testid="content-food">
+            <div className="max-w-2xl">
+              <FoodTracker />
+            </div>
           </TabsContent>
           
           <TabsContent value="todos" className="mt-6" data-testid="content-todos">

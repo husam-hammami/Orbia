@@ -474,7 +474,15 @@ export class DatabaseStorage implements IStorage {
   async upsertDailySummary(summary: InsertDailySummary): Promise<DailySummary> {
     const existing = await this.getDailySummary(summary.date);
     if (existing) {
-      const result = await db.update(dailySummaries).set({ feeling: summary.feeling }).where(eq(dailySummaries.date, summary.date)).returning();
+      const updateData: any = { feeling: summary.feeling };
+      if (summary.breakfast !== undefined) updateData.breakfast = summary.breakfast;
+      if (summary.lunch !== undefined) updateData.lunch = summary.lunch;
+      if (summary.dinner !== undefined) updateData.dinner = summary.dinner;
+      
+      const result = await db.update(dailySummaries)
+        .set(updateData)
+        .where(eq(dailySummaries.date, summary.date))
+        .returning();
       return result[0];
     }
     const result = await db.insert(dailySummaries).values(summary).returning();

@@ -59,6 +59,9 @@ export const dailySummaries = pgTable("daily_summaries", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   date: text("date").notNull().unique(), // "2026-01-04" format
   feeling: text("feeling").notNull(), // "lighter" | "average" | "heavier"
+  breakfast: text("breakfast").default("Cereals milk honey"),
+  lunch: text("lunch").default("Simple ham and cheese"),
+  dinner: text("dinner").default(""),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
