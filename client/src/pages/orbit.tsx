@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -91,6 +91,16 @@ const QUICK_CHIPS = [
   { label: "What now?", prompt: "What should I do next?" },
   { label: "Add habit", prompt: "Help me add a new habit" },
 ];
+
+function formatMarkdown(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
 
 const ORBIT_SYSTEM_PROMPT = `You are Orbit, a calm operational co-pilot for NeuroZen. You only use NeuroZen data provided in context. You help the user operate the app: summarize today briefly, suggest the smallest next step when asked, and execute user requests by returning at most one action JSON object.
 
@@ -234,9 +244,12 @@ export default function OrbitPage() {
   }, [messages]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    setTimeout(() => {
+      const viewport = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight;
+      }
+    }, 50);
   }, [messages]);
 
   const todayCompletions = allCompletions?.filter(c => c.completedDate === today) || [];
@@ -858,7 +871,9 @@ export default function OrbitPage() {
                         ? "bg-primary text-primary-foreground" 
                         : "bg-muted/80 text-foreground border border-border/50"
                     )}>
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                        {message.role === "assistant" ? formatMarkdown(message.content) : message.content}
+                      </p>
                       
                       {message.action && !message.actionResult && pendingAction?.messageId === message.id && (
                         <div className="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
