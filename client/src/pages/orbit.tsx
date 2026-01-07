@@ -63,6 +63,7 @@ import {
   useUpdateJournalEntry,
   useDeleteJournalEntry
 } from "@/lib/api-hooks";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -157,12 +158,17 @@ JOURNAL ENTRIES:
 - update_journal: {"entry_id": "...", "content": "...", "entry_type": "...", "mood": ..., "energy": ..., "tags": [...]}
 - delete_journal: {"entry_id": "..."} - ALWAYS set confirm:true for this
 
+MEALS/FOOD:
+- log_meal: {"date": "YYYY-MM-DD", "breakfast": "meal name" (optional), "lunch": "meal name" (optional), "dinner": "meal name" (optional)} - Updates today's meal selections
+- add_meal_option: {"name": "...", "meal_type": "breakfast/lunch/dinner", "recipe": "..." (optional, for dinner)}
+- delete_meal_option: {"option_id": "..."} - ALWAYS set confirm:true for this
+
 LOW-CAPACITY MODE:
 - set_low_capacity_mode: {} (enables low-capacity overlay for today)
 - unset_low_capacity_mode: {} (disables low-capacity mode)
 
 CONFIRMATION RULES:
-- ALWAYS set confirm:true and confirm_text for: delete_habit, delete_task, delete_routine_activity, delete_career_project, delete_career_task, delete_expense, delete_journal
+- ALWAYS set confirm:true and confirm_text for: delete_habit, delete_task, delete_routine_activity, delete_career_project, delete_career_task, delete_expense, delete_journal, delete_meal_option
 - Set confirm:true for any action that seems risky or the user expressed uncertainty about
 - confirm_text should briefly describe what will happen, e.g. "Delete project 'Portfolio Redesign'?"
 
@@ -192,6 +198,13 @@ export default function OrbitPage() {
   const { data: expenses } = useExpenses();
   const { data: journalEntries } = useJournalEntries();
   
+  const { data: foodOptions } = useQuery<{ id: string; name: string; mealType: string; description?: string }[]>({
+    queryKey: ["/api/food-options"],
+  });
+  const { data: todayMeals } = useQuery<{ breakfast?: string; lunch?: string; dinner?: string } | null>({
+    queryKey: [`/api/daily-summaries/${today}`],
+  });
+  
   const addHabitCompletion = useAddHabitCompletion();
   const removeHabitCompletion = useRemoveHabitCompletion();
   const createTodo = useCreateTodo();
@@ -217,6 +230,54 @@ export default function OrbitPage() {
   const createJournalEntry = useCreateJournalEntry();
   const updateJournalEntry = useUpdateJournalEntry();
   const deleteJournalEntry = useDeleteJournalEntry();
+  
+  const logMealMutation = useMutation({
+    mutationFn: async (data: { date: string; breakfast?: string; lunch?: string; dinner?: string }) => {
+      const existingRes = await fetch(`/api/daily-summaries/${data.date}`);
+      const existing = existingRes.ok ? await existingRes.json() : null;
+      
+      const mergedData = {
+        date: data.date,
+        feeling: existing?.feeling || "average",
+        breakfast: data.breakfast !== undefined ? data.breakfast : (existing?.breakfast || ""),
+        lunch: data.lunch !== undefined ? data.lunch : (existing?.lunch || ""),
+        dinner: data.dinner !== undefined ? data.dinner : (existing?.dinner || ""),
+      };
+      
+      const res = await fetch("/api/daily-summaries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mergedData),
+      });
+      if (!res.ok) throw new Error("Failed to log meal");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/daily-summaries/${today}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/daily-summaries"] });
+    },
+  });
+  
+  const addMealOptionMutation = useMutation({
+    mutationFn: async (data: { name: string; mealType: string; description?: string }) => {
+      const res = await fetch("/api/food-options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to add meal option");
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/food-options"] }),
+  });
+  
+  const deleteMealOptionMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/food-options/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete meal option");
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/food-options"] }),
+  });
 
   const [messages, setMessages] = useState<OrbitMessage[]>(() => {
     const saved = localStorage.getItem("orbit_messages");
@@ -358,7 +419,9 @@ export default function OrbitPage() {
         date: format(new Date(j.createdAt), "MMM d, h:mm a"),
         preview: j.content.slice(0, 100) + (j.content.length > 100 ? "..." : "")
       })),
-      allJournalEntries: (journalEntries || []).map(j => ({ id: j.id, type: j.entryType, mood: j.mood, energy: j.energy, tags: j.tags }))
+      allJournalEntries: (journalEntries || []).map(j => ({ id: j.id, type: j.entryType, mood: j.mood, energy: j.energy, tags: j.tags })),
+      todaysMeals: todayMeals ? { breakfast: todayMeals.breakfast, lunch: todayMeals.lunch, dinner: todayMeals.dinner } : null,
+      allMealOptions: (foodOptions || []).map(o => ({ id: o.id, name: o.name, mealType: o.mealType, hasRecipe: !!o.description }))
     };
   };
 
@@ -614,6 +677,38 @@ export default function OrbitPage() {
           const { entry_id } = action.args;
           await deleteJournalEntry.mutateAsync(entry_id);
           return { success: true, message: "Deleted journal entry" };
+        }
+        
+        // MEAL/FOOD ACTIONS
+        case "log_meal": {
+          const { date, breakfast, lunch, dinner } = action.args;
+          const mealData: any = { date: date || today };
+          if (breakfast !== undefined) mealData.breakfast = breakfast;
+          if (lunch !== undefined) mealData.lunch = lunch;
+          if (dinner !== undefined) mealData.dinner = dinner;
+          await logMealMutation.mutateAsync(mealData);
+          const parts = [];
+          if (breakfast) parts.push(`breakfast: ${breakfast}`);
+          if (lunch) parts.push(`lunch: ${lunch}`);
+          if (dinner) parts.push(`dinner: ${dinner}`);
+          return { success: true, message: `Logged ${parts.join(", ") || "meals"}` };
+        }
+        
+        case "add_meal_option": {
+          const { name, meal_type, recipe } = action.args;
+          await addMealOptionMutation.mutateAsync({
+            name,
+            mealType: meal_type,
+            description: recipe || undefined
+          });
+          return { success: true, message: `Added ${meal_type} option: "${name}"` };
+        }
+        
+        case "delete_meal_option": {
+          const { option_id } = action.args;
+          const option = foodOptions?.find(o => o.id === option_id);
+          await deleteMealOptionMutation.mutateAsync(option_id);
+          return { success: true, message: `Deleted meal option: "${option?.name || option_id}"` };
         }
         
         default:

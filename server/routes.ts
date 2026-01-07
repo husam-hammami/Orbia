@@ -1780,12 +1780,17 @@ JOURNAL ENTRIES:
 - update_journal: {"entry_id": "...", "content": "...", "entry_type": "...", "mood": ..., "energy": ..., "tags": [...]}
 - delete_journal: {"entry_id": "..."} - ALWAYS set confirm:true
 
+MEALS/FOOD:
+- log_meal: {"date": "YYYY-MM-DD", "breakfast": "meal name" (optional), "lunch": "meal name" (optional), "dinner": "meal name" (optional)} - Updates today's meal selections
+- add_meal_option: {"name": "...", "meal_type": "breakfast/lunch/dinner", "recipe": "..." (optional, for dinner)}
+- delete_meal_option: {"option_id": "..."} - ALWAYS set confirm:true
+
 LOW-CAPACITY MODE:
 - set_low_capacity_mode: {} (enables low-capacity overlay for today)
 - unset_low_capacity_mode: {} (disables low-capacity mode)
 
 CONFIRMATION RULES:
-- ALWAYS set confirm:true and confirm_text for: delete_habit, delete_task, delete_routine_activity, delete_career_project, delete_career_task, delete_expense, delete_journal
+- ALWAYS set confirm:true and confirm_text for: delete_habit, delete_task, delete_routine_activity, delete_career_project, delete_career_task, delete_expense, delete_journal, delete_meal_option
 - confirm_text should briefly describe what will happen, e.g. "Delete project 'Portfolio Redesign'?"
 
 LOW-CAPACITY MODE: When user says they're overwhelmed, offer to switch to low-capacity mode. When activated, highlight 3 core actions:
