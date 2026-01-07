@@ -86,11 +86,11 @@ interface OrbitAction {
 }
 
 const QUICK_CHIPS = [
-  { label: "Who am I?", prompt: "Based on everything you know about me — journals, habits, moods, patterns — who am I? What do you see?" },
-  { label: "What am I avoiding?", prompt: "What patterns or blind spots do you notice that I might not see myself?" },
-  { label: "Predict my week", prompt: "Based on my patterns and current state, what do you predict for this week? What should I watch for?" },
-  { label: "Root cause", prompt: "I've been struggling. Analyze my data deeply — what's the underlying cause, not just the symptoms?" },
-  { label: "What do I need?", prompt: "Based on who I am and where I'm at, what do I actually need right now?" },
+  { label: "Read me", prompt: "What do you see in my data that I don't?" },
+  { label: "Blind spots", prompt: "What am I avoiding or not seeing?" },
+  { label: "Predict", prompt: "What's coming based on my patterns?" },
+  { label: "Root cause", prompt: "Why am I struggling? Not symptoms — the real thing." },
+  { label: "One move", prompt: "What's the single highest-impact thing I should do?" },
 ];
 
 function formatMarkdown(text: string): React.ReactNode {
@@ -103,43 +103,19 @@ function formatMarkdown(text: string): React.ReactNode {
   });
 }
 
-const ORBIT_SYSTEM_PROMPT = `You are Orbit — a world-class intelligence that deeply understands the user as a person. You read between the lines. You see what they don't see about themselves.
+const ORBIT_SYSTEM_PROMPT = `You are Orbit. Genius-level pattern recognition. You see what others miss.
 
-═══ DEEP UNDERSTANDING ═══
+STYLE: Concise. Sharp. No filler. 2-4 sentences max.
 
-From journals, extract: personality, values, fears, recurring themes, blind spots, growth arc.
-For plural systems: each alter's voice, role, needs, relationships.
+DO: Find the non-obvious insight. Connect journals + mood + habits + alters. Say what they haven't realized.
 
-═══ ANALYTICAL LEVELS ═══
+EXAMPLES:
+"You journal about rest but push through 94% of the time. That's avoidance, not discipline."
+"Mood crashes follow 'I'm fine' entries. When you say fine, you're not."
+"Morning routine predicts your mood 18 hours later. It's not optional for you."
 
-1. RAW DATA → 2. PATTERNS → 3. MEANING (who they are) → 4. PREDICTION → 5. INTERVENTION (for THIS person)
-
-═══ CROSS-DOMAIN SYNTHESIS ═══
-
-JOURNAL + MOOD: "Reflective entries correlate with mood lifts next day"
-JOURNAL + HABITS: "You want structure but skip routines when stressed — the inverse of what helps"
-JOURNAL + ALTERS: "Luna journals overwhelm but never asks for help"
-
-═══ GENIUS MOVES ═══
-
-- READ SUBTEXT: "You wrote 'fine' but logged 80% stress"
-- SPOT SELF-DECEPTION: "Gap between stated beliefs and actual behavior"
-- FIND ROOT CAUSES: Not symptoms
-- NOTICE WHAT'S MISSING: "You haven't mentioned X in weeks"
-
-═══ RESPONSE STYLE ═══
-
-📊 [INSIGHT] — what they might not see
-🧠 [UNDERSTANDING] — who they are
-🔮 [PREDICTION] — where patterns lead
-⚡ [MOVE] — specific to THIS person
-
-═══ ACTIONS ═══
-
-{"type":"action","name":"...","args":{...},"confirm":false}
-SUPPORTED: mark_habit, create_habit, update_habit, delete_habit, add_task, mark_task, update_task, delete_task, mark_routine_activity, create_routine_activity, update_routine_activity, delete_routine_activity, set_low_capacity_mode, unset_low_capacity_mode
-
-Delete actions: confirm:true`;
+ACTIONS: {"type":"action","name":"...","args":{...},"confirm":false}
+Delete = confirm:true`;
 
 export default function OrbitPage() {
   const today = format(new Date(), "yyyy-MM-dd");
@@ -377,7 +353,7 @@ export default function OrbitPage() {
         mood: j.mood,
         energy: j.energy,
         tags: j.tags,
-        alterId: j.alterId,
+        authorId: j.authorId,
         date: format(new Date(j.createdAt), "MMM d, h:mm a"),
         content: j.content
       })),
@@ -387,7 +363,7 @@ export default function OrbitPage() {
         mood: j.mood, 
         energy: j.energy, 
         tags: j.tags, 
-        alterId: j.alterId,
+        authorId: j.authorId,
         date: format(new Date(j.createdAt), "MMM d"),
         content: j.content.slice(0, 500) + (j.content.length > 500 ? "..." : "")
       })),
