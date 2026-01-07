@@ -62,8 +62,28 @@ export const dailySummaries = pgTable("daily_summaries", {
   breakfast: text("breakfast").default("Cereals milk honey"),
   lunch: text("lunch").default("Simple ham and cheese"),
   dinner: text("dinner").default(""),
+  breakfastOptionId: varchar("breakfast_option_id"),
+  lunchOptionId: varchar("lunch_option_id"),
+  dinnerOptionId: varchar("dinner_option_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Food Options (pre-defined meals to select from)
+export const foodOptions = pgTable("food_options", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  mealType: text("meal_type").notNull(), // "breakfast" | "lunch" | "dinner"
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertFoodOptionSchema = createInsertSchema(foodOptions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type FoodOption = typeof foodOptions.$inferSelect;
+export type InsertFoodOption = z.infer<typeof insertFoodOptionSchema>;
 
 export const insertDailySummarySchema = createInsertSchema(dailySummaries).omit({
   id: true,

@@ -18,7 +18,8 @@ import {
   insertCareerTaskSchema,
   insertExpenseSchema,
   insertCareerVisionSchema,
-  insertJournalEntrySchema
+  insertJournalEntrySchema,
+  insertFoodOptionSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { registerChatRoutes } from "./replit_integrations/chat";
