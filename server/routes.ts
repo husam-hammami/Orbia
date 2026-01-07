@@ -1929,6 +1929,39 @@ ${JSON.stringify(context, null, 2)}`;
     }
   });
 
+  // Food Options Routes
+  app.get("/api/food-options", async (req, res) => {
+    try {
+      const options = await storage.getAllFoodOptions();
+      res.json(options);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch food options" });
+    }
+  });
+
+  app.post("/api/food-options", async (req, res) => {
+    try {
+      const validatedData = insertFoodOptionSchema.parse(req.body);
+      const option = await storage.createFoodOption(validatedData);
+      res.status(201).json(option);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/food-options/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteFoodOption(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Food option not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete food option" });
+    }
+  });
+
   // Admin seed endpoint - populates database with initial data
   app.post("/api/admin/seed", async (req, res) => {
     const seedKey = req.headers["x-seed-key"];

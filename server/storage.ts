@@ -61,30 +61,6 @@ import { db } from "./db";
 import { eq, desc, and, asc } from "drizzle-orm";
 
 export interface IStorage {
-  // ... existing methods ...
-  // Food Options
-  getAllFoodOptions(): Promise<FoodOption[]>;
-  createFoodOption(option: InsertFoodOption): Promise<FoodOption>;
-  deleteFoodOption(id: string): Promise<boolean>;
-}
-
-export class DatabaseStorage implements IStorage {
-  // ... existing methods ...
-  // Food Options
-  async getAllFoodOptions(): Promise<FoodOption[]> {
-    return await db.select().from(foodOptions).orderBy(foodOptions.name);
-  }
-
-  async createFoodOption(option: InsertFoodOption): Promise<FoodOption> {
-    const result = await db.insert(foodOptions).values(option).returning();
-    return result[0];
-  }
-
-  async deleteFoodOption(id: string): Promise<boolean> {
-    const result = await db.delete(foodOptions).where(eq(foodOptions.id, id)).returning();
-    return result.length > 0;
-  }
-}
   // System Members
   getAllMembers(): Promise<SystemMember[]>;
   getMember(id: string): Promise<SystemMember | undefined>;
@@ -194,6 +170,11 @@ export class DatabaseStorage implements IStorage {
   createJournalEntry(entry: InsertJournalEntry): Promise<JournalEntry>;
   updateJournalEntry(id: string, entry: Partial<InsertJournalEntry>): Promise<JournalEntry | undefined>;
   deleteJournalEntry(id: string): Promise<boolean>;
+
+  // Food Options
+  getAllFoodOptions(): Promise<FoodOption[]>;
+  createFoodOption(option: InsertFoodOption): Promise<FoodOption>;
+  deleteFoodOption(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -652,6 +633,21 @@ export class DatabaseStorage implements IStorage {
 
   async deleteJournalEntry(id: string): Promise<boolean> {
     const result = await db.delete(journalEntries).where(eq(journalEntries.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Food Options
+  async getAllFoodOptions(): Promise<FoodOption[]> {
+    return await db.select().from(foodOptions).orderBy(foodOptions.name);
+  }
+
+  async createFoodOption(option: InsertFoodOption): Promise<FoodOption> {
+    const result = await db.insert(foodOptions).values(option).returning();
+    return result[0];
+  }
+
+  async deleteFoodOption(id: string): Promise<boolean> {
+    const result = await db.delete(foodOptions).where(eq(foodOptions.id, id)).returning();
     return result.length > 0;
   }
 }
