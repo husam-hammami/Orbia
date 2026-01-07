@@ -1950,6 +1950,18 @@ ${JSON.stringify(context, null, 2)}`;
     }
   });
 
+  app.patch("/api/food-options/:id", async (req, res) => {
+    try {
+      const updated = await storage.updateFoodOption(req.params.id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Food option not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update food option" });
+    }
+  });
+
   app.delete("/api/food-options/:id", async (req, res) => {
     try {
       const success = await storage.deleteFoodOption(req.params.id);

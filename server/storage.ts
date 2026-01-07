@@ -174,6 +174,7 @@ export interface IStorage {
   // Food Options
   getAllFoodOptions(): Promise<FoodOption[]>;
   createFoodOption(option: InsertFoodOption): Promise<FoodOption>;
+  updateFoodOption(id: string, option: Partial<InsertFoodOption>): Promise<FoodOption | undefined>;
   deleteFoodOption(id: string): Promise<boolean>;
 }
 
@@ -643,6 +644,11 @@ export class DatabaseStorage implements IStorage {
 
   async createFoodOption(option: InsertFoodOption): Promise<FoodOption> {
     const result = await db.insert(foodOptions).values(option).returning();
+    return result[0];
+  }
+
+  async updateFoodOption(id: string, option: Partial<InsertFoodOption>): Promise<FoodOption | undefined> {
+    const result = await db.update(foodOptions).set(option).where(eq(foodOptions.id, id)).returning();
     return result[0];
   }
 
