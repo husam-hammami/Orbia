@@ -340,11 +340,14 @@ export function HeadspaceMap() {
   const allTimePresence = useMemo(() => {
     if (entries.length === 0) return [];
     
-    const sortedEntries = [...entries].sort((a, b) => 
-      parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
-    );
+    const sortedEntries = [...entries].sort((a, b) => {
+      const aDate = typeof a.timestamp === 'string' ? parseISO(a.timestamp) : a.timestamp;
+      const bDate = typeof b.timestamp === 'string' ? parseISO(b.timestamp) : b.timestamp;
+      return aDate.getTime() - bDate.getTime();
+    });
     const firstEntry = sortedEntries[0];
-    const firstDate = startOfDay(parseISO(firstEntry.timestamp));
+    const firstTimestamp = typeof firstEntry.timestamp === 'string' ? parseISO(firstEntry.timestamp) : firstEntry.timestamp;
+    const firstDate = startOfDay(firstTimestamp);
     const allDays = eachDayOfInterval({ start: firstDate, end: now });
     
     return computeDailyPresence(entries, members, allDays);
@@ -419,57 +422,57 @@ export function HeadspaceMap() {
   return (
     <div className="space-y-6 py-2" data-testid="headspace-timeline">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <Card className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border-cyan-500/30 shadow-lg shadow-cyan-500/10">
+        <Card className="bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-500/30 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/30 to-violet-500/30 flex items-center justify-center border border-cyan-500/30">
-                <Users className="w-5 h-5 text-cyan-400" />
+              <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center">
+                <Users className="w-5 h-5 text-violet-600 dark:text-violet-400" />
               </div>
               <div>
-                <p className="text-[10px] uppercase text-cyan-400/70 font-bold tracking-wider">Top Fronter</p>
-                <p className="text-sm font-semibold text-white">{summaryStats.topMember?.name || "—"}</p>
+                <p className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">Top Fronter</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">{summaryStats.topMember?.name || "—"}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border-amber-500/30 shadow-lg shadow-amber-500/10">
+        <Card className="bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-500/30 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/30 to-orange-500/30 flex items-center justify-center border border-amber-500/30">
-                <Zap className="w-5 h-5 text-amber-400" />
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <p className="text-[10px] uppercase text-amber-400/70 font-bold tracking-wider">Avg Switches/Day</p>
-                <p className="text-sm font-semibold text-white">{summaryStats.avgTransitionsPerDay || 0}</p>
+                <p className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">Avg Switches/Day</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">{summaryStats.avgTransitionsPerDay || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border-emerald-500/30 shadow-lg shadow-emerald-500/10">
+        <Card className="bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/30 to-teal-500/30 flex items-center justify-center border border-emerald-500/30">
-                <Calendar className="w-5 h-5 text-emerald-400" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-[10px] uppercase text-emerald-400/70 font-bold tracking-wider">Days Tracked</p>
-                <p className="text-sm font-semibold text-white">{summaryStats.daysWithData} / 30</p>
+                <p className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">Days Tracked</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">{summaryStats.daysWithData} / 30</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border-violet-500/30 shadow-lg shadow-violet-500/10">
+        <Card className="bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-500/30 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 flex items-center justify-center border border-violet-500/30">
-                <Activity className="w-5 h-5 text-violet-400" />
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center">
+                <Activity className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
-                <p className="text-[10px] uppercase text-violet-400/70 font-bold tracking-wider">Total Entries</p>
-                <p className="text-sm font-semibold text-white">{summaryStats.totalEntries}</p>
+                <p className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">Total Entries</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">{summaryStats.totalEntries}</p>
               </div>
             </div>
           </CardContent>
@@ -477,158 +480,122 @@ export function HeadspaceMap() {
       </div>
 
       <Tabs value={activeView} onValueChange={setActiveView} className="space-y-4">
-        <TabsList className="bg-slate-900/80 border border-cyan-500/20 p-1 shadow-lg shadow-cyan-500/5">
-          <TabsTrigger value="alltime" className="gap-2 text-xs data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-violet-500/20 data-[state=active]:text-cyan-300" data-testid="view-alltime">
+        <TabsList className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1 shadow-sm">
+          <TabsTrigger value="alltime" className="gap-2 text-xs data-[state=active]:bg-violet-100 dark:data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-300" data-testid="view-alltime">
             <Grid3x3 className="w-3.5 h-3.5" /> All Time
           </TabsTrigger>
-          <TabsTrigger value="weekly" className="gap-2 text-xs data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500/20 data-[state=active]:to-violet-500/20 data-[state=active]:text-indigo-300" data-testid="view-weekly">
+          <TabsTrigger value="weekly" className="gap-2 text-xs data-[state=active]:bg-indigo-100 dark:data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-700 dark:data-[state=active]:text-indigo-300" data-testid="view-weekly">
             <BarChart3 className="w-3.5 h-3.5" /> Weekly
           </TabsTrigger>
-          <TabsTrigger value="calendar" className="gap-2 text-xs data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500/20 data-[state=active]:to-teal-500/20 data-[state=active]:text-emerald-300" data-testid="view-calendar">
+          <TabsTrigger value="calendar" className="gap-2 text-xs data-[state=active]:bg-emerald-100 dark:data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-300" data-testid="view-calendar">
             <Calendar className="w-3.5 h-3.5" /> Monthly
           </TabsTrigger>
-          <TabsTrigger value="trends" className="gap-2 text-xs data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500/20 data-[state=active]:to-fuchsia-500/20 data-[state=active]:text-violet-300" data-testid="view-trends">
+          <TabsTrigger value="trends" className="gap-2 text-xs data-[state=active]:bg-fuchsia-100 dark:data-[state=active]:bg-fuchsia-500/20 data-[state=active]:text-fuchsia-700 dark:data-[state=active]:text-fuchsia-300" data-testid="view-trends">
             <TrendingUp className="w-3.5 h-3.5" /> Trends
           </TabsTrigger>
-          <TabsTrigger value="today" className="gap-2 text-xs data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500/20 data-[state=active]:to-orange-500/20 data-[state=active]:text-amber-300" data-testid="view-today">
+          <TabsTrigger value="today" className="gap-2 text-xs data-[state=active]:bg-amber-100 dark:data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-700 dark:data-[state=active]:text-amber-300" data-testid="view-today">
             <Clock className="w-3.5 h-3.5" /> 24h
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="alltime" className="space-y-4">
-          <Card className="border-cyan-500/20 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-500/10 via-transparent to-transparent pointer-events-none" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-violet-500/10 via-transparent to-transparent pointer-events-none" />
-            
-            <CardHeader className="pb-2 relative z-10">
+          <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Grid3x3 className="w-4 h-4 text-cyan-400" /> 
-                    <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
-                      Presence Matrix
-                    </span>
+                  <CardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
+                    <Grid3x3 className="w-4 h-4 text-violet-500" /> 
+                    Presence Stream
                   </CardTitle>
-                  <CardDescription className="text-xs text-cyan-300/50">All-time fronting visualization</CardDescription>
+                  <CardDescription className="text-xs text-slate-500">Continuous fronting data visualization</CardDescription>
                 </div>
-                <div className="flex items-center gap-4 text-[10px]">
-                  <span className="text-slate-500 font-mono">{allTimePresence.length} days tracked</span>
+                <div className="flex items-center gap-4 text-xs">
+                  <span className="text-slate-600 dark:text-slate-300 font-medium">{entries.length} entries</span>
                 </div>
               </div>
             </CardHeader>
             
-            <CardContent className="pt-4 relative z-10">
-              {allTimeWeeks.length === 0 ? (
+            <CardContent className="pt-4">
+              {entries.length === 0 ? (
                 <div className="flex items-center justify-center h-32 text-slate-500 text-sm">
-                  No tracking data yet. Log your first entry to see the matrix.
+                  No tracking data yet. Log your first entry to see the stream.
                 </div>
               ) : (
                 <>
-                  <div className="mb-3 text-[10px] text-slate-500 font-mono">
-                    {format(allTimePresence[0]?.date || new Date(), "MMM d, yyyy")} — {format(allTimePresence[allTimePresence.length - 1]?.date || new Date(), "MMM d, yyyy")}
+                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4">
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,rgba(139,92,246,0.03)_50%,transparent_100%)] pointer-events-none" />
+                    
+                    <div className="flex flex-wrap gap-1">
+                      {entries.slice(0, 200).map((entry, idx) => {
+                        const member = members.find(m => m.id === entry.frontingMemberId);
+                        const moodIntensity = (entry.mood || 5) / 10;
+                        const size = 12 + (entry.mood || 5) * 1.5;
+                        
+                        return (
+                          <TooltipProvider key={entry.id || idx} delayDuration={0}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <motion.div
+                                  initial={{ opacity: 0, scale: 0 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  transition={{ delay: idx * 0.005, type: "spring", stiffness: 300 }}
+                                  className="cursor-pointer transition-all hover:scale-150 hover:z-20 relative"
+                                  style={{
+                                    width: size,
+                                    height: size,
+                                    borderRadius: '50%',
+                                    background: member 
+                                      ? `radial-gradient(circle at 30% 30%, ${member.color} 0%, ${member.color}88 100%)`
+                                      : 'radial-gradient(circle at 30% 30%, #64748b 0%, #475569 100%)',
+                                    boxShadow: member 
+                                      ? `0 0 ${8 + moodIntensity * 8}px ${member.color}80`
+                                      : 'none',
+                                    opacity: 0.6 + moodIntensity * 0.4
+                                  }}
+                                  data-testid={`stream-entry-${idx}`}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 p-3 shadow-xl">
+                                <p className="font-semibold text-slate-900 dark:text-white mb-1">
+                                  {format(typeof entry.timestamp === 'string' ? parseISO(entry.timestamp) : entry.timestamp, "MMM d, yyyy HH:mm")}
+                                </p>
+                                <div className="space-y-1 text-xs">
+                                  {member && (
+                                    <p className="text-slate-600 dark:text-slate-300">
+                                      Fronter: <span className="font-semibold" style={{ color: member.color }}>{member.name}</span>
+                                    </p>
+                                  )}
+                                  <p className="text-slate-500">Mood: {entry.mood}/10 | Stress: {entry.stress}%</p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })}
+                    </div>
+                    
+                    {entries.length > 200 && (
+                      <div className="mt-3 text-center text-xs text-slate-500">
+                        Showing first 200 of {entries.length} entries
+                      </div>
+                    )}
                   </div>
                   
-                  <div className="grid grid-cols-7 gap-[2px] mb-2">
-                    {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
-                      <div key={i} className="text-center text-[8px] font-bold text-cyan-400/50 uppercase">{d}</div>
-                    ))}
-                  </div>
-                  
-                  <div className="space-y-[2px]">
-                    {allTimeWeeks.map((week, weekIdx) => {
-                      const paddedDays: (DailyPresence | null)[] = [];
-                      const firstDayOfWeek = getDay(week.weekStart);
-                      const mondayOffset = (firstDayOfWeek + 6) % 7;
-                      
-                      for (let i = 0; i < 7; i++) {
-                        const dayData = week.days.find(d => (getDay(d.date) + 6) % 7 === i);
-                        paddedDays.push(dayData || null);
-                      }
-                      
+                  <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    {members.map(m => {
+                      const count = entries.filter(e => e.frontingMemberId === m.id).length;
+                      const pct = entries.length > 0 ? Math.round(count / entries.length * 100) : 0;
                       return (
-                        <div key={weekIdx} className="grid grid-cols-7 gap-[2px]">
-                          {paddedDays.map((day, dayIdx) => {
-                            if (!day) {
-                              return <div key={dayIdx} className="aspect-square rounded-sm" />;
-                            }
-                            
-                            const hasData = day.entryCount > 0;
-                            const isToday = isSameDay(day.date, now);
-                            const intensity = hasData ? Math.min(day.entryCount * 0.3, 1) : 0;
-                            
-                            return (
-                              <TooltipProvider key={day.dateStr} delayDuration={0}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <motion.div
-                                      initial={{ opacity: 0, scale: 0.5 }}
-                                      animate={{ opacity: 1, scale: 1 }}
-                                      transition={{ delay: weekIdx * 0.02 + dayIdx * 0.01 }}
-                                      className={cn(
-                                        "aspect-square rounded-sm cursor-pointer transition-all duration-200 hover:scale-125 hover:z-10 relative group",
-                                        isToday && "ring-2 ring-cyan-400 ring-offset-1 ring-offset-slate-950"
-                                      )}
-                                      style={day.dominantMember ? {
-                                        background: `linear-gradient(135deg, ${day.dominantMember.color}${hasData ? 'cc' : '40'} 0%, ${day.dominantMember.color}${hasData ? '88' : '20'} 100%)`,
-                                        boxShadow: hasData ? `0 0 ${intensity * 12}px ${day.dominantMember.color}60, inset 0 0 4px ${day.dominantMember.color}40` : 'none'
-                                      } : {
-                                        background: hasData ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' : 'rgba(15, 23, 42, 0.3)'
-                                      }}
-                                      data-testid={`alltime-day-${day.dateStr}`}
-                                    >
-                                      {day.transitionCount > 0 && (
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                          <Zap className="w-2 h-2 text-amber-400 opacity-80" />
-                                        </div>
-                                      )}
-                                      
-                                      <div 
-                                        className="absolute inset-0 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                                        style={{ boxShadow: day.dominantMember ? `0 0 16px ${day.dominantMember.color}` : 'none' }}
-                                      />
-                                    </motion.div>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="bg-slate-900 border-cyan-500/30 p-3 shadow-lg shadow-cyan-500/20">
-                                    <p className="font-semibold text-cyan-300 mb-1">{format(day.date, "EEEE, MMM d, yyyy")}</p>
-                                    {hasData ? (
-                                      <div className="space-y-1 text-xs">
-                                        {day.dominantMember && (
-                                          <p className="text-slate-400">
-                                            Dominant: <span className="font-semibold" style={{ color: day.dominantMember.color }}>{day.dominantMember.name}</span>
-                                          </p>
-                                        )}
-                                        <p className="text-slate-400">{day.entryCount} entries, {day.transitionCount} switches</p>
-                                      </div>
-                                    ) : (
-                                      <p className="text-xs text-slate-500">No data recorded</p>
-                                    )}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            );
-                          })}
+                        <div key={m.id} className="flex items-center gap-2">
+                          <div 
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: m.color, boxShadow: `0 0 6px ${m.color}60` }} 
+                          />
+                          <span className="text-sm text-slate-700 dark:text-slate-200 font-medium">{m.name}</span>
+                          <span className="text-xs text-slate-500">({pct}%)</span>
                         </div>
                       );
                     })}
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-3 mt-6 pt-4 border-t border-cyan-500/20">
-                    {members.map(m => (
-                      <div key={m.id} className="flex items-center gap-2">
-                        <div 
-                          className="w-4 h-4 rounded-sm shadow-lg"
-                          style={{ 
-                            backgroundColor: m.color,
-                            boxShadow: `0 0 8px ${m.color}60`
-                          }} 
-                        />
-                        <span className="text-xs text-slate-300">{m.name}</span>
-                      </div>
-                    ))}
-                    <div className="flex items-center gap-2 ml-4 pl-4 border-l border-slate-700">
-                      <Zap className="w-3 h-3 text-amber-400" />
-                      <span className="text-xs text-slate-400">Switch occurred</span>
-                    </div>
                   </div>
                 </>
               )}
@@ -637,16 +604,15 @@ export function HeadspaceMap() {
         </TabsContent>
 
         <TabsContent value="weekly" className="space-y-4">
-          <Card className="border-indigo-500/20 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden relative">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/10 via-transparent to-transparent pointer-events-none" />
-            <CardHeader className="pb-2 relative z-10">
+          <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-indigo-400" /> 
-                    <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">Weekly Balance</span>
+                  <CardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
+                    <BarChart3 className="w-4 h-4 text-indigo-500" /> 
+                    Weekly Balance
                   </CardTitle>
-                  <CardDescription className="text-xs text-indigo-300/50">Hours per day by each member</CardDescription>
+                  <CardDescription className="text-xs text-slate-500">Hours per day by each member</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setWeekOffset(w => w - 1)} data-testid="week-prev">
@@ -661,37 +627,38 @@ export function HeadspaceMap() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="h-[280px] pt-4 relative z-10">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#3730a3" opacity={0.3} />
-                  <XAxis dataKey="day" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={{ stroke: '#475569' }} />
-                  <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={{ stroke: '#475569' }} label={{ value: 'Hours', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
-                  <RechartsTooltip 
-                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                    labelStyle={{ color: '#e2e8f0' }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: '11px' }} />
-                  {members.map(m => (
-                    <Bar key={m.id} dataKey={m.name} stackId="a" fill={normalizeColor(m.color)} />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
+            <CardContent className="pt-4">
+              <div className="h-[260px] rounded-xl bg-slate-950 p-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={weeklyChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+                    <XAxis dataKey="day" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={{ stroke: '#475569' }} />
+                    <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={{ stroke: '#475569' }} label={{ value: 'Hours', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
+                    <RechartsTooltip 
+                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                      labelStyle={{ color: '#e2e8f0' }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '11px' }} />
+                    {members.map(m => (
+                      <Bar key={m.id} dataKey={m.name} stackId="a" fill={normalizeColor(m.color)} />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="calendar" className="space-y-4">
-          <Card className="border-emerald-500/20 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden relative">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-500/10 via-transparent to-transparent pointer-events-none" />
-            <CardHeader className="pb-2 relative z-10">
+          <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-emerald-400" /> 
-                    <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Monthly Presence</span>
+                  <CardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
+                    <Calendar className="w-4 h-4 text-emerald-500" /> 
+                    Monthly Presence
                   </CardTitle>
-                  <CardDescription className="text-xs text-emerald-300/50">Each day colored by dominant fronter</CardDescription>
+                  <CardDescription className="text-xs text-slate-500">Each day colored by dominant fronter</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonthOffset(m => m - 1)} data-testid="month-prev">
@@ -706,92 +673,87 @@ export function HeadspaceMap() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="pt-4 relative z-10">
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
-                  <div key={d} className="text-center text-[10px] font-bold text-emerald-400/50 uppercase">{d}</div>
-                ))}
-              </div>
-              
-              <div className="grid grid-cols-7 gap-1">
-                {Array.from({ length: (getDay(currentMonthStart) + 6) % 7 }).map((_, i) => (
-                  <div key={`empty-${i}`} className="aspect-square" />
-                ))}
+            <CardContent className="pt-4">
+              <div className="rounded-xl bg-slate-950 p-4">
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
+                    <div key={d} className="text-center text-[10px] font-bold text-slate-400 uppercase">{d}</div>
+                  ))}
+                </div>
                 
-                {monthlyPresence.map((day, i) => {
-                  const isToday = isSameDay(day.date, now);
-                  const hasData = day.entryCount > 0;
+                <div className="grid grid-cols-7 gap-1">
+                  {Array.from({ length: (getDay(currentMonthStart) + 6) % 7 }).map((_, i) => (
+                    <div key={`empty-${i}`} className="aspect-square" />
+                  ))}
                   
-                  return (
-                    <TooltipProvider key={day.dateStr} delayDuration={0}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: i * 0.01 }}
-                            className={cn(
-                              "aspect-square rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all hover:scale-110 relative group",
-                              isToday ? "ring-2 ring-emerald-400 ring-offset-1 ring-offset-slate-950" : ""
-                            )}
-                            style={day.dominantMember ? {
-                              background: `linear-gradient(135deg, ${day.dominantMember.color}${hasData ? 'aa' : '30'} 0%, ${day.dominantMember.color}${hasData ? '66' : '15'} 100%)`,
-                              boxShadow: hasData ? `0 0 12px ${day.dominantMember.color}40, inset 0 1px 0 ${day.dominantMember.color}30` : 'none'
-                            } : {
-                              background: hasData ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' : 'rgba(15, 23, 42, 0.4)'
-                            }}
-                            data-testid={`calendar-day-${day.dateStr}`}
-                          >
-                            <span className={cn(
-                              "text-xs font-mono",
-                              hasData ? "text-white font-bold" : "text-slate-600"
-                            )}>
-                              {format(day.date, "d")}
-                            </span>
-                            {day.transitionCount > 0 && (
-                              <div className="flex items-center gap-0.5 mt-0.5">
-                                <Zap className="w-2 h-2 text-amber-400" />
-                                <span className="text-[8px] text-amber-400 font-bold">{day.transitionCount}</span>
-                              </div>
-                            )}
-                            <div 
-                              className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                              style={{ boxShadow: day.dominantMember ? `0 0 20px ${day.dominantMember.color}80` : 'none' }}
-                            />
-                          </motion.div>
-                        </TooltipTrigger>
-                        <TooltipContent className="bg-slate-900 border-emerald-500/30 p-3 shadow-lg shadow-emerald-500/20">
-                          <p className="font-semibold text-emerald-300 mb-1">{format(day.date, "EEEE, MMMM d")}</p>
-                          {hasData ? (
-                            <div className="space-y-1 text-xs">
-                              {day.dominantMember && (
-                                <p className="text-slate-400">
-                                  Dominant: <span className="font-semibold" style={{ color: day.dominantMember.color }}>{day.dominantMember.name}</span>
-                                </p>
+                  {monthlyPresence.map((day, i) => {
+                    const isToday = isSameDay(day.date, now);
+                    const hasData = day.entryCount > 0;
+                    
+                    return (
+                      <TooltipProvider key={day.dateStr} delayDuration={0}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: i * 0.01 }}
+                              className={cn(
+                                "aspect-square rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all hover:scale-110 relative group",
+                                isToday ? "ring-2 ring-emerald-400 ring-offset-1 ring-offset-slate-950" : ""
                               )}
-                              <p className="text-slate-400">{day.entryCount} entries, {day.transitionCount} switches</p>
-                            </div>
-                          ) : (
-                            <p className="text-xs text-slate-500">No data</p>
-                          )}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  );
-                })}
+                              style={day.dominantMember ? {
+                                background: `linear-gradient(135deg, ${day.dominantMember.color}cc 0%, ${day.dominantMember.color}88 100%)`,
+                                boxShadow: hasData ? `0 0 8px ${day.dominantMember.color}60` : 'none'
+                              } : {
+                                background: hasData ? '#334155' : '#1e293b'
+                              }}
+                              data-testid={`calendar-day-${day.dateStr}`}
+                            >
+                              <span className={cn(
+                                "text-xs font-mono",
+                                hasData ? "text-white font-bold" : "text-slate-500"
+                              )}>
+                                {format(day.date, "d")}
+                              </span>
+                              {day.transitionCount > 0 && (
+                                <div className="flex items-center gap-0.5 mt-0.5">
+                                  <Zap className="w-2 h-2 text-amber-400" />
+                                  <span className="text-[8px] text-amber-400 font-bold">{day.transitionCount}</span>
+                                </div>
+                              )}
+                            </motion.div>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 p-3 shadow-xl">
+                            <p className="font-semibold text-slate-900 dark:text-white mb-1">{format(day.date, "EEEE, MMMM d")}</p>
+                            {hasData ? (
+                              <div className="space-y-1 text-xs">
+                                {day.dominantMember && (
+                                  <p className="text-slate-600 dark:text-slate-300">
+                                    Dominant: <span className="font-semibold" style={{ color: day.dominantMember.color }}>{day.dominantMember.name}</span>
+                                  </p>
+                                )}
+                                <p className="text-slate-500">{day.entryCount} entries, {day.transitionCount} switches</p>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-slate-500">No data</p>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    );
+                  })}
+                </div>
               </div>
               
-              <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-emerald-500/20">
+              <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                 {members.map(m => (
                   <div key={m.id} className="flex items-center gap-2">
                     <div 
-                      className="w-4 h-4 rounded shadow-lg" 
-                      style={{ 
-                        backgroundColor: m.color,
-                        boxShadow: `0 0 8px ${m.color}60`
-                      }} 
+                      className="w-4 h-4 rounded" 
+                      style={{ backgroundColor: m.color }} 
                     />
-                    <span className="text-xs text-slate-300">{m.name}</span>
+                    <span className="text-xs text-slate-600 dark:text-slate-300">{m.name}</span>
                   </div>
                 ))}
               </div>
@@ -800,39 +762,40 @@ export function HeadspaceMap() {
         </TabsContent>
 
         <TabsContent value="trends" className="space-y-4">
-          <Card className="border-violet-500/20 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden relative">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-500/10 via-transparent to-transparent pointer-events-none" />
-            <CardHeader className="pb-2 relative z-10">
-              <CardTitle className="text-base flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-violet-400" /> 
-                <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">30-Day Trends</span>
+          <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
+                <TrendingUp className="w-4 h-4 text-fuchsia-500" /> 
+                30-Day Trends
               </CardTitle>
-              <CardDescription className="text-xs text-violet-300/50">Fronting hours per day over the last month</CardDescription>
+              <CardDescription className="text-xs text-slate-500">Fronting hours per day over the last month</CardDescription>
             </CardHeader>
-            <CardContent className="h-[300px] pt-4 relative z-10">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trendChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#4c1d95" opacity={0.3} />
-                  <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={{ stroke: '#475569' }} interval="preserveStartEnd" />
-                  <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={{ stroke: '#475569' }} />
-                  <RechartsTooltip 
-                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                    labelStyle={{ color: '#e2e8f0' }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: '11px' }} />
-                  {members.map(m => (
-                    <Area 
-                      key={m.id} 
-                      type="monotone" 
-                      dataKey={m.name} 
-                      stackId="1"
-                      stroke={normalizeColor(m.color)} 
-                      fill={normalizeColor(m.color)}
-                      fillOpacity={0.6}
+            <CardContent className="pt-4">
+              <div className="h-[280px] rounded-xl bg-slate-950 p-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={trendChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+                    <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={{ stroke: '#475569' }} interval="preserveStartEnd" />
+                    <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={{ stroke: '#475569' }} />
+                    <RechartsTooltip 
+                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                      labelStyle={{ color: '#e2e8f0' }}
                     />
-                  ))}
-                </AreaChart>
-              </ResponsiveContainer>
+                    <Legend wrapperStyle={{ fontSize: '11px' }} />
+                    {members.map(m => (
+                      <Area 
+                        key={m.id} 
+                        type="monotone" 
+                        dataKey={m.name} 
+                        stackId="1"
+                        stroke={normalizeColor(m.color)} 
+                        fill={normalizeColor(m.color)}
+                        fillOpacity={0.6}
+                      />
+                    ))}
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
           
@@ -844,7 +807,7 @@ export function HeadspaceMap() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Card className="border-slate-700/50 bg-slate-900/50">
+                <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
                   <CardContent className="p-3">
                     <div className="flex items-center gap-2 mb-2">
                       <div 
@@ -853,24 +816,24 @@ export function HeadspaceMap() {
                       >
                         {stat.name.substring(0, 2).toUpperCase()}
                       </div>
-                      <span className="text-sm font-semibold text-slate-200">{stat.name}</span>
+                      <span className="text-sm font-semibold text-slate-900 dark:text-white">{stat.name}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-[10px]">
                       <div>
                         <p className="text-slate-500">Total</p>
-                        <p className="font-mono font-bold text-slate-300">{stat.totalHours}h</p>
+                        <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{stat.totalHours}h</p>
                       </div>
                       <div>
                         <p className="text-slate-500">Avg/Day</p>
-                        <p className="font-mono font-bold text-slate-300">{stat.avgPerDay}h</p>
+                        <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{stat.avgPerDay}h</p>
                       </div>
                       <div>
                         <p className="text-slate-500">Days Active</p>
-                        <p className="font-mono font-bold text-slate-300">{stat.daysActive}</p>
+                        <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{stat.daysActive}</p>
                       </div>
                       <div>
                         <p className="text-slate-500">Share</p>
-                        <p className="font-mono font-bold text-slate-300">{stat.percentOfTotal}%</p>
+                        <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{stat.percentOfTotal}%</p>
                       </div>
                     </div>
                   </CardContent>
