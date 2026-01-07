@@ -86,11 +86,11 @@ interface OrbitAction {
 }
 
 const QUICK_CHIPS = [
-  { label: "Analyze me", prompt: "Deep analysis: what patterns, predictions, and strategic insights do you see across all my data?" },
-  { label: "Predict this week", prompt: "Based on my trends, what should I watch out for this week? Any risks?" },
-  { label: "Optimize my system", prompt: "What systemic changes would have the biggest impact on my wellbeing?" },
-  { label: "High-leverage move", prompt: "What's the one thing I could do right now that would have the biggest ripple effect?" },
-  { label: "Bottleneck analysis", prompt: "What's blocking me most? Analyze my patterns and find the constraint." },
+  { label: "Who am I?", prompt: "Based on everything you know about me — journals, habits, moods, patterns — who am I? What do you see?" },
+  { label: "What am I avoiding?", prompt: "What patterns or blind spots do you notice that I might not see myself?" },
+  { label: "Predict my week", prompt: "Based on my patterns and current state, what do you predict for this week? What should I watch for?" },
+  { label: "Root cause", prompt: "I've been struggling. Analyze my data deeply — what's the underlying cause, not just the symptoms?" },
+  { label: "What do I need?", prompt: "Based on who I am and where I'm at, what do I actually need right now?" },
 ];
 
 function formatMarkdown(text: string): React.ReactNode {
@@ -103,47 +103,36 @@ function formatMarkdown(text: string): React.ReactNode {
   });
 }
 
-const ORBIT_SYSTEM_PROMPT = `You are Orbit — a world-class analytical intelligence. You think like the best strategists: seeing patterns others miss, predicting problems before they happen, and finding high-leverage interventions.
+const ORBIT_SYSTEM_PROMPT = `You are Orbit — a world-class intelligence that deeply understands the user as a person. You read between the lines. You see what they don't see about themselves.
 
-═══ HOW YOU THINK ═══
+═══ DEEP UNDERSTANDING ═══
 
-LEVEL 1 - OBSERVATION: What does the raw data show?
-LEVEL 2 - CORRELATION: What patterns connect different data streams?
-LEVEL 3 - CAUSATION: What's likely driving these patterns?
-LEVEL 4 - PREDICTION: What will happen if current trends continue?
-LEVEL 5 - INTERVENTION: What's the smallest change with biggest impact?
+From journals, extract: personality, values, fears, recurring themes, blind spots, growth arc.
+For plural systems: each alter's voice, role, needs, relationships.
 
-═══ CROSS-DOMAIN REASONING ═══
+═══ ANALYTICAL LEVELS ═══
 
-Connect these data streams:
-HABITS ↔ MOOD: "Water intake correlates with +1.2 mood points next day"
-ROUTINE ↔ STRESS: "Morning routine completion predicts 30% lower afternoon stress"
-FRONTER ↔ PATTERNS: "Luna handles high-stress days better"
-TIME ↔ EVERYTHING: "Wednesdays show consistent mood dips"
+1. RAW DATA → 2. PATTERNS → 3. MEANING (who they are) → 4. PREDICTION → 5. INTERVENTION (for THIS person)
 
-═══ PREDICTIVE INTELLIGENCE ═══
+═══ CROSS-DOMAIN SYNTHESIS ═══
 
-Don't just describe — ANTICIPATE:
-"Stress trending up 8% per day. Without intervention, burnout by Friday"
-"Mood pattern suggests rough morning tomorrow — front-load easy tasks"
+JOURNAL + MOOD: "Reflective entries correlate with mood lifts next day"
+JOURNAL + HABITS: "You want structure but skip routines when stressed — the inverse of what helps"
+JOURNAL + ALTERS: "Luna journals overwhelm but never asks for help"
 
-═══ STRATEGIC RECOMMENDATIONS ═══
+═══ GENIUS MOVES ═══
 
-Think systemically:
-HABIT STACKING: "Anchor stretching to coffee"
-ENERGY MATCHING: "Creative peak 10-11am. Block for deep work"
-TRIGGER PREVENTION: "Stress spikes follow skipped grounding. Make it non-negotiable"
+- READ SUBTEXT: "You wrote 'fine' but logged 80% stress"
+- SPOT SELF-DECEPTION: "Gap between stated beliefs and actual behavior"
+- FIND ROOT CAUSES: Not symptoms
+- NOTICE WHAT'S MISSING: "You haven't mentioned X in weeks"
 
 ═══ RESPONSE STYLE ═══
 
-📊 [KEY INSIGHT] — cross-domain finding
-🔮 [PREDICTION] — what happens if nothing changes
-⚡ [HIGH-LEVERAGE MOVE] — 20% effort, 80% result
-
-═══ DID-AWARE ═══
-
-Track per-alter: mood baselines, time patterns, task completion, triggers.
-Operational data, not pathologizing.
+📊 [INSIGHT] — what they might not see
+🧠 [UNDERSTANDING] — who they are
+🔮 [PREDICTION] — where patterns lead
+⚡ [MOVE] — specific to THIS person
 
 ═══ ACTIONS ═══
 
@@ -382,16 +371,26 @@ export default function OrbitPage() {
       allCareerProjects: careerProjects?.map(p => ({ id: p.id, title: p.title, status: p.status, progress: p.progress, deadline: p.deadline })) || [],
       allCareerTasks: careerTasks?.map(t => ({ id: t.id, title: t.title, projectId: t.projectId, completed: !!t.completed, priority: t.priority, due: t.due })) || [],
       allExpenses: expenses?.map(e => ({ id: e.id, name: e.name, amount: e.amount, budget: e.budget, category: e.category, status: e.status, month: e.month })) || [],
-      recentJournalEntries: (journalEntries || []).slice(0, 5).map(j => ({
+      recentJournalEntries: (journalEntries || []).slice(0, 10).map(j => ({
         id: j.id,
         type: j.entryType,
         mood: j.mood,
         energy: j.energy,
         tags: j.tags,
+        alterId: j.alterId,
         date: format(new Date(j.createdAt), "MMM d, h:mm a"),
-        preview: j.content.slice(0, 100) + (j.content.length > 100 ? "..." : "")
+        content: j.content
       })),
-      allJournalEntries: (journalEntries || []).map(j => ({ id: j.id, type: j.entryType, mood: j.mood, energy: j.energy, tags: j.tags })),
+      allJournalEntries: (journalEntries || []).slice(10, 50).map(j => ({ 
+        id: j.id, 
+        type: j.entryType, 
+        mood: j.mood, 
+        energy: j.energy, 
+        tags: j.tags, 
+        alterId: j.alterId,
+        date: format(new Date(j.createdAt), "MMM d"),
+        content: j.content.slice(0, 500) + (j.content.length > 500 ? "..." : "")
+      })),
       todaysMeals: todayMeals ? { breakfast: todayMeals.breakfast, lunch: todayMeals.lunch, dinner: todayMeals.dinner } : null,
       allMealOptions: (foodOptions || []).map(o => ({ id: o.id, name: o.name, mealType: o.mealType, hasRecipe: !!o.description }))
     };
