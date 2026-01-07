@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Activity, Clock, Zap, Calendar, BarChart3, TrendingUp, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Activity, Clock, Zap, Calendar, BarChart3, TrendingUp, Users, ChevronLeft, ChevronRight, Sparkles, Waves, Layers } from "lucide-react";
 import { useMembers, useTrackerEntries } from "@/lib/api-hooks";
 import { 
   format, 
@@ -499,105 +499,259 @@ export function HeadspaceMap() {
         </TabsList>
 
         <TabsContent value="alltime" className="space-y-4">
-          <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
-            <CardHeader className="pb-2">
+          <Card className="border-0 bg-transparent overflow-hidden shadow-none">
+            <CardHeader className="pb-3 px-0">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
-                    <Grid3x3 className="w-4 h-4 text-violet-500" /> 
-                    Presence Stream
-                  </CardTitle>
-                  <CardDescription className="text-xs text-slate-500">Continuous fronting data visualization</CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
+                      <Sparkles className="w-5 h-5 text-white" />
+                    </div>
+                    <motion.div
+                      className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet-400 to-fuchsia-400"
+                      animate={{ opacity: [0.5, 0, 0.5], scale: [1, 1.3, 1] }}
+                      transition={{ duration: 3, repeat: Infinity }}
+                    />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-bold bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 bg-clip-text text-transparent">
+                      Neural River
+                    </CardTitle>
+                    <CardDescription className="text-xs text-slate-500">Consciousness flow across time</CardDescription>
+                  </div>
                 </div>
-                <div className="flex items-center gap-4 text-xs">
-                  <span className="text-slate-600 dark:text-slate-300 font-medium">{entries.length} entries</span>
+                <div className="flex items-center gap-3">
+                  <div className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <span className="text-xs font-mono font-semibold text-slate-600 dark:text-slate-300">{entries.length} moments</span>
+                  </div>
                 </div>
               </div>
             </CardHeader>
             
-            <CardContent className="pt-4">
+            <CardContent className="p-0">
               {entries.length === 0 ? (
-                <div className="flex items-center justify-center h-32 text-slate-500 text-sm">
-                  No tracking data yet. Log your first entry to see the stream.
+                <div className="flex flex-col items-center justify-center h-64 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-900 dark:to-slate-950 border border-slate-200 dark:border-slate-800">
+                  <motion.div
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  >
+                    <Waves className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-3" />
+                  </motion.div>
+                  <p className="text-slate-500 text-sm">The river awaits its first drop...</p>
+                  <p className="text-slate-400 text-xs mt-1">Log an entry to begin your stream</p>
                 </div>
               ) : (
-                <>
-                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4">
-                    <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,rgba(139,92,246,0.03)_50%,transparent_100%)] pointer-events-none" />
-                    
-                    <div className="flex flex-wrap gap-1">
-                      {entries.slice(0, 200).map((entry, idx) => {
-                        const member = members.find(m => m.id === entry.frontingMemberId);
-                        const moodIntensity = (entry.mood || 5) / 10;
-                        const size = 12 + (entry.mood || 5) * 1.5;
-                        
-                        return (
-                          <TooltipProvider key={entry.id || idx} delayDuration={0}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <motion.div
-                                  initial={{ opacity: 0, scale: 0 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  transition={{ delay: idx * 0.005, type: "spring", stiffness: 300 }}
-                                  className="cursor-pointer transition-all hover:scale-150 hover:z-20 relative"
-                                  style={{
-                                    width: size,
-                                    height: size,
-                                    borderRadius: '50%',
-                                    background: member 
-                                      ? `radial-gradient(circle at 30% 30%, ${member.color} 0%, ${member.color}88 100%)`
-                                      : 'radial-gradient(circle at 30% 30%, #64748b 0%, #475569 100%)',
-                                    boxShadow: member 
-                                      ? `0 0 ${8 + moodIntensity * 8}px ${member.color}80`
-                                      : 'none',
-                                    opacity: 0.6 + moodIntensity * 0.4
-                                  }}
-                                  data-testid={`stream-entry-${idx}`}
-                                />
-                              </TooltipTrigger>
-                              <TooltipContent className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 p-3 shadow-xl">
-                                <p className="font-semibold text-slate-900 dark:text-white mb-1">
-                                  {format(typeof entry.timestamp === 'string' ? parseISO(entry.timestamp) : entry.timestamp, "MMM d, yyyy HH:mm")}
-                                </p>
-                                <div className="space-y-1 text-xs">
-                                  {member && (
-                                    <p className="text-slate-600 dark:text-slate-300">
-                                      Fronter: <span className="font-semibold" style={{ color: member.color }}>{member.name}</span>
-                                    </p>
-                                  )}
-                                  <p className="text-slate-500">Mood: {entry.mood}/10 | Stress: {entry.stress}%</p>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        );
-                      })}
+                <div className="space-y-4">
+                  <div className="relative rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c0a1d 0%, #1a0a2e 25%, #0d1117 50%, #0a192f 75%, #0c0a1d 100%)' }}>
+                    <div className="absolute inset-0 overflow-hidden">
+                      <motion.div
+                        className="absolute inset-0"
+                        style={{
+                          background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(139,92,246,0.15) 0%, transparent 50%)',
+                        }}
+                        animate={{ opacity: [0.3, 0.6, 0.3] }}
+                        transition={{ duration: 4, repeat: Infinity }}
+                      />
+                      <motion.div
+                        className="absolute inset-0"
+                        style={{
+                          background: 'radial-gradient(ellipse 60% 40% at 30% 100%, rgba(236,72,153,0.1) 0%, transparent 50%)',
+                        }}
+                        animate={{ opacity: [0.2, 0.5, 0.2] }}
+                        transition={{ duration: 5, repeat: Infinity, delay: 1 }}
+                      />
+                      <motion.div
+                        className="absolute inset-0"
+                        style={{
+                          background: 'radial-gradient(ellipse 50% 30% at 80% 50%, rgba(59,130,246,0.1) 0%, transparent 50%)',
+                        }}
+                        animate={{ opacity: [0.3, 0.4, 0.3] }}
+                        transition={{ duration: 6, repeat: Infinity, delay: 2 }}
+                      />
                     </div>
-                    
-                    {entries.length > 200 && (
-                      <div className="mt-3 text-center text-xs text-slate-500">
-                        Showing first 200 of {entries.length} entries
+
+                    <div className="relative p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Activity className="w-4 h-4 text-violet-400" />
+                        <span className="text-xs font-semibold text-violet-300 uppercase tracking-wider">Flowing Consciousness</span>
+                      </div>
+
+                      <div className="relative h-32 flex items-end gap-[2px] overflow-hidden">
+                        {(() => {
+                          const sortedEntries = [...entries].sort((a, b) => {
+                            const aDate = typeof a.timestamp === 'string' ? parseISO(a.timestamp) : a.timestamp;
+                            const bDate = typeof b.timestamp === 'string' ? parseISO(b.timestamp) : b.timestamp;
+                            return aDate.getTime() - bDate.getTime();
+                          });
+                          
+                          const displayEntries = sortedEntries.slice(-120);
+                          
+                          return displayEntries.map((entry, idx) => {
+                            const member = members.find(m => m.id === entry.frontingMemberId);
+                            const moodNorm = (entry.mood || 5) / 10;
+                            const stressNorm = (entry.stress || 50) / 100;
+                            const height = 20 + moodNorm * 80;
+                            const prevEntry = idx > 0 ? displayEntries[idx - 1] : null;
+                            const isSwitch = prevEntry && prevEntry.frontingMemberId !== entry.frontingMemberId;
+                            const color = member?.color || '#64748b';
+                            
+                            return (
+                              <TooltipProvider key={entry.id || idx} delayDuration={0}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <motion.div
+                                      className="relative cursor-pointer group"
+                                      initial={{ height: 0, opacity: 0 }}
+                                      animate={{ height, opacity: 1 }}
+                                      transition={{ delay: idx * 0.008, duration: 0.4, ease: "easeOut" }}
+                                      style={{ flex: '1 1 0', minWidth: 3, maxWidth: 12 }}
+                                    >
+                                      {isSwitch && (
+                                        <motion.div
+                                          className="absolute -top-1 left-1/2 -translate-x-1/2 z-20"
+                                          initial={{ scale: 0 }}
+                                          animate={{ scale: 1 }}
+                                          transition={{ delay: idx * 0.008 + 0.2 }}
+                                        >
+                                          <div className="w-2 h-2 rounded-full bg-amber-400 shadow-lg shadow-amber-400/50" />
+                                        </motion.div>
+                                      )}
+                                      
+                                      <motion.div
+                                        className="w-full h-full rounded-t-sm relative overflow-hidden"
+                                        style={{
+                                          background: `linear-gradient(180deg, ${color} 0%, ${color}aa 40%, ${color}44 100%)`,
+                                          boxShadow: `0 0 ${12 + moodNorm * 12}px ${color}50, inset 0 1px 0 ${color}88`,
+                                        }}
+                                        whileHover={{ 
+                                          scaleY: 1.1, 
+                                          filter: 'brightness(1.3)',
+                                          boxShadow: `0 0 20px ${color}80`
+                                        }}
+                                      >
+                                        <div 
+                                          className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-red-500/50 to-transparent"
+                                          style={{ height: `${stressNorm * 40}%` }}
+                                        />
+                                        <motion.div
+                                          className="absolute inset-0 bg-white/20"
+                                          animate={{ opacity: [0, 0.3, 0] }}
+                                          transition={{ duration: 2, repeat: Infinity, delay: idx * 0.1 % 2 }}
+                                        />
+                                      </motion.div>
+                                    </motion.div>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 p-4 shadow-2xl rounded-xl">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <div 
+                                        className="w-3 h-3 rounded-full shadow-lg"
+                                        style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}` }}
+                                      />
+                                      <span className="font-bold text-white">{member?.name || 'Unknown'}</span>
+                                    </div>
+                                    <p className="text-xs text-slate-400 mb-2">
+                                      {format(typeof entry.timestamp === 'string' ? parseISO(entry.timestamp) : entry.timestamp, "EEEE, MMM d 'at' h:mm a")}
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-3 text-xs">
+                                      <div className="flex items-center gap-1.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                        <span className="text-slate-300">Mood: <span className="font-semibold text-white">{entry.mood}/10</span></span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                                        <span className="text-slate-300">Stress: <span className="font-semibold text-white">{entry.stress}%</span></span>
+                                      </div>
+                                    </div>
+                                    {isSwitch && (
+                                      <div className="flex items-center gap-1 mt-2 pt-2 border-t border-slate-700/50">
+                                        <Zap className="w-3 h-3 text-amber-400" />
+                                        <span className="text-[10px] text-amber-300 font-medium">Switch point</span>
+                                      </div>
+                                    )}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          });
+                        })()}
+                      </div>
+
+                      <div className="flex justify-between mt-3 text-[10px] text-slate-500 font-mono">
+                        <span>← Earlier</span>
+                        <span>Recent →</span>
+                      </div>
+                    </div>
+
+                    <div className="relative px-6 pb-6">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Layers className="w-4 h-4 text-fuchsia-400" />
+                        <span className="text-xs font-semibold text-fuchsia-300 uppercase tracking-wider">Alter Currents</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                        {members.map((m, mIdx) => {
+                          const count = entries.filter(e => e.frontingMemberId === m.id).length;
+                          const pct = entries.length > 0 ? Math.round(count / entries.length * 100) : 0;
+                          const avgMood = entries.filter(e => e.frontingMemberId === m.id).reduce((sum, e) => sum + (e.mood || 5), 0) / (count || 1);
+                          
+                          return (
+                            <motion.div
+                              key={m.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: mIdx * 0.05 }}
+                              className="relative group"
+                            >
+                              <div 
+                                className="rounded-xl p-3 backdrop-blur-sm border transition-all cursor-pointer hover:scale-[1.02]"
+                                style={{
+                                  background: `linear-gradient(135deg, ${m.color}15 0%, ${m.color}08 100%)`,
+                                  borderColor: `${m.color}30`,
+                                }}
+                              >
+                                <div className="flex items-center gap-2 mb-2">
+                                  <motion.div
+                                    className="w-6 h-6 rounded-lg flex items-center justify-center text-white text-[9px] font-bold shadow-lg"
+                                    style={{ backgroundColor: m.color, boxShadow: `0 0 12px ${m.color}50` }}
+                                    animate={{ boxShadow: [`0 0 8px ${m.color}30`, `0 0 16px ${m.color}60`, `0 0 8px ${m.color}30`] }}
+                                    transition={{ duration: 3, repeat: Infinity, delay: mIdx * 0.3 }}
+                                  >
+                                    {m.name.substring(0, 2).toUpperCase()}
+                                  </motion.div>
+                                  <span className="text-sm font-semibold text-white truncate">{m.name}</span>
+                                </div>
+                                <div className="flex items-baseline justify-between">
+                                  <span className="text-2xl font-bold text-white">{pct}%</span>
+                                  <div className="text-right">
+                                    <p className="text-[10px] text-slate-400">{count} entries</p>
+                                    <p className="text-[10px] text-slate-500">avg mood {avgMood.toFixed(1)}</p>
+                                  </div>
+                                </div>
+                                <div className="mt-2 h-1 rounded-full bg-slate-800 overflow-hidden">
+                                  <motion.div
+                                    className="h-full rounded-full"
+                                    style={{ backgroundColor: m.color }}
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${pct}%` }}
+                                    transition={{ delay: 0.5 + mIdx * 0.1, duration: 0.8 }}
+                                  />
+                                </div>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {entries.length > 120 && (
+                      <div className="px-6 pb-4">
+                        <div className="text-center text-xs text-slate-500 py-2 rounded-lg bg-slate-800/30 border border-slate-700/30">
+                          Displaying last 120 of {entries.length} entries for optimal visualization
+                        </div>
                       </div>
                     )}
                   </div>
-                  
-                  <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    {members.map(m => {
-                      const count = entries.filter(e => e.frontingMemberId === m.id).length;
-                      const pct = entries.length > 0 ? Math.round(count / entries.length * 100) : 0;
-                      return (
-                        <div key={m.id} className="flex items-center gap-2">
-                          <div 
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: m.color, boxShadow: `0 0 6px ${m.color}60` }} 
-                          />
-                          <span className="text-sm text-slate-700 dark:text-slate-200 font-medium">{m.name}</span>
-                          <span className="text-xs text-slate-500">({pct}%)</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
+                </div>
               )}
             </CardContent>
           </Card>
