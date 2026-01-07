@@ -129,6 +129,30 @@ High-Confidence Multi-Factor Correlation Engine:
 - **Confidence scoring**: Automated confidence levels (high/moderate/low) based on sample sizes
 - **Effect size calculation**: Cohen's d approximation for correlation strength (strong/moderate/weak)
 
+### Headspace Map (Enhanced)
+
+Multi-scale presence dashboard for understanding alter fronting patterns over time:
+
+**Views**:
+- **Weekly Balance**: Stacked bar chart showing daily fronting hours by member with week navigation
+- **Monthly Calendar**: Heatmap colored by dominant alter per day with transition indicators (⚡)
+- **30-Day Trends**: Area chart showing fronting time trends with per-member stat cards
+- **24h View**: Original timeline with hourly presence flow and transition markers
+
+**Summary Stats Panel**:
+- Top Fronter (most active in last 30 days)
+- Avg Switches/Day (transition frequency)
+- Days Tracked (data coverage)
+- Total Entries (log count)
+
+**Per-Member Statistics**:
+- Total hours, average hours per day, days active, percentage share
+
+**Data Aggregation**:
+- `computeDailyPresence()`: Aggregates fronting duration per alter per day
+- Handles gaps, transitions, and dominant alter detection
+- Fetches up to 2000 tracker entries for comprehensive historical analysis
+
 ### Build and Development
 
 - Development: `npm run dev` runs Express with Vite middleware
