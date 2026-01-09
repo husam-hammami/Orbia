@@ -363,7 +363,7 @@ export function RoutineTimeline() {
                                     initial={{ opacity: 0, scale: 0.5 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.5 }}
-                                    className="absolute inset-0 rounded-full blur-xl opacity-40 bg-cyan-400"
+                                    className="absolute inset-0 rounded-full blur-md opacity-25 bg-cyan-400"
                                   />
                                 )}
                               </AnimatePresence>
@@ -371,7 +371,7 @@ export function RoutineTimeline() {
                                 className={cn(
                                   "relative z-10 w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 shrink-0",
                                   isActivityComplete 
-                                    ? "bg-gradient-to-br from-cyan-400 to-indigo-500 border-white text-white shadow-[0_0_25px_-5px_rgba(6,182,212,0.5)]" 
+                                    ? "bg-gradient-to-br from-cyan-400 to-indigo-500 border-white text-white shadow-[0_0_12px_-3px_rgba(6,182,212,0.35)]" 
                                     : "bg-white border-slate-300 group-hover:border-cyan-400 group-hover:shadow-md"
                                 )}
                                 data-testid={`activity-checkbox-${activity.id}`}
@@ -410,14 +410,14 @@ export function RoutineTimeline() {
                                     initial={{ opacity: 0, scale: 0.8 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.8 }}
-                                    className="absolute inset-0 rounded-xl blur-xl opacity-30 bg-gradient-to-br from-cyan-400 to-indigo-400"
+                                    className="absolute inset-0 rounded-xl blur-md opacity-15 bg-gradient-to-br from-cyan-400 to-indigo-400"
                                   />
                                 )}
                               </AnimatePresence>
                               <div className={cn(
                                 "relative p-3 rounded-xl border transition-all",
                                 isActivityComplete 
-                                  ? "bg-gradient-to-br from-cyan-50/80 to-indigo-50/80 border-cyan-200 shadow-[0_0_20px_-8px_rgba(6,182,212,0.4)]" 
+                                  ? "bg-gradient-to-br from-cyan-50/60 to-indigo-50/60 border-cyan-200/80 shadow-[0_0_10px_-4px_rgba(6,182,212,0.25)]" 
                                   : "bg-white border-slate-200 group-hover:border-cyan-300 group-hover:shadow-sm"
                               )}>
                               <span className={cn(
