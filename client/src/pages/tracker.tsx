@@ -155,54 +155,54 @@ export default function TrackerPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="h-auto p-0 bg-transparent border-b border-border w-full justify-start gap-0 rounded-none">
+          <TabsList className="inline-flex h-12 items-center justify-start gap-1 rounded-xl bg-muted/60 p-1.5 border border-border/50 shadow-sm">
             <TabsTrigger 
               value="habits" 
-              className="relative gap-1.5 px-4 py-3 text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all" 
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground hover:bg-background/50" 
               data-testid="tab-habits"
             >
               <Sparkles className="w-4 h-4" />
-              Habits
+              <span>Habits</span>
             </TabsTrigger>
             <TabsTrigger 
               value="mood" 
-              className="relative gap-1.5 px-4 py-3 text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all" 
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground hover:bg-background/50" 
               data-testid="tab-mood"
             >
               <Activity className="w-4 h-4" />
-              Mood
+              <span>Mood</span>
             </TabsTrigger>
             <TabsTrigger 
               value="routine" 
-              className="relative gap-1.5 px-4 py-3 text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all" 
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground hover:bg-background/50" 
               data-testid="tab-routine"
             >
               <Calendar className="w-4 h-4" />
-              Routine
+              <span>Routine</span>
             </TabsTrigger>
             <TabsTrigger 
               value="food" 
-              className="relative gap-1.5 px-4 py-3 text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all" 
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground hover:bg-background/50" 
               data-testid="tab-food"
             >
               <Utensils className="w-4 h-4" />
-              Food
+              <span>Food</span>
             </TabsTrigger>
             <TabsTrigger 
               value="todos" 
-              className="relative gap-1.5 px-4 py-3 text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all" 
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground hover:bg-background/50" 
               data-testid="tab-todos"
             >
               <ListTodo className="w-4 h-4" />
-              Tasks
+              <span>Tasks</span>
             </TabsTrigger>
             <TabsTrigger 
               value="journal" 
-              className="relative gap-1.5 px-4 py-3 text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all" 
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground hover:bg-background/50" 
               data-testid="tab-journal"
             >
               <BookOpen className="w-4 h-4" />
-              Journal
+              <span>Journal</span>
             </TabsTrigger>
           </TabsList>
           
