@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo, DailySummary, CareerProject, CareerTask, Expense, JournalEntry, InsertJournalEntry } from "@shared/schema";
+import type { DashboardInsights } from "../../../server/lib/dashboard-analytics";
 
 // Helper to handle API calls
 async function fetchAPI(url: string, options?: RequestInit) {
@@ -878,5 +879,14 @@ export function useDeleteJournalEntry() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["journal"] });
     },
+  });
+}
+
+export function useDashboardInsights() {
+  return useQuery<DashboardInsights>({
+    queryKey: ["dashboardInsights"],
+    queryFn: () => fetchAPI("/api/insights/dashboard"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 }
