@@ -89,6 +89,7 @@ export default function TrackerPage() {
       color: dbHabit.color,
       target: dbHabit.target,
       unit: dbHabit.unit || undefined,
+      icon: dbHabit.icon || undefined,
     };
   });
   
@@ -118,6 +119,7 @@ export default function TrackerPage() {
       color: data.color,
       target: data.target,
       unit: data.unit || null,
+      icon: null,
     }, {
       onSuccess: () => toast.success("New habit planted!"),
       onError: () => toast.error("Failed to create habit"),
@@ -132,7 +134,7 @@ export default function TrackerPage() {
   };
 
   const handleUpdate = (id: string, data: Partial<Omit<Habit, "id" | "streak" | "completedToday" | "history">>) => {
-    updateHabitMutation.mutate({ id, data }, {
+    updateHabitMutation.mutate({ id, ...data }, {
       onSuccess: () => toast.success("Habit updated"),
       onError: () => toast.error("Failed to update habit"),
     });
