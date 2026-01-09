@@ -1,9 +1,10 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, BarChart2, Settings, Menu, CheckCircle2, Briefcase, BrainCircuit, Sparkles, Wallet, Users, ClipboardList, Orbit } from "lucide-react";
+import { LayoutDashboard, BarChart2, Settings, Menu, Briefcase, BrainCircuit, Sparkles, Wallet, ClipboardList, Orbit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+
 interface SidebarProps {
   className?: string;
 }
@@ -66,8 +67,12 @@ function Sidebar({ className }: SidebarProps) {
   ];
 
   return (
-    <div className={cn("flex flex-col h-full pt-0 pb-4 px-2 bg-sidebar border-r border-sidebar-border", className)}>
-      <div className="mb-0 -mx-2 overflow-hidden">
+    <div className={cn(
+      "flex flex-col h-full pt-0 pb-4 px-3",
+      "bg-white/70 backdrop-blur-xl border-r border-slate-200/60",
+      className
+    )}>
+      <div className="mb-2 -mx-3 overflow-hidden">
         <img 
           src={logoUrl} 
           alt="Orbia Logo" 
@@ -75,7 +80,7 @@ function Sidebar({ className }: SidebarProps) {
         />
       </div>
 
-      <nav className="space-y-1 flex-1 px-1">
+      <nav className="space-y-1 flex-1">
         {links.map((link) => {
           const Icon = link.icon;
           const isActive = location === link.href;
@@ -84,27 +89,38 @@ function Sidebar({ className }: SidebarProps) {
               key={link.href}
               href={link.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group",
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
                 isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  ? "bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg shadow-teal-500/25"
+                  : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
               )}
             >
-              <Icon className={cn("w-5 h-5", isActive ? "stroke-2" : "stroke-1.5")} />
-              <span className={cn("font-medium text-sm", isActive ? "font-semibold" : "")}>{link.label}</span>
+              <Icon className={cn(
+                "w-5 h-5 transition-transform",
+                isActive ? "stroke-2" : "stroke-[1.5]",
+                !isActive && "group-hover:scale-110"
+              )} />
+              <span className={cn(
+                "text-sm",
+                isActive ? "font-semibold" : "font-medium"
+              )}>{link.label}</span>
+              {isActive && (
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white/40 rounded-l-full" />
+              )}
             </Link>
           );
         })}
       </nav>
 
-      <div className="px-1 space-y-4">
+      <div className="space-y-4 mt-4">
         {(() => {
           const quote = getDailyQuote();
           return (
-            <div className="p-4 rounded-xl bg-sidebar-accent/50 border border-sidebar-border">
-              <p className="text-xs font-medium text-muted-foreground mb-2">Quote of the day</p>
-              <p className="text-sm italic text-sidebar-foreground font-serif">"{quote.text}"</p>
-              <p className="text-xs text-muted-foreground mt-2 text-right">— {quote.author}</p>
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-cyan-50/50 border border-slate-200/60 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-teal-400/10 to-cyan-400/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+              <p className="text-xs font-semibold text-teal-600 mb-2 uppercase tracking-wide">Quote of the day</p>
+              <p className="text-sm italic text-slate-700 font-serif leading-relaxed relative z-10">"{quote.text}"</p>
+              <p className="text-xs text-slate-500 mt-2 text-right font-medium">— {quote.author}</p>
             </div>
           );
         })()}
@@ -115,21 +131,19 @@ function Sidebar({ className }: SidebarProps) {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
-      {/* Desktop Sidebar */}
+    <div className="flex h-screen w-full overflow-hidden bg-gradient-to-br from-slate-50 via-white to-cyan-50/30">
       <aside className="hidden md:block w-64 flex-shrink-0">
         <Sidebar />
       </aside>
 
-      {/* Mobile Header & Main Content */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        <header className="md:hidden flex items-center justify-between p-3 border-b bg-sidebar">
+        <header className="md:hidden flex items-center justify-between p-3 border-b bg-white/70 backdrop-blur-xl">
           <div className="flex items-center">
             <img src={logoUrl} alt="Orbia Logo" className="h-12 w-auto object-contain" />
           </div>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="hover:bg-slate-100">
                 <Menu className="w-5 h-5" />
               </Button>
             </SheetTrigger>

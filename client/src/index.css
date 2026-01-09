@@ -64,106 +64,107 @@
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
-/* Zen Productivity Theme - Natural, Calm, Focused */
+/* Orbital Futuristic Theme - Clean, Tech, Iridescent */
 :root {
-  /* Warm Paper Background */
-  --background: 40 20% 97%;
-  --foreground: 20 10% 20%;
+  /* Cool Silver-White Background */
+  --background: 220 20% 97%;
+  --foreground: 220 20% 15%;
 
-  /* Clean White Cards */
+  /* Frosted Glass Cards */
   --card: 0 0% 100%;
-  --card-foreground: 20 10% 20%;
+  --card-foreground: 220 20% 15%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 20 10% 20%;
+  --popover-foreground: 220 20% 15%;
 
-  /* Bamboo Green - Growth & Progress */
-  --primary: 142 40% 35%;
+  /* Teal/Cyan Primary - Tech & Progress */
+  --primary: 173 58% 39%;
   --primary-foreground: 0 0% 100%;
 
-  /* Stone / Clay - Secondary actions */
-  --secondary: 30 15% 90%;
-  --secondary-foreground: 20 10% 25%;
+  /* Cool Gray Secondary */
+  --secondary: 220 14% 93%;
+  --secondary-foreground: 220 15% 25%;
 
-  /* Muted text */
-  --muted: 30 10% 92%;
-  --muted-foreground: 20 5% 45%;
+  /* Muted Slate */
+  --muted: 220 14% 94%;
+  --muted-foreground: 220 10% 46%;
 
-  /* Highlight / Hover */
-  --accent: 142 30% 92%;
-  --accent-foreground: 142 40% 30%;
+  /* Cyan Accent Highlight */
+  --accent: 185 40% 94%;
+  --accent-foreground: 185 60% 30%;
 
-  /* Error / Missed */
-  --destructive: 0 60% 65%;
+  /* Error / Destructive */
+  --destructive: 0 65% 60%;
   --destructive-foreground: 0 0% 100%;
 
-  /* Soft Borders */
-  --border: 30 10% 88%;
-  --input: 30 10% 88%;
-  --ring: 142 40% 35%;
+  /* Cool Slate Borders */
+  --border: 220 13% 90%;
+  --input: 220 13% 90%;
+  --ring: 173 58% 39%;
 
-  /* Visualization Colors */
-  --chart-1: 142 40% 45%; /* Green */
-  --chart-2: 32 60% 60%;  /* Earthy Orange */
-  --chart-3: 180 30% 50%; /* Calm Teal */
-  --chart-4: 260 20% 60%; /* Muted Purple */
-  --chart-5: 0 40% 70%;   /* Soft Red */
+  /* Visualization Colors - Iridescent Spectrum */
+  --chart-1: 173 58% 45%; /* Teal */
+  --chart-2: 199 89% 48%; /* Cyan */
+  --chart-3: 262 52% 55%; /* Violet */
+  --chart-4: 334 75% 60%; /* Rose */
+  --chart-5: 45 93% 55%;  /* Amber */
 
-  --sidebar: 40 20% 95%;
-  --sidebar-foreground: 20 10% 20%;
-  --sidebar-primary: 142 40% 35%;
+  /* Sidebar - Frosted Glass */
+  --sidebar: 220 25% 98%;
+  --sidebar-foreground: 220 20% 25%;
+  --sidebar-primary: 173 58% 39%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 30 15% 90%;
-  --sidebar-accent-foreground: 20 10% 20%;
-  --sidebar-border: 30 10% 88%;
-  --sidebar-ring: 142 40% 35%;
+  --sidebar-accent: 185 30% 95%;
+  --sidebar-accent-foreground: 173 50% 35%;
+  --sidebar-border: 220 15% 92%;
+  --sidebar-ring: 173 58% 39%;
 }
 
 .dark {
-  /* Deep Charcoal Background */
-  --background: 220 15% 10%;
-  --foreground: 40 10% 90%;
+  /* Deep Space Background */
+  --background: 225 25% 8%;
+  --foreground: 210 20% 92%;
 
-  --card: 220 15% 13%;
-  --card-foreground: 40 10% 90%;
+  --card: 225 20% 11%;
+  --card-foreground: 210 20% 92%;
 
-  --popover: 220 15% 13%;
-  --popover-foreground: 40 10% 90%;
+  --popover: 225 20% 11%;
+  --popover-foreground: 210 20% 92%;
 
-  /* Bright Mint for Dark Mode */
-  --primary: 142 50% 50%;
-  --primary-foreground: 220 15% 10%;
+  /* Bright Cyan Primary */
+  --primary: 173 70% 50%;
+  --primary-foreground: 225 25% 8%;
 
-  --secondary: 220 10% 20%;
-  --secondary-foreground: 40 10% 90%;
+  --secondary: 225 15% 18%;
+  --secondary-foreground: 210 15% 85%;
 
-  --muted: 220 10% 20%;
-  --muted-foreground: 220 10% 60%;
+  --muted: 225 15% 18%;
+  --muted-foreground: 220 10% 55%;
 
-  --accent: 142 20% 20%;
-  --accent-foreground: 142 50% 50%;
+  --accent: 185 40% 15%;
+  --accent-foreground: 173 70% 55%;
 
-  --destructive: 0 50% 50%;
-  --destructive-foreground: 40 10% 90%;
+  --destructive: 0 55% 50%;
+  --destructive-foreground: 210 20% 92%;
 
-  --border: 220 10% 20%;
-  --input: 220 10% 20%;
-  --ring: 142 50% 50%;
+  --border: 225 15% 18%;
+  --input: 225 15% 18%;
+  --ring: 173 70% 50%;
 
-  --chart-1: 142 50% 50%;
-  --chart-2: 32 70% 60%;
-  --chart-3: 180 40% 50%;
-  --chart-4: 260 30% 60%;
-  --chart-5: 0 50% 60%;
+  --chart-1: 173 70% 50%;
+  --chart-2: 199 95% 55%;
+  --chart-3: 262 60% 60%;
+  --chart-4: 334 80% 65%;
+  --chart-5: 45 95% 60%;
 
-  --sidebar: 220 15% 12%;
-  --sidebar-foreground: 40 10% 90%;
-  --sidebar-primary: 142 50% 50%;
-  --sidebar-primary-foreground: 220 15% 10%;
-  --sidebar-accent: 220 10% 20%;
-  --sidebar-accent-foreground: 40 10% 90%;
-  --sidebar-border: 220 10% 20%;
-  --sidebar-ring: 142 50% 50%;
+  --sidebar: 225 20% 10%;
+  --sidebar-foreground: 210 15% 85%;
+  --sidebar-primary: 173 70% 50%;
+  --sidebar-primary-foreground: 225 25% 8%;
+  --sidebar-accent: 225 15% 15%;
+  --sidebar-accent-foreground: 173 60% 55%;
+  --sidebar-border: 225 15% 15%;
+  --sidebar-ring: 173 70% 50%;
 }
 
 @layer base {
@@ -176,4 +177,74 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight;
   }
+}
+
+/* Glassmorphic utilities */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Gradient text utility */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(173 58% 39%), hsl(199 89% 48%), hsl(262 52% 55%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effects */
+.glow-sm {
+  box-shadow: 0 0 15px -3px hsla(173, 58%, 39%, 0.25);
+}
+
+.glow-md {
+  box-shadow: 0 0 25px -5px hsla(173, 58%, 39%, 0.3);
+}
+
+.glow-lg {
+  box-shadow: 0 0 40px -8px hsla(173, 58%, 39%, 0.35);
+}
+
+/* Animated gradient border */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, hsl(173 58% 45%), hsl(199 89% 48%), hsl(262 52% 55%));
+  background-size: 200% 200%;
+  animation: gradient-shift 6s ease infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Subtle pulse animation */
+@keyframes subtle-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-subtle-pulse {
+  animation: subtle-pulse 3s ease-in-out infinite;
 }
