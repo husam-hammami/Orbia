@@ -399,7 +399,7 @@ export async function registerRoutes(
     }
   });
 
-  // AI Icon Generation Endpoint
+  // Smart Icon Generation Endpoint (keyword-based for speed and reliability)
   app.post("/api/generate-icon", async (req, res) => {
     try {
       const { title, category } = req.body;
@@ -407,75 +407,154 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Title is required" });
       }
 
-      const lucideIcons = [
-        "Heart", "Star", "Sun", "Moon", "Cloud", "Droplets", "Wind", "Flame",
-        "Leaf", "TreePine", "Flower2", "Apple", "Coffee", "Cookie", "Pizza", "Salad",
-        "Dumbbell", "Bike", "Footprints", "PersonStanding", "Bed", "Bath",
-        "Book", "BookOpen", "Notebook", "Pencil", "GraduationCap", "Brain",
-        "Eye", "Ear", "MessageCircle", "Phone", "Mail", "Send",
-        "Home", "Building", "Car", "Plane", "Train", "Ship",
-        "Music", "Headphones", "Camera", "Video", "Tv", "Gamepad2",
-        "Palette", "Brush", "Scissors", "Hammer", "Wrench", "Settings",
-        "Clock", "Timer", "Alarm", "Calendar", "CalendarCheck", "Target",
-        "Trophy", "Medal", "Award", "Gift", "PartyPopper", "Sparkles",
-        "Wallet", "CreditCard", "PiggyBank", "Coins", "DollarSign", "TrendingUp",
-        "HandHeart", "Users", "UserPlus", "Baby", "Dog", "Cat",
-        "Pill", "Stethoscope", "Thermometer", "Activity", "HeartPulse", "Syringe",
-        "Smile", "Meh", "Frown", "ThumbsUp", "ThumbsDown", "HandMetal",
-        "Mountain", "Waves", "Sunrise", "Sunset", "Rainbow", "Umbrella",
-        "Laptop", "Smartphone", "Tablet", "Monitor", "Keyboard", "Mouse",
-        "ShoppingCart", "ShoppingBag", "Package", "Truck", "Store", "Receipt",
-        "Cigarette", "Wine", "Beer", "Martini", "GlassWater", "Cup",
-        "Utensils", "ChefHat", "Soup", "Sandwich", "Croissant", "IceCream",
-        "Church", "Landmark", "Library", "School", "Hospital", "Factory",
-        "Tent", "Compass", "Map", "Navigation", "Flag", "Anchor",
-        "Lightbulb", "Zap", "Battery", "Power", "Plug", "Signal",
-        "Lock", "Unlock", "Key", "Shield", "ShieldCheck", "AlertTriangle",
-        "Check", "CheckCircle", "X", "XCircle", "Plus", "Minus",
-        "ArrowRight", "ArrowUp", "ArrowDown", "RefreshCw", "RotateCcw", "Repeat"
+      const text = title.toLowerCase();
+      
+      // Keyword-to-icon mapping
+      const iconRules: [string[], string][] = [
+        [["walk", "step", "footstep"], "Footprints"],
+        [["run", "jog", "sprint"], "Footprints"],
+        [["water", "drink", "hydrat"], "Droplets"],
+        [["sleep", "bed", "rest", "nap"], "Bed"],
+        [["journal", "diary", "write", "log"], "Notebook"],
+        [["read", "book"], "BookOpen"],
+        [["meditat", "mindful", "breath", "calm"], "Brain"],
+        [["stretch", "yoga", "flex"], "PersonStanding"],
+        [["swim", "pool"], "Waves"],
+        [["gym", "workout", "exercise", "lift", "weight", "dumbbell"], "Dumbbell"],
+        [["pill", "med", "vitamin", "supplement"], "Pill"],
+        [["meal", "eat", "food", "lunch", "dinner", "breakfast"], "Utensils"],
+        [["cook", "chef", "prepar"], "ChefHat"],
+        [["coffee", "caffeine"], "Coffee"],
+        [["work", "laptop", "computer", "coding"], "Laptop"],
+        [["stop work", "quit work", "finish work"], "Clock"],
+        [["money", "save", "budget", "finance"], "PiggyBank"],
+        [["social", "friend", "call", "talk", "chat"], "MessageCircle"],
+        [["music", "song", "listen"], "Music"],
+        [["sun", "morning", "sunrise", "wake"], "Sunrise"],
+        [["night", "evening", "moon"], "Moon"],
+        [["house", "home", "outside", "leave"], "Home"],
+        [["ground", "anchor", "center"], "Anchor"],
+        [["no porn", "porn"], "ShieldCheck"],
+        [["no smok", "quit smok", "cigarette"], "Cigarette"],
+        [["no drink", "no alcohol", "sober"], "Wine"],
+        [["bike", "cycl"], "Bike"],
+        [["car", "driv"], "Car"],
+        [["plant", "garden", "nature"], "Leaf"],
+        [["clean", "tidy", "organiz"], "Sparkles"],
+        [["shower", "bath", "hygien"], "Bath"],
+        [["phone", "screen"], "Smartphone"],
+        [["gratitude", "thank"], "Heart"],
+        [["goal", "target"], "Target"],
       ];
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-5-nano",
-        messages: [
-          {
-            role: "system",
-            content: `You are an icon selector. Given a habit title and category, return the most appropriate Lucide icon name from this list: ${lucideIcons.join(", ")}. 
-            
-            Consider:
-            - Walking/running/exercise → Footprints, Dumbbell, Activity
-            - Water/drinking → Droplets, GlassWater
-            - Sleep → Bed, Moon
-            - Reading/books → Book, BookOpen
-            - Meditation/mindfulness → Brain, Sunrise, Leaf
-            - Medicine/pills → Pill, Stethoscope
-            - Money/saving → PiggyBank, Wallet, Coins
-            - Journaling/writing → Pencil, Notebook
-            - Social/friends → Users, MessageCircle
-            - Stretching/yoga → PersonStanding, Activity
-            - Cooking/meals → Utensils, ChefHat
-            - No smoking/drinking → Cigarette, Wine with X
-            - Work → Laptop, Briefcase, Building
-            - Swimming → Waves
-            - Music → Music, Headphones
-            
-            Respond with ONLY the icon name, nothing else.`
-          },
-          {
-            role: "user",
-            content: `Habit: "${title}"${category ? ` (Category: ${category})` : ""}`
-          }
-        ],
-        max_completion_tokens: 50
-      });
+      let icon = "Sparkles"; // default
+      for (const [keywords, iconName] of iconRules) {
+        if (keywords.some(kw => text.includes(kw))) {
+          icon = iconName;
+          break;
+        }
+      }
 
-      const iconName = response.choices[0]?.message?.content?.trim() || "Sparkles";
-      const validIcon = lucideIcons.includes(iconName) ? iconName : "Sparkles";
+      // Category fallback if no keyword match
+      if (icon === "Sparkles" && category) {
+        const categoryIcons: Record<string, string> = {
+          health: "Heart",
+          work: "Laptop",
+          mindfulness: "Brain",
+          creativity: "Palette",
+          social: "Users",
+          finance: "PiggyBank",
+          recovery: "Activity",
+        };
+        icon = categoryIcons[category.toLowerCase()] || "Sparkles";
+      }
       
-      res.json({ icon: validIcon });
+      res.json({ icon });
     } catch (error) {
       console.error("Icon generation error:", error);
       res.json({ icon: "Sparkles" });
+    }
+  });
+
+  // Regenerate icons for all habits that don't have one (keyword-based)
+  app.post("/api/regenerate-all-icons", async (req, res) => {
+    try {
+      const allHabits = await storage.getAllHabits();
+      const habitsWithoutIcons = allHabits.filter(h => !h.icon);
+      
+      // Same keyword-to-icon mapping as generate-icon endpoint
+      const iconRules: [string[], string][] = [
+        [["walk", "step", "footstep"], "Footprints"],
+        [["run", "jog", "sprint"], "Footprints"],
+        [["water", "drink", "hydrat"], "Droplets"],
+        [["sleep", "bed", "rest", "nap"], "Bed"],
+        [["journal", "diary", "write", "log"], "Notebook"],
+        [["read", "book"], "BookOpen"],
+        [["meditat", "mindful", "breath", "calm"], "Brain"],
+        [["stretch", "yoga", "flex"], "PersonStanding"],
+        [["swim", "pool"], "Waves"],
+        [["gym", "workout", "exercise", "lift", "weight", "dumbbell"], "Dumbbell"],
+        [["pill", "med", "vitamin", "supplement"], "Pill"],
+        [["meal", "eat", "food", "lunch", "dinner", "breakfast"], "Utensils"],
+        [["cook", "chef", "prepar"], "ChefHat"],
+        [["coffee", "caffeine"], "Coffee"],
+        [["work", "laptop", "computer", "coding"], "Laptop"],
+        [["stop work", "quit work", "finish work"], "Clock"],
+        [["money", "save", "budget", "finance"], "PiggyBank"],
+        [["social", "friend", "call", "talk", "chat"], "MessageCircle"],
+        [["music", "song", "listen"], "Music"],
+        [["sun", "morning", "sunrise", "wake"], "Sunrise"],
+        [["night", "evening", "moon"], "Moon"],
+        [["house", "home", "outside", "leave"], "Home"],
+        [["ground", "anchor", "center"], "Anchor"],
+        [["no porn", "porn"], "ShieldCheck"],
+        [["no smok", "quit smok", "cigarette"], "Cigarette"],
+        [["no drink", "no alcohol", "sober"], "Wine"],
+        [["bike", "cycl"], "Bike"],
+        [["car", "driv"], "Car"],
+        [["plant", "garden", "nature"], "Leaf"],
+        [["clean", "tidy", "organiz"], "Sparkles"],
+        [["shower", "bath", "hygien"], "Bath"],
+        [["phone", "screen"], "Smartphone"],
+        [["gratitude", "thank"], "Heart"],
+        [["goal", "target"], "Target"],
+      ];
+
+      const categoryIcons: Record<string, string> = {
+        health: "Heart",
+        work: "Laptop",
+        mindfulness: "Brain",
+        creativity: "Palette",
+        social: "Users",
+        finance: "PiggyBank",
+        recovery: "Activity",
+      };
+
+      const results = [];
+      for (const habit of habitsWithoutIcons) {
+        const text = habit.title.toLowerCase();
+        let icon = "Sparkles";
+        
+        for (const [keywords, iconName] of iconRules) {
+          if (keywords.some(kw => text.includes(kw))) {
+            icon = iconName;
+            break;
+          }
+        }
+
+        // Category fallback
+        if (icon === "Sparkles" && habit.category) {
+          icon = categoryIcons[habit.category.toLowerCase()] || "Sparkles";
+        }
+        
+        await storage.updateHabit(habit.id, { icon });
+        results.push({ id: habit.id, title: habit.title, icon });
+      }
+
+      res.json({ updated: results.length, habits: results });
+    } catch (error) {
+      console.error("Regenerate icons error:", error);
+      res.status(500).json({ error: "Failed to regenerate icons" });
     }
   });
 
