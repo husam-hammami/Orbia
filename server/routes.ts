@@ -1857,6 +1857,92 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
     }
   });
 
+  app.get("/api/career/ai-roadmap", async (req, res) => {
+    try {
+      const [vision, projects, tasks] = await Promise.all([
+        storage.getVision(),
+        storage.getAllCareerProjects(),
+        storage.getAllCareerTasks(),
+      ]);
+
+      if (vision.length === 0) {
+        return res.json({
+          roadmap: [],
+          suggestedActions: [],
+          message: "Set up your North Star vision to get AI-powered roadmap suggestions."
+        });
+      }
+
+      const projectsWithTasks = projects.map(p => ({
+        ...p,
+        tasks: tasks.filter(t => t.projectId === p.id),
+        completedTasks: tasks.filter(t => t.projectId === p.id && t.completed === 1).length,
+        totalTasks: tasks.filter(t => t.projectId === p.id).length,
+      }));
+
+      const systemPrompt = `You are a career strategist and productivity coach. Analyze the user's North Star vision and current projects to provide actionable roadmap suggestions.
+
+Your response MUST be valid JSON with this structure:
+{
+  "roadmap": [
+    {
+      "phase": "string (e.g., Phase 1: Foundation)",
+      "timeframe": "string (e.g., Next 2 weeks)",
+      "milestones": ["string array of key milestones"],
+      "focusAreas": ["string array of areas to focus on"]
+    }
+  ],
+  "suggestedActions": [
+    {
+      "title": "string (actionable task title)",
+      "description": "string (why this matters)",
+      "priority": "high" | "medium" | "low",
+      "relatedProject": "string or null (project title if related)",
+      "estimatedEffort": "string (e.g., 30 min, 2 hours)"
+    }
+  ],
+  "insights": "string (brief strategic insight connecting vision to current work)"
+}
+
+Provide 2-3 roadmap phases and 4-6 suggested actions. Be specific and actionable.`;
+
+      const userPrompt = `NORTH STAR VISION:
+${vision.map(v => `- ${v.title} (${v.timeframe})`).join('\n')}
+
+CURRENT PROJECTS (${projects.length} total):
+${projectsWithTasks.map(p => `
+Project: ${p.title}
+Status: ${p.status}
+Progress: ${p.totalTasks > 0 ? Math.round((p.completedTasks / p.totalTasks) * 100) : 0}% (${p.completedTasks}/${p.totalTasks} tasks)
+Next Action: ${p.nextAction || 'Not set'}
+Description: ${p.description || 'No description'}
+`).join('\n')}
+
+Based on this vision and current project state, create a strategic roadmap and suggest the most impactful next actions to move toward these goals.`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5.1",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        response_format: { type: "json_object" },
+        max_completion_tokens: 2048,
+      });
+
+      const content = response.choices[0]?.message?.content || "{}";
+      const parsed = JSON.parse(content);
+
+      res.json({
+        ...parsed,
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("AI roadmap generation error:", error);
+      res.status(500).json({ error: "Failed to generate AI roadmap" });
+    }
+  });
+
   // Finance Settings Routes
   app.get("/api/finance-settings", async (req, res) => {
     try {
