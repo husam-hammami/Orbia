@@ -4,8 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Check, 
   Clock, 
-  ChevronDown, 
-  ChevronUp, 
+  ChevronRight,
   Sunrise,
   Briefcase,
   Coffee,
@@ -13,26 +12,15 @@ import {
   Utensils,
   Dumbbell,
   BookOpen,
-  Home,
+  Activity,
   Zap,
-  Activity
+  Target,
+  TrendingUp
 } from "lucide-react";
 import { useRoutineBlocks, useRoutineActivities, useRoutineLogs, useToggleRoutineActivity, useHabits, useAllHabitCompletions } from "@/lib/api-hooks";
 import { cn } from "@/lib/utils";
 
-const BLOCK_ICONS: Record<string, any> = {
-  "morning": Sunrise,
-  "work": Briefcase,
-  "break": Coffee,
-  "evening": Moon,
-  "meal": Utensils,
-  "exercise": Dumbbell,
-  "learning": BookOpen,
-  "home": Home,
-  "default": Activity
-};
-
-function getBlockIcon(name: string, emoji?: string) {
+function getBlockIcon(name: string) {
   const nameLower = name.toLowerCase();
   if (nameLower.includes("morning") || nameLower.includes("wake")) return Sunrise;
   if (nameLower.includes("work") || nameLower.includes("block")) return Briefcase;
@@ -60,12 +48,6 @@ export function RoutineTimeline() {
     return new Set(logs?.map(l => l.activityId) || []);
   }, [logs]);
 
-  const completedHabitIds = useMemo(() => {
-    return new Set(
-      allHabitCompletions?.filter(c => c.completedDate === today).map(c => c.habitId) || []
-    );
-  }, [allHabitCompletions, today]);
-
   const blockProgress = useMemo(() => {
     if (!blocks || !activities) return {};
     const progress: Record<string, { completed: number; total: number }> = {};
@@ -85,14 +67,17 @@ export function RoutineTimeline() {
     return activities.length > 0 ? Math.round((completed / activities.length) * 100) : 0;
   }, [activities, completedActivityIds]);
 
+  const completedCount = useMemo(() => {
+    return activities?.filter(a => completedActivityIds.has(a.id)).length || 0;
+  }, [activities, completedActivityIds]);
+
+  const totalCount = activities?.length || 0;
+
   const getCurrentBlock = () => {
     if (!blocks) return null;
     const now = new Date();
     const currentTime = format(now, "HH:mm");
-    
-    return blocks.find(block => {
-      return currentTime >= block.startTime && currentTime < block.endTime;
-    });
+    return blocks.find(block => currentTime >= block.startTime && currentTime < block.endTime);
   };
 
   const currentBlock = getCurrentBlock();
@@ -100,7 +85,6 @@ export function RoutineTimeline() {
   const handleToggleActivity = async (activityId: string, habitId: string | null) => {
     const isCompleted = completedActivityIds.has(activityId);
     const action = isCompleted ? "remove" : "add";
-    
     try {
       await toggleMutation.mutateAsync({ activityId, date: today, habitId, action });
     } catch (e) {
@@ -110,15 +94,12 @@ export function RoutineTimeline() {
 
   if (blocksLoading || activitiesLoading) {
     return (
-      <div className="bg-slate-950 rounded-xl border border-slate-800 p-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f46e510_1px,transparent_1px),linear-gradient(to_bottom,#4f46e510_1px,transparent_1px)] bg-[size:24px_24px]" />
-        <div className="animate-pulse space-y-4 relative z-10">
-          <div className="h-6 bg-slate-800 rounded w-1/3"></div>
-          <div className="h-2 bg-slate-800 rounded w-full"></div>
-          <div className="space-y-2">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-slate-900 rounded-lg border border-slate-800"></div>
-            ))}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="flex gap-4">
+            <div className="h-16 bg-gray-100 rounded-xl flex-1"></div>
+            <div className="h-16 bg-gray-100 rounded-xl flex-1"></div>
+            <div className="h-16 bg-gray-100 rounded-xl flex-1"></div>
           </div>
         </div>
       </div>
@@ -127,257 +108,308 @@ export function RoutineTimeline() {
 
   if (!blocks || blocks.length === 0) {
     return (
-      <div className="bg-slate-950 rounded-xl border border-slate-800 p-8 text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f46e510_1px,transparent_1px),linear-gradient(to_bottom,#4f46e510_1px,transparent_1px)] bg-[size:24px_24px]" />
-        <Clock className="w-12 h-12 mx-auto mb-4 text-slate-700" />
-        <p className="text-slate-500 font-mono text-sm">NO ROUTINE CONFIGURED</p>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+        <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-4">
+          <Clock className="w-8 h-8 text-gray-300" />
+        </div>
+        <p className="text-gray-500 font-medium">No routine configured</p>
+        <p className="text-gray-400 text-sm mt-1">Create time blocks to structure your day</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden relative">
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f46e508_1px,transparent_1px),linear-gradient(to_bottom,#4f46e508_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
-      
-      <div className="relative z-10 p-4 border-b border-slate-800 bg-slate-900/50">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center">
-              <Activity className="w-4 h-4 text-emerald-400" />
-            </div>
-            <div>
-              <h2 className="font-mono font-bold text-slate-100 text-sm tracking-wide">DAILY ROUTINE</h2>
-              <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">Protocol Status</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700">
-            <span className="text-[10px] text-slate-500 font-mono uppercase">Progress</span>
-            <span className={cn(
-              "font-mono font-bold text-lg",
-              totalProgress >= 80 ? "text-emerald-400" : totalProgress >= 50 ? "text-amber-400" : "text-slate-400"
-            )} data-testid="routine-progress-percent">
+    <div className="space-y-4">
+      {/* Summary Strip */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-full px-4 py-2">
+          <div className="relative w-8 h-8">
+            <svg className="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
+              <circle cx="16" cy="16" r="14" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+              <motion.circle 
+                cx="16" cy="16" r="14" 
+                fill="none" 
+                stroke="url(#progressGradient)" 
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray={`${totalProgress * 0.88} 88`}
+                initial={{ strokeDasharray: "0 88" }}
+                animate={{ strokeDasharray: `${totalProgress * 0.88} 88` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              />
+              <defs>
+                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#10b981" />
+                  <stop offset="100%" stopColor="#14b8a6" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-emerald-600" data-testid="routine-progress-percent">
               {totalProgress}%
             </span>
           </div>
+          <div className="text-sm">
+            <span className="font-semibold text-emerald-700">{completedCount}</span>
+            <span className="text-emerald-600/70">/{totalCount} done</span>
+          </div>
         </div>
-        
-        <div className="relative h-1.5 bg-slate-800 rounded-full overflow-hidden">
-          <motion.div 
-            className="absolute inset-y-0 left-0 rounded-full"
-            style={{
-              background: totalProgress >= 80 
-                ? "linear-gradient(90deg, #10b981, #14b8a6)" 
-                : totalProgress >= 50 
-                  ? "linear-gradient(90deg, #f59e0b, #eab308)"
-                  : "linear-gradient(90deg, #6366f1, #8b5cf6)",
-              boxShadow: totalProgress >= 80 
-                ? "0 0 12px #10b981" 
-                : totalProgress >= 50 
-                  ? "0 0 12px #f59e0b"
-                  : "0 0 12px #6366f1"
-            }}
-            initial={{ width: 0 }}
-            animate={{ width: `${totalProgress}%` }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          />
+
+        {currentBlock && (
+          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-full px-3 py-1.5 shadow-sm">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-sm text-gray-600">
+              Now: <span className="font-medium text-gray-900">{currentBlock.name}</span>
+            </span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-1.5 text-xs text-gray-400 ml-auto">
+          <Clock className="w-3.5 h-3.5" />
+          <span>{format(new Date(), "h:mm a")}</span>
         </div>
       </div>
 
-      <div className="relative z-10 divide-y divide-slate-800/50">
-        {blocks.map((block) => {
-          const progress = blockProgress[block.id] || { completed: 0, total: 0 };
-          const isExpanded = expandedBlock === block.id;
-          const isCurrent = currentBlock?.id === block.id;
-          const blockActivities = activities?.filter(a => a.blockId === block.id) || [];
-          const isComplete = progress.total > 0 && progress.completed === progress.total;
-          const progressPercent = progress.total > 0 ? (progress.completed / progress.total) * 100 : 0;
-          const BlockIcon = getBlockIcon(block.name, block.emoji);
+      {/* Timeline Ribbon */}
+      <div className="relative">
+        {/* Orbit Thread Line */}
+        <div className="absolute top-6 left-6 right-6 h-0.5 bg-gradient-to-r from-gray-100 via-emerald-200 to-gray-100 rounded-full" />
+        
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {blocks.map((block, idx) => {
+            const progress = blockProgress[block.id] || { completed: 0, total: 0 };
+            const isCurrent = currentBlock?.id === block.id;
+            const isComplete = progress.total > 0 && progress.completed === progress.total;
+            const progressPercent = progress.total > 0 ? (progress.completed / progress.total) * 100 : 0;
+            const BlockIcon = getBlockIcon(block.name);
+            const isExpanded = expandedBlock === block.id;
 
-          return (
-            <div key={block.id} className={cn(
-              "transition-all duration-300",
-              isCurrent && "bg-gradient-to-r from-emerald-500/5 via-transparent to-transparent"
-            )}>
-              <button
+            return (
+              <motion.button
+                key={block.id}
                 onClick={() => setExpandedBlock(isExpanded ? null : block.id)}
                 className={cn(
-                  "w-full p-4 flex items-center gap-4 transition-all duration-200 group",
-                  "hover:bg-slate-900/50",
-                  isCurrent && "border-l-2 border-emerald-500"
+                  "relative flex-shrink-0 flex flex-col items-center p-3 rounded-xl transition-all duration-200",
+                  "border bg-white hover:shadow-md",
+                  isCurrent 
+                    ? "border-emerald-300 shadow-lg shadow-emerald-100 ring-2 ring-emerald-100" 
+                    : isComplete 
+                      ? "border-emerald-200 bg-emerald-50/50" 
+                      : isExpanded
+                        ? "border-gray-300 shadow-md"
+                        : "border-gray-100 hover:border-gray-200"
                 )}
+                style={{ minWidth: "100px" }}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
                 data-testid={`routine-block-${block.id}`}
               >
-                <div className={cn(
-                  "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300",
-                  "border",
-                  isComplete 
-                    ? "bg-emerald-500/20 border-emerald-500/50" 
-                    : isCurrent
-                      ? "bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-emerald-500/30 animate-pulse"
-                      : "bg-slate-800/50 border-slate-700"
-                )}>
-                  <BlockIcon className={cn(
-                    "w-5 h-5",
-                    isComplete ? "text-emerald-400" : isCurrent ? "text-emerald-400" : "text-slate-400"
-                  )} />
+                {/* Progress Ring */}
+                <div className="relative mb-2">
+                  <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
+                    <circle cx="20" cy="20" r="16" fill="none" stroke="#f3f4f6" strokeWidth="3" />
+                    <motion.circle 
+                      cx="20" cy="20" r="16" 
+                      fill="none" 
+                      stroke={isComplete ? "#10b981" : block.color}
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray={`${progressPercent * 1.005} 100.5`}
+                      initial={{ strokeDasharray: "0 100.5" }}
+                      animate={{ strokeDasharray: `${progressPercent * 1.005} 100.5` }}
+                      transition={{ duration: 0.5 }}
+                    />
+                  </svg>
+                  <div className={cn(
+                    "absolute inset-0 flex items-center justify-center rounded-full m-1.5",
+                    isCurrent && "animate-pulse"
+                  )}>
+                    <BlockIcon className={cn(
+                      "w-4 h-4",
+                      isComplete ? "text-emerald-500" : isCurrent ? "text-emerald-600" : "text-gray-400"
+                    )} />
+                  </div>
+                  
+                  {isCurrent && (
+                    <motion.div 
+                      className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ repeat: Infinity, duration: 2 }}
+                    />
+                  )}
                 </div>
+
+                <span className={cn(
+                  "text-xs font-medium text-center leading-tight",
+                  isComplete ? "text-emerald-600" : isCurrent ? "text-gray-900" : "text-gray-600"
+                )}>
+                  {block.name}
+                </span>
                 
-                <div className="flex-1 text-left min-w-0">
+                <span className="text-[10px] text-gray-400 mt-0.5">
+                  {block.startTime.slice(0, 5)}
+                </span>
+
+                {progress.total > 0 && (
+                  <span className={cn(
+                    "text-[10px] font-medium mt-1",
+                    isComplete ? "text-emerald-500" : "text-gray-400"
+                  )}>
+                    {progress.completed}/{progress.total}
+                  </span>
+                )}
+
+                {isExpanded && (
+                  <motion.div 
+                    className="absolute -bottom-1 left-1/2 -translate-x-1/2"
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <div className="w-2 h-2 bg-white border-b border-r border-gray-200 rotate-45 transform" />
+                  </motion.div>
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Expanded Activity Panel */}
+      <AnimatePresence mode="wait">
+        {expandedBlock && (() => {
+          const block = blocks.find(b => b.id === expandedBlock);
+          if (!block) return null;
+          
+          const blockActivities = activities?.filter(a => a.blockId === block.id) || [];
+          const progress = blockProgress[block.id] || { completed: 0, total: 0 };
+          const BlockIcon = getBlockIcon(block.name);
+
+          return (
+            <motion.div
+              key={block.id}
+              initial={{ opacity: 0, y: -10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: "auto" }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                {/* Block Header */}
+                <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-8 h-8 rounded-lg flex items-center justify-center"
+                      style={{ backgroundColor: `${block.color}15` }}
+                    >
+                      <BlockIcon className="w-4 h-4" style={{ color: block.color }} />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{block.name}</h3>
+                      <p className="text-xs text-gray-500">
+                        {block.startTime} — {block.endTime}
+                        {block.purpose && <span className="mx-1.5">•</span>}
+                        {block.purpose && <span className="italic">{block.purpose}</span>}
+                      </p>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
                     <span className={cn(
-                      "font-medium text-sm",
-                      isComplete ? "text-emerald-400" : "text-slate-200"
-                    )}>{block.name}</span>
-                    {isCurrent && (
-                      <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono font-bold uppercase tracking-wider border border-emerald-500/30 animate-pulse">
-                        LIVE
-                      </span>
-                    )}
-                    {isComplete && (
-                      <div className="w-4 h-4 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center">
-                        <Check className="w-2.5 h-2.5 text-emerald-400" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-slate-500 font-mono">
-                      {block.startTime} — {block.endTime}
-                    </span>
-                    <span className="text-slate-700">•</span>
-                    <span className={cn(
-                      "text-xs font-mono",
-                      isComplete ? "text-emerald-500" : "text-slate-500"
+                      "text-sm font-semibold px-2.5 py-0.5 rounded-full",
+                      progress.completed === progress.total 
+                        ? "bg-emerald-100 text-emerald-700" 
+                        : "bg-gray-100 text-gray-600"
                     )}>
                       {progress.completed}/{progress.total}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="w-20 relative">
-                    <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
-                      <motion.div 
-                        className="h-full rounded-full"
-                        style={{
-                          background: isComplete 
-                            ? "linear-gradient(90deg, #10b981, #14b8a6)" 
-                            : `linear-gradient(90deg, ${block.color}, ${block.color}cc)`,
-                          boxShadow: isComplete ? "0 0 8px #10b981" : `0 0 8px ${block.color}66`
-                        }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progressPercent}%` }}
-                        transition={{ duration: 0.5 }}
-                      />
-                    </div>
-                  </div>
-                  <motion.div
-                    animate={{ rotate: isExpanded ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <ChevronDown className="w-4 h-4 text-slate-500" />
-                  </motion.div>
-                </div>
-              </button>
+                {/* Activities Grid - Two Column Dense Layout */}
+                <div className="p-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {blockActivities.map((activity, idx) => {
+                      const isActivityComplete = completedActivityIds.has(activity.id);
+                      const linkedHabit = habits?.find(h => h.id === activity.habitId);
 
-              <AnimatePresence>
-                {isExpanded && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="px-4 pb-4 space-y-1">
-                      {block.purpose && (
-                        <p className="text-[10px] text-slate-600 font-mono uppercase tracking-wider px-3 py-2 mb-2 bg-slate-900/50 rounded border-l-2 border-slate-700">
-                          {block.purpose}
-                        </p>
-                      )}
-                      
-                      {blockActivities.map((activity, idx) => {
-                        const isActivityComplete = completedActivityIds.has(activity.id);
-                        const linkedHabit = habits?.find(h => h.id === activity.habitId);
-                        
-                        return (
-                          <motion.div 
-                            key={activity.id}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: idx * 0.05 }}
+                      return (
+                        <motion.div
+                          key={activity.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.03 }}
+                          className={cn(
+                            "group flex items-start gap-2.5 p-2.5 rounded-lg transition-all cursor-pointer",
+                            isActivityComplete 
+                              ? "bg-emerald-50/70 hover:bg-emerald-50" 
+                              : "bg-gray-50 hover:bg-gray-100"
+                          )}
+                          onClick={() => handleToggleActivity(activity.id, activity.habitId)}
+                        >
+                          <button
                             className={cn(
-                              "flex items-start gap-3 p-3 rounded-lg transition-all duration-200 group/item",
-                              "border-l-2",
+                              "mt-0.5 w-5 h-5 rounded-full flex items-center justify-center transition-all shrink-0 border-2",
                               isActivityComplete 
-                                ? "bg-emerald-500/5 border-emerald-500" 
-                                : "bg-slate-900/30 border-slate-700 hover:bg-slate-900/50 hover:border-slate-600"
+                                ? "bg-emerald-500 border-emerald-500 text-white" 
+                                : "bg-white border-gray-300 group-hover:border-emerald-400"
                             )}
+                            data-testid={`activity-checkbox-${activity.id}`}
                           >
-                            <button
-                              onClick={() => handleToggleActivity(activity.id, activity.habitId)}
-                              className={cn(
-                                "mt-0.5 w-5 h-5 rounded-md flex items-center justify-center transition-all duration-200 shrink-0",
-                                "border",
-                                isActivityComplete 
-                                  ? "bg-emerald-500 border-emerald-400 shadow-[0_0_10px_#10b98155]" 
-                                  : "bg-slate-800 border-slate-600 hover:border-slate-500 group-hover/item:border-emerald-500/50"
+                            {isActivityComplete && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: "spring", stiffness: 500 }}
+                              >
+                                <Check className="w-3 h-3" />
+                              </motion.div>
+                            )}
+                          </button>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {activity.time && (
+                                <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                                  {activity.time}
+                                </span>
                               )}
-                              data-testid={`activity-checkbox-${activity.id}`}
-                            >
-                              {isActivityComplete && (
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{ type: "spring", stiffness: 500 }}
-                                >
-                                  <Check className="w-3 h-3 text-white" />
-                                </motion.div>
-                              )}
-                            </button>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {activity.time && (
-                                  <span className="text-[10px] text-slate-600 font-mono bg-slate-800/50 px-1.5 py-0.5 rounded">
-                                    {activity.time}
-                                  </span>
-                                )}
-                                <span className={cn(
-                                  "text-sm font-medium transition-all",
-                                  isActivityComplete 
-                                    ? "text-emerald-400/70 line-through" 
-                                    : "text-slate-300"
-                                )}>
-                                  {activity.name}
+                              <span className={cn(
+                                "text-sm font-medium transition-all",
+                                isActivityComplete ? "text-emerald-700 line-through" : "text-gray-700"
+                              )}>
+                                {activity.name}
+                              </span>
+                            </div>
+                            
+                            {activity.description && (
+                              <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">
+                                {activity.description}
+                              </p>
+                            )}
+                            
+                            {linkedHabit && (
+                              <div className="flex items-center gap-1 mt-1">
+                                <div 
+                                  className="w-1.5 h-1.5 rounded-full"
+                                  style={{ backgroundColor: linkedHabit.color }}
+                                />
+                                <span className="text-[10px] text-gray-400">
+                                  {linkedHabit.title}
                                 </span>
                               </div>
-                              {activity.description && (
-                                <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
-                                  {activity.description}
-                                </p>
-                              )}
-                              {linkedHabit && (
-                                <div className="flex items-center gap-1.5 mt-1.5">
-                                  <div 
-                                    className="w-1.5 h-1.5 rounded-full"
-                                    style={{ backgroundColor: linkedHabit.color, boxShadow: `0 0 6px ${linkedHabit.color}` }}
-                                  />
-                                  <span className="text-[9px] font-mono uppercase tracking-wider text-slate-500">
-                                    Linked → {linkedHabit.title}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           );
-        })}
-      </div>
+        })()}
+      </AnimatePresence>
     </div>
   );
 }
