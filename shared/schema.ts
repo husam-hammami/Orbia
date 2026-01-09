@@ -158,6 +158,7 @@ export const habits = pgTable("habits", {
   color: text("color").notNull(),
   target: integer("target").notNull().default(1),
   unit: text("unit"),
+  icon: text("icon"), // AI-generated Lucide icon name
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
