@@ -1859,6 +1859,15 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.get("/api/career/ai-roadmap", async (req, res) => {
     try {
+      if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY || !process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {
+        return res.json({
+          roadmap: [],
+          suggestedActions: [],
+          message: "AI features are not configured. Please set up AI integrations to use this feature.",
+          error: "missing_credentials"
+        });
+      }
+
       const [vision, projects, tasks] = await Promise.all([
         storage.getVision(),
         storage.getAllCareerProjects(),

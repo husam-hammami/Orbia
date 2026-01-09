@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { 
   Plus, Target, Rocket, Sparkles, ChevronDown, Check, 
-  Calendar, Clock, Pencil, Loader2, X
+  Calendar, Clock, Pencil, Loader2, X, Map, Zap, Lightbulb, RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -160,6 +160,17 @@ export default function CareerPage() {
   const [isProjectDetailsOpen, setIsProjectDetailsOpen] = useState(false);
   const [isVisionDialogOpen, setIsVisionDialogOpen] = useState(false);
   const [editingVision, setEditingVision] = useState<typeof DEFAULT_VISION>([]);
+  
+  const [roadmapData, setRoadmapData] = useState<{
+    roadmap: Array<{ phase: string; timeframe: string; milestones: string[]; focusAreas: string[] }>;
+    suggestedActions: Array<{ title: string; description: string; priority: string; relatedProject: string | null; estimatedEffort: string }>;
+    insights: string;
+    message?: string;
+    error?: string;
+  } | null>(null);
+  const [roadmapLoading, setRoadmapLoading] = useState(false);
+  const [roadmapError, setRoadmapError] = useState<string | null>(null);
+  const [roadmapExpanded, setRoadmapExpanded] = useState(true);
 
   const getEmptyProject = (): Partial<CareerProject> => ({
     title: "",
@@ -213,6 +224,30 @@ export default function CareerPage() {
       editingVision.map((v, i) => ({ title: v.title, timeframe: v.timeframe, color: v.color, order: i })),
       { onSuccess: () => setIsVisionDialogOpen(false) }
     );
+  };
+
+  const fetchRoadmap = async () => {
+    setRoadmapLoading(true);
+    setRoadmapError(null);
+    try {
+      const response = await fetch("/api/career/ai-roadmap");
+      if (!response.ok) {
+        throw new Error(`Failed to generate roadmap: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (data.error) {
+        setRoadmapError(data.message || "An error occurred while generating the roadmap.");
+        setRoadmapData(null);
+      } else {
+        setRoadmapData(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch roadmap:", error);
+      setRoadmapError(error instanceof Error ? error.message : "Failed to generate roadmap. Please try again.");
+      setRoadmapData(null);
+    } finally {
+      setRoadmapLoading(false);
+    }
   };
 
   const toggleTask = (id: string) => {
@@ -621,6 +656,210 @@ export default function CareerPage() {
               />
             </div>
           </motion.div>
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Map className="w-5 h-5 text-violet-500" />
+              AI Roadmap & Insights
+            </h2>
+            <Button 
+              onClick={fetchRoadmap}
+              disabled={roadmapLoading}
+              variant="outline"
+              size="sm"
+              className="border-violet-500/40 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20"
+            >
+              {roadmapLoading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              {roadmapData ? "Refresh" : "Generate"} Roadmap
+            </Button>
+          </div>
+
+          {!roadmapData && !roadmapLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn(glassCard, "p-8 text-center")}
+            >
+              <Map className="w-12 h-12 text-violet-500/50 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">Get AI-Powered Career Insights</h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                Based on your North Star vision and current projects, AI will generate a strategic roadmap with actionable next steps.
+              </p>
+              <Button 
+                onClick={fetchRoadmap}
+                className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0 hover:opacity-90"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate Roadmap
+              </Button>
+            </motion.div>
+          )}
+
+          {roadmapLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn(glassCard, "p-8 text-center")}
+            >
+              <Loader2 className="w-8 h-8 animate-spin text-violet-500 mx-auto mb-4" />
+              <p className="text-sm text-muted-foreground">Analyzing your vision and projects...</p>
+            </motion.div>
+          )}
+
+          {roadmapError && !roadmapLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn(glassCard, "p-6 border-red-200/60 dark:border-red-700/40")}
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+                  <X className="w-5 h-5 text-red-500" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-foreground mb-1">Unable to Generate Roadmap</h4>
+                  <p className="text-sm text-muted-foreground mb-3">{roadmapError}</p>
+                  <Button 
+                    onClick={fetchRoadmap}
+                    variant="outline"
+                    size="sm"
+                    className="border-violet-500/40 text-violet-600 dark:text-violet-400"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Try Again
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {roadmapData && !roadmapLoading && (
+            <Collapsible open={roadmapExpanded} onOpenChange={setRoadmapExpanded}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(glassCard, "overflow-hidden")}
+              >
+                <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <Lightbulb className="w-5 h-5 text-amber-500" />
+                    <span className="font-medium text-foreground">Strategic Insights</span>
+                  </div>
+                  <ChevronDown className={cn("w-5 h-5 text-muted-foreground transition-transform", roadmapExpanded && "rotate-180")} />
+                </CollapsibleTrigger>
+
+                <CollapsibleContent>
+                  <div className="px-4 pb-4 space-y-6">
+                    {roadmapData.message && (
+                      <p className="text-sm text-muted-foreground italic">{roadmapData.message}</p>
+                    )}
+
+                    {roadmapData.insights && (
+                      <div className="p-4 rounded-xl bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 border border-violet-200/60 dark:border-violet-700/40">
+                        <p className="text-sm text-foreground">{roadmapData.insights}</p>
+                      </div>
+                    )}
+
+                    {roadmapData.roadmap && roadmapData.roadmap.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                          <Map className="w-4 h-4" />
+                          Roadmap Phases
+                        </h4>
+                        <div className="grid gap-3">
+                          {roadmapData.roadmap.map((phase, index) => (
+                            <motion.div
+                              key={index}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                              className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-3"
+                            >
+                              <div className="flex items-center justify-between">
+                                <h5 className="font-medium text-foreground">{phase.phase}</h5>
+                                <Badge variant="outline" className="border-violet-500/40 text-violet-600 dark:text-violet-400 text-xs">
+                                  {phase.timeframe}
+                                </Badge>
+                              </div>
+                              {phase.milestones && phase.milestones.length > 0 && (
+                                <ul className="space-y-1">
+                                  {phase.milestones.map((milestone, mIndex) => (
+                                    <li key={mIndex} className="text-sm text-muted-foreground flex items-start gap-2">
+                                      <Check className="w-4 h-4 text-teal-500 shrink-0 mt-0.5" />
+                                      {milestone}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                              {phase.focusAreas && phase.focusAreas.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {phase.focusAreas.map((area, aIndex) => (
+                                    <Badge key={aIndex} variant="secondary" className="text-xs">
+                                      {area}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {roadmapData.suggestedActions && roadmapData.suggestedActions.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                          <Zap className="w-4 h-4" />
+                          Suggested Actions
+                        </h4>
+                        <div className="grid gap-2">
+                          {roadmapData.suggestedActions.map((action, index) => (
+                            <motion.div
+                              key={index}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                              className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex items-start gap-3"
+                            >
+                              <div className={cn(
+                                "w-2 h-2 rounded-full mt-1.5 shrink-0",
+                                action.priority === "high" && "bg-red-500",
+                                action.priority === "medium" && "bg-amber-500",
+                                action.priority === "low" && "bg-slate-400"
+                              )} />
+                              <div className="flex-1 min-w-0 space-y-1">
+                                <p className="text-sm font-medium text-foreground">{action.title}</p>
+                                <p className="text-xs text-muted-foreground">{action.description}</p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {action.estimatedEffort && (
+                                    <Badge variant="outline" className="text-[10px]">
+                                      <Clock className="w-3 h-3 mr-1" />
+                                      {action.estimatedEffort}
+                                    </Badge>
+                                  )}
+                                  {action.relatedProject && (
+                                    <Badge variant="outline" className="text-[10px] border-cyan-500/40 text-cyan-600 dark:text-cyan-400">
+                                      {action.relatedProject}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </motion.div>
+            </Collapsible>
+          )}
         </section>
 
         <Dialog open={isVisionDialogOpen} onOpenChange={setIsVisionDialogOpen}>
