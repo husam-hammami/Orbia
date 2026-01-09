@@ -66,16 +66,16 @@ function Sidebar({ className }: SidebarProps) {
   ];
 
   return (
-    <div className={cn("flex flex-col h-full py-8 px-4 bg-sidebar border-r border-sidebar-border", className)}>
-      <div className="mb-8">
+    <div className={cn("flex flex-col h-full py-4 px-2 bg-sidebar border-r border-sidebar-border", className)}>
+      <div className="mb-4 -mx-1">
         <img 
           src={logoUrl} 
           alt="Orbia Logo" 
-          className="w-full h-auto object-contain scale-110" 
+          className="w-full h-auto object-contain scale-125 origin-left" 
         />
       </div>
 
-      <nav className="space-y-2 flex-1">
+      <nav className="space-y-1 flex-1 px-1">
         {links.map((link) => {
           const Icon = link.icon;
           const isActive = location === link.href;
@@ -84,20 +84,20 @@ function Sidebar({ className }: SidebarProps) {
               key={link.href}
               href={link.href}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group",
                 isActive
                   ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )}
             >
               <Icon className={cn("w-5 h-5", isActive ? "stroke-2" : "stroke-1.5")} />
-              <span className={cn("font-medium", isActive ? "font-semibold" : "")}>{link.label}</span>
+              <span className={cn("font-medium text-sm", isActive ? "font-semibold" : "")}>{link.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="px-4 space-y-4">
+      <div className="px-1 space-y-4">
         {(() => {
           const quote = getDailyQuote();
           return (
