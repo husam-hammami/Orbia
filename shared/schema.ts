@@ -373,6 +373,7 @@ export const journalEntries = pgTable("journal_entries", {
   timeOfDay: text("time_of_day"), // "morning" | "afternoon" | "evening" | "night"
   tags: jsonb("tags").$type<string[]>().default(sql`'[]'::jsonb`),
   isPrivate: integer("is_private").notNull().default(0), // 0 = false, 1 = true
+  entryDate: timestamp("entry_date").defaultNow().notNull(), // user-selected date for when entry is about
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

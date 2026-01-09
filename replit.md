@@ -63,7 +63,7 @@ Key data models:
 - `todos`: Simple to-do list items with priority levels
 - `conversations`: AI chat conversation threads
 - `messages`: Individual messages within AI conversations
-- `journalEntries`: Rich journal entries with entry types, mood/energy tracking, alter attribution, tags, and privacy settings
+- `journalEntries`: Rich journal entries with entry types, mood/energy tracking, alter attribution, tags, custom entry dates, and markdown content support
 
 ### AI Integration
 

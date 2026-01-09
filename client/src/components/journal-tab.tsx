@@ -7,7 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { startOfWeek, isAfter, formatDistanceToNow } from "date-fns";
+import { startOfWeek, isAfter, formatDistanceToNow, format, startOfDay } from "date-fns";
 import { 
   BookOpen, 
   Plus, 
@@ -40,7 +40,8 @@ import {
   List,
   Heading2,
   Eye,
-  PenLine
+  PenLine,
+  Calendar
 } from "lucide-react";
 import { toast } from "sonner";
 import { useJournalEntries, useCreateJournalEntry, useUpdateJournalEntry, useDeleteJournalEntry, useMembers } from "@/lib/api-hooks";
@@ -114,6 +115,7 @@ export function JournalTab() {
   const [showContext, setShowContext] = useState(false);
   const [showVitals, setShowVitals] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [entryDate, setEntryDate] = useState<Date>(new Date());
 
   const insertFormatting = useCallback((prefix: string, suffix: string = prefix) => {
     const textarea = textareaRef.current;
@@ -151,6 +153,7 @@ export function JournalTab() {
     setShowContext(false);
     setShowVitals(false);
     setShowPreview(false);
+    setEntryDate(new Date());
   };
 
   const handleSubmit = () => {
@@ -168,6 +171,7 @@ export function JournalTab() {
       timeOfDay,
       tags: selectedTags,
       isPrivate: 0,
+      entryDate,
     };
 
     if (editingId) {
@@ -198,6 +202,7 @@ export function JournalTab() {
     setAuthorId(entry.authorId);
     setTimeOfDay(entry.timeOfDay || getTimeOfDayAuto());
     setSelectedTags(entry.tags || []);
+    setEntryDate(entry.entryDate ? new Date(entry.entryDate) : new Date());
     setIsWriting(true);
   };
 
@@ -703,6 +708,33 @@ export function JournalTab() {
                             })}
                           </SelectContent>
                         </Select>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 mb-1.5 block">Entry Date</label>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-slate-400" />
+                        <input
+                          type="date"
+                          value={format(entryDate, "yyyy-MM-dd")}
+                          onChange={(e) => {
+                            const date = new Date(e.target.value + "T12:00:00");
+                            if (!isNaN(date.getTime())) {
+                              setEntryDate(date);
+                            }
+                          }}
+                          className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          data-testid="input-entry-date"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEntryDate(new Date())}
+                          className="px-2 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          data-testid="button-today"
+                        >
+                          Today
+                        </button>
                       </div>
                     </div>
                   </div>
