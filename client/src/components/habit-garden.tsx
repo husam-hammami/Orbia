@@ -132,13 +132,12 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
                     <div className="text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">
                        <HabitIcon 
                           className={cn(
-                            "mx-auto mb-1 grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500", 
+                            "mx-auto grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500", 
                             stage === "seed" || stage === "sprout" ? "w-8 h-8" : "w-10 h-10",
                             stage === "thrive" || stage === "master" ? "w-12 h-12" : ""
                           )}
                           style={{ color: 'currentColor' }} 
                        />
-                       <p className="text-xs font-medium uppercase tracking-widest mb-1">Grow</p>
                     </div>
                  )}
               </div>
