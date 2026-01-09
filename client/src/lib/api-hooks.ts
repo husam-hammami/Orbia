@@ -541,7 +541,7 @@ export function useTodos() {
 export function useCreateTodo() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { title: string; priority?: string; completed?: number }) =>
+    mutationFn: (data: { title: string; priority?: string; completed?: number; dueDate?: Date }) =>
       fetchAPI("/api/todos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -556,7 +556,7 @@ export function useCreateTodo() {
 export function useUpdateTodo() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string; title?: string; priority?: string; completed?: number }) =>
+    mutationFn: ({ id, ...data }: { id: string; title?: string; priority?: string; completed?: number; dueDate?: Date | null }) =>
       fetchAPI(`/api/todos/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

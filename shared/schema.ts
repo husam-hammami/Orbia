@@ -251,6 +251,7 @@ export const todos = pgTable("todos", {
   title: text("title").notNull(),
   completed: integer("completed").notNull().default(0), // 0 = false, 1 = true
   priority: text("priority").notNull().default("medium"), // "low" | "medium" | "high"
+  dueDate: timestamp("due_date"), // optional due date for task
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
