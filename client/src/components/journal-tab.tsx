@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -37,7 +38,9 @@ import {
   Bold,
   Italic,
   List,
-  Heading2
+  Heading2,
+  Eye,
+  PenLine
 } from "lucide-react";
 import { toast } from "sonner";
 import { useJournalEntries, useCreateJournalEntry, useUpdateJournalEntry, useDeleteJournalEntry, useMembers } from "@/lib/api-hooks";
@@ -110,6 +113,7 @@ export function JournalTab() {
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
   const [showContext, setShowContext] = useState(false);
   const [showVitals, setShowVitals] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const insertFormatting = useCallback((prefix: string, suffix: string = prefix) => {
     const textarea = textareaRef.current;
@@ -146,6 +150,7 @@ export function JournalTab() {
     setIsWriting(false);
     setShowContext(false);
     setShowVitals(false);
+    setShowPreview(false);
   };
 
   const handleSubmit = () => {
@@ -335,12 +340,16 @@ export function JournalTab() {
                             )}
                           </div>
                           
-                          <p className={cn(
-                            "text-sm text-slate-700",
+                          <div className={cn(
+                            "text-sm text-slate-700 prose prose-sm prose-slate max-w-none",
                             !isExpanded && "line-clamp-2"
                           )}>
-                            {isExpanded ? entry.content : preview + (entry.content.length > 120 ? "..." : "")}
-                          </p>
+                            {isExpanded ? (
+                              <ReactMarkdown>{entry.content}</ReactMarkdown>
+                            ) : (
+                              <span>{preview + (entry.content.length > 120 ? "..." : "")}</span>
+                            )}
+                          </div>
                           
                           {entry.tags && entry.tags.length > 0 && !isExpanded && (
                             <div className="flex gap-1 mt-2 flex-wrap">
@@ -554,17 +563,48 @@ export function JournalTab() {
                     </TooltipTrigger>
                     <TooltipContent>List</TooltipContent>
                   </Tooltip>
+                  
+                  <div className="flex-1" />
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setShowPreview(!showPreview)}
+                        className={cn(
+                          "p-2 rounded-lg transition-colors",
+                          showPreview 
+                            ? "bg-indigo-100 text-indigo-600" 
+                            : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                        )}
+                        aria-label={showPreview ? "Edit" : "Preview"}
+                        data-testid="button-toggle-preview"
+                      >
+                        {showPreview ? <PenLine className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>{showPreview ? "Edit" : "Preview"}</TooltipContent>
+                  </Tooltip>
                 </div>
               </TooltipProvider>
               
-              <textarea
-                ref={textareaRef}
-                placeholder="What's on your mind?"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="w-full min-h-[280px] p-4 text-base text-slate-700 placeholder:text-slate-400 resize-none focus:outline-none leading-relaxed"
-                data-testid="textarea-content"
-              />
+              {showPreview ? (
+                <div className="min-h-[280px] p-4 prose prose-sm prose-slate max-w-none">
+                  {content ? (
+                    <ReactMarkdown>{content}</ReactMarkdown>
+                  ) : (
+                    <p className="text-slate-400 italic">Nothing to preview yet...</p>
+                  )}
+                </div>
+              ) : (
+                <textarea
+                  ref={textareaRef}
+                  placeholder="What's on your mind?"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="w-full min-h-[280px] p-4 text-base text-slate-700 placeholder:text-slate-400 resize-none focus:outline-none leading-relaxed"
+                  data-testid="textarea-content"
+                />
+              )}
               
               <div className="border-t border-slate-100 px-3 py-2">
                 <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
