@@ -60,7 +60,7 @@ Key data models:
 - `routineActivities`: Individual activities within routine blocks (linked to habits)
 - `routineActivityLogs`: Daily completion records for routine activities
 - `dailySummaries`: End-of-day reflection (lighter/average/heavier than usual)
-- `todos`: Simple to-do list items with priority levels
+- `todos`: Simple to-do list items with priority levels, due dates, and overdue tracking
 - `conversations`: AI chat conversation threads
 - `messages`: Individual messages within AI conversations
 - `journalEntries`: Rich journal entries with entry types, mood/energy tracking, alter attribution, tags, custom entry dates, and markdown content support

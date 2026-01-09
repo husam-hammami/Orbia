@@ -258,6 +258,11 @@ export const todos = pgTable("todos", {
 export const insertTodoSchema = createInsertSchema(todos).omit({
   id: true,
   createdAt: true,
+}).extend({
+  dueDate: z.preprocess(
+    (val) => (typeof val === 'string' ? new Date(val) : val),
+    z.date().optional().nullable()
+  ),
 });
 
 export type Todo = typeof todos.$inferSelect;
