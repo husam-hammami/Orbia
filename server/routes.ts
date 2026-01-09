@@ -25,6 +25,7 @@ import { z } from "zod";
 import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerImageRoutes } from "./replit_integrations/image";
 import { parseTrackerNotes } from "./lib/parse-notes";
+import { computeDashboardInsights, DashboardInsightsSchema } from "./lib/dashboard-analytics";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -2270,6 +2271,54 @@ ${JSON.stringify(context, null, 2)}`;
     } catch (error) {
       console.error("Seed error:", error);
       res.status(500).json({ error: "Failed to seed database" });
+    }
+  });
+
+  // Dashboard Insights API
+  app.get("/api/insights/dashboard", async (req, res) => {
+    try {
+      const [
+        trackerEntries,
+        habits,
+        habitCompletions,
+        routineBlocks,
+        routineActivities,
+        routineActivityLogs,
+        todos,
+        journalEntries,
+        dailySummaries,
+        foodOptions,
+      ] = await Promise.all([
+        storage.getAllTrackerEntries(),
+        storage.getAllHabits(),
+        storage.getAllHabitCompletions(),
+        storage.getAllRoutineBlocks(),
+        storage.getAllRoutineActivities(),
+        storage.getAllRoutineLogs(),
+        storage.getAllTodos(),
+        storage.getAllJournalEntries(),
+        storage.getAllDailySummaries(),
+        storage.getAllFoodOptions(),
+      ]);
+
+      const insights = await computeDashboardInsights({
+        trackerEntries,
+        habits,
+        habitCompletions,
+        routineBlocks,
+        routineActivities,
+        routineActivityLogs,
+        todos,
+        journalEntries,
+        dailySummaries,
+        foodOptions,
+      });
+
+      const validated = DashboardInsightsSchema.parse(insights);
+      res.json(validated);
+    } catch (error) {
+      console.error("Dashboard insights error:", error);
+      res.status(500).json({ error: "Failed to compute dashboard insights" });
     }
   });
 
