@@ -25,6 +25,7 @@ interface WorkTimerReturn {
   toggleMute: () => void;
   completedIntervals: number;
   isBreakTime: boolean;
+  testSound: () => void;
 }
 
 const STORAGE_KEY = "neurozen-work-timer";
@@ -307,6 +308,26 @@ export function useWorkTimer(config: WorkTimerConfig): WorkTimerReturn {
     });
   }, []);
 
+  const testSound = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
+      
+      setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.currentTime = 0;
+          audioRef.current.play().catch(() => {});
+        }
+      }, 300);
+      setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.currentTime = 0;
+          audioRef.current.play().catch(() => {});
+        }
+      }, 600);
+    }
+  }, []);
+
   const totalSeconds = isBreakTime ? breakSeconds : workSeconds;
   const progress = ((totalSeconds - remainingSeconds) / totalSeconds) * 100;
 
@@ -326,5 +347,6 @@ export function useWorkTimer(config: WorkTimerConfig): WorkTimerReturn {
     toggleMute,
     completedIntervals,
     isBreakTime,
+    testSound,
   };
 }

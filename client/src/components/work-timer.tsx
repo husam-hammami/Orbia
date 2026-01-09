@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, RotateCcw, Volume2, VolumeX, SkipForward } from "lucide-react";
+import { Play, Pause, RotateCcw, Volume2, VolumeX, SkipForward, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkTimer } from "@/hooks/use-work-timer";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,7 @@ export function WorkTimer() {
     toggleMute,
     completedIntervals,
     isBreakTime,
+    testSound,
   } = useWorkTimer({
     durationMinutes: WORK_SESSION_MINUTES,
     breakDurationMinutes: BREAK_DURATION_MINUTES,
@@ -474,6 +475,18 @@ export function WorkTimer() {
                   data-testid="timer-mute-button"
                 >
                   {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                </Button>
+
+                {/* Test sound button */}
+                <Button
+                  onClick={testSound}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary"
+                  data-testid="timer-test-sound-button"
+                  title="Test notification sound"
+                >
+                  <Bell className="w-4 h-4" />
                 </Button>
               </div>
 
