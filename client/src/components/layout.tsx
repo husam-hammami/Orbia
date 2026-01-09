@@ -67,11 +67,11 @@ function Sidebar({ className }: SidebarProps) {
 
   return (
     <div className={cn("flex flex-col h-full py-4 px-2 bg-sidebar border-r border-sidebar-border", className)}>
-      <div className="mb-4 -mx-1">
+      <div className="mb-4 px-1">
         <img 
           src={logoUrl} 
           alt="Orbia Logo" 
-          className="w-full h-auto object-contain scale-125 origin-left" 
+          className="w-full h-auto object-contain" 
         />
       </div>
 
