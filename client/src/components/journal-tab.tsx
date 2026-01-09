@@ -1,8 +1,9 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { startOfWeek, isAfter, formatDistanceToNow } from "date-fns";
@@ -22,8 +23,6 @@ import {
   Trash2,
   Edit,
   Save,
-  Lock,
-  Unlock,
   ChevronDown,
   ChevronRight,
   Lightbulb,
@@ -34,7 +33,11 @@ import {
   AlertTriangle,
   Smile,
   Battery,
-  User
+  User,
+  Bold,
+  Italic,
+  List,
+  Heading2
 } from "lucide-react";
 import { toast } from "sonner";
 import { useJournalEntries, useCreateJournalEntry, useUpdateJournalEntry, useDeleteJournalEntry, useMembers } from "@/lib/api-hooks";
@@ -104,11 +107,25 @@ export function JournalTab() {
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDayAuto());
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [isPrivate, setIsPrivate] = useState(false);
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
   const [showContext, setShowContext] = useState(false);
   const [showVitals, setShowVitals] = useState(false);
-  const [showTags, setShowTags] = useState(false);
+
+  const insertFormatting = useCallback((prefix: string, suffix: string = prefix) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = content.substring(start, end);
+    const newText = content.substring(0, start) + prefix + selectedText + suffix + content.substring(end);
+    setContent(newText);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + prefix.length, end + prefix.length);
+    }, 0);
+  }, [content]);
 
   const stats = useMemo(() => {
     if (!entries) return { total: 0, thisWeek: 0 };
@@ -125,12 +142,10 @@ export function JournalTab() {
     setAuthorId(null);
     setTimeOfDay(getTimeOfDayAuto());
     setSelectedTags([]);
-    setIsPrivate(false);
     setEditingId(null);
     setIsWriting(false);
     setShowContext(false);
     setShowVitals(false);
-    setShowTags(false);
   };
 
   const handleSubmit = () => {
@@ -147,7 +162,7 @@ export function JournalTab() {
       authorId,
       timeOfDay,
       tags: selectedTags,
-      isPrivate: isPrivate ? 1 : 0,
+      isPrivate: 0,
     };
 
     if (editingId) {
@@ -178,7 +193,6 @@ export function JournalTab() {
     setAuthorId(entry.authorId);
     setTimeOfDay(entry.timeOfDay || getTimeOfDayAuto());
     setSelectedTags(entry.tags || []);
-    setIsPrivate(entry.isPrivate === 1);
     setIsWriting(true);
   };
 
@@ -319,7 +333,6 @@ export function JournalTab() {
                                 title={author.name}
                               />
                             )}
-                            {entry.isPrivate === 1 && <Lock className="w-3 h-3 text-slate-400" />}
                           </div>
                           
                           <p className={cn(
@@ -447,34 +460,14 @@ export function JournalTab() {
             exit={{ opacity: 0 }}
             className="space-y-4"
           >
-            <div className="flex items-center justify-between">
-              <button
-                onClick={resetForm}
-                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
-                data-testid="button-back"
-              >
-                <ChevronRight className="w-4 h-4 rotate-180" />
-                <span className="text-sm font-medium">Back</span>
-              </button>
-              
-              <div className="flex items-center gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsPrivate(!isPrivate)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
-                    isPrivate 
-                      ? "bg-violet-100 text-violet-700" 
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  )}
-                  data-testid="button-toggle-private"
-                >
-                  {isPrivate ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                  {isPrivate ? "Private" : "Shared"}
-                </motion.button>
-              </div>
-            </div>
+            <button
+              onClick={resetForm}
+              className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
+              data-testid="button-back"
+            >
+              <ChevronRight className="w-4 h-4 rotate-180" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
 
             <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
               {entryTypes.map((type) => {
@@ -502,12 +495,74 @@ export function JournalTab() {
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <TooltipProvider>
+                <div className="flex items-center gap-1 px-3 py-2 border-b border-slate-100 bg-slate-50/50">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => insertFormatting("**")}
+                        className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        aria-label="Bold"
+                        data-testid="button-format-bold"
+                      >
+                        <Bold className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Bold</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => insertFormatting("*")}
+                        className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        aria-label="Italic"
+                        data-testid="button-format-italic"
+                      >
+                        <Italic className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Italic</TooltipContent>
+                  </Tooltip>
+                  
+                  <div className="w-px h-5 bg-slate-200 mx-1" />
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => insertFormatting("## ", "")}
+                        className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        aria-label="Heading"
+                        data-testid="button-format-heading"
+                      >
+                        <Heading2 className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Heading</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => insertFormatting("- ", "")}
+                        className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        aria-label="List"
+                        data-testid="button-format-list"
+                      >
+                        <List className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>List</TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
+              
               <textarea
                 ref={textareaRef}
                 placeholder="What's on your mind?"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                className="w-full min-h-[300px] p-4 text-base text-slate-700 placeholder:text-slate-400 resize-none focus:outline-none leading-relaxed"
+                className="w-full min-h-[280px] p-4 text-base text-slate-700 placeholder:text-slate-400 resize-none focus:outline-none leading-relaxed"
                 data-testid="textarea-content"
               />
               
@@ -525,6 +580,36 @@ export function JournalTab() {
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-200 p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="w-4 h-4 text-indigo-500" />
+                <span className="text-xs font-medium text-slate-600">Tags</span>
+                {selectedTags.length > 0 && (
+                  <span className="text-xs text-indigo-500">({selectedTags.length})</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {tagOptions.map((tag) => {
+                  const isSelected = selectedTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className={cn(
+                        "px-2.5 py-1 rounded-full text-xs font-medium transition-all",
+                        isSelected 
+                          ? "bg-indigo-500 text-white" 
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      )}
+                      data-testid={`tag-${tag}`}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -627,41 +712,6 @@ export function JournalTab() {
                         className="py-2"
                         data-testid="slider-energy"
                       />
-                    </div>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-
-              <Collapsible open={showTags} onOpenChange={setShowTags}>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full p-3 bg-white rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors" data-testid="trigger-tags">
-                  <Zap className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm font-medium text-slate-600 flex-1 text-left">Tags</span>
-                  {selectedTags.length > 0 && (
-                    <span className="text-xs text-indigo-500 mr-2">{selectedTags.length} selected</span>
-                  )}
-                  <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", showTags && "rotate-180")} />
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="mt-2 p-4 bg-white rounded-xl border border-slate-200">
-                    <div className="flex flex-wrap gap-2">
-                      {tagOptions.map((tag) => {
-                        const isSelected = selectedTags.includes(tag);
-                        return (
-                          <button
-                            key={tag}
-                            onClick={() => toggleTag(tag)}
-                            className={cn(
-                              "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
-                              isSelected 
-                                ? "bg-indigo-500 text-white" 
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                            )}
-                            data-testid={`tag-${tag}`}
-                          >
-                            {tag}
-                          </button>
-                        );
-                      })}
                     </div>
                   </div>
                 </CollapsibleContent>
