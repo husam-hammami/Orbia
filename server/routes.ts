@@ -1952,6 +1952,122 @@ Based on this vision and current project state, create a strategic roadmap and s
     }
   });
 
+  app.get("/api/career/coach", async (req, res) => {
+    try {
+      if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY || !process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {
+        return res.json({
+          error: "missing_credentials",
+          message: "AI features are not configured. Please set up AI integrations to use this feature."
+        });
+      }
+
+      const [vision, projects, tasks] = await Promise.all([
+        storage.getVision(),
+        storage.getAllCareerProjects(),
+        storage.getAllCareerTasks(),
+      ]);
+
+      if (vision.length === 0) {
+        return res.json({
+          error: "no_vision",
+          message: "Set up your North Star vision to get AI career coaching."
+        });
+      }
+
+      const projectSummary = projects.length > 0 
+        ? projects.map(p => {
+            const projectTasks = tasks.filter(t => t.projectId === p.id);
+            const completed = projectTasks.filter(t => t.completed === 1).length;
+            return `- ${p.title}: ${p.status}, ${completed}/${projectTasks.length} tasks done`;
+          }).join('\n')
+        : "No active projects yet.";
+
+      const systemPrompt = `You are a world-class career coach with expertise in professional development, strategic planning, and personal growth. Your role is to help individuals achieve their North Star vision through precise, actionable guidance.
+
+CRITICAL: The North Star vision is the SINGLE SOURCE OF TRUTH. Everything you recommend must directly serve these goals. Projects are merely context about current progress, NOT the primary driver.
+
+Your response MUST be valid JSON with this exact structure:
+{
+  "northStarAnalysis": {
+    "summary": "string (1-2 sentences capturing the essence of their vision)",
+    "gaps": ["array of 2-4 critical skill or capability gaps to address"],
+    "strengths": ["array of 2-3 strengths to leverage"]
+  },
+  "roadmap": [
+    {
+      "phase": "string (e.g., Phase 1: Foundation Building)",
+      "timeframe": "string (specific: 'Weeks 1-4', 'Month 2-3', etc.)",
+      "goal": "string (what success looks like at end of this phase)",
+      "milestones": ["array of 3-5 specific, measurable milestones"],
+      "weeklyFocus": "string (the ONE thing to prioritize this phase)"
+    }
+  ],
+  "immediateActions": [
+    {
+      "title": "string (specific action verb + clear outcome)",
+      "why": "string (direct connection to North Star)",
+      "timeEstimate": "string (e.g., 2 hours, 30 min daily)",
+      "priority": "critical" | "high" | "medium"
+    }
+  ],
+  "learningPath": [
+    {
+      "skill": "string (skill name)",
+      "importance": "string (why this skill matters for the vision)",
+      "resources": [
+        {
+          "title": "string (course/book/resource name)",
+          "type": "course" | "book" | "tutorial" | "practice",
+          "url": "string (real URL if known, or 'search: [query]' for user to find)",
+          "timeCommitment": "string (e.g., 10 hours, 2 weeks)"
+        }
+      ]
+    }
+  ],
+  "weeklyTheme": "string (a motivating theme for this week)",
+  "coachingNote": "string (2-3 sentences of personalized, encouraging guidance)"
+}
+
+Guidelines:
+- Be BRUTALLY SPECIFIC. "Improve communication" is bad. "Practice 5-minute pitch to 3 different colleagues by Friday" is good.
+- Include REAL course links when you know them (Coursera, Udemy, edX, YouTube, etc.)
+- If you don't know a specific URL, use format "search: [specific search query]"
+- Roadmap should have 3-4 phases spanning the timeframes mentioned in the vision
+- Immediate actions should be things achievable THIS WEEK
+- Learning path should focus on 2-3 high-impact skills`;
+
+      const userPrompt = `MY NORTH STAR VISION (Treat this as the ultimate destination):
+${vision.map(v => `- "${v.title}" (Target: ${v.timeframe})`).join('\n')}
+
+CURRENT PROGRESS CONTEXT (reference only, not the driver):
+${projectSummary}
+
+Based on my North Star vision, create a comprehensive career coaching plan. Be specific about what I should do, learn, and focus on to reach these goals. Include real course recommendations where possible.`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5.1",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        response_format: { type: "json_object" },
+        max_completion_tokens: 4096,
+      });
+
+      const content = response.choices[0]?.message?.content || "{}";
+      const parsed = JSON.parse(content);
+
+      res.json({
+        ...parsed,
+        vision: vision,
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("AI career coach error:", error);
+      res.status(500).json({ error: "Failed to generate career coaching" });
+    }
+  });
+
   // Finance Settings Routes
   app.get("/api/finance-settings", async (req, res) => {
     try {
