@@ -54,7 +54,7 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
   };
 
   return (
-    <div className="relative group flex flex-col items-center justify-center gap-1 p-1">
+    <div className="relative group flex flex-col items-center justify-center gap-2 p-2">
        {/* Delete Button - Appears on hover */}
        <button 
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
@@ -169,8 +169,8 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
        </motion.button>
 
        {/* Label */}
-       <div className="text-center max-w-[80px]">
-          <h3 className="font-medium text-xs leading-tight truncate">{habit.title}</h3>
+       <div className="text-center w-full px-1">
+          <h3 className="font-medium text-xs leading-tight line-clamp-2">{habit.title}</h3>
           <p className="text-[9px] text-muted-foreground">
              {habit.streak}d{habit.streak > 5 && <span className="text-amber-500">🔥</span>}
           </p>
@@ -181,7 +181,7 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
 
 export function HabitGarden({ habits, onToggle, onDelete, onEdit }: HabitGardenProps) {
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-1 py-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 py-3">
       {habits.map((habit) => (
         <div key={habit.id} className="relative group">
           <PlantNode habit={habit} onToggle={() => onToggle(habit.id)} onDelete={() => onDelete(habit.id)} />
