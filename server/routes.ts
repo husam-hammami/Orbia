@@ -1945,18 +1945,16 @@ MEALS/FOOD:
 - add_meal_option: {"name": "...", "meal_type": "breakfast/lunch/dinner", "recipe": "..." (optional, for dinner)}
 - delete_meal_option: {"option_id": "..."} - ALWAYS set confirm:true
 
-LOW-CAPACITY MODE:
-- set_low_capacity_mode: {} (enables low-capacity overlay for today)
-- unset_low_capacity_mode: {} (disables low-capacity mode)
-
 CONFIRMATION RULES:
 - ALWAYS set confirm:true and confirm_text for: delete_habit, delete_task, delete_routine_activity, delete_career_project, delete_career_task, delete_expense, delete_journal, delete_meal_option
 - confirm_text should briefly describe what will happen, e.g. "Delete project 'Portfolio Redesign'?"
 
-LOW-CAPACITY MODE: When user says they're overwhelmed, offer to switch to low-capacity mode. When activated, highlight 3 core actions:
-1) 1-minute grounding
-2) Stretch back 5 minutes  
-3) Leave the house once OR walk 10-20 min
+DASHBOARD INSIGHTS: When the user asks about patterns, trends, or insights, reference the dashboardInsights in context which includes:
+- moodCorrelation: habits that correlate with good mood days
+- recommendations: actionable suggestions based on data patterns
+- trend7Day: whether mood is improving, stable, or declining
+
+Reference these patterns when relevant to help the user understand their data.
 
 If unsure about user intent, ask ONE clarifying question. Keep responses brief and operational.
 

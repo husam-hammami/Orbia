@@ -16,12 +16,13 @@ import {
   Loader2,
   Sparkles,
   ListTodo,
-  Battery,
   Plus,
   Calendar,
   RefreshCw,
   AlertCircle,
-  Check
+  Check,
+  X,
+  Bell
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
@@ -61,7 +62,8 @@ import {
   useJournalEntries,
   useCreateJournalEntry,
   useUpdateJournalEntry,
-  useDeleteJournalEntry
+  useDeleteJournalEntry,
+  useDashboardInsights
 } from "@/lib/api-hooks";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
@@ -88,7 +90,7 @@ interface OrbitAction {
 const QUICK_CHIPS = [
   { label: "Today summary", prompt: "Give me a quick summary of today" },
   { label: "What's left?", prompt: "What's left to do today?" },
-  { label: "Low-capacity mode", prompt: "I'm overwhelmed, switch to low-capacity mode" },
+  { label: "Show insights", prompt: "What patterns do you see in my data?" },
   { label: "What now?", prompt: "What should I do next?" },
   { label: "Add habit", prompt: "Help me add a new habit" },
 ];
@@ -163,20 +165,17 @@ MEALS/FOOD:
 - add_meal_option: {"name": "...", "meal_type": "breakfast/lunch/dinner", "recipe": "..." (optional, for dinner)}
 - delete_meal_option: {"option_id": "..."} - ALWAYS set confirm:true for this
 
-LOW-CAPACITY MODE:
-- set_low_capacity_mode: {} (enables low-capacity overlay for today)
-- unset_low_capacity_mode: {} (disables low-capacity mode)
-
 CONFIRMATION RULES:
 - ALWAYS set confirm:true and confirm_text for: delete_habit, delete_task, delete_routine_activity, delete_career_project, delete_career_task, delete_expense, delete_journal, delete_meal_option
 - Set confirm:true for any action that seems risky or the user expressed uncertainty about
 - confirm_text should briefly describe what will happen, e.g. "Delete project 'Portfolio Redesign'?"
 
-LOW-CAPACITY MODE: When activated, highlight 3 core actions:
-1) 1-minute grounding
-2) Stretch back 5 minutes  
-3) Leave the house once OR walk 10-20 min
-And mark other routine items as optional.
+DASHBOARD INSIGHTS: When the user asks about patterns, trends, or insights, reference the dashboardInsights in context which includes:
+- moodCorrelation: habits that correlate with good mood days
+- recommendations: actionable suggestions based on data patterns
+- trend7Day: whether mood is improving, stable, or declining
+
+Reference these patterns when relevant to help the user understand their data.
 
 If unsure about user intent, ask ONE clarifying question. Keep responses brief and operational.`;
 
@@ -197,6 +196,7 @@ export default function OrbitPage() {
   const { data: careerTasks } = useCareerTasks();
   const { data: expenses } = useExpenses();
   const { data: journalEntries } = useJournalEntries();
+  const { data: dashboardInsights } = useDashboardInsights();
   
   const { data: foodOptions } = useQuery<{ id: string; name: string; mealType: string; description?: string }[]>({
     queryKey: ["/api/food-options"],
@@ -292,10 +292,11 @@ export default function OrbitPage() {
   
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [lowCapacityMode, setLowCapacityMode] = useState(() => {
-    return localStorage.getItem(`orbit_low_capacity_${today}`) === "true";
-  });
   const [pendingAction, setPendingAction] = useState<{ action: OrbitAction; messageId: string } | null>(null);
+  const [dismissedNudges, setDismissedNudges] = useState<Set<string>>(() => {
+    const saved = sessionStorage.getItem("orbit_dismissed_nudges");
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -366,7 +367,6 @@ export default function OrbitPage() {
     return {
       date: today,
       time: format(new Date(), "h:mm a"),
-      lowCapacityMode,
       snapshot: {
         habitsCompleted: habitsCompletedToday,
         totalHabits,
@@ -375,6 +375,11 @@ export default function OrbitPage() {
         externalPressure,
         internalStability
       },
+      dashboardInsights: dashboardInsights ? {
+        moodCorrelation: dashboardInsights.habits?.moodCorrelation || null,
+        recommendations: dashboardInsights.recommendations || [],
+        trend7Day: dashboardInsights.mood?.trend7Day || null
+      } : null,
       currentBlock: currentBlock ? {
         name: currentBlock.name,
         emoji: currentBlock.emoji,
@@ -449,7 +454,8 @@ export default function OrbitPage() {
             target: target || 1,
             unit: unit || "times",
             frequency: "daily",
-            color: `hsl(${Math.floor(Math.random() * 360)} 60% 50%)`
+            color: `hsl(${Math.floor(Math.random() * 360)} 60% 50%)`,
+            icon: null
           });
           return { success: true, message: `Created habit: "${title}"` };
         }
@@ -624,19 +630,6 @@ export default function OrbitPage() {
           const expense = expenses?.find(e => e.id === expense_id);
           await deleteExpense.mutateAsync(expense_id);
           return { success: true, message: `Deleted expense: "${expense?.name || expense_id}"` };
-        }
-        
-        // LOW-CAPACITY MODE
-        case "set_low_capacity_mode": {
-          setLowCapacityMode(true);
-          localStorage.setItem(`orbit_low_capacity_${today}`, "true");
-          return { success: true, message: "Low-capacity mode activated. Focus on 3 core actions today." };
-        }
-        
-        case "unset_low_capacity_mode": {
-          setLowCapacityMode(false);
-          localStorage.removeItem(`orbit_low_capacity_${today}`);
-          return { success: true, message: "Low-capacity mode deactivated. Full routine restored." };
         }
         
         // JOURNAL ACTIONS
@@ -846,11 +839,70 @@ export default function OrbitPage() {
     localStorage.removeItem("orbit_messages");
   };
 
-  const lowCapacityCoreActions = [
-    { icon: "🧘", name: "1-minute grounding", done: false },
-    { icon: "🤸", name: "Stretch back 5 minutes", done: false },
-    { icon: "🚶", name: "Leave house / walk 10-20 min", done: false },
-  ];
+  const dismissNudge = (nudgeId: string) => {
+    setDismissedNudges(prev => {
+      const newSet = new Set(prev);
+      newSet.add(nudgeId);
+      sessionStorage.setItem("orbit_dismissed_nudges", JSON.stringify([...newSet]));
+      return newSet;
+    });
+  };
+
+  const generateNudges = () => {
+    const nudges: { id: string; message: string; icon: React.ReactNode }[] = [];
+    const currentHour = new Date().getHours();
+    
+    const currentBlock = routineBlocks?.find(b => {
+      const [startH] = b.startTime.split(":").map(Number);
+      const [endH] = b.endTime.split(":").map(Number);
+      return currentHour >= startH && currentHour < endH;
+    });
+    
+    if (currentBlock) {
+      const blockNudgeId = `block-${currentBlock.id}-${today}`;
+      if (!dismissedNudges.has(blockNudgeId)) {
+        nudges.push({
+          id: blockNudgeId,
+          message: `Your ${currentBlock.emoji} ${currentBlock.name} has started`,
+          icon: <Clock className="w-4 h-4 text-blue-500" />
+        });
+      }
+    }
+    
+    if (currentHour >= 12) {
+      const incompleteHabits = habits?.filter(h => 
+        !todayCompletions.some(c => c.habitId === h.id)
+      ) || [];
+      
+      if (incompleteHabits.length > 0) {
+        const firstIncomplete = incompleteHabits[0];
+        const habitNudgeId = `habit-${firstIncomplete.id}-${today}`;
+        if (!dismissedNudges.has(habitNudgeId)) {
+          nudges.push({
+            id: habitNudgeId,
+            message: `You haven't logged "${firstIncomplete.title}" today`,
+            icon: <CheckCircle2 className="w-4 h-4 text-amber-500" />
+          });
+        }
+      }
+    }
+    
+    if (currentHour >= 18 && routinePercent < 50 && totalRoutineActivities > 0) {
+      const remaining = totalRoutineActivities - completedRoutineActivities;
+      const routineNudgeId = `routine-evening-${today}`;
+      if (!dismissedNudges.has(routineNudgeId) && remaining > 0) {
+        nudges.push({
+          id: routineNudgeId,
+          message: `Still time to complete ${remaining} more routine item${remaining > 1 ? 's' : ''}`,
+          icon: <Activity className="w-4 h-4 text-violet-500" />
+        });
+      }
+    }
+    
+    return nudges.slice(0, 1);
+  };
+
+  const activeNudges = generateNudges();
 
   return (
     <Layout>
@@ -867,11 +919,6 @@ export default function OrbitPage() {
           </div>
           
           <div className="flex items-center gap-2">
-            {lowCapacityMode && (
-              <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 gap-1">
-                <Battery className="w-3 h-3" /> Low Capacity
-              </Badge>
-            )}
             <Button variant="ghost" size="sm" onClick={clearChat} className="text-xs text-muted-foreground">
               <RefreshCw className="w-3 h-3 mr-1" /> Clear
             </Button>
@@ -921,25 +968,35 @@ export default function OrbitPage() {
           </CardContent>
         </Card>
 
-        {lowCapacityMode && (
-          <Card className="bg-amber-500/10 border-amber-500/30 mb-4">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Battery className="w-4 h-4 text-amber-500" />
-                <span className="font-bold text-amber-600">Low-Capacity Mode Active</span>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">Focus on these 3 core actions today:</p>
-              <div className="grid grid-cols-3 gap-3">
-                {lowCapacityCoreActions.map((action, i) => (
-                  <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-background/50 border border-amber-500/20">
-                    <span className="text-lg">{action.icon}</span>
-                    <span className="text-xs font-medium">{action.name}</span>
+        <AnimatePresence>
+          {activeNudges.map((nudge) => (
+            <motion.div
+              key={nudge.id}
+              initial={{ opacity: 0, y: -10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: "auto" }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+              className="mb-3"
+            >
+              <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border border-primary/20 backdrop-blur-sm">
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 rounded-lg bg-primary/10">
+                    {nudge.icon}
                   </div>
-                ))}
+                  <span className="text-sm font-medium">{nudge.message}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="w-6 h-6 text-muted-foreground hover:text-foreground"
+                  onClick={() => dismissNudge(nudge.id)}
+                  data-testid={`nudge-dismiss-${nudge.id}`}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </motion.div>
+          ))}
+        </AnimatePresence>
 
         <div className="flex-1 flex flex-col min-h-0">
           <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
@@ -951,7 +1008,7 @@ export default function OrbitPage() {
                   </div>
                   <h3 className="text-lg font-semibold mb-2">Ready to help</h3>
                   <p className="text-sm text-muted-foreground max-w-sm">
-                    Ask me what to do next, get a summary of today, or say you're overwhelmed for low-capacity mode.
+                    Ask me what to do next, get a summary of today, or explore patterns in your data.
                   </p>
                 </div>
               )}

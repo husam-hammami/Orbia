@@ -626,9 +626,14 @@ export function OrbitFab() {
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "fixed bottom-4 right-4 md:right-8 w-12 h-12 rounded-full shadow-lg flex items-center justify-center z-50 transition-colors",
-          isOpen ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground shadow-primary/30"
+          "fixed bottom-4 right-4 md:right-8 w-12 h-12 rounded-full shadow-lg flex items-center justify-center z-50 transition-all duration-300",
+          isOpen 
+            ? "bg-muted text-muted-foreground" 
+            : "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(var(--primary-rgb,99,102,241),0.4)] hover:shadow-[0_0_30px_rgba(var(--primary-rgb,99,102,241),0.6)]"
         )}
+        style={{
+          boxShadow: isOpen ? undefined : "0 0 20px var(--primary, hsl(239 84% 67%))"
+        }}
         data-testid="button-orbit-fab"
       >
         {isOpen ? <X className="w-5 h-5" /> : <Orbit className="w-5 h-5" />}
