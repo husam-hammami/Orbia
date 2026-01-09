@@ -175,6 +175,33 @@ export default function CareerPage() {
   const [todayOpen, setTodayOpen] = useState(true);
   const [weekOpen, setWeekOpen] = useState(true);
   const [laterOpen, setLaterOpen] = useState(false);
+  const [newProjectTask, setNewProjectTask] = useState("");
+
+  const getProjectTasks = (projectId: string) => {
+    return tasks.filter(t => t.projectId === projectId);
+  };
+
+  const getProjectProgress = (projectId: string) => {
+    const projectTasks = getProjectTasks(projectId);
+    if (projectTasks.length === 0) return 0;
+    const completed = projectTasks.filter(t => t.completed === 1).length;
+    return Math.round((completed / projectTasks.length) * 100);
+  };
+
+  const handleAddProjectTask = (projectId: string) => {
+    if (!newProjectTask.trim()) return;
+    createTask.mutate({
+      title: newProjectTask,
+      projectId,
+      completed: 0,
+      priority: "medium",
+      due: null,
+      tags: [],
+      description: ""
+    }, {
+      onSuccess: () => setNewProjectTask("")
+    });
+  };
 
   const openEditVision = () => {
     setEditingVision([...vision]);
@@ -219,7 +246,7 @@ export default function CareerPage() {
       title: selectedProject.title,
       description: selectedProject.description || "",
       status: selectedProject.status || "planning",
-      progress: selectedProject.progress || 0,
+      progress: selectedProject.id ? getProjectProgress(selectedProject.id) : 0,
       deadline: selectedProject.deadline || "",
       nextAction: selectedProject.nextAction || "",
       color: selectedProject.color || "bg-teal-500",
@@ -465,31 +492,41 @@ export default function CareerPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map((project, index) => {
               const deadline = getDeadlineDisplay(project.deadline);
+              const projectTasks = getProjectTasks(project.id);
+              const completedTasks = projectTasks.filter(t => t.completed === 1).length;
+              const progress = getProjectProgress(project.id);
               return (
                 <motion.div
                   key={project.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  onClick={() => { setSelectedProject(project); setIsProjectDetailsOpen(true); }}
+                  onClick={() => { setSelectedProject(project); setNewProjectTask(""); setIsProjectDetailsOpen(true); }}
                   className={cn(glassCard, glassCardHover, "p-5 cursor-pointer group")}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0 space-y-3">
                       <div>
                         <h3 className="font-semibold text-foreground leading-tight mb-1">{project.title}</h3>
-                        <Badge 
-                          variant="outline" 
-                          className={cn(
-                            "text-[10px] font-medium",
-                            project.status === "in_progress" && "border-cyan-500/40 text-cyan-600 dark:text-cyan-400",
-                            project.status === "planning" && "border-violet-500/40 text-violet-600 dark:text-violet-400",
-                            project.status === "completed" && "border-slate-400/40 text-slate-500",
-                            project.status === "ongoing" && "border-teal-500/40 text-teal-600 dark:text-teal-400"
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-[10px] font-medium",
+                              project.status === "in_progress" && "border-cyan-500/40 text-cyan-600 dark:text-cyan-400",
+                              project.status === "planning" && "border-violet-500/40 text-violet-600 dark:text-violet-400",
+                              project.status === "completed" && "border-slate-400/40 text-slate-500",
+                              project.status === "ongoing" && "border-teal-500/40 text-teal-600 dark:text-teal-400"
+                            )}
+                          >
+                            {STATUS_DISPLAY[project.status] || project.status}
+                          </Badge>
+                          {projectTasks.length > 0 && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {completedTasks}/{projectTasks.length} tasks
+                            </span>
                           )}
-                        >
-                          {STATUS_DISPLAY[project.status] || project.status}
-                        </Badge>
+                        </div>
                       </div>
 
                       {project.nextAction && (
@@ -508,7 +545,7 @@ export default function CareerPage() {
                       )}
                     </div>
 
-                    <CircularProgress progress={project.progress} size={56} strokeWidth={5} />
+                    <CircularProgress progress={progress} size={56} strokeWidth={5} />
                   </div>
                 </motion.div>
               );
@@ -768,17 +805,21 @@ export default function CareerPage() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Progress ({selectedProject?.progress || 0}%)</Label>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="100" 
-                  value={selectedProject?.progress || 0} 
-                  className="w-full accent-teal-500"
-                  onChange={(e) => setSelectedProject(prev => prev ? ({...prev, progress: parseInt(e.target.value)}) : ({...getEmptyProject(), progress: parseInt(e.target.value)} as CareerProject))}
-                />
-              </div>
+              {selectedProject?.id && (
+                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 space-y-2">
+                  <Label className="text-muted-foreground text-xs">Progress (calculated from sub-tasks)</Label>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full transition-all"
+                        style={{ width: `${getProjectProgress(selectedProject.id)}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-teal-600">{getProjectProgress(selectedProject.id)}%</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Add sub-tasks to track your progress automatically</p>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Next Action</Label>
                 <Input 
@@ -811,9 +852,16 @@ export default function CareerPage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isProjectDetailsOpen} onOpenChange={setIsProjectDetailsOpen}>
-          <DialogContent className="sm:max-w-[550px]">
-            {selectedProject && (
+        <Dialog open={isProjectDetailsOpen} onOpenChange={(open) => {
+          setIsProjectDetailsOpen(open);
+          if (!open) setNewProjectTask("");
+        }}>
+          <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+            {selectedProject && (() => {
+              const projectTasks = getProjectTasks(selectedProject.id);
+              const completedTasks = projectTasks.filter(t => t.completed === 1).length;
+              const progress = getProjectProgress(selectedProject.id);
+              return (
               <>
                 <DialogHeader>
                   <div className="flex items-center gap-3">
@@ -837,8 +885,21 @@ export default function CareerPage() {
                 </DialogHeader>
 
                 <div className="space-y-6 py-4">
-                  <div className="flex items-center justify-center">
-                    <CircularProgress progress={selectedProject.progress} size={100} strokeWidth={8} />
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="text-sm text-muted-foreground">
+                        {completedTasks} of {projectTasks.length} tasks completed
+                      </div>
+                      <div className="w-48 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <motion.div 
+                          className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${progress}%` }}
+                          transition={{ duration: 0.5 }}
+                        />
+                      </div>
+                    </div>
+                    <CircularProgress progress={progress} size={72} strokeWidth={6} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
@@ -867,6 +928,85 @@ export default function CareerPage() {
                       <p className="text-sm text-teal-700 dark:text-teal-300">{selectedProject.nextAction}</p>
                     </div>
                   )}
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-foreground">Sub-Tasks</h4>
+                      <span className="text-xs text-muted-foreground">{projectTasks.length} items</span>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Add a new sub-task..."
+                        value={newProjectTask}
+                        onChange={(e) => setNewProjectTask(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddProjectTask(selectedProject.id);
+                          }
+                        }}
+                        className="flex-1"
+                      />
+                      <Button 
+                        size="sm"
+                        onClick={() => handleAddProjectTask(selectedProject.id)}
+                        disabled={!newProjectTask.trim() || createTask.isPending}
+                        className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0"
+                      >
+                        {createTask.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                      </Button>
+                    </div>
+
+                    <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                      {projectTasks.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No tasks yet. Add your first sub-task above.
+                        </p>
+                      ) : (
+                        projectTasks.map((task, index) => (
+                          <motion.div
+                            key={task.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.03 }}
+                            className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 group"
+                          >
+                            <AnimatedCheckbox
+                              checked={task.completed === 1}
+                              onChange={() => toggleTask(task.id)}
+                            />
+                            <span className={cn(
+                              "flex-1 text-sm",
+                              task.completed === 1 && "line-through text-muted-foreground"
+                            )}>
+                              {task.title}
+                            </span>
+                            <Badge 
+                              variant="outline" 
+                              className={cn(
+                                "text-[10px] opacity-0 group-hover:opacity-100 transition-opacity",
+                                priorityBadge(task.priority)
+                              )}
+                            >
+                              {task.priority}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteTask.mutate(task.id);
+                              }}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </motion.div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <DialogFooter>
@@ -881,7 +1021,8 @@ export default function CareerPage() {
                   </Button>
                 </DialogFooter>
               </>
-            )}
+              );
+            })()}
           </DialogContent>
         </Dialog>
       </div>
