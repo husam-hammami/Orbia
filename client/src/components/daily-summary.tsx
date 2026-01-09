@@ -15,7 +15,8 @@ const feelings = [
     color: "text-emerald-600",
     bg: "bg-emerald-50 dark:bg-emerald-900/20",
     border: "border-emerald-200 dark:border-emerald-800",
-    selectedBg: "bg-emerald-500",
+    selectedBg: "bg-gradient-to-br from-emerald-400 to-cyan-500",
+    glowColor: "rgba(16, 185, 129, 0.5)",
   },
   { 
     value: "average", 
@@ -24,7 +25,8 @@ const feelings = [
     color: "text-slate-600",
     bg: "bg-slate-50 dark:bg-slate-900/20",
     border: "border-slate-200 dark:border-slate-800",
-    selectedBg: "bg-slate-500",
+    selectedBg: "bg-gradient-to-br from-slate-500 to-indigo-600",
+    glowColor: "rgba(99, 102, 241, 0.4)",
   },
   { 
     value: "heavier", 
@@ -33,7 +35,8 @@ const feelings = [
     color: "text-violet-600",
     bg: "bg-violet-50 dark:bg-violet-900/20",
     border: "border-violet-200 dark:border-violet-800",
-    selectedBg: "bg-violet-500",
+    selectedBg: "bg-gradient-to-br from-violet-400 to-purple-500",
+    glowColor: "rgba(139, 92, 246, 0.5)",
   },
 ];
 
@@ -74,15 +77,29 @@ export function DailySummary() {
   }
 
   return (
-    <Card className="border-dashed border-primary/30" data-testid="card-daily-summary">
-      <CardHeader className="pb-2">
+    <Card 
+      className="relative overflow-hidden border-dashed border-primary/30 bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm" 
+      data-testid="card-daily-summary"
+      style={{
+        boxShadow: saved ? '0 0 30px -10px rgba(6, 182, 212, 0.3)' : undefined
+      }}
+    >
+      {saved && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute inset-0 bg-gradient-to-br from-cyan-400/5 to-indigo-400/5 pointer-events-none"
+        />
+      )}
+      <CardHeader className="pb-2 relative z-10">
         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
           <span>End of Day Reflection</span>
           {saved && (
             <motion.span 
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-1 text-xs text-emerald-600"
+              className="flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-400"
+              style={{ filter: 'drop-shadow(0 0 6px rgba(6, 182, 212, 0.4))' }}
             >
               <Check className="w-3.5 h-3.5" />
               Saved
@@ -90,7 +107,7 @@ export function DailySummary() {
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 relative z-10">
         <p className="text-sm text-foreground font-medium">
           Overall, today felt:
         </p>
@@ -102,25 +119,41 @@ export function DailySummary() {
             const isPending = upsertMutation.isPending && selectedFeeling === feeling.value;
             
             return (
-              <button
+              <motion.button
                 key={feeling.value}
                 onClick={() => handleSelect(feeling.value)}
                 disabled={upsertMutation.isPending}
                 data-testid={`button-feeling-${feeling.value}`}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all",
+                  "relative flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all duration-300",
                   isSelected
                     ? `${feeling.selectedBg} text-white border-transparent`
                     : `${feeling.bg} ${feeling.border} ${feeling.color} hover:border-current`
                 )}
+                style={{
+                  boxShadow: isSelected ? `0 0 25px -5px ${feeling.glowColor}` : undefined
+                }}
               >
+                <AnimatePresence>
+                  {isSelected && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      className="absolute inset-0 rounded-xl blur-xl opacity-30"
+                      style={{ backgroundColor: feeling.glowColor }}
+                    />
+                  )}
+                </AnimatePresence>
                 {isPending ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin relative z-10" />
                 ) : (
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-5 h-5 relative z-10" style={{ filter: isSelected ? 'drop-shadow(0 0 8px rgba(255,255,255,0.5))' : undefined }} />
                 )}
-                <span className="text-sm font-medium">{feeling.label}</span>
-              </button>
+                <span className="text-sm font-medium relative z-10">{feeling.label}</span>
+              </motion.button>
             );
           })}
         </div>
