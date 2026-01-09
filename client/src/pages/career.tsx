@@ -1,39 +1,17 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { 
-  Plus, Target, Rocket, Calendar, CheckSquare, MoreHorizontal, 
-  ArrowRight, Briefcase, TrendingUp, Clock, AlertCircle, 
-  CheckCircle2, LayoutTemplate, Sparkles, Filter, BrainCircuit,
-  Flag, Tag, AlignLeft, CalendarDays, Loader2
+  Plus, Target, Rocket, Sparkles, ChevronDown, Check, 
+  Calendar, Clock, Pencil, Loader2, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
@@ -46,8 +24,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInDays, isToday, isThisWeek, parseISO } from "date-fns";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   useCareerProjects,
   useCareerTasks,
@@ -63,28 +47,12 @@ import {
 import type { CareerProject, CareerTask } from "@shared/schema";
 
 const DEFAULT_VISION = [
-  { 
-    id: "1", 
-    title: "Senior Frontend Engineer", 
-    timeframe: "2 Years",
-    color: "text-blue-500",
-    order: 0
-  },
-  { 
-    id: "2", 
-    title: "Launch SaaS Product", 
-    timeframe: "This Year",
-    color: "text-purple-500",
-    order: 1
-  },
-  { 
-    id: "3", 
-    title: "Deep Work Mastery", 
-    timeframe: "Ongoing",
-    color: "text-amber-500",
-    order: 2
-  },
+  { id: "1", title: "Senior Frontend Engineer", timeframe: "2 Years", color: "text-teal-500", order: 0 },
+  { id: "2", title: "Launch SaaS Product", timeframe: "This Year", color: "text-cyan-500", order: 1 },
+  { id: "3", title: "Deep Work Mastery", timeframe: "Ongoing", color: "text-violet-500", order: 2 },
 ];
+
+const VISION_ICONS = [Target, Rocket, Sparkles];
 
 const STATUS_DISPLAY: Record<string, string> = {
   "planning": "Planning",
@@ -93,12 +61,80 @@ const STATUS_DISPLAY: Record<string, string> = {
   "completed": "Completed",
 };
 
-const STATUS_DB: Record<string, string> = {
-  "Planning": "planning",
-  "In Progress": "in_progress",
-  "Ongoing": "ongoing",
-  "Completed": "completed",
-};
+function CircularProgress({ progress, size = 64, strokeWidth = 6 }: { progress: number; size?: number; strokeWidth?: number }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (progress / 100) * circumference;
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg className="transform -rotate-90" width={size} height={size}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          fill="none"
+          className="text-slate-200/60 dark:text-slate-700/60"
+        />
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="url(#progressGradient)"
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+        />
+        <defs>
+          <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#14b8a6" />
+            <stop offset="100%" stopColor="#06b6d4" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-sm font-semibold text-foreground">{progress}%</span>
+      </div>
+    </div>
+  );
+}
+
+function AnimatedCheckbox({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return (
+    <motion.button
+      onClick={(e) => { e.stopPropagation(); onChange(); }}
+      className={cn(
+        "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
+        checked 
+          ? "bg-gradient-to-br from-teal-500 to-cyan-500 border-transparent" 
+          : "border-slate-300 dark:border-slate-600 hover:border-teal-500"
+      )}
+      whileTap={{ scale: 0.9 }}
+    >
+      <AnimatePresence>
+        {checked && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          >
+            <Check className="w-3 h-3 text-white" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.button>
+  );
+}
+
+const glassCard = "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-lg rounded-2xl";
+const glassCardHover = "hover:shadow-xl hover:scale-[1.02] transition-all duration-300";
 
 export default function CareerPage() {
   const { data: projects = [], isLoading: projectsLoading } = useCareerProjects();
@@ -117,16 +153,28 @@ export default function CareerPage() {
   const vision = visionData.length > 0 ? visionData : DEFAULT_VISION;
   
   const [newTask, setNewTask] = useState("");
-  const [viewMode, setViewMode] = useState<"list" | "board">("list");
   const [selectedTask, setSelectedTask] = useState<CareerTask | null>(null);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
-  
   const [selectedProject, setSelectedProject] = useState<CareerProject | null>(null);
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
   const [isProjectDetailsOpen, setIsProjectDetailsOpen] = useState(false);
-  
   const [isVisionDialogOpen, setIsVisionDialogOpen] = useState(false);
   const [editingVision, setEditingVision] = useState<typeof DEFAULT_VISION>([]);
+
+  const getEmptyProject = (): Partial<CareerProject> => ({
+    title: "",
+    description: "",
+    status: "planning",
+    progress: 0,
+    deadline: null,
+    nextAction: "",
+    color: "bg-teal-500",
+    tags: [],
+  });
+  
+  const [todayOpen, setTodayOpen] = useState(true);
+  const [weekOpen, setWeekOpen] = useState(true);
+  const [laterOpen, setLaterOpen] = useState(false);
 
   const openEditVision = () => {
     setEditingVision([...vision]);
@@ -138,10 +186,6 @@ export default function CareerPage() {
       editingVision.map((v, i) => ({ title: v.title, timeframe: v.timeframe, color: v.color, order: i })),
       { onSuccess: () => setIsVisionDialogOpen(false) }
     );
-  };
-
-  const updateVisionItem = (id: string, field: keyof typeof DEFAULT_VISION[0], value: string) => {
-    setEditingVision(editingVision.map(v => v.id === id ? { ...v, [field]: value } : v));
   };
 
   const toggleTask = (id: string) => {
@@ -159,51 +203,11 @@ export default function CareerPage() {
       projectId: null,
       completed: 0,
       priority: "medium",
-      due: "Today",
-      tags: [],
-      description: ""
-    }, {
-      onSuccess: (newTaskData) => {
-        setNewTask("");
-        if (newTaskData) {
-          setSelectedTask(newTaskData);
-          setIsTaskDialogOpen(true);
-        }
-      }
-    });
-  };
-
-  const openTaskDetails = (task: CareerTask) => {
-    setSelectedTask(task);
-    setIsTaskDialogOpen(true);
-  };
-
-  const openEditProject = (project: CareerProject) => {
-    setSelectedProject({ ...project });
-    setIsProjectDialogOpen(true);
-  };
-
-  const openViewProject = (project: CareerProject) => {
-    setSelectedProject({ ...project });
-    setIsProjectDetailsOpen(true);
-  };
-
-  const handleAddProjectTask = (projectId: string) => {
-    createTask.mutate({
-      title: "New Task",
-      projectId,
-      completed: 0,
-      priority: "medium",
       due: format(new Date(), "yyyy-MM-dd"),
       tags: [],
       description: ""
     }, {
-      onSuccess: (newTaskData) => {
-        if (newTaskData) {
-          setSelectedTask({ ...newTaskData });
-          setIsTaskDialogOpen(true);
-        }
-      }
+      onSuccess: () => setNewTask("")
     });
   };
 
@@ -218,15 +222,12 @@ export default function CareerPage() {
       progress: selectedProject.progress || 0,
       deadline: selectedProject.deadline || "",
       nextAction: selectedProject.nextAction || "",
-      color: selectedProject.color || "bg-indigo-500",
+      color: selectedProject.color || "bg-teal-500",
       tags: selectedProject.tags || [],
     };
 
     if (selectedProject.id) {
-      updateProject.mutate({
-        id: selectedProject.id,
-        ...projectData
-      });
+      updateProject.mutate({ id: selectedProject.id, ...projectData });
     } else {
       createProject.mutate(projectData);
     }
@@ -252,18 +253,49 @@ export default function CareerPage() {
   };
 
   const getProjectTitle = (projectId: string | null) => {
-    if (!projectId) return "General";
+    if (!projectId) return null;
     const project = projects.find(p => p.id === projectId);
-    return project?.title || "Unknown Project";
+    return project?.title || null;
   };
 
-  const getProjectTasks = (projectId: string) => {
-    return tasks.filter(t => t.projectId === projectId);
+  const getDeadlineDisplay = (deadline: string | null) => {
+    if (!deadline) return null;
+    const days = differenceInDays(new Date(deadline), new Date());
+    if (days < 0) return { text: "Overdue", className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" };
+    if (days === 0) return { text: "Due today", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" };
+    if (days === 1) return { text: "Tomorrow", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" };
+    return { text: `${days} days left`, className: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400" };
   };
 
+  const incompleteTasks = tasks.filter(t => t.completed === 0);
   const todayStr = format(new Date(), "yyyy-MM-dd");
-  const todayTasks = tasks.filter(t => t.completed === 0 && (t.due === "Today" || t.due === todayStr));
-  const upcomingTasks = tasks.filter(t => t.completed === 0 && t.due !== "Today" && t.due !== todayStr);
+  
+  const isValidDateString = (str: string | null): boolean => {
+    if (!str || str === "Today" || str === "Tomorrow") return false;
+    const parsed = Date.parse(str);
+    return !isNaN(parsed);
+  };
+
+  const todayTasks = incompleteTasks.filter(t => {
+    if (t.due === "Today" || t.due === todayStr) return true;
+    if (!isValidDateString(t.due)) return false;
+    try {
+      return isToday(parseISO(t.due!));
+    } catch { return false; }
+  });
+
+  const weekTasks = incompleteTasks.filter(t => {
+    if (todayTasks.some(tt => tt.id === t.id)) return false;
+    if (!isValidDateString(t.due)) return false;
+    try {
+      const dueDate = parseISO(t.due!);
+      return isThisWeek(dueDate, { weekStartsOn: 1 }) && differenceInDays(dueDate, new Date()) <= 7 && differenceInDays(dueDate, new Date()) > 0;
+    } catch { return false; }
+  });
+
+  const laterTasks = incompleteTasks.filter(t => 
+    !todayTasks.some(tt => tt.id === t.id) && !weekTasks.some(wt => wt.id === t.id)
+  );
 
   const isLoading = projectsLoading || tasksLoading;
 
@@ -271,470 +303,364 @@ export default function CareerPage() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-full">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
         </div>
       </Layout>
     );
   }
 
+  const priorityBadge = (priority: string) => {
+    const classes = {
+      high: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+      medium: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+      low: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
+    };
+    return classes[priority as keyof typeof classes] || classes.medium;
+  };
+
+  const TaskRow = ({ task, index }: { task: CareerTask; index: number }) => {
+    const projectName = getProjectTitle(task.projectId);
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: index * 0.05 }}
+        onClick={() => { setSelectedTask(task); setIsTaskDialogOpen(true); }}
+        className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors group"
+      >
+        <AnimatedCheckbox 
+          checked={task.completed === 1} 
+          onChange={() => toggleTask(task.id)} 
+        />
+        <div className="flex-1 min-w-0">
+          <p className={cn(
+            "text-sm font-medium truncate",
+            task.completed === 1 && "line-through text-muted-foreground"
+          )}>
+            {task.title}
+          </p>
+          {projectName && (
+            <p className="text-xs text-muted-foreground truncate">{projectName}</p>
+          )}
+        </div>
+        <Badge className={cn("text-[10px] font-medium shrink-0", priorityBadge(task.priority))}>
+          {task.priority}
+        </Badge>
+      </motion.div>
+    );
+  };
+
+  const TaskSection = ({ 
+    title, 
+    tasks, 
+    open, 
+    onOpenChange, 
+    accentColor = "text-foreground",
+    emptyText = "No tasks"
+  }: { 
+    title: string; 
+    tasks: CareerTask[]; 
+    open: boolean; 
+    onOpenChange: (open: boolean) => void;
+    accentColor?: string;
+    emptyText?: string;
+  }) => (
+    <Collapsible open={open} onOpenChange={onOpenChange}>
+      <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+        <div className="flex items-center gap-2">
+          <span className={cn("font-semibold text-sm", accentColor)}>{title}</span>
+          <Badge variant="secondary" className="text-xs">{tasks.length}</Badge>
+        </div>
+        <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", open && "rotate-180")} />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="pl-2 space-y-1">
+          {tasks.length > 0 ? (
+            tasks.map((task, i) => <TaskRow key={task.id} task={task} index={i} />)
+          ) : (
+            <p className="text-sm text-muted-foreground py-4 text-center">{emptyText}</p>
+          )}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+
   return (
     <Layout>
-      <div className="space-y-8 animate-in fade-in duration-500 pb-12 h-full flex flex-col max-w-[1600px] mx-auto w-full">
+      <div className="space-y-8 pb-12 max-w-6xl mx-auto w-full px-4">
         
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-muted-foreground">
-               <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider border border-primary/20">Professional Workspace</span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-display font-bold text-foreground tracking-tight">
-              Career & Vision
-            </h1>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-2"
+        >
+          <h1 className="text-3xl md:text-4xl font-display font-bold bg-gradient-to-r from-teal-500 to-cyan-500 bg-clip-text text-transparent">
+            Career & Vision
+          </h1>
+          <p className="text-muted-foreground">Your professional growth dashboard</p>
+        </motion.div>
+
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Target className="w-5 h-5 text-teal-500" />
+              North Star Vision
+            </h2>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={openEditVision}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Pencil className="w-4 h-4 mr-2" /> Edit Vision
+            </Button>
           </div>
           
-          <div className="flex gap-3">
-             <div className="hidden md:flex bg-muted/50 p-1 rounded-lg border border-border/50">
-               <Button 
-                 variant={viewMode === "list" ? "secondary" : "ghost"} 
-                 size="sm"
-                 className="gap-2 h-8"
-                 onClick={() => setViewMode("list")}
-               >
-                  <LayoutTemplate className="w-4 h-4" /> List
-               </Button>
-               <Button 
-                 variant={viewMode === "board" ? "secondary" : "ghost"} 
-                 size="sm"
-                 className="gap-2 h-8"
-                 onClick={() => setViewMode("board")}
-               >
-                  <TrendingUp className="w-4 h-4" /> Board
-               </Button>
-             </div>
-             <Button 
-               className="h-10 px-5 bg-foreground text-background hover:bg-foreground/90 font-medium shadow-lg shadow-foreground/10 transition-all"
-               onClick={() => {
-                 setSelectedProject(null);
-                 setIsProjectDialogOpen(true);
-               }}
-             >
-                <Plus className="w-4 h-4 mr-2" /> New Initiative
-             </Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 shrink-0">
-           <Card className="md:col-span-8 relative overflow-hidden border-border/50 shadow-sm group">
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-transparent opacity-50" />
-              <CardContent className="p-5 flex items-center justify-between relative h-full">
-                 <div className="flex items-start gap-5">
-                    <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 shrink-0 mt-1">
-                       <Sparkles className="w-6 h-6 text-amber-500" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {vision.map((item, index) => {
+              const Icon = VISION_ICONS[index] || Sparkles;
+              return (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className={cn(
+                    glassCard,
+                    "p-5 group hover:border-teal-500/40 transition-all duration-300"
+                  )}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 flex items-center justify-center shrink-0">
+                      <Icon className="w-5 h-5 text-teal-500" />
                     </div>
-                    <div className="space-y-1">
-                       <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">North Star</h3>
-                          <Badge variant="secondary" className="text-[10px] h-4 px-1 font-normal bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
-                             Guiding Principles
-                          </Badge>
-                       </div>
-                       
-                       <div className="flex flex-col gap-2 pt-1">
-                          {vision.map((item, index) => {
-                             const dotColorMap: Record<string, string> = {
-                               'text-blue-500': '#3b82f6',
-                               'text-purple-500': '#a855f7',
-                               'text-amber-500': '#f59e0b',
-                               'text-emerald-500': '#10b981',
-                               'text-green-500': '#22c55e',
-                               'text-cyan-500': '#06b6d4',
-                               'text-red-500': '#ef4444',
-                               'text-indigo-500': '#6366f1',
-                             };
-                             return (
-                               <div key={item.id} className={cn(
-                                 "flex items-center gap-2",
-                                 index === 0 ? "text-base font-medium text-foreground" : "text-sm text-muted-foreground"
-                               )}>
-                                  <div 
-                                    className="w-2 h-2 rounded-full shrink-0" 
-                                    style={{ backgroundColor: dotColorMap[item.color] || '#f59e0b' }}
-                                  />
-                                  <span>{item.title}</span>
-                                  <span className="text-xs text-muted-foreground/70">
-                                     {item.timeframe}
-                                  </span>
-                               </div>
-                             );
-                          })}
-                       </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground text-sm leading-tight">{item.title}</h3>
+                      <Badge variant="secondary" className="mt-2 text-xs font-normal">
+                        {item.timeframe}
+                      </Badge>
                     </div>
-                 </div>
-                 
-                 <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="shrink-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={openEditVision}
-                 >
-                    <MoreHorizontal className="w-5 h-5" />
-                 </Button>
-              </CardContent>
-           </Card>
-           
-           <div className="md:col-span-4 grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl border border-border/50 bg-background flex flex-col justify-center shadow-sm">
-                 <div className="text-2xl font-bold">{projects.filter(p => p.status === "in_progress").length}</div>
-                 <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Active Projects</div>
-              </div>
-              <div className="p-4 rounded-xl border border-border/50 bg-background flex flex-col justify-center shadow-sm">
-                 <div className="text-2xl font-bold text-rose-500">{todayTasks.length}</div>
-                 <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Due Today</div>
-              </div>
-           </div>
-        </div>
-
-        <Separator className="shrink-0 bg-border/40" />
-
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-           
-           <div className="lg:col-span-8 flex flex-col min-h-0 space-y-6">
-              <div className="flex items-center justify-between shrink-0">
-                 <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <Rocket className="w-5 h-5 text-indigo-500" />
-                    Projects & Initiatives
-                 </h2>
-                 <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" className="text-muted-foreground h-8 text-xs">
-                       <Filter className="w-3.5 h-3.5 mr-2" /> Filter View
-                    </Button>
-                 </div>
-              </div>
-
-              {viewMode === "list" ? (
-                <div className="space-y-3">
-                     {projects.map(project => {
-                        const daysLeft = project.deadline ? differenceInDays(new Date(project.deadline), new Date()) : null;
-                        const isUrgent = daysLeft !== null && daysLeft < 7;
-                        const displayStatus = STATUS_DISPLAY[project.status] || project.status;
-                        const projectTasks = getProjectTasks(project.id);
-                        const completedTasks = projectTasks.filter(t => t.completed === 1).length;
-                        const totalTasks = projectTasks.length;
-                        
-                        const colorHexMap: Record<string, string> = {
-                          'bg-blue-500': '#3b82f6',
-                          'bg-purple-500': '#a855f7',
-                          'bg-emerald-500': '#10b981',
-                          'bg-green-500': '#22c55e',
-                          'bg-cyan-500': '#06b6d4',
-                          'bg-amber-500': '#f59e0b',
-                          'bg-orange-500': '#f97316',
-                          'bg-red-500': '#ef4444',
-                          'bg-indigo-500': '#6366f1',
-                          'bg-slate-500': '#64748b',
-                        };
-
-                        return (
-                           <div 
-                              key={project.id} 
-                              onClick={() => openViewProject(project)}
-                              className="group relative flex flex-col gap-3 p-4 rounded-xl border border-border/40 bg-card hover:shadow-lg transition-all cursor-pointer"
-                              style={{ borderLeftWidth: '4px', borderLeftColor: colorHexMap[project.color] || '#6366f1' }}
-                           >
-                              <div className="flex items-start justify-between gap-4">
-                                 <div className="flex-1 min-w-0 space-y-1">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                       <h3 className="font-semibold text-sm tracking-tight">{project.title}</h3>
-                                       <Badge 
-                                          variant="outline" 
-                                          className={cn("text-[10px] px-2 py-0 h-5 font-medium border-0 shrink-0", 
-                                             project.status === "in_progress" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400" : 
-                                             project.status === "planning" ? "bg-purple-500/15 text-purple-600 dark:text-purple-400" :
-                                             project.status === "completed" ? "bg-gray-500/15 text-gray-600 dark:text-gray-400" :
-                                             "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                                          )}
-                                       >
-                                          {displayStatus}
-                                       </Badge>
-                                       {totalTasks > 0 && (
-                                          <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded shrink-0">
-                                             {completedTasks}/{totalTasks} tasks
-                                          </span>
-                                       )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground line-clamp-2">{project.description}</p>
-                                 </div>
-                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={(e) => { e.stopPropagation(); openEditProject(project); }}>
-                                    <MoreHorizontal className="w-4 h-4" />
-                                 </Button>
-                              </div>
-
-                              <div className="flex items-center gap-3 flex-wrap">
-                                 <div className="flex-1 min-w-[100px] max-w-[150px]">
-                                    <div className="flex justify-between text-[9px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                                       <span>Progress</span>
-                                       <span>{project.progress}%</span>
-                                    </div>
-                                    <Progress value={project.progress} className="h-1.5 bg-muted/50" indicatorClassName={project.color} />
-                                 </div>
-
-                                 {project.nextAction && (
-                                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/30 text-[10px] text-muted-foreground max-w-[180px]">
-                                       <ArrowRight className="w-3 h-3 text-foreground/50 shrink-0" />
-                                       <span className="truncate">{project.nextAction}</span>
-                                    </div>
-                                 )}
-                                 
-                                 {project.tags && (project.tags as string[]).length > 0 && (
-                                    <div className="flex gap-1 flex-wrap">
-                                       {(project.tags as string[]).slice(0, 3).map((tag, i) => (
-                                          <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-muted/40 text-muted-foreground border border-border/30">
-                                             {tag}
-                                          </span>
-                                       ))}
-                                    </div>
-                                 )}
-                              </div>
-                           </div>
-                        );
-                     })}
-                     <Button 
-                        variant="outline" 
-                        className="w-full py-8 border-dashed text-muted-foreground hover:text-foreground hover:border-indigo-500/50 hover:bg-indigo-500/5 group"
-                        onClick={() => {
-                           setSelectedProject(null);
-                           setIsProjectDialogOpen(true);
-                        }}
-                     >
-                        <Plus className="w-4 h-4 mr-2" /> Add New Project
-                     </Button>
-                </div>
-              ) : (
-                <div className="flex-1">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                     {["planning", "in_progress", "ongoing"].map((status) => (
-                        <div key={status} className="flex flex-col bg-muted/10 rounded-xl border border-border/50 overflow-hidden">
-                           <div className="p-3 border-b border-border/50 flex items-center justify-between bg-muted/20">
-                              <div className="flex items-center gap-2">
-                                 <div className={cn("w-2 h-2 rounded-full", 
-                                    status === "planning" ? "bg-purple-500" : 
-                                    status === "in_progress" ? "bg-blue-500" : "bg-emerald-500"
-                                 )} />
-                                 <span className="font-semibold text-sm">{STATUS_DISPLAY[status]}</span>
-                                 <span className="px-1.5 py-0.5 rounded-md bg-background text-[10px] font-bold text-muted-foreground border border-border/50">
-                                    {projects.filter(p => p.status === status).length}
-                                 </span>
-                              </div>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-6 w-6"
-                                onClick={() => {
-                                  setSelectedProject({ status } as any);
-                                  setIsProjectDialogOpen(true);
-                                }}
-                              >
-                                 <Plus className="w-3 h-3" />
-                              </Button>
-                           </div>
-                           
-                           <div className="p-3 space-y-3 min-h-[200px]">
-                                {projects.filter(p => p.status === status).map(project => (
-                                   <Card key={project.id} className="cursor-pointer hover:shadow-md transition-all border-l-4 group bg-background" style={{ borderLeftColor: project.color.replace('bg-', '') }} onClick={() => openViewProject(project)}>
-                                      <CardContent className="p-3 space-y-3">
-                                         <div className="flex justify-between items-start">
-                                            <h4 className="font-medium text-sm leading-tight line-clamp-2">{project.title}</h4>
-                                            <Button variant="ghost" size="icon" className="h-5 w-5 -mr-1 -mt-1 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" onClick={(e) => { e.stopPropagation(); openEditProject(project); }}>
-                                                <MoreHorizontal className="w-3 h-3" />
-                                            </Button>
-                                         </div>
-                                         
-                                         <div className="space-y-1.5">
-                                            <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                                               <span>Progress</span>
-                                               <span>{project.progress}%</span>
-                                            </div>
-                                            <Progress value={project.progress} className="h-1" indicatorClassName={project.color} />
-                                         </div>
-                                         
-                                         {project.nextAction && (
-                                            <div className="text-[10px] bg-muted/50 px-2 py-1.5 rounded text-muted-foreground truncate flex items-center gap-1.5 border border-border/30">
-                                               <ArrowRight className="w-2.5 h-2.5 shrink-0 text-foreground/50" />
-                                               {project.nextAction}
-                                            </div>
-                                         )}
-        
-                                         {project.deadline && (
-                                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                                               <Calendar className="w-3 h-3" />
-                                               {project.deadline}
-                                            </div>
-                                         )}
-                                      </CardContent>
-                                   </Card>
-                                ))}
-                                
-                                <Button 
-                                  variant="ghost" 
-                                  className="w-full py-6 text-xs font-medium text-muted-foreground border border-dashed border-border/60 rounded-lg hover:bg-muted/30 hover:text-foreground hover:border-border transition-all"
-                                  onClick={() => {
-                                    setSelectedProject({ status } as any);
-                                    setIsProjectDialogOpen(true);
-                                  }}
-                                >
-                                   <Plus className="w-3.5 h-3.5 mr-2" /> Add Project
-                                </Button>
-                           </div>
-                        </div>
-                     ))}
                   </div>
-                </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Rocket className="w-5 h-5 text-cyan-500" />
+              Active Projects
+            </h2>
+            <Button 
+              onClick={() => { setSelectedProject(null); setIsProjectDialogOpen(true); }}
+              className={cn(glassCard, "bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0 hover:opacity-90")}
+              size="sm"
+            >
+              <Plus className="w-4 h-4 mr-2" /> New Project
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {projects.map((project, index) => {
+              const deadline = getDeadlineDisplay(project.deadline);
+              return (
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  onClick={() => { setSelectedProject(project); setIsProjectDetailsOpen(true); }}
+                  className={cn(glassCard, glassCardHover, "p-5 cursor-pointer group")}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0 space-y-3">
+                      <div>
+                        <h3 className="font-semibold text-foreground leading-tight mb-1">{project.title}</h3>
+                        <Badge 
+                          variant="outline" 
+                          className={cn(
+                            "text-[10px] font-medium",
+                            project.status === "in_progress" && "border-cyan-500/40 text-cyan-600 dark:text-cyan-400",
+                            project.status === "planning" && "border-violet-500/40 text-violet-600 dark:text-violet-400",
+                            project.status === "completed" && "border-slate-400/40 text-slate-500",
+                            project.status === "ongoing" && "border-teal-500/40 text-teal-600 dark:text-teal-400"
+                          )}
+                        >
+                          {STATUS_DISPLAY[project.status] || project.status}
+                        </Badge>
+                      </div>
+
+                      {project.nextAction && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          <span className="text-teal-500 font-medium">Next:</span> {project.nextAction}
+                        </p>
+                      )}
+
+                      {deadline && (
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-3 h-3 text-muted-foreground" />
+                          <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", deadline.className)}>
+                            {deadline.text}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <CircularProgress progress={project.progress} size={56} strokeWidth={5} />
+                  </div>
+                </motion.div>
+              );
+            })}
+
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: projects.length * 0.1 }}
+              onClick={() => { setSelectedProject(null); setIsProjectDialogOpen(true); }}
+              className={cn(
+                glassCard,
+                "p-5 border-dashed border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2",
+                "text-muted-foreground hover:text-teal-500 hover:border-teal-500/40 transition-all duration-300 min-h-[140px]"
               )}
-           </div>
+            >
+              <Plus className="w-5 h-5" />
+              <span className="font-medium">Add Project</span>
+            </motion.button>
+          </div>
+        </section>
 
-           <div className="lg:col-span-4 flex flex-col min-h-0 space-y-6">
-              <div className="flex items-center justify-between shrink-0">
-                 <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                    Priority Actions
-                 </h2>
-              </div>
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-amber-500" />
+            Today's Focus
+          </h2>
 
-              <div className="flex flex-col gap-6">
-                 <Card className="border-emerald-500/20 bg-emerald-500/5 shadow-sm overflow-hidden">
-                    <CardHeader className="pb-3 pt-4 px-4 border-b border-emerald-500/10">
-                       <CardTitle className="text-sm font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                          <Target className="w-4 h-4" /> Focus Today
-                       </CardTitle>
-                    </CardHeader>
-                    <div className="divide-y divide-emerald-500/10">
-                       {todayTasks.length > 0 ? todayTasks.map(task => (
-                          <div 
-                             key={task.id} 
-                             className="p-3 flex items-start gap-3 hover:bg-emerald-500/10 transition-colors cursor-pointer"
-                             onClick={() => openTaskDetails(task)}
-                          >
-                             <button 
-                                onClick={(e) => { e.stopPropagation(); toggleTask(task.id); }}
-                                className="mt-0.5 w-4 h-4 rounded border border-emerald-500/40 flex items-center justify-center hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all shrink-0 bg-background"
-                             >
-                             </button>
-                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium leading-tight text-foreground">{task.title}</p>
-                                <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-1 truncate">{getProjectTitle(task.projectId)}</p>
-                             </div>
-                             <Badge variant="outline" className="text-[10px] h-5 border-emerald-500/20 text-emerald-700 bg-emerald-500/10">{task.priority}</Badge>
-                          </div>
-                       )) : (
-                          <div className="p-8 text-center text-sm text-muted-foreground">
-                             <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                             No priority tasks for today.
-                          </div>
-                       )}
-                    </div>
-                    <div className="p-2 bg-emerald-500/5">
-                        <form onSubmit={handleAddTask} className="flex gap-2">
-                           <Input 
-                              placeholder="Add task for today..." 
-                              className="h-8 text-xs bg-background border-emerald-500/20 focus-visible:ring-emerald-500/30" 
-                              value={newTask}
-                              onChange={(e) => setNewTask(e.target.value)}
-                           />
-                           <Button size="sm" type="submit" variant="secondary" className="h-8 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 border border-emerald-500/20" disabled={!newTask.trim() || createTask.isPending}>
-                              <Plus className="w-3.5 h-3.5" />
-                           </Button>
-                        </form>
-                    </div>
-                 </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(glassCard, "p-6 space-y-4")}
+          >
+            <form onSubmit={handleAddTask} className="flex gap-3">
+              <Input 
+                placeholder="Add a new task..." 
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)}
+                className="flex-1 bg-white/50 dark:bg-slate-800/50 border-slate-200/60 dark:border-slate-700/60 focus:ring-teal-500/20 focus:border-teal-500"
+              />
+              <Button 
+                type="submit" 
+                disabled={!newTask.trim() || createTask.isPending}
+                className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0 hover:opacity-90"
+              >
+                <Plus className="w-4 h-4 mr-2" /> Add Task
+              </Button>
+            </form>
 
-                 <Card className="border-border/50 shadow-sm flex flex-col overflow-hidden bg-card/50">
-                    <CardHeader className="pb-3 pt-4 px-4 border-b border-border/50">
-                       <CardTitle className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                          <CalendarDays className="w-4 h-4" /> Upcoming & Backlog
-                       </CardTitle>
-                    </CardHeader>
-                    <div className="divide-y divide-border/50 max-h-[400px] overflow-y-auto">
-                       {upcomingTasks.map(task => (
-                          <div 
-                             key={task.id} 
-                             className="p-3 flex items-start gap-3 hover:bg-muted/50 transition-colors cursor-pointer group"
-                             onClick={() => openTaskDetails(task)}
-                          >
-                             <button 
-                                onClick={(e) => { e.stopPropagation(); toggleTask(task.id); }}
-                                className="mt-0.5 w-4 h-4 rounded border border-muted-foreground/30 flex items-center justify-center hover:border-primary hover:text-primary transition-all shrink-0"
-                             >
-                             </button>
-                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium leading-tight text-muted-foreground group-hover:text-foreground transition-colors">{task.title}</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                   <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                      <Calendar className="w-2.5 h-2.5" /> {task.due}
-                                   </span>
-                                </div>
-                             </div>
-                             <Badge variant="secondary" className="text-[10px] h-5 font-normal">{task.priority}</Badge>
-                          </div>
-                       ))}
-                    </div>
-                 </Card>
-              </div>
-           </div>
-        </div>
+            <div className="space-y-2">
+              <TaskSection 
+                title="Today" 
+                tasks={todayTasks} 
+                open={todayOpen} 
+                onOpenChange={setTodayOpen}
+                accentColor="text-amber-600 dark:text-amber-400"
+                emptyText="No tasks due today"
+              />
+              <TaskSection 
+                title="This Week" 
+                tasks={weekTasks} 
+                open={weekOpen} 
+                onOpenChange={setWeekOpen}
+                accentColor="text-cyan-600 dark:text-cyan-400"
+                emptyText="No tasks due this week"
+              />
+              <TaskSection 
+                title="Later" 
+                tasks={laterTasks} 
+                open={laterOpen} 
+                onOpenChange={setLaterOpen}
+                emptyText="No upcoming tasks"
+              />
+            </div>
+          </motion.div>
+        </section>
+
+        <Dialog open={isVisionDialogOpen} onOpenChange={setIsVisionDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit North Star Vision</DialogTitle>
+              <DialogDescription>Define your guiding principles and long-term goals.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {editingVision.map((item, index) => (
+                <div key={item.id} className="space-y-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    {index === 0 && <Target className="w-4 h-4" />}
+                    {index === 1 && <Rocket className="w-4 h-4" />}
+                    {index === 2 && <Sparkles className="w-4 h-4" />}
+                    Vision {index + 1}
+                  </div>
+                  <Input
+                    value={item.title}
+                    onChange={(e) => setEditingVision(editingVision.map(v => v.id === item.id ? { ...v, title: e.target.value } : v))}
+                    placeholder="Vision title"
+                    className="font-medium"
+                  />
+                  <Input
+                    value={item.timeframe}
+                    onChange={(e) => setEditingVision(editingVision.map(v => v.id === item.id ? { ...v, timeframe: e.target.value } : v))}
+                    placeholder="Timeframe (e.g., 2 Years, Ongoing)"
+                    className="text-sm"
+                  />
+                </div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsVisionDialogOpen(false)}>Cancel</Button>
+              <Button onClick={saveVision} disabled={updateVisionMutation.isPending} className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0">
+                {updateVisionMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[450px]">
             <DialogHeader>
               <DialogTitle>Task Details</DialogTitle>
             </DialogHeader>
-            
             {selectedTask && (
-              <div className="grid gap-4 py-4">
-                <div className="flex items-center gap-3">
-                   <button 
-                      onClick={() => {
-                        const newCompleted = selectedTask.completed === 1 ? 0 : 1;
-                        toggleTask(selectedTask.id);
-                        setSelectedTask({...selectedTask, completed: newCompleted});
-                      }}
-                      className={cn(
-                         "w-6 h-6 rounded-md border flex items-center justify-center transition-all duration-200",
-                         selectedTask.completed === 1 
-                            ? "bg-emerald-500 border-emerald-500 text-white shadow-sm" 
-                            : "border-muted-foreground/40 hover:border-emerald-500 hover:text-emerald-500"
-                      )}
-                   >
-                      {selectedTask.completed === 1 && <CheckSquare className="w-4 h-4" />}
-                   </button>
-                   <Input 
-                     value={selectedTask.title} 
-                     className={cn("font-medium text-lg border-0 px-0 h-auto focus-visible:ring-0 shadow-none", selectedTask.completed === 1 && "line-through text-muted-foreground")}
-                     onChange={(e) => setSelectedTask({...selectedTask, title: e.target.value})}
-                   />
+              <div className="space-y-4 py-4">
+                <div className="flex items-start gap-3">
+                  <AnimatedCheckbox 
+                    checked={selectedTask.completed === 1} 
+                    onChange={() => {
+                      toggleTask(selectedTask.id);
+                      setSelectedTask({...selectedTask, completed: selectedTask.completed === 1 ? 0 : 1});
+                    }} 
+                  />
+                  <Input 
+                    value={selectedTask.title} 
+                    className={cn("font-medium text-lg border-0 px-0 h-auto focus-visible:ring-0", selectedTask.completed === 1 && "line-through text-muted-foreground")}
+                    onChange={(e) => setSelectedTask({...selectedTask, title: e.target.value})}
+                  />
                 </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="description" className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Description</Label>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase font-semibold">Description</Label>
                   <Textarea 
-                    id="description" 
                     value={selectedTask.description || ""}
-                    placeholder="Add more details..."
-                    className="min-h-[100px] resize-none"
+                    placeholder="Add details..."
+                    className="min-h-[80px] resize-none"
                     onChange={(e) => setSelectedTask({...selectedTask, description: e.target.value})}
                   />
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label className="text-xs text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-2">
-                      <Flag className="w-3 h-3" /> Priority
-                    </Label>
-                    <Select 
-                      value={selectedTask.priority} 
-                      onValueChange={(val) => setSelectedTask({...selectedTask, priority: val})}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase font-semibold">Priority</Label>
+                    <Select value={selectedTask.priority} onValueChange={(val) => setSelectedTask({...selectedTask, priority: val})}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="high">High</SelectItem>
                         <SelectItem value="medium">Medium</SelectItem>
@@ -742,42 +668,50 @@ export default function CareerPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
-                  <div className="grid gap-2">
-                     <Label className="text-xs text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-2">
-                        <CalendarDays className="w-3 h-3" /> Due Date
-                     </Label>
-                     <Input 
-                        type="text"
-                        value={selectedTask.due || ""}
-                        placeholder="Today, Tomorrow, 2026-01-15..."
-                        onChange={(e) => setSelectedTask({...selectedTask, due: e.target.value})}
-                     />
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase font-semibold">Due Date</Label>
+                    <Input 
+                      type="date"
+                      value={selectedTask.due || ""}
+                      onChange={(e) => setSelectedTask({...selectedTask, due: e.target.value})}
+                    />
                   </div>
                 </div>
-                
-                <div className="grid gap-2">
-                   <Label className="text-xs text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-2">
-                      <Tag className="w-3 h-3" /> Tags
-                   </Label>
-                   <div className="flex flex-wrap gap-2">
-                      {selectedTask.tags?.map(tag => (
-                         <Badge key={tag} variant="secondary" className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground transition-colors">
-                            {tag}
-                         </Badge>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase font-semibold">Project</Label>
+                  <Select 
+                    value={selectedTask.projectId || "none"} 
+                    onValueChange={(val) => setSelectedTask({...selectedTask, projectId: val === "none" ? null : val})}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Project</SelectItem>
+                      {projects.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
                       ))}
-                      <Button variant="outline" size="sm" className="h-6 text-xs border-dashed">
-                         + Add Tag
-                      </Button>
-                   </div>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}
-            
-            <DialogFooter>
-              <Button type="submit" onClick={handleSaveTask} disabled={updateTask.isPending}>
-                {updateTask.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Save Changes
+            <DialogFooter className="gap-2">
+              {selectedTask && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-red-500 hover:text-red-600 hover:bg-red-50 mr-auto"
+                  onClick={() => {
+                    deleteTask.mutate(selectedTask.id);
+                    setIsTaskDialogOpen(false);
+                    setSelectedTask(null);
+                  }}
+                >
+                  <X className="w-4 h-4 mr-1" /> Delete
+                </Button>
+              )}
+              <Button onClick={handleSaveTask} disabled={updateTask.isPending} className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0">
+                {updateTask.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Save
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -787,304 +721,167 @@ export default function CareerPage() {
           setIsProjectDialogOpen(open);
           if (!open) setSelectedProject(null);
         }}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>{selectedProject?.id ? "Edit Project" : "New Initiative"}</DialogTitle>
+              <DialogTitle>{selectedProject?.id ? "Edit Project" : "New Project"}</DialogTitle>
               <DialogDescription>
-                {selectedProject?.id ? "Update your project details and tracking." : "Define a new goal or professional project."}
+                {selectedProject?.id ? "Update your project details." : "Create a new professional initiative."}
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="project-title">Project Title</Label>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Project Title</Label>
                 <Input 
-                  id="project-title" 
                   value={selectedProject?.title || ""} 
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setSelectedProject(prev => prev ? ({...prev, title: val}) : ({ title: val, status: "planning", progress: 0, color: "bg-indigo-500", tags: [] } as any));
-                  }}
+                  onChange={(e) => setSelectedProject(prev => prev ? ({...prev, title: e.target.value}) : ({...getEmptyProject(), title: e.target.value} as CareerProject))}
                   placeholder="e.g. Portfolio Redesign"
                 />
               </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="project-desc">Description</Label>
+              <div className="space-y-2">
+                <Label>Description</Label>
                 <Textarea 
-                  id="project-desc" 
                   value={selectedProject?.description || ""} 
-                  className="min-h-[100px]"
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setSelectedProject(prev => prev ? ({...prev, description: val}) : ({ description: val } as any));
-                  }}
+                  className="min-h-[80px]"
+                  onChange={(e) => setSelectedProject(prev => prev ? ({...prev, description: e.target.value}) : ({...getEmptyProject(), description: e.target.value} as CareerProject))}
                   placeholder="What is this project about?"
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
-                 <div className="grid gap-2">
-                    <Label>Status</Label>
-                    <Select 
-                      value={selectedProject?.status || "planning"} 
-                      onValueChange={(val) => setSelectedProject(prev => prev ? ({...prev, status: val}) : ({ status: val } as any))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="planning">Planning</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="ongoing">Ongoing</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                 </div>
-                 <div className="grid gap-2">
-                    <Label>Deadline</Label>
-                    <Input 
-                       type="date"
-                       value={selectedProject?.deadline || ""}
-                       onChange={(e) => {
-                         const val = e.target.value;
-                         setSelectedProject(prev => prev ? ({...prev, deadline: val}) : ({ deadline: val } as any));
-                       }}
-                    />
-                 </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select value={selectedProject?.status || "planning"} onValueChange={(val) => setSelectedProject(prev => prev ? ({...prev, status: val}) : ({...getEmptyProject(), status: val} as CareerProject))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="planning">Planning</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="ongoing">Ongoing</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Deadline</Label>
+                  <Input 
+                    type="date"
+                    value={selectedProject?.deadline || ""}
+                    onChange={(e) => setSelectedProject(prev => prev ? ({...prev, deadline: e.target.value || null}) : ({...getEmptyProject(), deadline: e.target.value || null} as CareerProject))}
+                  />
+                </div>
               </div>
-
-              <div className="grid gap-2">
-                 <div className="flex justify-between">
-                    <Label>Progress ({selectedProject?.progress || 0}%)</Label>
-                 </div>
-                 <Progress value={selectedProject?.progress || 0} className="h-2" indicatorClassName={selectedProject?.color || "bg-indigo-500"} />
-                 <input 
-                    type="range" 
-                    min="0" 
-                    max="100" 
-                    value={selectedProject?.progress || 0} 
-                    className="w-full mt-2"
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value);
-                      setSelectedProject(prev => prev ? ({...prev, progress: val}) : ({ progress: val } as any));
-                    }}
-                 />
+              <div className="space-y-2">
+                <Label>Progress ({selectedProject?.progress || 0}%)</Label>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  value={selectedProject?.progress || 0} 
+                  className="w-full accent-teal-500"
+                  onChange={(e) => setSelectedProject(prev => prev ? ({...prev, progress: parseInt(e.target.value)}) : ({...getEmptyProject(), progress: parseInt(e.target.value)} as CareerProject))}
+                />
               </div>
-
-              <div className="grid gap-2">
-                 <Label>Next Action</Label>
-                 <div className="flex gap-2">
-                    <Input 
-                       value={selectedProject?.nextAction || ""}
-                       onChange={(e) => {
-                         const val = e.target.value;
-                         setSelectedProject(prev => prev ? ({...prev, nextAction: val}) : ({ nextAction: val } as any));
-                       }}
-                       placeholder="What's the immediate next step?"
-                    />
-                 </div>
-              </div>
-              
-              <div className="grid gap-2">
-                 <Label>Tags</Label>
-                 <div className="flex flex-wrap gap-2">
-                    {selectedProject?.tags?.map(tag => (
-                       <Badge key={tag} variant="secondary">{tag}</Badge>
-                    ))}
-                    <Button variant="outline" size="sm" className="h-6 text-xs border-dashed">
-                       + Add Tag
-                    </Button>
-                 </div>
+              <div className="space-y-2">
+                <Label>Next Action</Label>
+                <Input 
+                  value={selectedProject?.nextAction || ""}
+                  onChange={(e) => setSelectedProject(prev => prev ? ({...prev, nextAction: e.target.value}) : ({...getEmptyProject(), nextAction: e.target.value} as CareerProject))}
+                  placeholder="What's the immediate next step?"
+                />
               </div>
             </div>
-            <DialogFooter>
-              <Button onClick={(e) => handleSaveProject(e)} disabled={updateProject.isPending || createProject.isPending}>
-                {(updateProject.isPending || createProject.isPending) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Save Changes
+            <DialogFooter className="gap-2">
+              {selectedProject?.id && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-red-500 hover:text-red-600 hover:bg-red-50 mr-auto"
+                  onClick={() => {
+                    deleteProject.mutate(selectedProject.id);
+                    setIsProjectDialogOpen(false);
+                    setSelectedProject(null);
+                  }}
+                >
+                  <X className="w-4 h-4 mr-1" /> Delete
+                </Button>
+              )}
+              <Button onClick={handleSaveProject} disabled={updateProject.isPending || createProject.isPending} className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0">
+                {(updateProject.isPending || createProject.isPending) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                {selectedProject?.id ? "Save Changes" : "Create Project"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         <Dialog open={isProjectDetailsOpen} onOpenChange={setIsProjectDetailsOpen}>
-          <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
-             <DialogHeader className="space-y-1">
-                <div className="flex items-center gap-2">
-                   <Badge 
+          <DialogContent className="sm:max-w-[550px]">
+            {selectedProject && (
+              <>
+                <DialogHeader>
+                  <div className="flex items-center gap-3">
+                    <Badge 
                       variant="outline" 
-                      className={cn("font-normal mr-2", 
-                         selectedProject?.status === "in_progress" ? "bg-blue-50 text-blue-700 border-blue-200" : 
-                         selectedProject?.status === "planning" ? "bg-purple-50 text-purple-700 border-purple-200" :
-                         selectedProject?.status === "completed" ? "bg-gray-50 text-gray-700 border-gray-200" :
-                         "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      className={cn(
+                        "font-medium",
+                        selectedProject.status === "in_progress" && "border-cyan-500/40 text-cyan-600",
+                        selectedProject.status === "planning" && "border-violet-500/40 text-violet-600",
+                        selectedProject.status === "completed" && "border-slate-400/40 text-slate-500",
+                        selectedProject.status === "ongoing" && "border-teal-500/40 text-teal-600"
                       )}
-                   >
-                      {selectedProject?.status ? STATUS_DISPLAY[selectedProject.status] : ""}
-                   </Badge>
-                   <DialogTitle className="text-xl">{selectedProject?.title}</DialogTitle>
-                </div>
-                <DialogDescription className="text-base text-muted-foreground">
-                   {selectedProject?.description}
-                </DialogDescription>
-             </DialogHeader>
-
-             {selectedProject && (
-                <div className="space-y-6 py-4">
-                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/20 rounded-lg border border-border/50">
-                      <div className="space-y-1">
-                         <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Deadline</div>
-                         <div className="text-sm font-medium flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5" />
-                            {selectedProject.deadline || "Ongoing"}
-                         </div>
-                      </div>
-                      <div className="space-y-1">
-                         <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Time Left</div>
-                         <div className="text-sm font-medium">
-                            {selectedProject.deadline 
-                               ? `${differenceInDays(new Date(selectedProject.deadline), new Date())} days` 
-                               : "N/A"
-                            }
-                         </div>
-                      </div>
-                      <div className="space-y-1">
-                         <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Progress</div>
-                         <div className="text-sm font-medium">{selectedProject.progress}%</div>
-                      </div>
-                      <div className="space-y-1">
-                         <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Tasks</div>
-                         <div className="text-sm font-medium">
-                            {getProjectTasks(selectedProject.id).filter(t => t.completed === 1).length} / {getProjectTasks(selectedProject.id).length}
-                         </div>
-                      </div>
-                   </div>
-
-                   <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                         <span className="font-medium">Project Progress</span>
-                         <span className="text-muted-foreground">{selectedProject.progress}%</span>
-                      </div>
-                      <Progress value={selectedProject.progress} className="h-3" indicatorClassName={selectedProject.color} />
-                   </div>
-
-                   <div className="p-4 rounded-lg bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50">
-                      <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-medium mb-1">
-                         <ArrowRight className="w-4 h-4" />
-                         Next Action
-                      </div>
-                      <p className="text-sm text-indigo-600/90 dark:text-indigo-300/80 pl-6">
-                         {selectedProject.nextAction || "No next action defined"}
-                      </p>
-                   </div>
-
-                   <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                         <h3 className="font-semibold flex items-center gap-2">
-                            <CheckSquare className="w-4 h-4" /> To-Do List
-                         </h3>
-                         <Button variant="ghost" size="sm" className="h-8" onClick={() => handleAddProjectTask(selectedProject.id)}>
-                            <Plus className="w-3.5 h-3.5 mr-1" /> Add Task
-                         </Button>
-                      </div>
-                      
-                      <div className="border rounded-lg divide-y">
-                         {getProjectTasks(selectedProject.id).length > 0 ? (
-                            getProjectTasks(selectedProject.id).map(task => (
-                               <div key={task.id} className="p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors group cursor-pointer" onClick={() => openTaskDetails(task)}>
-                                  <button 
-                                     onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleTask(task.id);
-                                     }}
-                                     className={cn(
-                                        "w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0",
-                                        task.completed === 1 ? "bg-emerald-500 border-emerald-500 text-white" : "border-muted-foreground/40 hover:border-emerald-500"
-                                     )}
-                                  >
-                                     {task.completed === 1 && <CheckSquare className="w-3 h-3" />}
-                                  </button>
-                                  <div className="flex-1 min-w-0">
-                                     <span className={cn("text-sm block truncate", task.completed === 1 && "line-through text-muted-foreground")}>
-                                        {task.title}
-                                     </span>
-                                     <div className="flex items-center gap-2 mt-0.5">
-                                        <span className={cn("text-[10px] flex items-center gap-1", 
-                                           task.due === "Today" || task.due === format(new Date(), "yyyy-MM-dd") ? "text-rose-500 font-medium" : "text-muted-foreground"
-                                        )}>
-                                           <Calendar className="w-3 h-3" /> {task.due}
-                                        </span>
-                                     </div>
-                                  </div>
-                                  <Badge variant="outline" className="text-[10px] font-normal shrink-0">{task.priority}</Badge>
-                               </div>
-                            ))
-                         ) : (
-                            <div className="p-8 text-center text-muted-foreground text-sm">
-                               No tasks created for this project yet.
-                            </div>
-                         )}
-                      </div>
-                   </div>
-
-                   <div className="flex justify-end pt-4">
-                      <Button onClick={() => setIsProjectDetailsOpen(false)}>Close</Button>
-                   </div>
-                </div>
-             )}
-          </DialogContent>
-        </Dialog>
-        <Dialog open={isVisionDialogOpen} onOpenChange={setIsVisionDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Define Your North Star</DialogTitle>
-              <DialogDescription>
-                 Set your primary career goals and guiding principles.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-               {editingVision.map((item, index) => (
-                  <div key={item.id} className="grid gap-3 p-4 border rounded-lg bg-muted/20">
-                     <div className="flex justify-between items-center">
-                        <Label className="text-xs uppercase font-bold text-muted-foreground">
-                           {index === 0 ? "Primary Goal (North Star)" : `Secondary Goal ${index}`}
-                        </Label>
-                        {index === 0 && <Sparkles className="w-3 h-3 text-amber-500" />}
-                     </div>
-                     <div className="grid gap-2">
-                        <Input 
-                           value={item.title} 
-                           onChange={(e) => updateVisionItem(item.id, "title", e.target.value)}
-                           placeholder="Goal title..."
-                        />
-                        <div className="grid grid-cols-2 gap-2">
-                           <Input 
-                              value={item.timeframe} 
-                              onChange={(e) => updateVisionItem(item.id, "timeframe", e.target.value)}
-                              placeholder="Timeframe..."
-                           />
-                           <Select 
-                              value={item.color} 
-                              onValueChange={(val) => updateVisionItem(item.id, "color", val)}
-                           >
-                              <SelectTrigger>
-                                 <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                 <SelectItem value="text-blue-500">Blue</SelectItem>
-                                 <SelectItem value="text-purple-500">Purple</SelectItem>
-                                 <SelectItem value="text-amber-500">Amber</SelectItem>
-                                 <SelectItem value="text-emerald-500">Emerald</SelectItem>
-                                 <SelectItem value="text-rose-500">Rose</SelectItem>
-                              </SelectContent>
-                           </Select>
-                        </div>
-                     </div>
+                    >
+                      {STATUS_DISPLAY[selectedProject.status]}
+                    </Badge>
+                    <DialogTitle>{selectedProject.title}</DialogTitle>
                   </div>
-               ))}
-            </div>
-            <DialogFooter>
-              <Button onClick={saveVision}>Save Vision</Button>
-            </DialogFooter>
+                  {selectedProject.description && (
+                    <DialogDescription className="text-sm">{selectedProject.description}</DialogDescription>
+                  )}
+                </DialogHeader>
+
+                <div className="space-y-6 py-4">
+                  <div className="flex items-center justify-center">
+                    <CircularProgress progress={selectedProject.progress} size={100} strokeWidth={8} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground uppercase font-semibold flex items-center gap-1">
+                        <Calendar className="w-3 h-3" /> Deadline
+                      </div>
+                      <div className="text-sm font-medium">{selectedProject.deadline || "Not set"}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground uppercase font-semibold flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> Time Left
+                      </div>
+                      <div className="text-sm font-medium">
+                        {selectedProject.deadline 
+                          ? `${differenceInDays(new Date(selectedProject.deadline), new Date())} days` 
+                          : "N/A"
+                        }
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedProject.nextAction && (
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 border border-teal-200/60 dark:border-teal-800/60">
+                      <div className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase mb-1">Next Action</div>
+                      <p className="text-sm text-teal-700 dark:text-teal-300">{selectedProject.nextAction}</p>
+                    </div>
+                  )}
+                </div>
+
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsProjectDetailsOpen(false);
+                      setIsProjectDialogOpen(true);
+                    }}
+                  >
+                    <Pencil className="w-4 h-4 mr-2" /> Edit Project
+                  </Button>
+                </DialogFooter>
+              </>
+            )}
           </DialogContent>
         </Dialog>
       </div>
