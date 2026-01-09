@@ -332,103 +332,80 @@ export function RoutineTimeline() {
                   </div>
                 </div>
 
-                {/* Activities Grid - Responsive Multi-Column */}
-                <div className="p-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {/* Activities Horizontal Timeline */}
+                <div className="p-4 relative">
+                  {/* Horizontal orbit thread line */}
+                  <div className="absolute top-[50px] left-6 right-6 h-0.5 bg-gradient-to-r from-emerald-200 via-emerald-300 to-emerald-200 rounded-full" />
+                  
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                     {blockActivities
                       .sort((a, b) => (a.time || "").localeCompare(b.time || ""))
                       .map((activity, idx) => {
                         const isActivityComplete = completedActivityIds.has(activity.id);
-                        const linkedHabit = habits?.find(h => h.id === activity.habitId);
 
                         return (
                           <motion.div
                             key={activity.id}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: idx * 0.02 }}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.03 }}
                             className={cn(
-                              "group relative rounded-xl border transition-all cursor-pointer overflow-hidden",
-                              isActivityComplete 
-                                ? "bg-emerald-50 border-emerald-200 hover:border-emerald-300" 
-                                : "bg-white border-gray-200 hover:border-emerald-300 hover:shadow-sm"
+                              "group flex-shrink-0 flex flex-col items-center cursor-pointer"
                             )}
+                            style={{ minWidth: "120px", maxWidth: "160px" }}
                             onClick={() => handleToggleActivity(activity.id, activity.habitId)}
                             data-testid={`activity-card-${activity.id}`}
                           >
-                            {/* Top progress bar */}
-                            <div className={cn(
-                              "h-1 w-full transition-all",
+                            {/* Time badge above */}
+                            <span className={cn(
+                              "text-xs font-mono font-bold px-2 py-1 rounded-full mb-2",
                               isActivityComplete 
-                                ? "bg-gradient-to-r from-emerald-400 to-teal-400" 
-                                : "bg-gray-100"
-                            )} />
-                            
-                            <div className="p-3">
-                              <div className="flex items-start gap-2.5">
-                                {/* Checkbox */}
-                                <button
-                                  className={cn(
-                                    "mt-0.5 w-5 h-5 rounded-full flex items-center justify-center transition-all shrink-0 border-2",
-                                    isActivityComplete 
-                                      ? "bg-emerald-500 border-emerald-500 text-white" 
-                                      : "bg-white border-gray-300 group-hover:border-emerald-400"
-                                  )}
-                                  data-testid={`activity-checkbox-${activity.id}`}
-                                >
-                                  {isActivityComplete && (
-                                    <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      transition={{ type: "spring", stiffness: 500 }}
-                                    >
-                                      <Check className="w-3 h-3" />
-                                    </motion.div>
-                                  )}
-                                </button>
+                                ? "bg-emerald-100 text-emerald-600" 
+                                : "bg-gray-100 text-gray-500"
+                            )}>
+                              {activity.time || "—"}
+                            </span>
 
-                                <div className="flex-1 min-w-0">
-                                  {/* Time + Name row */}
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    {activity.time && (
-                                      <span className={cn(
-                                        "text-[11px] font-mono font-bold px-1.5 py-0.5 rounded",
-                                        isActivityComplete 
-                                          ? "bg-emerald-100 text-emerald-600" 
-                                          : "bg-gray-100 text-gray-500"
-                                      )}>
-                                        {activity.time}
-                                      </span>
-                                    )}
-                                    <span className={cn(
-                                      "text-sm font-semibold transition-all",
-                                      isActivityComplete ? "text-emerald-700 line-through" : "text-gray-800"
-                                    )}>
-                                      {activity.name}
-                                    </span>
-                                  </div>
-                                  
-                                  {/* Description */}
-                                  {activity.description && (
-                                    <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-                                      {activity.description}
-                                    </p>
-                                  )}
-                                  
-                                  {/* Linked habit chip */}
-                                  {linkedHabit && (
-                                    <div className="flex items-center gap-1.5 mt-2">
-                                      <div 
-                                        className="w-2 h-2 rounded-full"
-                                        style={{ backgroundColor: linkedHabit.color }}
-                                      />
-                                      <span className="text-[10px] text-gray-400 font-medium">
-                                        {linkedHabit.title}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
+                            {/* Checkpoint node */}
+                            <button
+                              className={cn(
+                                "relative z-10 w-6 h-6 rounded-full flex items-center justify-center transition-all shrink-0 border-2 mb-2",
+                                isActivityComplete 
+                                  ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200" 
+                                  : "bg-white border-gray-300 group-hover:border-emerald-400 group-hover:shadow-md"
+                              )}
+                              data-testid={`activity-checkbox-${activity.id}`}
+                            >
+                              {isActivityComplete && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ type: "spring", stiffness: 500 }}
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                </motion.div>
+                              )}
+                            </button>
+
+                            {/* Activity card below */}
+                            <div className={cn(
+                              "w-full p-2.5 rounded-xl border text-center transition-all",
+                              isActivityComplete 
+                                ? "bg-emerald-50 border-emerald-200" 
+                                : "bg-white border-gray-200 group-hover:border-emerald-300 group-hover:shadow-sm"
+                            )}>
+                              <span className={cn(
+                                "text-sm font-semibold block leading-tight",
+                                isActivityComplete ? "text-emerald-700 line-through" : "text-gray-800"
+                              )}>
+                                {activity.name}
+                              </span>
+                              
+                              {activity.description && (
+                                <p className="text-[11px] text-gray-500 mt-1 line-clamp-2">
+                                  {activity.description}
+                                </p>
+                              )}
                             </div>
                           </motion.div>
                         );
