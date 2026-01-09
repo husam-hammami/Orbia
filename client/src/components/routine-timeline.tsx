@@ -326,73 +326,90 @@ export function RoutineTimeline() {
                   </span>
                 </div>
 
-                {/* Activities - Clean Two-Column Grid */}
+                {/* Activities - Vertical Timeline */}
                 <div className="p-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="relative">
                     {sortedActivities.map((activity, idx) => {
                       const isActivityComplete = completedActivityIds.has(activity.id);
+                      const isLast = idx === sortedActivities.length - 1;
 
                       return (
                         <motion.div
                           key={activity.id}
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: idx * 0.02 }}
-                          className={cn(
-                            "group flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all",
-                            isActivityComplete 
-                              ? "bg-gradient-to-br from-cyan-50/80 to-indigo-50/80 border-cyan-200" 
-                              : "bg-white border-slate-200 hover:border-cyan-300 hover:shadow-sm"
-                          )}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.03 }}
+                          className="flex gap-4 group cursor-pointer"
                           onClick={() => handleToggleActivity(activity.id, activity.habitId)}
                           data-testid={`activity-card-${activity.id}`}
                         >
-                          {/* Checkbox */}
-                          <button
-                            className={cn(
-                              "mt-0.5 w-6 h-6 rounded-full flex items-center justify-center transition-all shrink-0 border-2",
-                              isActivityComplete 
-                                ? "bg-gradient-to-br from-cyan-400 to-indigo-500 border-cyan-400 text-white shadow-md shadow-cyan-200/50" 
-                                : "bg-white border-slate-300 group-hover:border-cyan-400"
-                            )}
-                            data-testid={`activity-checkbox-${activity.id}`}
-                          >
-                            {isActivityComplete && (
-                              <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ type: "spring", stiffness: 500 }}
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                              </motion.div>
-                            )}
-                          </button>
+                          {/* Time Column */}
+                          <div className="w-14 shrink-0 pt-1 text-right">
+                            <span className={cn(
+                              "text-sm font-mono font-bold",
+                              isActivityComplete ? "text-cyan-600" : "text-slate-500"
+                            )}>
+                              {activity.time || "—"}
+                            </span>
+                          </div>
 
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {activity.time && (
-                                <span className={cn(
-                                  "text-xs font-mono font-bold px-2 py-0.5 rounded",
-                                  isActivityComplete 
-                                    ? "bg-cyan-100 text-cyan-700" 
-                                    : "bg-slate-100 text-slate-600"
-                                )}>
-                                  {activity.time}
-                                </span>
+                          {/* Timeline Rail */}
+                          <div className="relative flex flex-col items-center">
+                            {/* Node */}
+                            <button
+                              className={cn(
+                                "relative z-10 w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 shrink-0",
+                                isActivityComplete 
+                                  ? "bg-gradient-to-br from-cyan-400 to-indigo-500 border-white text-white shadow-lg shadow-cyan-200/50" 
+                                  : "bg-white border-slate-300 group-hover:border-cyan-400 group-hover:shadow-md"
                               )}
+                              data-testid={`activity-checkbox-${activity.id}`}
+                            >
+                              {isActivityComplete && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ type: "spring", stiffness: 500 }}
+                                >
+                                  <Check className="w-4 h-4" />
+                                </motion.div>
+                              )}
+                            </button>
+                            
+                            {/* Connector Line */}
+                            {!isLast && (
+                              <div className={cn(
+                                "w-0.5 flex-1 min-h-[24px]",
+                                isActivityComplete 
+                                  ? "bg-gradient-to-b from-cyan-400 to-indigo-300" 
+                                  : "bg-gradient-to-b from-slate-200 to-slate-100"
+                              )} />
+                            )}
+                          </div>
+
+                          {/* Content Card */}
+                          <div className={cn(
+                            "flex-1 pb-4 min-w-0"
+                          )}>
+                            <div className={cn(
+                              "p-3 rounded-xl border transition-all",
+                              isActivityComplete 
+                                ? "bg-gradient-to-br from-cyan-50/80 to-indigo-50/80 border-cyan-200" 
+                                : "bg-white border-slate-200 group-hover:border-cyan-300 group-hover:shadow-sm"
+                            )}>
                               <span className={cn(
-                                "text-sm font-semibold",
+                                "text-sm font-semibold block",
                                 isActivityComplete ? "text-indigo-700 line-through" : "text-slate-800"
                               )}>
                                 {activity.name}
                               </span>
+                              
+                              {activity.description && (
+                                <p className="text-xs text-slate-500 mt-1">
+                                  {activity.description}
+                                </p>
+                              )}
                             </div>
-                            
-                            {activity.description && (
-                              <p className="text-xs text-slate-500 mt-1 line-clamp-1">
-                                {activity.description}
-                              </p>
-                            )}
                           </div>
                         </motion.div>
                       );
