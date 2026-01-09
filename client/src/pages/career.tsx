@@ -29,7 +29,16 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+
+type EditingTask = {
+  id: string;
+  title: string;
+  completed: number;
+  isNew?: boolean;
+  isDeleted?: boolean;
+};
 import { format, differenceInDays, isToday, isThisWeek, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -187,6 +196,8 @@ export default function CareerPage() {
   const [weekOpen, setWeekOpen] = useState(true);
   const [laterOpen, setLaterOpen] = useState(false);
   const [newProjectTask, setNewProjectTask] = useState("");
+  const [editingProjectTasks, setEditingProjectTasks] = useState<EditingTask[]>([]);
+  const [newEditingProjectTask, setNewEditingProjectTask] = useState("");
 
   const getProjectTasks = (projectId: string) => {
     return tasks.filter(t => t.projectId === projectId);
@@ -273,7 +284,39 @@ export default function CareerPage() {
     });
   };
 
-  const handleSaveProject = (e: React.FormEvent) => {
+  const openProjectDialog = (project: CareerProject | null) => {
+    if (project) {
+      setSelectedProject(project);
+      const projectTasks = getProjectTasks(project.id);
+      setEditingProjectTasks(projectTasks.map(t => ({
+        id: t.id,
+        title: t.title,
+        completed: t.completed,
+        isNew: false,
+        isDeleted: false,
+      })));
+    } else {
+      setSelectedProject(null);
+      setEditingProjectTasks([]);
+    }
+    setNewEditingProjectTask("");
+    setIsProjectDialogOpen(true);
+  };
+
+  const handleAddEditingTask = () => {
+    if (!newEditingProjectTask.trim()) return;
+    const tempId = `temp-${Date.now()}`;
+    setEditingProjectTasks(prev => [...prev, {
+      id: tempId,
+      title: newEditingProjectTask,
+      completed: 0,
+      isNew: true,
+      isDeleted: false,
+    }]);
+    setNewEditingProjectTask("");
+  };
+
+  const handleSaveProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProject?.title) return;
     
@@ -290,11 +333,51 @@ export default function CareerPage() {
 
     if (selectedProject.id) {
       updateProject.mutate({ id: selectedProject.id, ...projectData });
+      
+      const originalTasks = getProjectTasks(selectedProject.id);
+      
+      for (const task of editingProjectTasks) {
+        if (task.isDeleted && !task.isNew) {
+          deleteTask.mutate(task.id);
+        } else if (task.isNew && !task.isDeleted) {
+          createTask.mutate({
+            title: task.title,
+            projectId: selectedProject.id,
+            completed: task.completed,
+            priority: "medium",
+            due: null,
+            tags: [],
+            description: ""
+          });
+        } else if (!task.isNew && !task.isDeleted) {
+          const original = originalTasks.find(t => t.id === task.id);
+          if (original && (original.title !== task.title || original.completed !== task.completed)) {
+            updateTask.mutate({ id: task.id, title: task.title, completed: task.completed });
+          }
+        }
+      }
     } else {
-      createProject.mutate(projectData);
+      createProject.mutate(projectData, {
+        onSuccess: (newProject) => {
+          for (const task of editingProjectTasks) {
+            if (!task.isDeleted) {
+              createTask.mutate({
+                title: task.title,
+                projectId: newProject.id,
+                completed: task.completed,
+                priority: "medium",
+                due: null,
+                tags: [],
+                description: ""
+              });
+            }
+          }
+        }
+      });
     }
     setIsProjectDialogOpen(false);
     setSelectedProject(null);
+    setEditingProjectTasks([]);
   };
 
   const handleSaveTask = () => {
@@ -516,7 +599,7 @@ export default function CareerPage() {
               Active Projects
             </h2>
             <Button 
-              onClick={() => { setSelectedProject(null); setIsProjectDialogOpen(true); }}
+              onClick={() => openProjectDialog(null)}
               className={cn(glassCard, "bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0 hover:opacity-90")}
               size="sm"
             >
@@ -590,7 +673,7 @@ export default function CareerPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: projects.length * 0.1 }}
-              onClick={() => { setSelectedProject(null); setIsProjectDialogOpen(true); }}
+              onClick={() => openProjectDialog(null)}
               className={cn(
                 glassCard,
                 "p-5 border-dashed border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2",
@@ -995,80 +1078,152 @@ export default function CareerPage() {
 
         <Dialog open={isProjectDialogOpen} onOpenChange={(open) => {
           setIsProjectDialogOpen(open);
-          if (!open) setSelectedProject(null);
+          if (!open) {
+            setSelectedProject(null);
+            setEditingProjectTasks([]);
+          }
         }}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[550px] max-h-[85vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>{selectedProject?.id ? "Edit Project" : "New Project"}</DialogTitle>
               <DialogDescription>
-                {selectedProject?.id ? "Update your project details." : "Create a new professional initiative."}
+                {selectedProject?.id ? "Update your project details and tasks." : "Create a new professional initiative."}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Project Title</Label>
-                <Input 
-                  value={selectedProject?.title || ""} 
-                  onChange={(e) => setSelectedProject(prev => prev ? ({...prev, title: e.target.value}) : ({...getEmptyProject(), title: e.target.value} as CareerProject))}
-                  placeholder="e.g. Portfolio Redesign"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea 
-                  value={selectedProject?.description || ""} 
-                  className="min-h-[80px]"
-                  onChange={(e) => setSelectedProject(prev => prev ? ({...prev, description: e.target.value}) : ({...getEmptyProject(), description: e.target.value} as CareerProject))}
-                  placeholder="What is this project about?"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+            <ScrollArea className="flex-1 pr-4">
+              <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={selectedProject?.status || "planning"} onValueChange={(val) => setSelectedProject(prev => prev ? ({...prev, status: val}) : ({...getEmptyProject(), status: val} as CareerProject))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="planning">Planning</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="ongoing">Ongoing</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Deadline</Label>
+                  <Label>Project Title</Label>
                   <Input 
-                    type="date"
-                    value={selectedProject?.deadline || ""}
-                    onChange={(e) => setSelectedProject(prev => prev ? ({...prev, deadline: e.target.value || null}) : ({...getEmptyProject(), deadline: e.target.value || null} as CareerProject))}
+                    value={selectedProject?.title || ""} 
+                    onChange={(e) => setSelectedProject(prev => prev ? ({...prev, title: e.target.value}) : ({...getEmptyProject(), title: e.target.value} as CareerProject))}
+                    placeholder="e.g. Portfolio Redesign"
                   />
                 </div>
-              </div>
-              {selectedProject?.id && (
-                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 space-y-2">
-                  <Label className="text-muted-foreground text-xs">Progress (calculated from sub-tasks)</Label>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full transition-all"
-                        style={{ width: `${getProjectProgress(selectedProject.id)}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium text-teal-600">{getProjectProgress(selectedProject.id)}%</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Add sub-tasks to track your progress automatically</p>
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea 
+                    value={selectedProject?.description || ""} 
+                    className="min-h-[80px]"
+                    onChange={(e) => setSelectedProject(prev => prev ? ({...prev, description: e.target.value}) : ({...getEmptyProject(), description: e.target.value} as CareerProject))}
+                    placeholder="What is this project about?"
+                  />
                 </div>
-              )}
-              <div className="space-y-2">
-                <Label>Next Action</Label>
-                <Input 
-                  value={selectedProject?.nextAction || ""}
-                  onChange={(e) => setSelectedProject(prev => prev ? ({...prev, nextAction: e.target.value}) : ({...getEmptyProject(), nextAction: e.target.value} as CareerProject))}
-                  placeholder="What's the immediate next step?"
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select value={selectedProject?.status || "planning"} onValueChange={(val) => setSelectedProject(prev => prev ? ({...prev, status: val}) : ({...getEmptyProject(), status: val} as CareerProject))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="planning">Planning</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="ongoing">Ongoing</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Deadline</Label>
+                    <Input 
+                      type="date"
+                      value={selectedProject?.deadline || ""}
+                      onChange={(e) => setSelectedProject(prev => prev ? ({...prev, deadline: e.target.value || null}) : ({...getEmptyProject(), deadline: e.target.value || null} as CareerProject))}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Next Action</Label>
+                  <Input 
+                    value={selectedProject?.nextAction || ""}
+                    onChange={(e) => setSelectedProject(prev => prev ? ({...prev, nextAction: e.target.value}) : ({...getEmptyProject(), nextAction: e.target.value} as CareerProject))}
+                    placeholder="What's the immediate next step?"
+                  />
+                </div>
+
+                <div className="space-y-3 p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold">Project Tasks</Label>
+                    <span className="text-xs text-muted-foreground">
+                      {editingProjectTasks.filter(t => !t.isDeleted).length} tasks
+                    </span>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add a new task..."
+                      value={newEditingProjectTask}
+                      onChange={(e) => setNewEditingProjectTask(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddEditingTask();
+                        }
+                      }}
+                      className="flex-1 bg-white dark:bg-slate-900"
+                    />
+                    <Button 
+                      type="button"
+                      size="sm"
+                      onClick={handleAddEditingTask}
+                      disabled={!newEditingProjectTask.trim()}
+                      className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                    {editingProjectTasks.filter(t => !t.isDeleted).length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No tasks yet. Add tasks above.
+                      </p>
+                    ) : (
+                      editingProjectTasks.filter(t => !t.isDeleted).map((task) => (
+                        <div
+                          key={task.id}
+                          className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 group"
+                        >
+                          <AnimatedCheckbox
+                            checked={task.completed === 1}
+                            onChange={() => {
+                              setEditingProjectTasks(prev => prev.map(t => 
+                                t.id === task.id ? { ...t, completed: t.completed === 1 ? 0 : 1 } : t
+                              ));
+                            }}
+                          />
+                          <Input
+                            value={task.title}
+                            onChange={(e) => {
+                              setEditingProjectTasks(prev => prev.map(t =>
+                                t.id === task.id ? { ...t, title: e.target.value } : t
+                              ));
+                            }}
+                            className={cn(
+                              "flex-1 h-8 text-sm border-0 bg-transparent px-1 focus-visible:ring-1",
+                              task.completed === 1 && "line-through text-muted-foreground"
+                            )}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => {
+                              setEditingProjectTasks(prev => prev.map(t =>
+                                t.id === task.id ? { ...t, isDeleted: true } : t
+                              ));
+                            }}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-            <DialogFooter className="gap-2">
+            </ScrollArea>
+            <DialogFooter className="gap-2 pt-4 border-t border-slate-200/60 dark:border-slate-700/60">
               {selectedProject?.id && (
                 <Button 
                   variant="ghost" 
@@ -1253,7 +1408,7 @@ export default function CareerPage() {
                     variant="outline" 
                     onClick={() => {
                       setIsProjectDetailsOpen(false);
-                      setIsProjectDialogOpen(true);
+                      openProjectDialog(selectedProject);
                     }}
                   >
                     <Pencil className="w-4 h-4 mr-2" /> Edit Project
