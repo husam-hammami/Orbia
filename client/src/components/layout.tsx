@@ -8,7 +8,7 @@ interface SidebarProps {
   className?: string;
 }
 
-import logoUrl from '@assets/generated_images/orbya_futuristic_orbital_logo.png';
+import logoUrl from '@assets/generated_images/orbya_glassmorphic_orbital_logo.png';
 
 const PHILOSOPHER_QUOTES = [
   { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
@@ -67,13 +67,19 @@ function Sidebar({ className }: SidebarProps) {
 
   return (
     <div className={cn("flex flex-col h-full py-8 px-4 bg-sidebar border-r border-sidebar-border", className)}>
-      <div className="flex items-center gap-3 px-2 mb-8">
-        <div className="w-full h-32 rounded-lg overflow-hidden flex items-center justify-center relative">
-           <img 
-            src={logoUrl} 
-            alt="Orbya Logo" 
-            className="w-full h-full object-contain" 
-           />
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-gradient-to-br from-violet-600/20 to-indigo-600/20 p-0.5">
+          <div className="w-full h-full rounded-[10px] overflow-hidden bg-slate-900/80 backdrop-blur-sm">
+            <img 
+              src={logoUrl} 
+              alt="Orbya Logo" 
+              className="w-full h-full object-cover" 
+            />
+          </div>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-xl font-bold bg-gradient-to-r from-violet-400 via-indigo-400 to-teal-400 bg-clip-text text-transparent">Orbya</span>
+          <span className="text-[10px] text-muted-foreground tracking-wide">Your Daily Orbit</span>
         </div>
       </div>
 
@@ -125,11 +131,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Header & Main Content */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        <header className="md:hidden flex items-center justify-between p-4 border-b bg-sidebar">
+        <header className="md:hidden flex items-center justify-between p-3 border-b bg-sidebar">
           <div className="flex items-center gap-2">
-             <div className="w-40 h-12 rounded-lg overflow-hidden flex items-center">
-              <img src={logoUrl} alt="Orbya Logo" className="w-full h-full object-contain object-left" />
+            <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-violet-600/20 to-indigo-600/20 p-0.5">
+              <div className="w-full h-full rounded-md overflow-hidden bg-slate-900/80 backdrop-blur-sm">
+                <img src={logoUrl} alt="Orbya Logo" className="w-full h-full object-cover" />
+              </div>
             </div>
+            <span className="text-lg font-bold bg-gradient-to-r from-violet-400 via-indigo-400 to-teal-400 bg-clip-text text-transparent">Orbya</span>
           </div>
           <Sheet>
             <SheetTrigger asChild>
