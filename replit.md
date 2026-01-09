@@ -1,8 +1,8 @@
-# NeuroZen - Mindful Habit Tracking Application
+# Orbya - Your Daily Orbit
 
 ## Overview
 
-NeuroZen is a mindful habit tracking application designed specifically for individuals with dissociative identity disorder (DID) or complex trauma. It provides tools for tracking habits, moods, system member management, internal communication, and grounding exercises. The application combines traditional habit tracking with specialized features for plural system management and mental health support.
+Orbya is a holistic personal wellness and productivity tracker. It provides tools for tracking habits, moods, routines, and daily rhythm with optional features for system member management (for those with DID or plural systems), internal communication, and grounding exercises. The application combines traditional habit tracking with specialized features for mental health support and structured daily routines.
 
 ## User Preferences
 

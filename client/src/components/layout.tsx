@@ -8,7 +8,7 @@ interface SidebarProps {
   className?: string;
 }
 
-import logoUrl from '@assets/generated_images/green_neurozen_logo.png';
+import logoUrl from '@assets/generated_images/orbya_futuristic_orbital_logo.png';
 
 const PHILOSOPHER_QUOTES = [
   { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
@@ -71,8 +71,8 @@ function Sidebar({ className }: SidebarProps) {
         <div className="w-full h-32 rounded-lg overflow-hidden flex items-center justify-center relative">
            <img 
             src={logoUrl} 
-            alt="NeuroZen Logo" 
-            className="w-full h-full object-contain mix-blend-multiply" 
+            alt="Orbya Logo" 
+            className="w-full h-full object-contain" 
            />
         </div>
       </div>
@@ -128,7 +128,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <header className="md:hidden flex items-center justify-between p-4 border-b bg-sidebar">
           <div className="flex items-center gap-2">
              <div className="w-40 h-12 rounded-lg overflow-hidden flex items-center">
-              <img src={logoUrl} alt="NeuroZen Logo" className="w-full h-full object-contain object-left mix-blend-multiply" />
+              <img src={logoUrl} alt="Orbya Logo" className="w-full h-full object-contain object-left" />
             </div>
           </div>
           <Sheet>
