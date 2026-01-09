@@ -54,7 +54,7 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
   };
 
   return (
-    <div className="relative group flex flex-col items-center justify-center gap-4 p-4">
+    <div className="relative group flex flex-col items-center justify-center gap-2 p-2">
        {/* Delete Button - Appears on hover */}
        <button 
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
@@ -69,7 +69,7 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           className={cn(
-             "relative w-32 h-32 rounded-full flex items-center justify-center transition-all duration-500",
+             "relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-500",
              isCompleted ? "shadow-[0_0_40px_-10px_var(--shadow-color)]" : "bg-muted/10 border-2 border-dashed border-muted"
           )}
           style={{ 
@@ -93,7 +93,7 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
           {/* Central Core */}
           <div 
              className={cn(
-                "relative z-10 w-24 h-24 rounded-full flex items-center justify-center overflow-hidden transition-all duration-500",
+                "relative z-10 w-16 h-16 rounded-full flex items-center justify-center overflow-hidden transition-all duration-500",
                 isCompleted ? "bg-card" : "bg-muted/20"
              )}
           >
@@ -118,14 +118,9 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
                        className="text-foreground"
                     >
                        <CategoryIcon 
-                          className={cn(
-                            "mx-auto mb-1", 
-                            stage === "seed" || stage === "sprout" ? "w-8 h-8" : "w-10 h-10",
-                            stage === "thrive" || stage === "master" ? "w-12 h-12" : ""
-                          )} 
+                          className="mx-auto w-6 h-6"
                           style={{ color: habit.color }}
                        />
-                       <p className="text-xs font-bold uppercase tracking-wider opacity-60">Done</p>
                     </motion.div>
                  ) : (
                     <div className="text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">
@@ -174,11 +169,10 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
        </motion.button>
 
        {/* Label */}
-       <div className="text-center">
-          <h3 className="font-display font-medium text-lg">{habit.title}</h3>
-          <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-             {habit.streak} day streak
-             {habit.streak > 5 && <span className="text-amber-500">🔥</span>}
+       <div className="text-center max-w-full">
+          <h3 className="font-display font-medium text-sm leading-tight truncate">{habit.title}</h3>
+          <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-0.5">
+             {habit.streak}d{habit.streak > 5 && <span className="text-amber-500">🔥</span>}
           </p>
        </div>
     </div>
@@ -187,7 +181,7 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
 
 export function HabitGarden({ habits, onToggle, onDelete, onEdit }: HabitGardenProps) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 py-8">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 py-4">
       {habits.map((habit) => (
         <div key={habit.id} className="relative group">
           <PlantNode habit={habit} onToggle={() => onToggle(habit.id)} onDelete={() => onDelete(habit.id)} />
@@ -200,12 +194,12 @@ export function HabitGarden({ habits, onToggle, onDelete, onEdit }: HabitGardenP
       ))}
       
       {/* Empty Plot for "New Habit" visualization */}
-      <button className="group flex flex-col items-center justify-center gap-4 p-4 opacity-50 hover:opacity-100 transition-opacity">
-         <div className="w-32 h-32 rounded-full border-2 border-dashed border-muted flex items-center justify-center bg-muted/5 group-hover:bg-muted/10 transition-colors">
-            <span className="text-4xl text-muted-foreground font-light">+</span>
+      <button className="group flex flex-col items-center justify-center gap-2 p-2 opacity-40 hover:opacity-80 transition-opacity">
+         <div className="w-20 h-20 rounded-full border-2 border-dashed border-muted flex items-center justify-center bg-muted/5 group-hover:bg-muted/10 transition-colors">
+            <span className="text-2xl text-muted-foreground font-light">+</span>
          </div>
          <div className="text-center">
-            <h3 className="font-display font-medium text-lg text-muted-foreground">Plant New</h3>
+            <h3 className="font-medium text-xs text-muted-foreground">New</h3>
          </div>
       </button>
     </div>

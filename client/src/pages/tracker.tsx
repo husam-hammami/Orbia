@@ -155,34 +155,60 @@ export default function TrackerPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-3xl grid-cols-6">
-            <TabsTrigger value="habits" className="gap-2" data-testid="tab-habits">
-              <Sparkles className="w-4 h-4" />
-              Habits
-            </TabsTrigger>
-            <TabsTrigger value="mood" className="gap-2" data-testid="tab-mood">
-              <Activity className="w-4 h-4" />
-              Mood
-            </TabsTrigger>
-            <TabsTrigger value="routine" className="gap-2" data-testid="tab-routine">
-              <Calendar className="w-4 h-4" />
-              Routine
-            </TabsTrigger>
-            <TabsTrigger value="food" className="gap-2" data-testid="tab-food">
-              <Utensils className="w-4 h-4" />
-              Food
-            </TabsTrigger>
-            <TabsTrigger value="todos" className="gap-2" data-testid="tab-todos">
-              <ListTodo className="w-4 h-4" />
-              Tasks
-            </TabsTrigger>
-            <TabsTrigger value="journal" className="gap-2" data-testid="tab-journal">
-              <BookOpen className="w-4 h-4" />
-              Journal
-            </TabsTrigger>
-          </TabsList>
+          <div className="bg-muted/40 rounded-xl p-1 border border-border/50 inline-flex">
+            <TabsList className="grid grid-cols-6 bg-transparent h-auto p-0 gap-0">
+              <TabsTrigger 
+                value="habits" 
+                className="gap-1.5 px-4 py-2 text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground hover:text-foreground transition-all" 
+                data-testid="tab-habits"
+              >
+                <Sparkles className="w-4 h-4" />
+                Habits
+              </TabsTrigger>
+              <TabsTrigger 
+                value="mood" 
+                className="gap-1.5 px-4 py-2 text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground hover:text-foreground transition-all" 
+                data-testid="tab-mood"
+              >
+                <Activity className="w-4 h-4" />
+                Mood
+              </TabsTrigger>
+              <TabsTrigger 
+                value="routine" 
+                className="gap-1.5 px-4 py-2 text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground hover:text-foreground transition-all" 
+                data-testid="tab-routine"
+              >
+                <Calendar className="w-4 h-4" />
+                Routine
+              </TabsTrigger>
+              <TabsTrigger 
+                value="food" 
+                className="gap-1.5 px-4 py-2 text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground hover:text-foreground transition-all" 
+                data-testid="tab-food"
+              >
+                <Utensils className="w-4 h-4" />
+                Food
+              </TabsTrigger>
+              <TabsTrigger 
+                value="todos" 
+                className="gap-1.5 px-4 py-2 text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground hover:text-foreground transition-all" 
+                data-testid="tab-todos"
+              >
+                <ListTodo className="w-4 h-4" />
+                Tasks
+              </TabsTrigger>
+              <TabsTrigger 
+                value="journal" 
+                className="gap-1.5 px-4 py-2 text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground hover:text-foreground transition-all" 
+                data-testid="tab-journal"
+              >
+                <BookOpen className="w-4 h-4" />
+                Journal
+              </TabsTrigger>
+            </TabsList>
+          </div>
           
-          <TabsContent value="habits" className="mt-6" data-testid="content-habits">
+          <TabsContent value="habits" className="mt-4" data-testid="content-habits">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -258,31 +284,27 @@ export default function TrackerPage() {
             </div>
           </TabsContent>
           
-          <TabsContent value="mood" className="mt-6 space-y-6" data-testid="content-mood">
+          <TabsContent value="mood" className="mt-4 space-y-4" data-testid="content-mood">
             <MoodTracker />
             <DailySummary />
           </TabsContent>
           
-          <TabsContent value="routine" className="mt-6 space-y-4" data-testid="content-routine">
+          <TabsContent value="routine" className="mt-4 space-y-3" data-testid="content-routine">
             <div className="flex justify-end">
               <RoutineEditor />
             </div>
             <RoutineTimeline />
           </TabsContent>
           
-          <TabsContent value="food" className="mt-6" data-testid="content-food">
-            <div className="max-w-2xl">
-              <FoodTracker />
-            </div>
+          <TabsContent value="food" className="mt-4" data-testid="content-food">
+            <FoodTracker />
           </TabsContent>
           
-          <TabsContent value="todos" className="mt-6" data-testid="content-todos">
-            <div className="max-w-2xl">
-              <TodoList />
-            </div>
+          <TabsContent value="todos" className="mt-4" data-testid="content-todos">
+            <TodoList />
           </TabsContent>
           
-          <TabsContent value="journal" className="mt-6" data-testid="content-journal">
+          <TabsContent value="journal" className="mt-4" data-testid="content-journal">
             <JournalTab />
           </TabsContent>
         </Tabs>
