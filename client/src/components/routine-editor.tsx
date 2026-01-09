@@ -1,5 +1,17 @@
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Clock, Save, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock, Save, X, Sunrise, Briefcase, Coffee, Moon, Utensils, Dumbbell, BookOpen, Activity } from "lucide-react";
+
+function getBlockIcon(name: string) {
+  const nameLower = name.toLowerCase();
+  if (nameLower.includes("morning") || nameLower.includes("wake")) return Sunrise;
+  if (nameLower.includes("work") || nameLower.includes("block")) return Briefcase;
+  if (nameLower.includes("break") || nameLower.includes("rest")) return Coffee;
+  if (nameLower.includes("evening") || nameLower.includes("night") || nameLower.includes("afternoon")) return Moon;
+  if (nameLower.includes("meal") || nameLower.includes("lunch") || nameLower.includes("dinner") || nameLower.includes("breakfast")) return Utensils;
+  if (nameLower.includes("exercise") || nameLower.includes("gym") || nameLower.includes("workout")) return Dumbbell;
+  if (nameLower.includes("learn") || nameLower.includes("study") || nameLower.includes("read")) return BookOpen;
+  return Activity;
+}
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -192,21 +204,14 @@ export function RoutineEditor() {
                   <DialogDescription>Configure a time block for your routine</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 mt-4">
-                  <div className="grid grid-cols-4 gap-2">
-                    <Input
-                      placeholder="Emoji"
-                      value={blockForm.emoji}
-                      onChange={(e) => setBlockForm({ ...blockForm, emoji: e.target.value })}
-                      className="col-span-1"
-                      data-testid="input-block-emoji"
-                    />
+                  <div>
                     <Input
                       placeholder="Block name"
                       value={blockForm.name}
                       onChange={(e) => setBlockForm({ ...blockForm, name: e.target.value })}
-                      className="col-span-3"
                       data-testid="input-block-name"
                     />
+                    <p className="text-[10px] text-muted-foreground mt-1">Icon auto-selected based on name (morning, work, break, etc.)</p>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -264,10 +269,13 @@ export function RoutineEditor() {
                 <div key={block.id} className="border rounded-lg p-3 space-y-2" data-testid={`block-${block.id}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span>{block.emoji}</span>
+                      {(() => {
+                        const BlockIcon = getBlockIcon(block.name);
+                        return <BlockIcon className="w-4 h-4 text-muted-foreground" />;
+                      })()}
                       <span className="font-medium">{block.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {block.startTime} - {block.endTime}
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {block.startTime} — {block.endTime}
                       </span>
                     </div>
                     <div className="flex gap-1">
