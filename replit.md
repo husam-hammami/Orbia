@@ -54,7 +54,7 @@ Key data models:
 - `systemMessages`: Internal sticky notes for system communication
 - `headspaceRooms`: Virtual rooms representing internal spaces
 - `systemSettings`: User preferences and configuration
-- `habits`: Habit definitions with categories and targets
+- `habits`: Habit definitions with categories, targets, and AI-generated icons
 - `habitCompletions`: Completion records for habit tracking
 - `routineBlocks`: Time-based routine blocks (morning, work, evening)
 - `routineActivities`: Individual activities within routine blocks (linked to habits)
@@ -73,6 +73,7 @@ Key data models:
   - `GET /api/insights`: Returns structured JSON insights analyzing linked mood, habit, and routine data
   - `POST /api/insights/analyze`: Streaming endpoint for custom pattern analysis questions
   - `POST /api/conversations/:id/messages`: Streaming chat with conversation history
+  - `POST /api/generate-icon`: AI-powered icon generation from habit title and category (returns Lucide icon name)
   - `POST /api/orbit/chat`: Streaming chat endpoint for Orbit co-pilot
 
 ### Orbit Co-Pilot
