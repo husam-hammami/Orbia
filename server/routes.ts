@@ -399,6 +399,86 @@ export async function registerRoutes(
     }
   });
 
+  // AI Icon Generation Endpoint
+  app.post("/api/generate-icon", async (req, res) => {
+    try {
+      const { title, category } = req.body;
+      if (!title) {
+        return res.status(400).json({ error: "Title is required" });
+      }
+
+      const lucideIcons = [
+        "Heart", "Star", "Sun", "Moon", "Cloud", "Droplets", "Wind", "Flame",
+        "Leaf", "TreePine", "Flower2", "Apple", "Coffee", "Cookie", "Pizza", "Salad",
+        "Dumbbell", "Bike", "Footprints", "PersonStanding", "Bed", "Bath",
+        "Book", "BookOpen", "Notebook", "Pencil", "GraduationCap", "Brain",
+        "Eye", "Ear", "MessageCircle", "Phone", "Mail", "Send",
+        "Home", "Building", "Car", "Plane", "Train", "Ship",
+        "Music", "Headphones", "Camera", "Video", "Tv", "Gamepad2",
+        "Palette", "Brush", "Scissors", "Hammer", "Wrench", "Settings",
+        "Clock", "Timer", "Alarm", "Calendar", "CalendarCheck", "Target",
+        "Trophy", "Medal", "Award", "Gift", "PartyPopper", "Sparkles",
+        "Wallet", "CreditCard", "PiggyBank", "Coins", "DollarSign", "TrendingUp",
+        "HandHeart", "Users", "UserPlus", "Baby", "Dog", "Cat",
+        "Pill", "Stethoscope", "Thermometer", "Activity", "HeartPulse", "Syringe",
+        "Smile", "Meh", "Frown", "ThumbsUp", "ThumbsDown", "HandMetal",
+        "Mountain", "Waves", "Sunrise", "Sunset", "Rainbow", "Umbrella",
+        "Laptop", "Smartphone", "Tablet", "Monitor", "Keyboard", "Mouse",
+        "ShoppingCart", "ShoppingBag", "Package", "Truck", "Store", "Receipt",
+        "Cigarette", "Wine", "Beer", "Martini", "GlassWater", "Cup",
+        "Utensils", "ChefHat", "Soup", "Sandwich", "Croissant", "IceCream",
+        "Church", "Landmark", "Library", "School", "Hospital", "Factory",
+        "Tent", "Compass", "Map", "Navigation", "Flag", "Anchor",
+        "Lightbulb", "Zap", "Battery", "Power", "Plug", "Signal",
+        "Lock", "Unlock", "Key", "Shield", "ShieldCheck", "AlertTriangle",
+        "Check", "CheckCircle", "X", "XCircle", "Plus", "Minus",
+        "ArrowRight", "ArrowUp", "ArrowDown", "RefreshCw", "RotateCcw", "Repeat"
+      ];
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5-nano",
+        messages: [
+          {
+            role: "system",
+            content: `You are an icon selector. Given a habit title and category, return the most appropriate Lucide icon name from this list: ${lucideIcons.join(", ")}. 
+            
+            Consider:
+            - Walking/running/exercise → Footprints, Dumbbell, Activity
+            - Water/drinking → Droplets, GlassWater
+            - Sleep → Bed, Moon
+            - Reading/books → Book, BookOpen
+            - Meditation/mindfulness → Brain, Sunrise, Leaf
+            - Medicine/pills → Pill, Stethoscope
+            - Money/saving → PiggyBank, Wallet, Coins
+            - Journaling/writing → Pencil, Notebook
+            - Social/friends → Users, MessageCircle
+            - Stretching/yoga → PersonStanding, Activity
+            - Cooking/meals → Utensils, ChefHat
+            - No smoking/drinking → Cigarette, Wine with X
+            - Work → Laptop, Briefcase, Building
+            - Swimming → Waves
+            - Music → Music, Headphones
+            
+            Respond with ONLY the icon name, nothing else.`
+          },
+          {
+            role: "user",
+            content: `Habit: "${title}"${category ? ` (Category: ${category})` : ""}`
+          }
+        ],
+        max_completion_tokens: 50
+      });
+
+      const iconName = response.choices[0]?.message?.content?.trim() || "Sparkles";
+      const validIcon = lucideIcons.includes(iconName) ? iconName : "Sparkles";
+      
+      res.json({ icon: validIcon });
+    } catch (error) {
+      console.error("Icon generation error:", error);
+      res.json({ icon: "Sparkles" });
+    }
+  });
+
   // Routine Blocks Routes
   app.get("/api/routine-blocks", async (req, res) => {
     try {

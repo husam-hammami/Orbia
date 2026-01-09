@@ -48,6 +48,7 @@ interface HabitFormProps {
 
 export function HabitForm({ onSubmit, trigger }: HabitFormProps) {
   const [open, setOpen] = useState(false);
+  const [isGeneratingIcon, setIsGeneratingIcon] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -62,14 +63,34 @@ export function HabitForm({ onSubmit, trigger }: HabitFormProps) {
     },
   });
 
-  const handleSubmit = (data: z.infer<typeof formSchema>) => {
-    onSubmit({
-      ...data,
-      category: data.category as Category,
-      frequency: data.frequency as Frequency,
-    });
-    setOpen(false);
-    form.reset();
+  const handleSubmit = async (data: z.infer<typeof formSchema>) => {
+    setIsGeneratingIcon(true);
+    try {
+      const iconRes = await fetch("/api/generate-icon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: data.title, category: data.category }),
+      });
+      const { icon } = await iconRes.json();
+      
+      onSubmit({
+        ...data,
+        category: data.category as Category,
+        frequency: data.frequency as Frequency,
+        icon: icon || "Sparkles",
+      });
+    } catch (error) {
+      onSubmit({
+        ...data,
+        category: data.category as Category,
+        frequency: data.frequency as Frequency,
+        icon: "Sparkles",
+      });
+    } finally {
+      setIsGeneratingIcon(false);
+      setOpen(false);
+      form.reset();
+    }
   };
 
   const colors = [
@@ -205,7 +226,9 @@ export function HabitForm({ onSubmit, trigger }: HabitFormProps) {
             </div>
 
             <DialogFooter>
-              <Button type="submit">Create Habit</Button>
+              <Button type="submit" disabled={isGeneratingIcon}>
+                {isGeneratingIcon ? "Creating..." : "Create Habit"}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

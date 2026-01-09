@@ -14,6 +14,7 @@ export interface Habit {
   color: string; // Hex or tailwind class
   target: number; // e.g., 1 for once a day, or minutes
   unit?: string;
+  icon?: string; // AI-generated Lucide icon name
 }
 
 export interface UserStats {

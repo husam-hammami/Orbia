@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Wind, Droplets, Sun, Sparkles, Trash2, Heart, Briefcase, Brain, Palette, Users, PiggyBank, Accessibility } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { HabitEditForm } from "./habit-edit-form";
 
 interface HabitGardenProps {
@@ -14,20 +14,25 @@ interface HabitGardenProps {
 
 // Map categories to icons (case-insensitive)
 const CategoryIconsMap: Record<string, any> = {
-  health: Heart,
-  work: Briefcase,
-  mindfulness: Brain,
-  creativity: Palette,
-  social: Users,
-  finance: PiggyBank,
-  recovery: Accessibility,
-  system: Sparkles,
-  movement: Heart,
-  mental: Brain,
+  health: LucideIcons.Heart,
+  work: LucideIcons.Briefcase,
+  mindfulness: LucideIcons.Brain,
+  creativity: LucideIcons.Palette,
+  social: LucideIcons.Users,
+  finance: LucideIcons.PiggyBank,
+  recovery: LucideIcons.Accessibility,
+  system: LucideIcons.Sparkles,
+  movement: LucideIcons.Heart,
+  mental: LucideIcons.Brain,
 };
 
+function getIconByName(iconName: string): any {
+  const icons = LucideIcons as any;
+  return icons[iconName] || LucideIcons.Sparkles;
+}
+
 function getCategoryIcon(category: string) {
-  return CategoryIconsMap[category.toLowerCase()] || Sparkles;
+  return CategoryIconsMap[category.toLowerCase()] || LucideIcons.Sparkles;
 }
 
 // Procedural plant generator based on habit data
@@ -42,7 +47,8 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
   if (streak > 10) stage = "thrive";
   if (streak > 30) stage = "master";
 
-  const CategoryIcon = getCategoryIcon(habit.category);
+  // Use AI-generated icon if available, otherwise fall back to category icon
+  const HabitIcon = habit.icon ? getIconByName(habit.icon) : getCategoryIcon(habit.category);
 
   // Visual variants
   const variants = {
@@ -60,7 +66,7 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
           className="absolute top-2 right-2 p-2 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity z-20"
        >
-          <Trash2 className="w-4 h-4" />
+          <LucideIcons.Trash2 className="w-4 h-4" />
        </button>
 
        {/* The "Plant" Orb */}
@@ -117,14 +123,14 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
                        animate={{ scale: 1, rotate: 0 }}
                        className="text-foreground"
                     >
-                       <CategoryIcon 
+                       <HabitIcon 
                           className="mx-auto w-6 h-6"
                           style={{ color: habit.color }}
                        />
                     </motion.div>
                  ) : (
                     <div className="text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">
-                       <CategoryIcon 
+                       <HabitIcon 
                           className={cn(
                             "mx-auto mb-1 grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500", 
                             stage === "seed" || stage === "sprout" ? "w-8 h-8" : "w-10 h-10",
