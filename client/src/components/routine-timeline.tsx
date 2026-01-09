@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Check, 
   Clock, 
-  ChevronRight,
   Sunrise,
   Briefcase,
   Coffee,
@@ -12,12 +11,9 @@ import {
   Utensils,
   Dumbbell,
   BookOpen,
-  Activity,
-  Zap,
-  Target,
-  TrendingUp
+  Activity
 } from "lucide-react";
-import { useRoutineBlocks, useRoutineActivities, useRoutineLogs, useToggleRoutineActivity, useHabits, useAllHabitCompletions } from "@/lib/api-hooks";
+import { useRoutineBlocks, useRoutineActivities, useRoutineLogs, useToggleRoutineActivity, useHabits } from "@/lib/api-hooks";
 import { cn } from "@/lib/utils";
 
 function getBlockIcon(name: string) {
@@ -32,6 +28,11 @@ function getBlockIcon(name: string) {
   return Activity;
 }
 
+function timeToMinutes(time: string): number {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
 export function RoutineTimeline() {
   const today = format(new Date(), "yyyy-MM-dd");
   const [expandedBlock, setExpandedBlock] = useState<string | null>(null);
@@ -40,7 +41,6 @@ export function RoutineTimeline() {
   const { data: activities, isLoading: activitiesLoading } = useRoutineActivities();
   const { data: logs } = useRoutineLogs(today);
   const { data: habits } = useHabits();
-  const { data: allHabitCompletions } = useAllHabitCompletions();
   
   const toggleMutation = useToggleRoutineActivity();
 
@@ -94,12 +94,12 @@ export function RoutineTimeline() {
 
   if (blocksLoading || activitiesLoading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div className="bg-gradient-to-br from-slate-50 to-indigo-50/30 rounded-2xl border border-slate-200/50 backdrop-blur-sm p-6">
         <div className="animate-pulse space-y-4">
           <div className="flex gap-4">
-            <div className="h-16 bg-gray-100 rounded-xl flex-1"></div>
-            <div className="h-16 bg-gray-100 rounded-xl flex-1"></div>
-            <div className="h-16 bg-gray-100 rounded-xl flex-1"></div>
+            <div className="h-16 bg-slate-100 rounded-xl flex-1"></div>
+            <div className="h-16 bg-slate-100 rounded-xl flex-1"></div>
+            <div className="h-16 bg-slate-100 rounded-xl flex-1"></div>
           </div>
         </div>
       </div>
@@ -108,28 +108,28 @@ export function RoutineTimeline() {
 
   if (!blocks || blocks.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-        <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-4">
-          <Clock className="w-8 h-8 text-gray-300" />
+      <div className="bg-gradient-to-br from-slate-50 to-indigo-50/30 rounded-2xl border border-slate-200/50 backdrop-blur-sm p-8 text-center">
+        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+          <Clock className="w-8 h-8 text-slate-300" />
         </div>
-        <p className="text-gray-500 font-medium">No routine configured</p>
-        <p className="text-gray-400 text-sm mt-1">Create time blocks to structure your day</p>
+        <p className="text-slate-500 font-medium">No routine configured</p>
+        <p className="text-slate-400 text-sm mt-1">Create time blocks to structure your day</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Summary Strip */}
+      {/* Summary Strip - Futuristic */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-full px-4 py-2">
+        <div className="flex items-center gap-2 bg-gradient-to-r from-slate-50 to-indigo-50 border border-slate-200/60 rounded-full px-4 py-2 backdrop-blur-sm">
           <div className="relative w-8 h-8">
             <svg className="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
-              <circle cx="16" cy="16" r="14" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+              <circle cx="16" cy="16" r="14" fill="none" stroke="#e2e8f0" strokeWidth="3" />
               <motion.circle 
                 cx="16" cy="16" r="14" 
                 fill="none" 
-                stroke="url(#progressGradient)" 
+                stroke="url(#futuristicGradient)" 
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeDasharray={`${totalProgress * 0.88} 88`}
@@ -138,44 +138,44 @@ export function RoutineTimeline() {
                 transition={{ duration: 0.8, ease: "easeOut" }}
               />
               <defs>
-                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#10b981" />
-                  <stop offset="100%" stopColor="#14b8a6" />
+                <linearGradient id="futuristicGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#0891b2" />
+                  <stop offset="100%" stopColor="#6366f1" />
                 </linearGradient>
               </defs>
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-emerald-600" data-testid="routine-progress-percent">
+            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-slate-600" data-testid="routine-progress-percent">
               {totalProgress}%
             </span>
           </div>
           <div className="text-sm">
-            <span className="font-semibold text-emerald-700">{completedCount}</span>
-            <span className="text-emerald-600/70">/{totalCount} done</span>
+            <span className="font-semibold text-slate-700">{completedCount}</span>
+            <span className="text-slate-500">/{totalCount} done</span>
           </div>
         </div>
 
         {currentBlock && (
-          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-full px-3 py-1.5 shadow-sm">
+          <div className="flex items-center gap-2 bg-white/80 border border-cyan-200/60 rounded-full px-3 py-1.5 backdrop-blur-sm shadow-sm">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
             </span>
-            <span className="text-sm text-gray-600">
-              Now: <span className="font-medium text-gray-900">{currentBlock.name}</span>
+            <span className="text-sm text-slate-600">
+              Now: <span className="font-medium text-slate-800">{currentBlock.name}</span>
             </span>
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 text-xs text-gray-400 ml-auto">
+        <div className="flex items-center gap-1.5 text-xs text-slate-400 ml-auto font-mono">
           <Clock className="w-3.5 h-3.5" />
-          <span>{format(new Date(), "h:mm a")}</span>
+          <span>{format(new Date(), "HH:mm")}</span>
         </div>
       </div>
 
-      {/* Timeline Ribbon - Full Width */}
-      <div className="relative bg-white rounded-xl border border-gray-100 p-4">
-        {/* Orbit Thread Line */}
-        <div className="absolute top-1/2 left-8 right-8 h-0.5 bg-gradient-to-r from-emerald-200 via-emerald-300 to-emerald-200 rounded-full -translate-y-1/2 z-0" />
+      {/* Timeline Ribbon - Futuristic Glassmorphic */}
+      <div className="relative bg-gradient-to-br from-white/80 to-slate-50/80 rounded-xl border border-slate-200/60 p-4 backdrop-blur-sm">
+        {/* Orbit Thread Line - Gradient */}
+        <div className="absolute top-1/2 left-8 right-8 h-0.5 bg-gradient-to-r from-cyan-300/50 via-indigo-300/50 to-violet-300/50 rounded-full -translate-y-1/2 z-0" />
         
         <div className="grid gap-2 relative z-10" style={{ gridTemplateColumns: `repeat(${blocks.length}, 1fr)` }}>
           {blocks.map((block, idx) => {
@@ -192,14 +192,14 @@ export function RoutineTimeline() {
                 onClick={() => setExpandedBlock(isExpanded ? null : block.id)}
                 className={cn(
                   "relative flex flex-col items-center p-3 rounded-xl transition-all duration-200",
-                  "border bg-white hover:shadow-md",
+                  "border backdrop-blur-sm",
                   isCurrent 
-                    ? "border-emerald-300 shadow-lg shadow-emerald-100 ring-2 ring-emerald-100" 
+                    ? "bg-gradient-to-br from-cyan-50 to-indigo-50 border-cyan-300 shadow-lg shadow-cyan-100/50 ring-2 ring-cyan-100" 
                     : isComplete 
-                      ? "border-emerald-200 bg-emerald-50/50" 
+                      ? "bg-gradient-to-br from-slate-50 to-indigo-50/30 border-indigo-200" 
                       : isExpanded
-                        ? "border-gray-300 shadow-md"
-                        : "border-gray-100 hover:border-gray-200"
+                        ? "bg-white border-slate-300 shadow-md"
+                        : "bg-white/80 border-slate-200 hover:border-cyan-300 hover:shadow-md"
                 )}
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}
@@ -208,11 +208,11 @@ export function RoutineTimeline() {
                 {/* Progress Ring */}
                 <div className="relative mb-2">
                   <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
-                    <circle cx="20" cy="20" r="16" fill="none" stroke="#f3f4f6" strokeWidth="3" />
+                    <circle cx="20" cy="20" r="16" fill="none" stroke="#e2e8f0" strokeWidth="3" />
                     <motion.circle 
                       cx="20" cy="20" r="16" 
                       fill="none" 
-                      stroke={isComplete ? "#10b981" : block.color}
+                      stroke={isComplete ? "#0891b2" : "#6366f1"}
                       strokeWidth="3"
                       strokeLinecap="round"
                       strokeDasharray={`${progressPercent * 1.005} 100.5`}
@@ -227,13 +227,13 @@ export function RoutineTimeline() {
                   )}>
                     <BlockIcon className={cn(
                       "w-4 h-4",
-                      isComplete ? "text-emerald-500" : isCurrent ? "text-emerald-600" : "text-gray-400"
+                      isComplete ? "text-cyan-600" : isCurrent ? "text-indigo-600" : "text-slate-400"
                     )} />
                   </div>
                   
                   {isCurrent && (
                     <motion.div 
-                      className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white"
+                      className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-gradient-to-br from-cyan-400 to-indigo-500 rounded-full border-2 border-white"
                       animate={{ scale: [1, 1.2, 1] }}
                       transition={{ repeat: Infinity, duration: 2 }}
                     />
@@ -242,18 +242,18 @@ export function RoutineTimeline() {
 
                 <span className={cn(
                   "text-xs font-semibold text-center leading-tight",
-                  isComplete ? "text-emerald-600" : isCurrent ? "text-gray-900" : "text-gray-700"
+                  isComplete ? "text-cyan-700" : isCurrent ? "text-slate-900" : "text-slate-700"
                 )}>
                   {block.name}
                 </span>
                 
-                {/* Clear Time Range */}
+                {/* Time Range */}
                 <div className="flex items-center gap-1 mt-1">
-                  <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-mono font-medium text-cyan-600 bg-cyan-50 px-1.5 py-0.5 rounded">
                     {block.startTime.slice(0, 5)}
                   </span>
-                  <span className="text-[10px] text-gray-400">→</span>
-                  <span className="text-xs font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] text-slate-400">→</span>
+                  <span className="text-[10px] font-mono font-medium text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded">
                     {block.endTime.slice(0, 5)}
                   </span>
                 </div>
@@ -261,7 +261,7 @@ export function RoutineTimeline() {
                 {progress.total > 0 && (
                   <span className={cn(
                     "text-[10px] font-semibold mt-1.5 px-2 py-0.5 rounded-full",
-                    isComplete ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-500"
+                    isComplete ? "bg-cyan-100 text-cyan-700" : "bg-slate-100 text-slate-500"
                   )}>
                     {progress.completed}/{progress.total}
                   </span>
@@ -273,7 +273,7 @@ export function RoutineTimeline() {
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                   >
-                    <div className="w-2 h-2 bg-white border-b border-r border-gray-200 rotate-45 transform" />
+                    <div className="w-2 h-2 bg-white border-b border-r border-slate-200 rotate-45 transform" />
                   </motion.div>
                 )}
               </motion.button>
@@ -282,7 +282,7 @@ export function RoutineTimeline() {
         </div>
       </div>
 
-      {/* Expanded Activity Panel */}
+      {/* Expanded Activity Panel - Proportional Timeline */}
       <AnimatePresence mode="wait">
         {expandedBlock && (() => {
           const block = blocks.find(b => b.id === expandedBlock);
@@ -291,6 +291,14 @@ export function RoutineTimeline() {
           const blockActivities = activities?.filter(a => a.blockId === block.id) || [];
           const progress = blockProgress[block.id] || { completed: 0, total: 0 };
           const BlockIcon = getBlockIcon(block.name);
+          
+          const blockStartMinutes = timeToMinutes(block.startTime);
+          const blockEndMinutes = timeToMinutes(block.endTime);
+          const blockDuration = blockEndMinutes - blockStartMinutes;
+
+          const sortedActivities = [...blockActivities].sort((a, b) => 
+            (a.time || "").localeCompare(b.time || "")
+          );
 
           return (
             <motion.div
@@ -301,115 +309,133 @@ export function RoutineTimeline() {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-br from-white/90 to-slate-50/90 rounded-xl border border-slate-200/60 backdrop-blur-sm shadow-sm overflow-hidden">
                 {/* Block Header */}
-                <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+                <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-50/80 to-indigo-50/50 border-b border-slate-100">
                   <div className="flex items-center gap-3">
-                    <div 
-                      className="w-8 h-8 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `${block.color}15` }}
-                    >
-                      <BlockIcon className="w-4 h-4" style={{ color: block.color }} />
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-100 to-indigo-100 flex items-center justify-center">
+                      <BlockIcon className="w-4 h-4 text-indigo-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">{block.name}</h3>
-                      <p className="text-xs text-gray-500">
+                      <h3 className="font-semibold text-slate-800">{block.name}</h3>
+                      <p className="text-xs text-slate-500 font-mono">
                         {block.startTime} — {block.endTime}
-                        {block.purpose && <span className="mx-1.5">•</span>}
-                        {block.purpose && <span className="italic">{block.purpose}</span>}
+                        {block.purpose && <span className="mx-1.5 font-sans">•</span>}
+                        {block.purpose && <span className="italic font-sans">{block.purpose}</span>}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      "text-sm font-semibold px-2.5 py-0.5 rounded-full",
-                      progress.completed === progress.total 
-                        ? "bg-emerald-100 text-emerald-700" 
-                        : "bg-gray-100 text-gray-600"
-                    )}>
-                      {progress.completed}/{progress.total}
-                    </span>
-                  </div>
+                  <span className={cn(
+                    "text-sm font-semibold px-2.5 py-0.5 rounded-full",
+                    progress.completed === progress.total 
+                      ? "bg-cyan-100 text-cyan-700" 
+                      : "bg-slate-100 text-slate-600"
+                  )}>
+                    {progress.completed}/{progress.total}
+                  </span>
                 </div>
 
-                {/* Activities Horizontal Timeline */}
-                <div className="p-4 relative">
-                  {/* Horizontal orbit thread line */}
-                  <div className="absolute top-[50px] left-6 right-6 h-0.5 bg-gradient-to-r from-emerald-200 via-emerald-300 to-emerald-200 rounded-full" />
-                  
-                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                    {blockActivities
-                      .sort((a, b) => (a.time || "").localeCompare(b.time || ""))
-                      .map((activity, idx) => {
-                        const isActivityComplete = completedActivityIds.has(activity.id);
+                {/* Proportional Activity Timeline */}
+                <div className="p-4">
+                  {/* Time scale header */}
+                  <div className="relative h-6 mb-2">
+                    <div className="absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-cyan-200 via-indigo-200 to-violet-200" />
+                    <div className="absolute left-0 text-[10px] font-mono text-slate-400 -translate-y-1/2 top-1/2 bg-white px-1">
+                      {block.startTime.slice(0, 5)}
+                    </div>
+                    <div className="absolute right-0 text-[10px] font-mono text-slate-400 -translate-y-1/2 top-1/2 bg-white px-1">
+                      {block.endTime.slice(0, 5)}
+                    </div>
+                  </div>
 
-                        return (
-                          <motion.div
-                            key={activity.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.03 }}
+                  {/* Activities positioned proportionally */}
+                  <div className="relative" style={{ minHeight: `${Math.max(80, sortedActivities.length * 70)}px` }}>
+                    {/* Timeline track */}
+                    <div className="absolute top-4 left-0 right-0 h-1 bg-gradient-to-r from-cyan-100 via-indigo-100 to-violet-100 rounded-full" />
+                    
+                    {sortedActivities.map((activity, idx) => {
+                      const isActivityComplete = completedActivityIds.has(activity.id);
+                      const activityMinutes = activity.time ? timeToMinutes(activity.time) : blockStartMinutes;
+                      
+                      let position: number;
+                      if (sortedActivities.length === 1) {
+                        position = 50;
+                      } else if (blockDuration > 0) {
+                        const rawPosition = ((activityMinutes - blockStartMinutes) / blockDuration) * 100;
+                        position = Math.min(92, Math.max(8, rawPosition));
+                      } else {
+                        position = 8 + (idx / Math.max(1, sortedActivities.length - 1)) * 84;
+                      }
+
+                      return (
+                        <motion.div
+                          key={activity.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.03 }}
+                          className="absolute"
+                          style={{ 
+                            left: `${position}%`,
+                            transform: "translateX(-50%)",
+                            top: "0"
+                          }}
+                        >
+                          <div
                             className={cn(
-                              "group flex-shrink-0 flex flex-col items-center cursor-pointer"
+                              "group flex flex-col items-center cursor-pointer"
                             )}
-                            style={{ minWidth: "120px", maxWidth: "160px" }}
                             onClick={() => handleToggleActivity(activity.id, activity.habitId)}
                             data-testid={`activity-card-${activity.id}`}
                           >
-                            {/* Time badge above */}
-                            <span className={cn(
-                              "text-xs font-mono font-bold px-2 py-1 rounded-full mb-2",
-                              isActivityComplete 
-                                ? "bg-emerald-100 text-emerald-600" 
-                                : "bg-gray-100 text-gray-500"
-                            )}>
-                              {activity.time || "—"}
-                            </span>
-
                             {/* Checkpoint node */}
                             <button
                               className={cn(
-                                "relative z-10 w-6 h-6 rounded-full flex items-center justify-center transition-all shrink-0 border-2 mb-2",
+                                "relative z-10 w-7 h-7 rounded-full flex items-center justify-center transition-all border-2",
                                 isActivityComplete 
-                                  ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200" 
-                                  : "bg-white border-gray-300 group-hover:border-emerald-400 group-hover:shadow-md"
+                                  ? "bg-gradient-to-br from-cyan-400 to-indigo-500 border-white text-white shadow-lg shadow-cyan-200/50" 
+                                  : "bg-white border-slate-300 group-hover:border-cyan-400 group-hover:shadow-md"
                               )}
                               data-testid={`activity-checkbox-${activity.id}`}
                             >
-                              {isActivityComplete && (
+                              {isActivityComplete ? (
                                 <motion.div
                                   initial={{ scale: 0 }}
                                   animate={{ scale: 1 }}
                                   transition={{ type: "spring", stiffness: 500 }}
                                 >
-                                  <Check className="w-3.5 h-3.5" />
+                                  <Check className="w-4 h-4" />
                                 </motion.div>
+                              ) : (
+                                <span className="text-[10px] font-mono font-bold text-slate-400">
+                                  {activity.time?.slice(3, 5) || "—"}
+                                </span>
                               )}
                             </button>
 
                             {/* Activity card below */}
                             <div className={cn(
-                              "w-full p-2.5 rounded-xl border text-center transition-all",
+                              "mt-2 w-28 p-2 rounded-lg border text-center transition-all",
                               isActivityComplete 
-                                ? "bg-emerald-50 border-emerald-200" 
-                                : "bg-white border-gray-200 group-hover:border-emerald-300 group-hover:shadow-sm"
+                                ? "bg-gradient-to-br from-cyan-50 to-indigo-50 border-cyan-200" 
+                                : "bg-white border-slate-200 group-hover:border-cyan-300 group-hover:shadow-sm"
                             )}>
                               <span className={cn(
-                                "text-sm font-semibold block leading-tight",
-                                isActivityComplete ? "text-emerald-700 line-through" : "text-gray-800"
+                                "text-[11px] font-mono font-bold block mb-0.5",
+                                isActivityComplete ? "text-cyan-600" : "text-slate-500"
+                              )}>
+                                {activity.time || "—"}
+                              </span>
+                              <span className={cn(
+                                "text-xs font-medium block leading-tight",
+                                isActivityComplete ? "text-indigo-700 line-through" : "text-slate-700"
                               )}>
                                 {activity.name}
                               </span>
-                              
-                              {activity.description && (
-                                <p className="text-[11px] text-gray-500 mt-1 line-clamp-2">
-                                  {activity.description}
-                                </p>
-                              )}
                             </div>
-                          </motion.div>
-                        );
-                      })}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
