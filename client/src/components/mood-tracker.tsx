@@ -211,20 +211,38 @@ export function MoodTracker() {
                 {moods.map((m) => {
                   const Icon = m.icon;
                   const isSelected = mood === m.value;
+                  const glowColor = m.value === "terrible" ? "rgba(239,68,68,0.4)" : 
+                                    m.value === "bad" ? "rgba(249,115,22,0.4)" : 
+                                    m.value === "neutral" ? "rgba(234,179,8,0.4)" : 
+                                    m.value === "good" ? "rgba(34,197,94,0.4)" : 
+                                    "rgba(59,130,246,0.4)";
                   return (
-                    <button
+                    <motion.button
                       key={m.value}
                       onClick={(e) => { e.stopPropagation(); setMood(m.value); }}
                       title={m.label}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
                       className={cn(
-                        "p-2 rounded-full transition-all",
+                        "p-2 rounded-full transition-all duration-300 relative",
                         isSelected 
-                          ? `${m.bg} ${m.color} shadow-sm ring-1 ring-inset ring-black/5` 
+                          ? `${m.bg} ${m.color}` 
                           : "text-muted-foreground hover:bg-muted"
                       )}
+                      style={isSelected ? { 
+                        boxShadow: `0 0 20px -5px ${glowColor}`,
+                      } : undefined}
                     >
-                      <Icon className={cn("w-5 h-5", isSelected && "scale-110")} />
-                    </button>
+                      {isSelected && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.5 }}
+                          animate={{ opacity: 0.3, scale: 1 }}
+                          className="absolute inset-0 rounded-full blur-md"
+                          style={{ backgroundColor: glowColor }}
+                        />
+                      )}
+                      <Icon className={cn("w-5 h-5 relative z-10", isSelected && "scale-110")} />
+                    </motion.button>
                   );
                 })}
             </div>
@@ -281,10 +299,16 @@ export function MoodTracker() {
                     <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Internal System</h4>
                     
                     {/* Dissociation */}
-                    <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                    <div 
+                      className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 transition-all duration-300 hover:border-purple-300 dark:hover:border-purple-700"
+                      style={{ 
+                        boxShadow: dissociation[0] > 5 ? '0 0 25px -8px rgba(147,51,234,0.35)' : undefined,
+                        background: dissociation[0] > 5 ? 'linear-gradient(135deg, rgba(147,51,234,0.05) 0%, transparent 100%)' : undefined
+                      }}
+                    >
                        <div className="flex justify-between items-center mb-2">
                           <div className="flex items-center gap-1.5 text-purple-600">
-                             <CloudFog className="w-3.5 h-3.5" />
+                             <CloudFog className="w-3.5 h-3.5" style={{ filter: dissociation[0] > 5 ? 'drop-shadow(0 0 4px rgba(147,51,234,0.5))' : undefined }} />
                              <span className="text-xs font-semibold">Dissociation</span>
                           </div>
                           <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border">
@@ -295,10 +319,16 @@ export function MoodTracker() {
                     </div>
 
                     {/* System Comm */}
-                    <div className="bg-indigo-50/50 dark:bg-indigo-900/10 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900/30">
+                    <div 
+                      className="bg-indigo-50/50 dark:bg-indigo-900/10 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900/30 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
+                      style={{ 
+                        boxShadow: systemComm[0] > 5 ? '0 0 25px -8px rgba(99,102,241,0.35)' : undefined,
+                        background: systemComm[0] > 5 ? 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, transparent 100%)' : undefined
+                      }}
+                    >
                        <div className="flex justify-between items-center mb-2">
                           <div className="flex items-center gap-1.5 text-indigo-600">
-                             <MessageSquare className="w-3.5 h-3.5" />
+                             <MessageSquare className="w-3.5 h-3.5" style={{ filter: systemComm[0] > 5 ? 'drop-shadow(0 0 4px rgba(99,102,241,0.5))' : undefined }} />
                              <span className="text-xs font-semibold">Communication</span>
                           </div>
                           <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border">
@@ -318,21 +348,32 @@ export function MoodTracker() {
                         ) : members && members.length > 0 ? (
                           <div className="flex flex-wrap gap-2">
                               {members.map(member => (
-                                  <button
+                                  <motion.button
                                       key={member.id}
                                       onClick={() => setSelectedFronterId(member.id)}
                                       data-testid={`button-fronter-${member.id}`}
+                                      whileHover={{ scale: 1.05 }}
+                                      whileTap={{ scale: 0.95 }}
                                       className={cn(
-                                          "text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5",
+                                          "text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 relative",
                                           selectedFronter?.id === member.id 
-                                              ? "bg-background shadow-sm border-indigo-500 ring-1 ring-indigo-500/20" 
+                                              ? "bg-background border-indigo-500" 
                                               : "bg-muted/30 border-transparent hover:bg-muted"
                                       )}
-                                      style={{ color: selectedFronter?.id === member.id ? member.color : undefined }}
+                                      style={{ 
+                                        color: selectedFronter?.id === member.id ? member.color : undefined,
+                                        boxShadow: selectedFronter?.id === member.id ? `0 0 20px -5px ${member.color}` : undefined
+                                      }}
                                   >
-                                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: member.color }} />
+                                      <span 
+                                        className="w-2 h-2 rounded-full" 
+                                        style={{ 
+                                          backgroundColor: member.color,
+                                          boxShadow: selectedFronter?.id === member.id ? `0 0 8px ${member.color}` : undefined
+                                        }} 
+                                      />
                                       {member.name}
-                                  </button>
+                                  </motion.button>
                               ))}
                           </div>
                         ) : (
@@ -390,10 +431,16 @@ export function MoodTracker() {
                     </div>
 
                     {/* Work Environment Load */}
-                    <div className="bg-amber-50/50 dark:bg-amber-900/10 p-3 rounded-lg border border-amber-100 dark:border-amber-900/30">
+                    <div 
+                      className="bg-amber-50/50 dark:bg-amber-900/10 p-3 rounded-lg border border-amber-100 dark:border-amber-900/30 transition-all duration-300 hover:border-amber-300 dark:hover:border-amber-700"
+                      style={{ 
+                        boxShadow: workLoad[0] >= 7 ? '0 0 25px -8px rgba(245,158,11,0.4)' : undefined,
+                        background: workLoad[0] >= 7 ? 'linear-gradient(135deg, rgba(245,158,11,0.08) 0%, transparent 100%)' : undefined
+                      }}
+                    >
                        <div className="flex justify-between items-center mb-2">
                           <div className="flex items-center gap-1.5 text-amber-700">
-                             <span className="text-sm">💼</span>
+                             <span className="text-sm" style={{ filter: workLoad[0] >= 7 ? 'drop-shadow(0 0 4px rgba(245,158,11,0.5))' : undefined }}>💼</span>
                              <span className="text-xs font-semibold">Work Environment Load</span>
                           </div>
                           <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-amber-700">
@@ -434,10 +481,16 @@ export function MoodTracker() {
                     <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Intensity & Context</h4>
 
                     {/* Capacity (0-5) - Key metric for DID */}
-                    <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-3 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
+                    <div 
+                      className="bg-emerald-50/50 dark:bg-emerald-900/10 p-3 rounded-lg border border-emerald-100 dark:border-emerald-900/30 transition-all duration-300 hover:border-emerald-300 dark:hover:border-emerald-700"
+                      style={{ 
+                        boxShadow: capacity[0] >= 4 ? '0 0 25px -8px rgba(16,185,129,0.4)' : undefined,
+                        background: capacity[0] >= 4 ? 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, transparent 100%)' : undefined
+                      }}
+                    >
                        <div className="flex justify-between items-center mb-2">
                           <div className="flex items-center gap-1.5 text-emerald-600">
-                             <BatteryFull className="w-3.5 h-3.5" />
+                             <BatteryFull className="w-3.5 h-3.5" style={{ filter: capacity[0] >= 4 ? 'drop-shadow(0 0 4px rgba(16,185,129,0.5))' : undefined }} />
                              <span className="text-xs font-semibold">Capacity</span>
                           </div>
                           <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-emerald-700">
@@ -449,37 +502,54 @@ export function MoodTracker() {
                     </div>
 
                     {/* What influenced this entry? (trigger tag) */}
-                    <div className="bg-violet-50/50 dark:bg-violet-900/10 p-3 rounded-lg border border-violet-100 dark:border-violet-900/30">
+                    <div 
+                      className="bg-violet-50/50 dark:bg-violet-900/10 p-3 rounded-lg border border-violet-100 dark:border-violet-900/30 transition-all duration-300 hover:border-violet-300 dark:hover:border-violet-700"
+                      style={{ 
+                        boxShadow: triggerTag ? '0 0 25px -8px rgba(139,92,246,0.35)' : undefined,
+                        background: triggerTag ? 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, transparent 100%)' : undefined
+                      }}
+                    >
                        <div className="flex items-center gap-1.5 text-violet-600 mb-2">
-                          <AlertCircle className="w-3.5 h-3.5" />
+                          <AlertCircle className="w-3.5 h-3.5" style={{ filter: triggerTag ? 'drop-shadow(0 0 4px rgba(139,92,246,0.5))' : undefined }} />
                           <span className="text-xs font-semibold">What influenced this?</span>
                           <span className="text-[9px] text-muted-foreground ml-1">(optional)</span>
                        </div>
                        <div className="flex flex-wrap gap-1.5">
                           {triggerTags.map(tag => (
-                             <button
+                             <motion.button
                                 key={tag.value}
                                 onClick={() => setTriggerTag(triggerTag === tag.value ? null : tag.value)}
                                 data-testid={`button-trigger-${tag.value}`}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
                                 className={cn(
                                    "text-[10px] px-2 py-1 rounded-full border transition-all flex items-center gap-1",
                                    triggerTag === tag.value
                                       ? "bg-violet-500 text-white border-violet-500"
                                       : "bg-background border-violet-200 text-violet-600 hover:border-violet-300"
                                 )}
+                                style={triggerTag === tag.value ? {
+                                  boxShadow: '0 0 15px -3px rgba(139,92,246,0.5)'
+                                } : undefined}
                              >
                                 <span>{tag.icon}</span>
                                 {tag.label}
-                             </button>
+                             </motion.button>
                           ))}
                        </div>
                     </div>
 
                     {/* Urges */}
-                    <div className="bg-red-50/50 dark:bg-red-900/10 p-3 rounded-lg border border-red-100 dark:border-red-900/30">
+                    <div 
+                      className="bg-red-50/50 dark:bg-red-900/10 p-3 rounded-lg border border-red-100 dark:border-red-900/30 transition-all duration-300 hover:border-orange-300 dark:hover:border-orange-700"
+                      style={{ 
+                        boxShadow: urges[0] >= 7 ? '0 0 25px -8px rgba(249,115,22,0.4)' : undefined,
+                        background: urges[0] >= 7 ? 'linear-gradient(135deg, rgba(249,115,22,0.08) 0%, transparent 100%)' : undefined
+                      }}
+                    >
                        <div className="flex justify-between items-center mb-2">
                           <div className="flex items-center gap-1.5 text-orange-600">
-                             <Flame className="w-3.5 h-3.5" />
+                             <Flame className="w-3.5 h-3.5" style={{ filter: urges[0] >= 7 ? 'drop-shadow(0 0 4px rgba(249,115,22,0.5))' : undefined }} />
                              <span className="text-xs font-semibold">Intrusive Urges</span>
                           </div>
                           <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-orange-700">
@@ -495,27 +565,33 @@ export function MoodTracker() {
               <div className="pt-4 border-t border-border flex flex-col sm:flex-row justify-between gap-4">
                  <div className="flex flex-wrap gap-2 flex-1">
                     {tags.map(tag => (
-                        <button
+                        <motion.button
                         key={tag}
                         onClick={() => toggleTag(tag)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                         className={cn(
-                            "text-[10px] px-2.5 py-1 rounded-full border transition-all",
+                            "text-[10px] px-2.5 py-1 rounded-full border transition-all duration-300",
                             selectedTags.includes(tag)
                             ? "bg-primary text-primary-foreground border-primary"
                             : "bg-background border-border hover:border-primary/50 text-muted-foreground"
                         )}
+                        style={selectedTags.includes(tag) ? {
+                          boxShadow: '0 0 15px -3px rgba(6,182,212,0.4)'
+                        } : undefined}
                         >
                         {tag}
-                        </button>
+                        </motion.button>
                     ))}
-                    <button className="text-[10px] px-2.5 py-1 rounded-full border border-dashed border-muted-foreground/30 text-muted-foreground hover:text-foreground">
+                    <button className="text-[10px] px-2.5 py-1 rounded-full border border-dashed border-muted-foreground/30 text-muted-foreground hover:text-foreground transition-colors">
                         + Add
                     </button>
                  </div>
                  
                  <Button 
                     size="sm" 
-                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700"
+                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 transition-all duration-300 hover:shadow-[0_0_25px_-5px_rgba(99,102,241,0.5)]"
+                    style={{ boxShadow: '0 0 20px -8px rgba(99,102,241,0.4)' }}
                     onClick={handleAddEntry}
                     disabled={createEntryMutation.isPending}
                     data-testid="button-add-entry"
@@ -560,16 +636,37 @@ export function MoodTracker() {
               const parsed = parseTrackerNotes(entry.notes);
               
               return (
-                <div 
+                <motion.div 
                   key={entry.id} 
-                  className="p-4 rounded-xl bg-muted/30 border border-border/50 space-y-3"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-4 rounded-xl bg-muted/30 border border-border/50 space-y-3 transition-all duration-300 hover:border-cyan-500/30"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(6,182,212,0.02) 0%, transparent 100%)'
+                  }}
                   data-testid={`entry-detail-${entry.id}`}
                 >
                   {/* Header: Mood, Time, Fronter */}
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className={cn("p-2 rounded-lg", moodValue <= 3 ? "bg-red-100 dark:bg-red-900/20" : moodValue <= 5 ? "bg-yellow-100 dark:bg-yellow-900/20" : moodValue <= 7 ? "bg-green-100 dark:bg-green-900/20" : "bg-blue-100 dark:bg-blue-900/20")}>
-                        <MoodIcon className={cn("w-5 h-5", moodColor)} />
+                      <div 
+                        className={cn("p-2 rounded-lg relative", moodValue <= 3 ? "bg-red-100 dark:bg-red-900/20" : moodValue <= 5 ? "bg-yellow-100 dark:bg-yellow-900/20" : moodValue <= 7 ? "bg-green-100 dark:bg-green-900/20" : "bg-blue-100 dark:bg-blue-900/20")}
+                        style={{
+                          boxShadow: moodValue >= 7 
+                            ? '0 0 20px -5px rgba(34,197,94,0.4)' 
+                            : moodValue >= 5 
+                            ? '0 0 15px -5px rgba(234,179,8,0.3)' 
+                            : '0 0 15px -5px rgba(239,68,68,0.3)'
+                        }}
+                      >
+                        <MoodIcon 
+                          className={cn("w-5 h-5", moodColor)} 
+                          style={{ 
+                            filter: moodValue >= 7 
+                              ? 'drop-shadow(0 0 3px rgba(34,197,94,0.5))' 
+                              : undefined 
+                          }}
+                        />
                       </div>
                       <div>
                         <span className="font-semibold">{moodLabel}</span>
@@ -707,7 +804,7 @@ export function MoodTracker() {
                       "{parsed.text}"
                     </p>
                   )}
-                </div>
+                </motion.div>
               );
             })}
           </div>

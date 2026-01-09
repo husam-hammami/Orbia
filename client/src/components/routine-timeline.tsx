@@ -189,9 +189,9 @@ export function RoutineTimeline() {
                   "relative flex flex-col items-center p-3 rounded-xl transition-all duration-200",
                   "border backdrop-blur-sm",
                   isCurrent 
-                    ? "bg-gradient-to-br from-cyan-50 to-indigo-50 border-cyan-300 shadow-lg shadow-cyan-100/50 ring-2 ring-cyan-100" 
+                    ? "bg-gradient-to-br from-cyan-50 to-indigo-50 border-cyan-300 shadow-[0_0_30px_-8px_rgba(99,102,241,0.4)] ring-2 ring-cyan-100" 
                     : isComplete 
-                      ? "bg-gradient-to-br from-slate-50 to-indigo-50/30 border-indigo-200" 
+                      ? "bg-gradient-to-br from-slate-50 to-indigo-50/30 border-indigo-200 shadow-[0_0_25px_-5px_rgba(6,182,212,0.5)]" 
                       : isExpanded
                         ? "bg-white border-slate-300 shadow-md"
                         : "bg-white/80 border-slate-200 hover:border-cyan-300 hover:shadow-md"
@@ -356,25 +356,37 @@ export function RoutineTimeline() {
                           {/* Timeline Rail */}
                           <div className="relative flex flex-col items-center">
                             {/* Node */}
-                            <button
-                              className={cn(
-                                "relative z-10 w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 shrink-0",
-                                isActivityComplete 
-                                  ? "bg-gradient-to-br from-cyan-400 to-indigo-500 border-white text-white shadow-lg shadow-cyan-200/50" 
-                                  : "bg-white border-slate-300 group-hover:border-cyan-400 group-hover:shadow-md"
-                              )}
-                              data-testid={`activity-checkbox-${activity.id}`}
-                            >
-                              {isActivityComplete && (
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{ type: "spring", stiffness: 500 }}
-                                >
-                                  <Check className="w-4 h-4" />
-                                </motion.div>
-                              )}
-                            </button>
+                            <div className="relative">
+                              <AnimatePresence>
+                                {isActivityComplete && (
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.5 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.5 }}
+                                    className="absolute inset-0 rounded-full blur-xl opacity-40 bg-cyan-400"
+                                  />
+                                )}
+                              </AnimatePresence>
+                              <button
+                                className={cn(
+                                  "relative z-10 w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 shrink-0",
+                                  isActivityComplete 
+                                    ? "bg-gradient-to-br from-cyan-400 to-indigo-500 border-white text-white shadow-[0_0_25px_-5px_rgba(6,182,212,0.5)]" 
+                                    : "bg-white border-slate-300 group-hover:border-cyan-400 group-hover:shadow-md"
+                                )}
+                                data-testid={`activity-checkbox-${activity.id}`}
+                              >
+                                {isActivityComplete && (
+                                  <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ type: "spring", stiffness: 500 }}
+                                  >
+                                    <Check className="w-4 h-4" />
+                                  </motion.div>
+                                )}
+                              </button>
+                            </div>
                             
                             {/* Connector Line */}
                             {!isLast && (
@@ -391,12 +403,23 @@ export function RoutineTimeline() {
                           <div className={cn(
                             "flex-1 pb-4 min-w-0"
                           )}>
-                            <div className={cn(
-                              "p-3 rounded-xl border transition-all",
-                              isActivityComplete 
-                                ? "bg-gradient-to-br from-cyan-50/80 to-indigo-50/80 border-cyan-200" 
-                                : "bg-white border-slate-200 group-hover:border-cyan-300 group-hover:shadow-sm"
-                            )}>
+                            <div className="relative">
+                              <AnimatePresence>
+                                {isActivityComplete && (
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    className="absolute inset-0 rounded-xl blur-xl opacity-30 bg-gradient-to-br from-cyan-400 to-indigo-400"
+                                  />
+                                )}
+                              </AnimatePresence>
+                              <div className={cn(
+                                "relative p-3 rounded-xl border transition-all",
+                                isActivityComplete 
+                                  ? "bg-gradient-to-br from-cyan-50/80 to-indigo-50/80 border-cyan-200 shadow-[0_0_20px_-8px_rgba(6,182,212,0.4)]" 
+                                  : "bg-white border-slate-200 group-hover:border-cyan-300 group-hover:shadow-sm"
+                              )}>
                               <span className={cn(
                                 "text-sm font-semibold block",
                                 isActivityComplete ? "text-indigo-700 line-through" : "text-slate-800"
@@ -409,6 +432,7 @@ export function RoutineTimeline() {
                                   {activity.description}
                                 </p>
                               )}
+                              </div>
                             </div>
                           </div>
                         </motion.div>

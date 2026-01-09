@@ -79,11 +79,12 @@ export function WorkTimer() {
     };
     switch (state) {
       case "running": return {
-        primary: "from-violet-400 to-indigo-500",
-        glow: "shadow-violet-500/50",
-        ring: "stroke-violet-400",
-        bg: "from-violet-500/10 via-indigo-500/5 to-transparent",
-        accent: "#8b5cf6",
+        primary: "from-cyan-400 to-indigo-500",
+        glow: "shadow-cyan-500/50",
+        ring: "stroke-cyan-400",
+        bg: "from-cyan-500/10 via-indigo-500/5 to-transparent",
+        accent: "#06b6d4",
+        accentSecondary: "#6366f1",
       };
       case "paused": return {
         primary: "from-amber-400 to-orange-500",
@@ -122,14 +123,30 @@ export function WorkTimer() {
             className="cursor-pointer"
             onClick={() => setIsExpanded(true)}
           >
-            <div className={cn(
-              "relative flex items-center gap-3 px-4 py-2 rounded-full",
-              "bg-gradient-to-r from-background/80 to-background/60",
-              "backdrop-blur-xl border border-white/10",
-              "shadow-lg hover:shadow-xl transition-all duration-300",
-              isActive && "ring-2 ring-offset-2 ring-offset-background",
-              isActive && (isBreakTime ? "ring-emerald-500/50" : "ring-violet-500/50")
-            )}>
+            <motion.div 
+              className={cn(
+                "relative flex items-center gap-3 px-4 py-2 rounded-full",
+                "bg-gradient-to-r from-background/80 to-background/60",
+                "backdrop-blur-xl border border-white/10",
+                "transition-all duration-300",
+                isActive && "ring-2 ring-offset-2 ring-offset-background",
+                isActive && (isBreakTime ? "ring-emerald-500/50" : "ring-cyan-500/50")
+              )}
+              animate={isActive ? {
+                boxShadow: [
+                  isBreakTime 
+                    ? "0 0 30px -5px rgba(16, 185, 129, 0.4), 0 0 60px -10px rgba(20, 184, 166, 0.2)"
+                    : "0 0 30px -5px rgba(6, 182, 212, 0.4), 0 0 60px -10px rgba(99, 102, 241, 0.3)",
+                  isBreakTime
+                    ? "0 0 40px -5px rgba(16, 185, 129, 0.6), 0 0 80px -10px rgba(20, 184, 166, 0.3)"
+                    : "0 0 40px -5px rgba(6, 182, 212, 0.6), 0 0 80px -10px rgba(99, 102, 241, 0.4)",
+                  isBreakTime
+                    ? "0 0 30px -5px rgba(16, 185, 129, 0.4), 0 0 60px -10px rgba(20, 184, 166, 0.2)"
+                    : "0 0 30px -5px rgba(6, 182, 212, 0.4), 0 0 60px -10px rgba(99, 102, 241, 0.3)",
+                ]
+              } : { boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)" }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            >
               {/* Mini orbital indicator */}
               <div className="relative w-10 h-10">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 40 40">
@@ -204,7 +221,7 @@ export function WorkTimer() {
                   )}
                 </div>
               )}
-            </div>
+            </motion.div>
           </motion.div>
         ) : (
           <motion.div
@@ -215,12 +232,27 @@ export function WorkTimer() {
             className="relative"
           >
             {/* Glassmorphic container */}
-            <div className={cn(
-              "relative w-72 p-6 rounded-3xl",
-              "bg-gradient-to-br from-background/90 via-background/70 to-background/50",
-              "backdrop-blur-2xl border border-white/10",
-              "shadow-2xl"
-            )}>
+            <motion.div 
+              className={cn(
+                "relative w-72 p-6 rounded-3xl",
+                "bg-gradient-to-br from-background/90 via-background/70 to-background/50",
+                "backdrop-blur-2xl border border-white/10"
+              )}
+              animate={isActive ? {
+                boxShadow: [
+                  isBreakTime
+                    ? "0 0 40px -10px rgba(16, 185, 129, 0.3), 0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+                    : "0 0 40px -10px rgba(6, 182, 212, 0.3), 0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                  isBreakTime
+                    ? "0 0 60px -10px rgba(16, 185, 129, 0.5), 0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+                    : "0 0 60px -10px rgba(6, 182, 212, 0.5), 0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                  isBreakTime
+                    ? "0 0 40px -10px rgba(16, 185, 129, 0.3), 0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+                    : "0 0 40px -10px rgba(6, 182, 212, 0.3), 0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                ]
+              } : { boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            >
               {/* Ambient background gradient */}
               <div className={cn(
                 "absolute inset-0 rounded-3xl bg-gradient-radial",
@@ -314,9 +346,9 @@ export function WorkTimer() {
                     <div
                       className={cn(
                         "w-full h-full rounded-full",
-                        "bg-gradient-to-br from-violet-400 to-indigo-500"
+                        "bg-gradient-to-br from-cyan-400 to-indigo-500"
                       )}
-                      style={{ boxShadow: `0 0 8px ${colors.accent}` }}
+                      style={{ boxShadow: "0 0 12px rgba(6, 182, 212, 0.6)" }}
                     />
                   </motion.div>
                 ))}
@@ -399,17 +431,20 @@ export function WorkTimer() {
               {/* Control buttons */}
               <div className="flex items-center justify-center gap-2 mt-4">
                 {state === "idle" && (
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <motion.div 
+                    whileHover={{ scale: 1.05 }} 
+                    whileTap={{ scale: 0.95 }}
+                    className="rounded-full"
+                  >
                     <Button
                       onClick={start}
                       className={cn(
                         "h-10 px-6 rounded-full",
-                        "bg-gradient-to-r",
-                        colors.primary,
+                        "bg-gradient-to-r from-cyan-500 to-indigo-500",
                         "border-0 text-white font-medium",
-                        "shadow-lg hover:shadow-xl transition-shadow"
+                        "shadow-[0_0_30px_-5px_rgba(6,182,212,0.5)] hover:shadow-[0_0_40px_-5px_rgba(6,182,212,0.7)]",
+                        "transition-shadow duration-300"
                       )}
-                      style={{ boxShadow: `0 4px 20px ${colors.accent}40` }}
                       data-testid="timer-start-button"
                     >
                       <Play className="w-4 h-4 mr-2" />
@@ -419,11 +454,23 @@ export function WorkTimer() {
                 )}
 
                 {state === "running" && (
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <motion.div 
+                    whileHover={{ scale: 1.05 }} 
+                    whileTap={{ scale: 0.95 }}
+                    animate={{
+                      boxShadow: [
+                        "0 0 15px -3px rgba(6, 182, 212, 0.4)",
+                        "0 0 25px -3px rgba(6, 182, 212, 0.6)",
+                        "0 0 15px -3px rgba(6, 182, 212, 0.4)",
+                      ]
+                    }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    className="rounded-full"
+                  >
                     <Button
                       onClick={pause}
                       variant="outline"
-                      className="h-10 px-6 rounded-full border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
+                      className="h-10 px-6 rounded-full border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400"
                       data-testid="timer-pause-button"
                     >
                       <Pause className="w-4 h-4 mr-2" />
@@ -448,14 +495,20 @@ export function WorkTimer() {
 
                 {state === "paused" && (
                   <>
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <motion.div 
+                      whileHover={{ scale: 1.05 }} 
+                      whileTap={{ scale: 0.95 }}
+                      className="rounded-full"
+                    >
                       <Button
                         onClick={resume}
                         className={cn(
                           "h-10 px-5 rounded-full",
                           "bg-gradient-to-r",
                           colors.primary,
-                          "border-0 text-white"
+                          "border-0 text-white",
+                          "shadow-[0_0_20px_-5px_rgba(245,158,11,0.5)] hover:shadow-[0_0_30px_-5px_rgba(245,158,11,0.7)]",
+                          "transition-shadow duration-300"
                         )}
                         data-testid="timer-resume-button"
                       >
@@ -549,7 +602,7 @@ export function WorkTimer() {
                   />
                 </div>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
