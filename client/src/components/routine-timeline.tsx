@@ -172,12 +172,12 @@ export function RoutineTimeline() {
         </div>
       </div>
 
-      {/* Timeline Ribbon */}
-      <div className="relative">
+      {/* Timeline Ribbon - Full Width */}
+      <div className="relative bg-white rounded-xl border border-gray-100 p-4">
         {/* Orbit Thread Line */}
-        <div className="absolute top-6 left-6 right-6 h-0.5 bg-gradient-to-r from-gray-100 via-emerald-200 to-gray-100 rounded-full" />
+        <div className="absolute top-1/2 left-8 right-8 h-0.5 bg-gradient-to-r from-emerald-200 via-emerald-300 to-emerald-200 rounded-full -translate-y-1/2 z-0" />
         
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="grid gap-2 relative z-10" style={{ gridTemplateColumns: `repeat(${blocks.length}, 1fr)` }}>
           {blocks.map((block, idx) => {
             const progress = blockProgress[block.id] || { completed: 0, total: 0 };
             const isCurrent = currentBlock?.id === block.id;
@@ -191,7 +191,7 @@ export function RoutineTimeline() {
                 key={block.id}
                 onClick={() => setExpandedBlock(isExpanded ? null : block.id)}
                 className={cn(
-                  "relative flex-shrink-0 flex flex-col items-center p-3 rounded-xl transition-all duration-200",
+                  "relative flex flex-col items-center p-3 rounded-xl transition-all duration-200",
                   "border bg-white hover:shadow-md",
                   isCurrent 
                     ? "border-emerald-300 shadow-lg shadow-emerald-100 ring-2 ring-emerald-100" 
@@ -201,7 +201,6 @@ export function RoutineTimeline() {
                         ? "border-gray-300 shadow-md"
                         : "border-gray-100 hover:border-gray-200"
                 )}
-                style={{ minWidth: "100px" }}
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 data-testid={`routine-block-${block.id}`}
@@ -242,20 +241,27 @@ export function RoutineTimeline() {
                 </div>
 
                 <span className={cn(
-                  "text-xs font-medium text-center leading-tight",
-                  isComplete ? "text-emerald-600" : isCurrent ? "text-gray-900" : "text-gray-600"
+                  "text-xs font-semibold text-center leading-tight",
+                  isComplete ? "text-emerald-600" : isCurrent ? "text-gray-900" : "text-gray-700"
                 )}>
                   {block.name}
                 </span>
                 
-                <span className="text-[10px] text-gray-400 mt-0.5">
-                  {block.startTime.slice(0, 5)}
-                </span>
+                {/* Clear Time Range */}
+                <div className="flex items-center gap-1 mt-1">
+                  <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                    {block.startTime.slice(0, 5)}
+                  </span>
+                  <span className="text-[10px] text-gray-400">→</span>
+                  <span className="text-xs font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">
+                    {block.endTime.slice(0, 5)}
+                  </span>
+                </div>
 
                 {progress.total > 0 && (
                   <span className={cn(
-                    "text-[10px] font-medium mt-1",
-                    isComplete ? "text-emerald-500" : "text-gray-400"
+                    "text-[10px] font-semibold mt-1.5 px-2 py-0.5 rounded-full",
+                    isComplete ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-500"
                   )}>
                     {progress.completed}/{progress.total}
                   </span>
