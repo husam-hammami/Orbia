@@ -28,11 +28,6 @@ function getBlockIcon(name: string) {
   return Activity;
 }
 
-function timeToMinutes(time: string): number {
-  const [hours, minutes] = time.split(":").map(Number);
-  return hours * 60 + minutes;
-}
-
 export function RoutineTimeline() {
   const today = format(new Date(), "yyyy-MM-dd");
   const [expandedBlock, setExpandedBlock] = useState<string | null>(null);
@@ -291,10 +286,6 @@ export function RoutineTimeline() {
           const blockActivities = activities?.filter(a => a.blockId === block.id) || [];
           const progress = blockProgress[block.id] || { completed: 0, total: 0 };
           const BlockIcon = getBlockIcon(block.name);
-          
-          const blockStartMinutes = timeToMinutes(block.startTime);
-          const blockEndMinutes = timeToMinutes(block.endTime);
-          const blockDuration = blockEndMinutes - blockStartMinutes;
 
           const sortedActivities = [...blockActivities].sort((a, b) => 
             (a.time || "").localeCompare(b.time || "")
@@ -335,103 +326,73 @@ export function RoutineTimeline() {
                   </span>
                 </div>
 
-                {/* Proportional Activity Timeline */}
+                {/* Activities - Clean Two-Column Grid */}
                 <div className="p-4">
-                  {/* Time scale header */}
-                  <div className="relative h-6 mb-2">
-                    <div className="absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-cyan-200 via-indigo-200 to-violet-200" />
-                    <div className="absolute left-0 text-[10px] font-mono text-slate-400 -translate-y-1/2 top-1/2 bg-white px-1">
-                      {block.startTime.slice(0, 5)}
-                    </div>
-                    <div className="absolute right-0 text-[10px] font-mono text-slate-400 -translate-y-1/2 top-1/2 bg-white px-1">
-                      {block.endTime.slice(0, 5)}
-                    </div>
-                  </div>
-
-                  {/* Activities positioned proportionally */}
-                  <div className="relative" style={{ minHeight: `${Math.max(80, sortedActivities.length * 70)}px` }}>
-                    {/* Timeline track */}
-                    <div className="absolute top-4 left-0 right-0 h-1 bg-gradient-to-r from-cyan-100 via-indigo-100 to-violet-100 rounded-full" />
-                    
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {sortedActivities.map((activity, idx) => {
                       const isActivityComplete = completedActivityIds.has(activity.id);
-                      const activityMinutes = activity.time ? timeToMinutes(activity.time) : blockStartMinutes;
-                      
-                      let position: number;
-                      if (sortedActivities.length === 1) {
-                        position = 50;
-                      } else if (blockDuration > 0) {
-                        const rawPosition = ((activityMinutes - blockStartMinutes) / blockDuration) * 100;
-                        position = Math.min(92, Math.max(8, rawPosition));
-                      } else {
-                        position = 8 + (idx / Math.max(1, sortedActivities.length - 1)) * 84;
-                      }
 
                       return (
                         <motion.div
                           key={activity.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: idx * 0.03 }}
-                          className="absolute"
-                          style={{ 
-                            left: `${position}%`,
-                            transform: "translateX(-50%)",
-                            top: "0"
-                          }}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: idx * 0.02 }}
+                          className={cn(
+                            "group flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all",
+                            isActivityComplete 
+                              ? "bg-gradient-to-br from-cyan-50/80 to-indigo-50/80 border-cyan-200" 
+                              : "bg-white border-slate-200 hover:border-cyan-300 hover:shadow-sm"
+                          )}
+                          onClick={() => handleToggleActivity(activity.id, activity.habitId)}
+                          data-testid={`activity-card-${activity.id}`}
                         >
-                          <div
+                          {/* Checkbox */}
+                          <button
                             className={cn(
-                              "group flex flex-col items-center cursor-pointer"
+                              "mt-0.5 w-6 h-6 rounded-full flex items-center justify-center transition-all shrink-0 border-2",
+                              isActivityComplete 
+                                ? "bg-gradient-to-br from-cyan-400 to-indigo-500 border-cyan-400 text-white shadow-md shadow-cyan-200/50" 
+                                : "bg-white border-slate-300 group-hover:border-cyan-400"
                             )}
-                            onClick={() => handleToggleActivity(activity.id, activity.habitId)}
-                            data-testid={`activity-card-${activity.id}`}
+                            data-testid={`activity-checkbox-${activity.id}`}
                           >
-                            {/* Checkpoint node */}
-                            <button
-                              className={cn(
-                                "relative z-10 w-7 h-7 rounded-full flex items-center justify-center transition-all border-2",
-                                isActivityComplete 
-                                  ? "bg-gradient-to-br from-cyan-400 to-indigo-500 border-white text-white shadow-lg shadow-cyan-200/50" 
-                                  : "bg-white border-slate-300 group-hover:border-cyan-400 group-hover:shadow-md"
-                              )}
-                              data-testid={`activity-checkbox-${activity.id}`}
-                            >
-                              {isActivityComplete ? (
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{ type: "spring", stiffness: 500 }}
-                                >
-                                  <Check className="w-4 h-4" />
-                                </motion.div>
-                              ) : (
-                                <span className="text-[10px] font-mono font-bold text-slate-400">
-                                  {activity.time?.slice(3, 5) || "—"}
+                            {isActivityComplete && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: "spring", stiffness: 500 }}
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </motion.div>
+                            )}
+                          </button>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {activity.time && (
+                                <span className={cn(
+                                  "text-xs font-mono font-bold px-2 py-0.5 rounded",
+                                  isActivityComplete 
+                                    ? "bg-cyan-100 text-cyan-700" 
+                                    : "bg-slate-100 text-slate-600"
+                                )}>
+                                  {activity.time}
                                 </span>
                               )}
-                            </button>
-
-                            {/* Activity card below */}
-                            <div className={cn(
-                              "mt-2 w-28 p-2 rounded-lg border text-center transition-all",
-                              isActivityComplete 
-                                ? "bg-gradient-to-br from-cyan-50 to-indigo-50 border-cyan-200" 
-                                : "bg-white border-slate-200 group-hover:border-cyan-300 group-hover:shadow-sm"
-                            )}>
                               <span className={cn(
-                                "text-[11px] font-mono font-bold block mb-0.5",
-                                isActivityComplete ? "text-cyan-600" : "text-slate-500"
-                              )}>
-                                {activity.time || "—"}
-                              </span>
-                              <span className={cn(
-                                "text-xs font-medium block leading-tight",
-                                isActivityComplete ? "text-indigo-700 line-through" : "text-slate-700"
+                                "text-sm font-semibold",
+                                isActivityComplete ? "text-indigo-700 line-through" : "text-slate-800"
                               )}>
                                 {activity.name}
                               </span>
                             </div>
+                            
+                            {activity.description && (
+                              <p className="text-xs text-slate-500 mt-1 line-clamp-1">
+                                {activity.description}
+                              </p>
+                            )}
                           </div>
                         </motion.div>
                       );
