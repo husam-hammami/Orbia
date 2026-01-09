@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { 
   Plus, Target, Rocket, Sparkles, ChevronDown, Check, 
-  Calendar, Clock, Pencil, Loader2, X, Map, Zap, Lightbulb, RefreshCw
+  Calendar, Clock, Pencil, Loader2, X, Map, Zap, Lightbulb, RefreshCw,
+  GraduationCap, ExternalLink, BookOpen, TrendingUp, Compass, Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
@@ -170,16 +172,20 @@ export default function CareerPage() {
   const [isVisionDialogOpen, setIsVisionDialogOpen] = useState(false);
   const [editingVision, setEditingVision] = useState<typeof DEFAULT_VISION>([]);
   
-  const [roadmapData, setRoadmapData] = useState<{
-    roadmap: Array<{ phase: string; timeframe: string; milestones: string[]; focusAreas: string[] }>;
-    suggestedActions: Array<{ title: string; description: string; priority: string; relatedProject: string | null; estimatedEffort: string }>;
-    insights: string;
+  const [activeTab, setActiveTab] = useState("projects");
+  
+  const [coachData, setCoachData] = useState<{
+    northStarAnalysis?: { summary: string; gaps: string[]; strengths: string[] };
+    roadmap?: Array<{ phase: string; timeframe: string; goal: string; milestones: string[]; weeklyFocus: string }>;
+    immediateActions?: Array<{ title: string; why: string; timeEstimate: string; priority: string }>;
+    learningPath?: Array<{ skill: string; importance: string; resources: Array<{ title: string; type: string; url: string; timeCommitment: string }> }>;
+    weeklyTheme?: string;
+    coachingNote?: string;
     message?: string;
     error?: string;
   } | null>(null);
-  const [roadmapLoading, setRoadmapLoading] = useState(false);
-  const [roadmapError, setRoadmapError] = useState<string | null>(null);
-  const [roadmapExpanded, setRoadmapExpanded] = useState(true);
+  const [coachLoading, setCoachLoading] = useState(false);
+  const [coachError, setCoachError] = useState<string | null>(null);
 
   const getEmptyProject = (): Partial<CareerProject> => ({
     title: "",
@@ -237,27 +243,27 @@ export default function CareerPage() {
     );
   };
 
-  const fetchRoadmap = async () => {
-    setRoadmapLoading(true);
-    setRoadmapError(null);
+  const fetchCoach = async () => {
+    setCoachLoading(true);
+    setCoachError(null);
     try {
-      const response = await fetch("/api/career/ai-roadmap");
+      const response = await fetch("/api/career/coach");
       if (!response.ok) {
-        throw new Error(`Failed to generate roadmap: ${response.statusText}`);
+        throw new Error(`Failed to get coaching insights: ${response.statusText}`);
       }
       const data = await response.json();
       if (data.error) {
-        setRoadmapError(data.message || "An error occurred while generating the roadmap.");
-        setRoadmapData(null);
+        setCoachError(data.message || "An error occurred while generating coaching insights.");
+        setCoachData(null);
       } else {
-        setRoadmapData(data);
+        setCoachData(data);
       }
     } catch (error) {
-      console.error("Failed to fetch roadmap:", error);
-      setRoadmapError(error instanceof Error ? error.message : "Failed to generate roadmap. Please try again.");
-      setRoadmapData(null);
+      console.error("Failed to fetch coaching:", error);
+      setCoachError(error instanceof Error ? error.message : "Failed to get coaching insights. Please try again.");
+      setCoachData(null);
     } finally {
-      setRoadmapLoading(false);
+      setCoachLoading(false);
     }
   };
 
@@ -592,286 +598,332 @@ export default function CareerPage() {
           </div>
         </section>
 
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <Rocket className="w-5 h-5 text-cyan-500" />
-              Active Projects
-            </h2>
-            <Button 
-              onClick={() => openProjectDialog(null)}
-              className={cn(glassCard, "bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0 hover:opacity-90")}
-              size="sm"
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className={cn(glassCard, "w-full grid grid-cols-2 p-1 h-auto")}>
+            <TabsTrigger 
+              value="projects" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white py-2.5 rounded-xl transition-all"
             >
-              <Plus className="w-4 h-4 mr-2" /> New Project
-            </Button>
-          </div>
+              <Rocket className="w-4 h-4 mr-2" />
+              Projects
+            </TabsTrigger>
+            <TabsTrigger 
+              value="coach" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-500 data-[state=active]:text-white py-2.5 rounded-xl transition-all"
+            >
+              <Compass className="w-4 h-4 mr-2" />
+              Career Coach
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {projects.map((project, index) => {
-              const deadline = getDeadlineDisplay(project.deadline);
-              const projectTasks = getProjectTasks(project.id);
-              const completedTasks = projectTasks.filter(t => t.completed === 1).length;
-              const progress = getProjectProgress(project.id);
-              return (
-                <motion.div
-                  key={project.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  onClick={() => { setSelectedProject(project); setNewProjectTask(""); setIsProjectDetailsOpen(true); }}
-                  className={cn(glassCard, glassCardHover, "p-5 cursor-pointer group")}
+          <TabsContent value="projects" className="mt-6 space-y-8">
+            <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <Rocket className="w-5 h-5 text-cyan-500" />
+                  Active Projects
+                </h2>
+                <Button 
+                  onClick={() => openProjectDialog(null)}
+                  className={cn(glassCard, "bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0 hover:opacity-90")}
+                  size="sm"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0 space-y-3">
-                      <div>
-                        <h3 className="font-semibold text-foreground leading-tight mb-1">{project.title}</h3>
-                        <div className="flex items-center gap-2">
-                          <Badge 
-                            variant="outline" 
-                            className={cn(
-                              "text-[10px] font-medium",
-                              project.status === "in_progress" && "border-cyan-500/40 text-cyan-600 dark:text-cyan-400",
-                              project.status === "planning" && "border-violet-500/40 text-violet-600 dark:text-violet-400",
-                              project.status === "completed" && "border-slate-400/40 text-slate-500",
-                              project.status === "ongoing" && "border-teal-500/40 text-teal-600 dark:text-teal-400"
-                            )}
-                          >
-                            {STATUS_DISPLAY[project.status] || project.status}
-                          </Badge>
-                          {projectTasks.length > 0 && (
-                            <span className="text-[10px] text-muted-foreground">
-                              {completedTasks}/{projectTasks.length} tasks
-                            </span>
+                  <Plus className="w-4 h-4 mr-2" /> New Project
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {projects.map((project, index) => {
+                  const deadline = getDeadlineDisplay(project.deadline);
+                  const projectTasks = getProjectTasks(project.id);
+                  const completedTasks = projectTasks.filter(t => t.completed === 1).length;
+                  const progress = getProjectProgress(project.id);
+                  return (
+                    <motion.div
+                      key={project.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      onClick={() => { setSelectedProject(project); setNewProjectTask(""); setIsProjectDetailsOpen(true); }}
+                      className={cn(glassCard, glassCardHover, "p-5 cursor-pointer group")}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0 space-y-3">
+                          <div>
+                            <h3 className="font-semibold text-foreground leading-tight mb-1">{project.title}</h3>
+                            <div className="flex items-center gap-2">
+                              <Badge 
+                                variant="outline" 
+                                className={cn(
+                                  "text-[10px] font-medium",
+                                  project.status === "in_progress" && "border-cyan-500/40 text-cyan-600 dark:text-cyan-400",
+                                  project.status === "planning" && "border-violet-500/40 text-violet-600 dark:text-violet-400",
+                                  project.status === "completed" && "border-slate-400/40 text-slate-500",
+                                  project.status === "ongoing" && "border-teal-500/40 text-teal-600 dark:text-teal-400"
+                                )}
+                              >
+                                {STATUS_DISPLAY[project.status] || project.status}
+                              </Badge>
+                              {projectTasks.length > 0 && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  {completedTasks}/{projectTasks.length} tasks
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {project.nextAction && (
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              <span className="text-teal-500 font-medium">Next:</span> {project.nextAction}
+                            </p>
+                          )}
+
+                          {deadline && (
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="w-3 h-3 text-muted-foreground" />
+                              <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", deadline.className)}>
+                                {deadline.text}
+                              </span>
+                            </div>
                           )}
                         </div>
+
+                        <CircularProgress progress={progress} size={56} strokeWidth={5} />
                       </div>
+                    </motion.div>
+                  );
+                })}
 
-                      {project.nextAction && (
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          <span className="text-teal-500 font-medium">Next:</span> {project.nextAction}
-                        </p>
-                      )}
-
-                      {deadline && (
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="w-3 h-3 text-muted-foreground" />
-                          <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", deadline.className)}>
-                            {deadline.text}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <CircularProgress progress={progress} size={56} strokeWidth={5} />
-                  </div>
-                </motion.div>
-              );
-            })}
-
-            <motion.button
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: projects.length * 0.1 }}
-              onClick={() => openProjectDialog(null)}
-              className={cn(
-                glassCard,
-                "p-5 border-dashed border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2",
-                "text-muted-foreground hover:text-teal-500 hover:border-teal-500/40 transition-all duration-300 min-h-[140px]"
-              )}
-            >
-              <Plus className="w-5 h-5" />
-              <span className="font-medium">Add Project</span>
-            </motion.button>
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-500" />
-            Today's Focus
-          </h2>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={cn(glassCard, "p-6 space-y-4")}
-          >
-            <form onSubmit={handleAddTask} className="flex gap-3">
-              <Input 
-                placeholder="Add a new task..." 
-                value={newTask}
-                onChange={(e) => setNewTask(e.target.value)}
-                className="flex-1 bg-white/50 dark:bg-slate-800/50 border-slate-200/60 dark:border-slate-700/60 focus:ring-teal-500/20 focus:border-teal-500"
-              />
-              <Button 
-                type="submit" 
-                disabled={!newTask.trim() || createTask.isPending}
-                className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0 hover:opacity-90"
-              >
-                <Plus className="w-4 h-4 mr-2" /> Add Task
-              </Button>
-            </form>
-
-            <div className="space-y-2">
-              <TaskSection 
-                title="Today" 
-                tasks={todayTasks} 
-                open={todayOpen} 
-                onOpenChange={setTodayOpen}
-                accentColor="text-amber-600 dark:text-amber-400"
-                emptyText="No tasks due today"
-              />
-              <TaskSection 
-                title="This Week" 
-                tasks={weekTasks} 
-                open={weekOpen} 
-                onOpenChange={setWeekOpen}
-                accentColor="text-cyan-600 dark:text-cyan-400"
-                emptyText="No tasks due this week"
-              />
-              <TaskSection 
-                title="Later" 
-                tasks={laterTasks} 
-                open={laterOpen} 
-                onOpenChange={setLaterOpen}
-                emptyText="No upcoming tasks"
-              />
-            </div>
-          </motion.div>
-        </section>
-
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <Map className="w-5 h-5 text-violet-500" />
-              AI Roadmap & Insights
-            </h2>
-            <Button 
-              onClick={fetchRoadmap}
-              disabled={roadmapLoading}
-              variant="outline"
-              size="sm"
-              className="border-violet-500/40 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20"
-            >
-              {roadmapLoading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              {roadmapData ? "Refresh" : "Generate"} Roadmap
-            </Button>
-          </div>
-
-          {!roadmapData && !roadmapLoading && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cn(glassCard, "p-8 text-center")}
-            >
-              <Map className="w-12 h-12 text-violet-500/50 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">Get AI-Powered Career Insights</h3>
-              <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-                Based on your North Star vision and current projects, AI will generate a strategic roadmap with actionable next steps.
-              </p>
-              <Button 
-                onClick={fetchRoadmap}
-                className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0 hover:opacity-90"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Generate Roadmap
-              </Button>
-            </motion.div>
-          )}
-
-          {roadmapLoading && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cn(glassCard, "p-8 text-center")}
-            >
-              <Loader2 className="w-8 h-8 animate-spin text-violet-500 mx-auto mb-4" />
-              <p className="text-sm text-muted-foreground">Analyzing your vision and projects...</p>
-            </motion.div>
-          )}
-
-          {roadmapError && !roadmapLoading && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cn(glassCard, "p-6 border-red-200/60 dark:border-red-700/40")}
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
-                  <X className="w-5 h-5 text-red-500" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-foreground mb-1">Unable to Generate Roadmap</h4>
-                  <p className="text-sm text-muted-foreground mb-3">{roadmapError}</p>
-                  <Button 
-                    onClick={fetchRoadmap}
-                    variant="outline"
-                    size="sm"
-                    className="border-violet-500/40 text-violet-600 dark:text-violet-400"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Try Again
-                  </Button>
-                </div>
+                <motion.button
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: projects.length * 0.1 }}
+                  onClick={() => openProjectDialog(null)}
+                  className={cn(
+                    glassCard,
+                    "p-5 border-dashed border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2",
+                    "text-muted-foreground hover:text-teal-500 hover:border-teal-500/40 transition-all duration-300 min-h-[140px]"
+                  )}
+                >
+                  <Plus className="w-5 h-5" />
+                  <span className="font-medium">Add Project</span>
+                </motion.button>
               </div>
-            </motion.div>
-          )}
+            </section>
 
-          {roadmapData && !roadmapLoading && (
-            <Collapsible open={roadmapExpanded} onOpenChange={setRoadmapExpanded}>
+            <section className="space-y-4">
+              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-500" />
+                Today's Focus
+              </h2>
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={cn(glassCard, "overflow-hidden")}
+                className={cn(glassCard, "p-6 space-y-4")}
               >
-                <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <div className="flex items-center gap-2">
-                    <Lightbulb className="w-5 h-5 text-amber-500" />
-                    <span className="font-medium text-foreground">Strategic Insights</span>
+                <form onSubmit={handleAddTask} className="flex gap-3">
+                  <Input 
+                    placeholder="Add a new task..." 
+                    value={newTask}
+                    onChange={(e) => setNewTask(e.target.value)}
+                    className="flex-1 bg-white/50 dark:bg-slate-800/50 border-slate-200/60 dark:border-slate-700/60 focus:ring-teal-500/20 focus:border-teal-500"
+                  />
+                  <Button 
+                    type="submit" 
+                    disabled={!newTask.trim() || createTask.isPending}
+                    className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0 hover:opacity-90"
+                  >
+                    <Plus className="w-4 h-4 mr-2" /> Add Task
+                  </Button>
+                </form>
+
+                <div className="space-y-2">
+                  <TaskSection 
+                    title="Today" 
+                    tasks={todayTasks} 
+                    open={todayOpen} 
+                    onOpenChange={setTodayOpen}
+                    accentColor="text-amber-600 dark:text-amber-400"
+                    emptyText="No tasks due today"
+                  />
+                  <TaskSection 
+                    title="This Week" 
+                    tasks={weekTasks} 
+                    open={weekOpen} 
+                    onOpenChange={setWeekOpen}
+                    accentColor="text-cyan-600 dark:text-cyan-400"
+                    emptyText="No tasks due this week"
+                  />
+                  <TaskSection 
+                    title="Later" 
+                    tasks={laterTasks} 
+                    open={laterOpen} 
+                    onOpenChange={setLaterOpen}
+                    emptyText="No upcoming tasks"
+                  />
+                </div>
+              </motion.div>
+            </section>
+          </TabsContent>
+
+          <TabsContent value="coach" className="mt-6 space-y-6">
+            {!coachData && !coachLoading && !coachError && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(glassCard, "p-8 text-center")}
+              >
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-500/10 to-purple-500/10 flex items-center justify-center mx-auto mb-4">
+                  <Compass className="w-8 h-8 text-violet-500" />
+                </div>
+                <h3 className="text-lg font-medium text-foreground mb-2">Get AI Career Coaching</h3>
+                <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                  Based on your North Star vision and current projects, get personalized career guidance, learning paths, and actionable next steps.
+                </p>
+                <Button 
+                  onClick={fetchCoach}
+                  className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0 hover:opacity-90"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Generate Coaching Insights
+                </Button>
+              </motion.div>
+            )}
+
+            {coachLoading && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(glassCard, "p-8 text-center")}
+              >
+                <Loader2 className="w-8 h-8 animate-spin text-violet-500 mx-auto mb-4" />
+                <p className="text-sm text-muted-foreground">Analyzing your vision...</p>
+              </motion.div>
+            )}
+
+            {coachError && !coachLoading && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(glassCard, "p-6 border-red-200/60 dark:border-red-700/40")}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+                    <X className="w-5 h-5 text-red-500" />
                   </div>
-                  <ChevronDown className={cn("w-5 h-5 text-muted-foreground transition-transform", roadmapExpanded && "rotate-180")} />
-                </CollapsibleTrigger>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-foreground mb-1">Unable to Generate Coaching Insights</h4>
+                    <p className="text-sm text-muted-foreground mb-3">{coachError}</p>
+                    <Button 
+                      onClick={fetchCoach}
+                      variant="outline"
+                      size="sm"
+                      className="border-violet-500/40 text-violet-600 dark:text-violet-400"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Try Again
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
-                <CollapsibleContent>
-                  <div className="px-4 pb-4 space-y-6">
-                    {roadmapData.message && (
-                      <p className="text-sm text-muted-foreground italic">{roadmapData.message}</p>
-                    )}
+            {coachData && !coachLoading && (
+              <div className="space-y-6">
+                {coachData.weeklyTheme && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 rounded-2xl bg-gradient-to-r from-violet-500 to-purple-500 text-white"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Star className="w-4 h-4" />
+                      <span className="text-xs font-semibold uppercase tracking-wide opacity-90">Weekly Theme</span>
+                    </div>
+                    <p className="text-lg font-medium">{coachData.weeklyTheme}</p>
+                  </motion.div>
+                )}
 
-                    {roadmapData.insights && (
-                      <div className="p-4 rounded-xl bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 border border-violet-200/60 dark:border-violet-700/40">
-                        <p className="text-sm text-foreground">{roadmapData.insights}</p>
-                      </div>
-                    )}
+                {coachData.northStarAnalysis && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className={cn(glassCard, "p-5 space-y-4")}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Compass className="w-5 h-5 text-teal-500" />
+                      <h3 className="font-semibold text-foreground">North Star Analysis</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{coachData.northStarAnalysis.summary}</p>
+                    <div className="space-y-3">
+                      {coachData.northStarAnalysis.strengths?.length > 0 && (
+                        <div>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase">Strengths</span>
+                          <div className="flex flex-wrap gap-1.5 mt-1.5">
+                            {coachData.northStarAnalysis.strengths.map((strength, i) => (
+                              <Badge key={i} className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">
+                                {strength}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {coachData.northStarAnalysis.gaps?.length > 0 && (
+                        <div>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase">Growth Areas</span>
+                          <div className="flex flex-wrap gap-1.5 mt-1.5">
+                            {coachData.northStarAnalysis.gaps.map((gap, i) => (
+                              <Badge key={i} className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-xs">
+                                {gap}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
 
-                    {roadmapData.roadmap && roadmapData.roadmap.length > 0 && (
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                          <Map className="w-4 h-4" />
-                          Roadmap Phases
-                        </h4>
-                        <div className="grid gap-3">
-                          {roadmapData.roadmap.map((phase, index) => (
-                            <motion.div
-                              key={index}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.1 }}
-                              className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-3"
-                            >
-                              <div className="flex items-center justify-between">
-                                <h5 className="font-medium text-foreground">{phase.phase}</h5>
-                                <Badge variant="outline" className="border-violet-500/40 text-violet-600 dark:text-violet-400 text-xs">
-                                  {phase.timeframe}
-                                </Badge>
+                {coachData.roadmap && coachData.roadmap.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="space-y-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Map className="w-5 h-5 text-violet-500" />
+                      <h3 className="font-semibold text-foreground">Roadmap Phases</h3>
+                    </div>
+                    {coachData.roadmap.map((phase, index) => (
+                      <Collapsible key={index}>
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.2 + index * 0.1 }}
+                          className={cn(glassCard, "overflow-hidden")}
+                        >
+                          <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/10 flex items-center justify-center">
+                                <TrendingUp className="w-4 h-4 text-violet-500" />
                               </div>
-                              {phase.milestones && phase.milestones.length > 0 && (
-                                <ul className="space-y-1">
+                              <div className="text-left">
+                                <h4 className="font-medium text-foreground text-sm">{phase.phase}</h4>
+                                <p className="text-xs text-muted-foreground">{phase.timeframe}</p>
+                              </div>
+                            </div>
+                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="px-4 pb-4 space-y-3">
+                              {phase.goal && (
+                                <p className="text-sm text-muted-foreground">{phase.goal}</p>
+                              )}
+                              {phase.milestones?.length > 0 && (
+                                <ul className="space-y-1.5">
                                   {phase.milestones.map((milestone, mIndex) => (
                                     <li key={mIndex} className="text-sm text-muted-foreground flex items-start gap-2">
                                       <Check className="w-4 h-4 text-teal-500 shrink-0 mt-0.5" />
@@ -880,70 +932,140 @@ export default function CareerPage() {
                                   ))}
                                 </ul>
                               )}
-                              {phase.focusAreas && phase.focusAreas.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5">
-                                  {phase.focusAreas.map((area, aIndex) => (
-                                    <Badge key={aIndex} variant="secondary" className="text-xs">
-                                      {area}
-                                    </Badge>
-                                  ))}
+                              {phase.weeklyFocus && (
+                                <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-200/60 dark:border-violet-700/40">
+                                  <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">Weekly Focus:</span>
+                                  <p className="text-sm text-foreground mt-1">{phase.weeklyFocus}</p>
                                 </div>
                               )}
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                            </div>
+                          </CollapsibleContent>
+                        </motion.div>
+                      </Collapsible>
+                    ))}
+                  </motion.div>
+                )}
 
-                    {roadmapData.suggestedActions && roadmapData.suggestedActions.length > 0 && (
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                          <Zap className="w-4 h-4" />
-                          Suggested Actions
-                        </h4>
-                        <div className="grid gap-2">
-                          {roadmapData.suggestedActions.map((action, index) => (
-                            <motion.div
-                              key={index}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.05 }}
-                              className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex items-start gap-3"
-                            >
-                              <div className={cn(
-                                "w-2 h-2 rounded-full mt-1.5 shrink-0",
-                                action.priority === "high" && "bg-red-500",
-                                action.priority === "medium" && "bg-amber-500",
-                                action.priority === "low" && "bg-slate-400"
-                              )} />
-                              <div className="flex-1 min-w-0 space-y-1">
-                                <p className="text-sm font-medium text-foreground">{action.title}</p>
-                                <p className="text-xs text-muted-foreground">{action.description}</p>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  {action.estimatedEffort && (
-                                    <Badge variant="outline" className="text-[10px]">
-                                      <Clock className="w-3 h-3 mr-1" />
-                                      {action.estimatedEffort}
-                                    </Badge>
-                                  )}
-                                  {action.relatedProject && (
-                                    <Badge variant="outline" className="text-[10px] border-cyan-500/40 text-cyan-600 dark:text-cyan-400">
-                                      {action.relatedProject}
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CollapsibleContent>
-              </motion.div>
-            </Collapsible>
-          )}
-        </section>
+                {coachData.immediateActions && coachData.immediateActions.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className={cn(glassCard, "p-5 space-y-4")}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-5 h-5 text-amber-500" />
+                      <h3 className="font-semibold text-foreground">Immediate Actions</h3>
+                    </div>
+                    <div className="space-y-2">
+                      {coachData.immediateActions.map((action, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.3 + index * 0.05 }}
+                          className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex items-start gap-3"
+                        >
+                          <div className={cn(
+                            "w-2 h-2 rounded-full mt-1.5 shrink-0",
+                            action.priority === "high" && "bg-red-500",
+                            action.priority === "medium" && "bg-amber-500",
+                            action.priority === "low" && "bg-slate-400"
+                          )} />
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <p className="text-sm font-medium text-foreground">{action.title}</p>
+                            <p className="text-xs text-muted-foreground">{action.why}</p>
+                            <Badge variant="outline" className="text-[10px]">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {action.timeEstimate}
+                            </Badge>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {coachData.learningPath && coachData.learningPath.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="space-y-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="w-5 h-5 text-cyan-500" />
+                      <h3 className="font-semibold text-foreground">Learning Path</h3>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {coachData.learningPath.map((skill, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.4 + index * 0.1 }}
+                          className={cn(glassCard, "p-4 space-y-3")}
+                        >
+                          <div>
+                            <h4 className="font-medium text-foreground text-sm">{skill.skill}</h4>
+                            <p className="text-xs text-muted-foreground">{skill.importance}</p>
+                          </div>
+                          {skill.resources?.length > 0 && (
+                            <div className="space-y-2">
+                              {skill.resources.map((resource, rIndex) => (
+                                <a
+                                  key={rIndex}
+                                  href={resource.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group"
+                                >
+                                  <BookOpen className="w-4 h-4 text-cyan-500" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-foreground truncate group-hover:text-cyan-600">{resource.title}</p>
+                                    <p className="text-[10px] text-muted-foreground">{resource.type} • {resource.timeCommitment}</p>
+                                  </div>
+                                  <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-cyan-500" />
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {coachData.coachingNote && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="p-4 rounded-2xl bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 border border-teal-200/60 dark:border-teal-800/60"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <Lightbulb className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                      <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 uppercase">Coaching Note</span>
+                    </div>
+                    <p className="text-sm text-teal-700 dark:text-teal-300">{coachData.coachingNote}</p>
+                  </motion.div>
+                )}
+
+                <div className="flex justify-center pt-4">
+                  <Button
+                    onClick={fetchCoach}
+                    variant="outline"
+                    size="sm"
+                    className="border-violet-500/40 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refresh Insights
+                  </Button>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
 
         <Dialog open={isVisionDialogOpen} onOpenChange={setIsVisionDialogOpen}>
           <DialogContent className="sm:max-w-[500px]">
