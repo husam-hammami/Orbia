@@ -191,6 +191,7 @@ export const routineBlocks = pgTable("routine_blocks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   emoji: text("emoji").notNull(),
+  icon: text("icon").default("Sunrise"),
   startTime: text("start_time").notNull(), // "08:00"
   endTime: text("end_time").notNull(), // "09:00"
   purpose: text("purpose").notNull().default(""),

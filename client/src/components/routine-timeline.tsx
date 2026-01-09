@@ -5,18 +5,35 @@ import {
   Check, 
   Clock, 
   Sunrise,
+  Sun,
   Briefcase,
   Coffee,
   Moon,
   Utensils,
   Dumbbell,
   BookOpen,
-  Activity
+  Activity,
+  Heart,
+  Bed,
+  Sparkles,
+  Music,
+  Users,
+  Home,
+  Zap
 } from "lucide-react";
 import { useRoutineBlocks, useRoutineActivities, useRoutineLogs, useToggleRoutineActivity, useHabits } from "@/lib/api-hooks";
 import { cn } from "@/lib/utils";
+import { inferTimeSegment, getThemeBySegment, RoutineTheme } from "@/lib/routineThemes";
 
-function getBlockIcon(name: string) {
+const iconMap: Record<string, any> = {
+  Sunrise, Sun, Moon, Briefcase, Coffee, Utensils, Dumbbell, BookOpen, 
+  Heart, Bed, Sparkles, Music, Users, Home, Zap, Activity
+};
+
+function getBlockIcon(name: string, storedIcon?: string | null) {
+  if (storedIcon && iconMap[storedIcon]) {
+    return iconMap[storedIcon];
+  }
   const nameLower = name.toLowerCase();
   if (nameLower.includes("morning") || nameLower.includes("wake")) return Sunrise;
   if (nameLower.includes("work") || nameLower.includes("block")) return Briefcase;
@@ -178,8 +195,10 @@ export function RoutineTimeline() {
             const isCurrent = currentBlock?.id === block.id;
             const isComplete = progress.total > 0 && progress.completed === progress.total;
             const progressPercent = progress.total > 0 ? (progress.completed / progress.total) * 100 : 0;
-            const BlockIcon = getBlockIcon(block.name);
+            const BlockIcon = getBlockIcon(block.name, block.icon);
             const isExpanded = expandedBlock === block.id;
+            const timeSegment = inferTimeSegment(block.name, block.startTime);
+            const theme = getThemeBySegment(timeSegment);
 
             return (
               <motion.button
@@ -189,12 +208,12 @@ export function RoutineTimeline() {
                   "relative flex flex-col items-center p-3 rounded-xl transition-all duration-200",
                   "border backdrop-blur-sm",
                   isCurrent 
-                    ? "bg-gradient-to-br from-cyan-50 to-indigo-50 border-cyan-300 shadow-[0_0_30px_-8px_rgba(99,102,241,0.4)] ring-2 ring-cyan-100" 
+                    ? `bg-gradient-to-br ${theme.bgGradient} ${theme.borderColor} shadow-[0_0_30px_-8px_rgba(99,102,241,0.4)] ring-2 ring-opacity-50`
                     : isComplete 
-                      ? "bg-gradient-to-br from-slate-50 to-indigo-50/30 border-indigo-200 shadow-[0_0_25px_-5px_rgba(6,182,212,0.5)]" 
+                      ? `bg-gradient-to-br ${theme.bgGradient} ${theme.borderColor} shadow-[0_0_25px_-5px_rgba(6,182,212,0.5)]`
                       : isExpanded
-                        ? "bg-white border-slate-300 shadow-md"
-                        : "bg-white/80 border-slate-200 hover:border-cyan-300 hover:shadow-md"
+                        ? `bg-gradient-to-br ${theme.bgGradient} ${theme.borderColor} shadow-md`
+                        : `bg-white/80 border-slate-200 hover:${theme.borderColor} hover:shadow-md`
                 )}
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}
@@ -207,7 +226,7 @@ export function RoutineTimeline() {
                     <motion.circle 
                       cx="20" cy="20" r="16" 
                       fill="none" 
-                      stroke={isComplete ? "#0891b2" : "#6366f1"}
+                      stroke={theme.progressColor}
                       strokeWidth="3"
                       strokeLinecap="round"
                       strokeDasharray={`${progressPercent * 1.005} 100.5`}
@@ -218,17 +237,21 @@ export function RoutineTimeline() {
                   </svg>
                   <div className={cn(
                     "absolute inset-0 flex items-center justify-center rounded-full m-1.5",
+                    theme.iconBg,
                     isCurrent && "animate-pulse"
                   )}>
                     <BlockIcon className={cn(
                       "w-4 h-4",
-                      isComplete ? "text-cyan-600" : isCurrent ? "text-indigo-600" : "text-slate-400"
+                      theme.iconColor
                     )} />
                   </div>
                   
                   {isCurrent && (
                     <motion.div 
-                      className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-gradient-to-br from-cyan-400 to-indigo-500 rounded-full border-2 border-white"
+                      className={cn(
+                        "absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white",
+                        theme.nodeBg
+                      )}
                       animate={{ scale: [1, 1.2, 1] }}
                       transition={{ repeat: Infinity, duration: 2 }}
                     />
@@ -237,14 +260,18 @@ export function RoutineTimeline() {
 
                 <span className={cn(
                   "text-xs font-semibold text-center leading-tight",
-                  isComplete ? "text-cyan-700" : isCurrent ? "text-slate-900" : "text-slate-700"
+                  isComplete || isCurrent ? theme.iconColor : "text-slate-700"
                 )}>
                   {block.name}
                 </span>
                 
                 {/* Time Range */}
                 <div className="flex items-center gap-1 mt-1">
-                  <span className="text-[10px] font-mono font-medium text-cyan-600 bg-cyan-50 px-1.5 py-0.5 rounded">
+                  <span className={cn(
+                    "text-[10px] font-mono font-medium px-1.5 py-0.5 rounded",
+                    theme.iconColor,
+                    theme.iconBg
+                  )}>
                     {block.startTime.slice(0, 5)}
                   </span>
                   <span className="text-[10px] text-slate-400">→</span>
@@ -256,7 +283,7 @@ export function RoutineTimeline() {
                 {progress.total > 0 && (
                   <span className={cn(
                     "text-[10px] font-semibold mt-1.5 px-2 py-0.5 rounded-full",
-                    isComplete ? "bg-cyan-100 text-cyan-700" : "bg-slate-100 text-slate-500"
+                    isComplete ? `${theme.iconBg} ${theme.iconColor}` : "bg-slate-100 text-slate-500"
                   )}>
                     {progress.completed}/{progress.total}
                   </span>
@@ -268,7 +295,10 @@ export function RoutineTimeline() {
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                   >
-                    <div className="w-2 h-2 bg-white border-b border-r border-slate-200 rotate-45 transform" />
+                    <div className={cn(
+                      "w-2 h-2 bg-white border-b border-r rotate-45 transform",
+                      theme.borderColor
+                    )} />
                   </motion.div>
                 )}
               </motion.button>
@@ -285,7 +315,9 @@ export function RoutineTimeline() {
           
           const blockActivities = activities?.filter(a => a.blockId === block.id) || [];
           const progress = blockProgress[block.id] || { completed: 0, total: 0 };
-          const BlockIcon = getBlockIcon(block.name);
+          const BlockIcon = getBlockIcon(block.name, block.icon);
+          const timeSegment = inferTimeSegment(block.name, block.startTime);
+          const theme = getThemeBySegment(timeSegment);
 
           const sortedActivities = [...blockActivities].sort((a, b) => 
             (a.time || "").localeCompare(b.time || "")
@@ -300,12 +332,21 @@ export function RoutineTimeline() {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="bg-gradient-to-br from-white/90 to-slate-50/90 rounded-xl border border-slate-200/60 backdrop-blur-sm shadow-sm overflow-hidden">
+              <div className={cn(
+                "rounded-xl border backdrop-blur-sm shadow-sm overflow-hidden",
+                theme.borderColor
+              )}>
                 {/* Block Header */}
-                <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-50/80 to-indigo-50/50 border-b border-slate-100">
+                <div className={cn(
+                  "flex items-center justify-between px-4 py-3 border-b border-slate-100",
+                  `bg-gradient-to-r ${theme.bgGradient}`
+                )}>
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-100 to-indigo-100 flex items-center justify-center">
-                      <BlockIcon className="w-4 h-4 text-indigo-600" />
+                    <div className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center",
+                      theme.iconBg
+                    )}>
+                      <BlockIcon className={cn("w-4 h-4", theme.iconColor)} />
                     </div>
                     <div>
                       <h3 className="font-semibold text-slate-800">{block.name}</h3>
@@ -319,7 +360,7 @@ export function RoutineTimeline() {
                   <span className={cn(
                     "text-sm font-semibold px-2.5 py-0.5 rounded-full",
                     progress.completed === progress.total 
-                      ? "bg-cyan-100 text-cyan-700" 
+                      ? `${theme.iconBg} ${theme.iconColor}` 
                       : "bg-slate-100 text-slate-600"
                   )}>
                     {progress.completed}/{progress.total}
@@ -327,7 +368,7 @@ export function RoutineTimeline() {
                 </div>
 
                 {/* Activities - Vertical Timeline */}
-                <div className="p-4">
+                <div className="p-4 bg-white/90">
                   <div className="relative">
                     {sortedActivities.map((activity, idx) => {
                       const isActivityComplete = completedActivityIds.has(activity.id);
@@ -347,7 +388,7 @@ export function RoutineTimeline() {
                           <div className="w-14 shrink-0 pt-1 text-right">
                             <span className={cn(
                               "text-sm font-mono font-bold",
-                              isActivityComplete ? "text-cyan-600" : "text-slate-500"
+                              isActivityComplete ? theme.iconColor : "text-slate-500"
                             )}>
                               {activity.time || "—"}
                             </span>
@@ -361,8 +402,8 @@ export function RoutineTimeline() {
                                 className={cn(
                                   "relative z-10 w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 shrink-0",
                                   isActivityComplete 
-                                    ? "bg-cyan-500 border-white text-white shadow-sm" 
-                                    : "bg-white border-slate-300 group-hover:border-cyan-400 group-hover:shadow-md"
+                                    ? `${theme.nodeBg} border-white text-white shadow-sm` 
+                                    : "bg-white border-slate-300 group-hover:border-slate-400 group-hover:shadow-md"
                                 )}
                                 data-testid={`activity-checkbox-${activity.id}`}
                               >
@@ -383,7 +424,7 @@ export function RoutineTimeline() {
                               <div className={cn(
                                 "w-0.5 flex-1 min-h-[24px]",
                                 isActivityComplete 
-                                  ? "bg-gradient-to-b from-cyan-400 to-indigo-300" 
+                                  ? `${theme.nodeBg}` 
                                   : "bg-gradient-to-b from-slate-200 to-slate-100"
                               )} />
                             )}
@@ -397,12 +438,12 @@ export function RoutineTimeline() {
                               <div className={cn(
                                 "relative p-3 rounded-xl border transition-all",
                                 isActivityComplete 
-                                  ? "bg-white/95 border-cyan-300/60 shadow-sm" 
-                                  : "bg-white border-slate-200 group-hover:border-cyan-300 group-hover:shadow-sm"
+                                  ? `${theme.completedBg} ${theme.completedBorder} shadow-sm` 
+                                  : "bg-white border-slate-200 group-hover:border-slate-300 group-hover:shadow-sm"
                               )}>
                               <span className={cn(
                                 "text-sm font-semibold block",
-                                isActivityComplete ? "text-indigo-700 line-through" : "text-slate-800"
+                                isActivityComplete ? `${theme.iconColor} line-through` : "text-slate-800"
                               )}>
                                 {activity.name}
                               </span>

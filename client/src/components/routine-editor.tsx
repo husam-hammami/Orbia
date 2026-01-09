@@ -1,8 +1,39 @@
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Clock, Save, X, Sunrise, Briefcase, Coffee, Moon, Utensils, Dumbbell, BookOpen, Activity } from "lucide-react";
+import { 
+  Plus, Pencil, Trash2, Clock, Save, X, 
+  Sunrise, Sun, Moon, Briefcase, Coffee, Utensils, 
+  Dumbbell, BookOpen, Heart, Bed, Sparkles, Music, 
+  Users, Home, Zap, Activity,
+  type LucideIcon
+} from "lucide-react";
 
-function getBlockIcon(name: string) {
-  const nameLower = name.toLowerCase();
+const ICON_OPTIONS: { name: string; icon: LucideIcon; label: string }[] = [
+  { name: "Sunrise", icon: Sunrise, label: "Morning" },
+  { name: "Sun", icon: Sun, label: "Afternoon" },
+  { name: "Moon", icon: Moon, label: "Evening/Night" },
+  { name: "Briefcase", icon: Briefcase, label: "Work" },
+  { name: "Coffee", icon: Coffee, label: "Break" },
+  { name: "Utensils", icon: Utensils, label: "Meals" },
+  { name: "Dumbbell", icon: Dumbbell, label: "Exercise" },
+  { name: "BookOpen", icon: BookOpen, label: "Study" },
+  { name: "Heart", icon: Heart, label: "Wellness" },
+  { name: "Bed", icon: Bed, label: "Sleep" },
+  { name: "Sparkles", icon: Sparkles, label: "Self-care" },
+  { name: "Music", icon: Music, label: "Entertainment" },
+  { name: "Users", icon: Users, label: "Social" },
+  { name: "Home", icon: Home, label: "Home" },
+  { name: "Zap", icon: Zap, label: "Energy" },
+];
+
+const iconMap: Record<string, LucideIcon> = Object.fromEntries(
+  ICON_OPTIONS.map(opt => [opt.name, opt.icon])
+);
+
+function getBlockIcon(block: { name: string; icon?: string | null }): LucideIcon {
+  if (block.icon && iconMap[block.icon]) {
+    return iconMap[block.icon];
+  }
+  const nameLower = block.name.toLowerCase();
   if (nameLower.includes("morning") || nameLower.includes("wake")) return Sunrise;
   if (nameLower.includes("work") || nameLower.includes("block")) return Briefcase;
   if (nameLower.includes("break") || nameLower.includes("rest")) return Coffee;
@@ -12,6 +43,7 @@ function getBlockIcon(name: string) {
   if (nameLower.includes("learn") || nameLower.includes("study") || nameLower.includes("read")) return BookOpen;
   return Activity;
 }
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +52,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRoutineBlocks, useRoutineActivities, useHabits, useCreateRoutineBlock, useUpdateRoutineBlock, useDeleteRoutineBlock, useCreateRoutineActivity, useUpdateRoutineActivity, useDeleteRoutineActivity } from "@/lib/api-hooks";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export function RoutineEditor() {
   const { data: blocks } = useRoutineBlocks();
@@ -46,6 +79,7 @@ export function RoutineEditor() {
     endTime: "10:00",
     purpose: "",
     color: "#6366f1",
+    icon: "Sunrise",
   });
 
   const [activityForm, setActivityForm] = useState({
@@ -56,7 +90,7 @@ export function RoutineEditor() {
   });
 
   const resetBlockForm = () => {
-    setBlockForm({ name: "", emoji: "📋", startTime: "09:00", endTime: "10:00", purpose: "", color: "#6366f1" });
+    setBlockForm({ name: "", emoji: "📋", startTime: "09:00", endTime: "10:00", purpose: "", color: "#6366f1", icon: "Sunrise" });
     setEditingBlock(null);
   };
 
@@ -76,12 +110,22 @@ export function RoutineEditor() {
     }
     
     try {
+      const blockData = {
+        name: blockForm.name,
+        emoji: blockForm.emoji,
+        startTime: blockForm.startTime,
+        endTime: blockForm.endTime,
+        purpose: blockForm.purpose,
+        color: blockForm.color,
+        icon: blockForm.icon,
+      };
+      
       if (editingBlock) {
-        await updateBlock.mutateAsync({ id: editingBlock.id, ...blockForm, order: editingBlock.order });
+        await updateBlock.mutateAsync({ id: editingBlock.id, ...blockData, order: editingBlock.order });
         toast.success("Block updated");
       } else {
         const maxOrder = blocks && blocks.length > 0 ? Math.max(...blocks.map(b => b.order)) : -1;
-        await createBlock.mutateAsync({ ...blockForm, order: maxOrder + 1 });
+        await createBlock.mutateAsync({ ...blockData, order: maxOrder + 1 });
         toast.success("Block created");
       }
       resetBlockForm();
@@ -157,6 +201,7 @@ export function RoutineEditor() {
       endTime: block.endTime,
       purpose: block.purpose || "",
       color: block.color,
+      icon: block.icon || "Sunrise",
     });
     setEditingBlock(block);
     setNewBlockOpen(true);
@@ -211,7 +256,38 @@ export function RoutineEditor() {
                       onChange={(e) => setBlockForm({ ...blockForm, name: e.target.value })}
                       data-testid="input-block-name"
                     />
-                    <p className="text-[10px] text-muted-foreground mt-1">Icon auto-selected based on name (morning, work, break, etc.)</p>
+                  </div>
+                  <div>
+                    <label className="text-sm text-muted-foreground mb-2 block">Icon</label>
+                    <div className="grid grid-cols-5 gap-2" data-testid="icon-picker-grid">
+                      {ICON_OPTIONS.map((opt) => {
+                        const IconComponent = opt.icon;
+                        const isSelected = blockForm.icon === opt.name;
+                        return (
+                          <button
+                            key={opt.name}
+                            type="button"
+                            onClick={() => setBlockForm({ ...blockForm, icon: opt.name })}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-2 rounded-lg border-2 transition-all hover:bg-accent",
+                              isSelected 
+                                ? "border-primary bg-primary/10" 
+                                : "border-transparent bg-muted/50"
+                            )}
+                            title={opt.label}
+                            data-testid={`icon-option-${opt.name}`}
+                          >
+                            <IconComponent className={cn(
+                              "w-5 h-5",
+                              isSelected ? "text-primary" : "text-muted-foreground"
+                            )} />
+                            <span className="text-[9px] mt-1 text-muted-foreground truncate w-full text-center">
+                              {opt.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -264,15 +340,13 @@ export function RoutineEditor() {
           <div className="space-y-2">
             {blocks?.sort((a, b) => a.order - b.order).map((block) => {
               const blockActivities = activities?.filter(a => a.blockId === block.id).sort((a, b) => a.order - b.order) || [];
+              const BlockIcon = getBlockIcon(block);
               
               return (
                 <div key={block.id} className="border rounded-lg p-3 space-y-2" data-testid={`block-${block.id}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {(() => {
-                        const BlockIcon = getBlockIcon(block.name);
-                        return <BlockIcon className="w-4 h-4 text-muted-foreground" />;
-                      })()}
+                      <BlockIcon className="w-4 h-4 text-muted-foreground" />
                       <span className="font-medium">{block.name}</span>
                       <span className="text-xs text-muted-foreground font-mono">
                         {block.startTime} — {block.endTime}
