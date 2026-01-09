@@ -8,7 +8,7 @@ interface SidebarProps {
   className?: string;
 }
 
-import logoUrl from '@assets/ChatGPT_Image_Jan_9,_2026,_05_19_32_PM_1767964785050.png';
+import logoUrl from '@assets/ChatGPT_Image_Jan_9,_2026,_06_01_19_PM_1767967283742.png';
 
 const PHILOSOPHER_QUOTES = [
   { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
@@ -67,11 +67,11 @@ function Sidebar({ className }: SidebarProps) {
 
   return (
     <div className={cn("flex flex-col h-full py-8 px-4 bg-sidebar border-r border-sidebar-border", className)}>
-      <div className="mb-6 px-2">
+      <div className="mb-8">
         <img 
           src={logoUrl} 
           alt="Orbia Logo" 
-          className="w-full h-auto object-contain" 
+          className="w-full h-auto object-contain scale-110" 
         />
       </div>
 
@@ -125,7 +125,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         <header className="md:hidden flex items-center justify-between p-3 border-b bg-sidebar">
           <div className="flex items-center">
-            <img src={logoUrl} alt="Orbia Logo" className="h-10 w-auto object-contain" />
+            <img src={logoUrl} alt="Orbia Logo" className="h-12 w-auto object-contain" />
           </div>
           <Sheet>
             <SheetTrigger asChild>
