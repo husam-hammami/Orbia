@@ -332,83 +332,97 @@ export function RoutineTimeline() {
                   </div>
                 </div>
 
-                {/* Activities Grid - Two Column Dense Layout */}
-                <div className="p-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {blockActivities.map((activity, idx) => {
-                      const isActivityComplete = completedActivityIds.has(activity.id);
-                      const linkedHabit = habits?.find(h => h.id === activity.habitId);
+                {/* Activities Timeline - Vertical with time markers */}
+                <div className="p-4">
+                  <div className="relative">
+                    {/* Vertical timeline line */}
+                    <div className="absolute left-[39px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-emerald-200 via-emerald-300 to-emerald-200 rounded-full" />
+                    
+                    <div className="space-y-2">
+                      {blockActivities
+                        .sort((a, b) => (a.time || "").localeCompare(b.time || ""))
+                        .map((activity, idx) => {
+                          const isActivityComplete = completedActivityIds.has(activity.id);
+                          const linkedHabit = habits?.find(h => h.id === activity.habitId);
 
-                      return (
-                        <motion.div
-                          key={activity.id}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: idx * 0.03 }}
-                          className={cn(
-                            "group flex items-start gap-2.5 p-2.5 rounded-lg transition-all cursor-pointer",
-                            isActivityComplete 
-                              ? "bg-emerald-50/70 hover:bg-emerald-50" 
-                              : "bg-gray-50 hover:bg-gray-100"
-                          )}
-                          onClick={() => handleToggleActivity(activity.id, activity.habitId)}
-                        >
-                          <button
-                            className={cn(
-                              "mt-0.5 w-5 h-5 rounded-full flex items-center justify-center transition-all shrink-0 border-2",
-                              isActivityComplete 
-                                ? "bg-emerald-500 border-emerald-500 text-white" 
-                                : "bg-white border-gray-300 group-hover:border-emerald-400"
-                            )}
-                            data-testid={`activity-checkbox-${activity.id}`}
-                          >
-                            {isActivityComplete && (
-                              <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ type: "spring", stiffness: 500 }}
-                              >
-                                <Check className="w-3 h-3" />
-                              </motion.div>
-                            )}
-                          </button>
-                          
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              {activity.time && (
-                                <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
-                                  {activity.time}
-                                </span>
+                          return (
+                            <motion.div
+                              key={activity.id}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: idx * 0.03 }}
+                              className={cn(
+                                "group flex items-start gap-3 p-2 pl-0 rounded-lg transition-all cursor-pointer"
                               )}
-                              <span className={cn(
-                                "text-sm font-medium transition-all",
-                                isActivityComplete ? "text-emerald-700 line-through" : "text-gray-700"
-                              )}>
-                                {activity.name}
-                              </span>
-                            </div>
-                            
-                            {activity.description && (
-                              <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">
-                                {activity.description}
-                              </p>
-                            )}
-                            
-                            {linkedHabit && (
-                              <div className="flex items-center gap-1 mt-1">
-                                <div 
-                                  className="w-1.5 h-1.5 rounded-full"
-                                  style={{ backgroundColor: linkedHabit.color }}
-                                />
-                                <span className="text-[10px] text-gray-400">
-                                  {linkedHabit.title}
+                              onClick={() => handleToggleActivity(activity.id, activity.habitId)}
+                            >
+                              {/* Time badge */}
+                              <div className="w-[34px] shrink-0 text-right">
+                                <span className={cn(
+                                  "text-xs font-mono font-semibold",
+                                  isActivityComplete ? "text-emerald-500" : "text-gray-400"
+                                )}>
+                                  {activity.time || "—"}
                                 </span>
                               </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      );
-                    })}
+
+                              {/* Timeline node/checkbox */}
+                              <button
+                                className={cn(
+                                  "relative z-10 w-5 h-5 rounded-full flex items-center justify-center transition-all shrink-0 border-2",
+                                  isActivityComplete 
+                                    ? "bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-200" 
+                                    : "bg-white border-gray-300 group-hover:border-emerald-400 group-hover:shadow-sm"
+                                )}
+                                data-testid={`activity-checkbox-${activity.id}`}
+                              >
+                                {isActivityComplete && (
+                                  <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ type: "spring", stiffness: 500 }}
+                                  >
+                                    <Check className="w-3 h-3" />
+                                  </motion.div>
+                                )}
+                              </button>
+                              
+                              {/* Activity content */}
+                              <div className={cn(
+                                "flex-1 min-w-0 p-2.5 rounded-lg transition-all",
+                                isActivityComplete 
+                                  ? "bg-emerald-50/70" 
+                                  : "bg-gray-50 group-hover:bg-gray-100"
+                              )}>
+                                <span className={cn(
+                                  "text-sm font-medium transition-all block",
+                                  isActivityComplete ? "text-emerald-700 line-through" : "text-gray-700"
+                                )}>
+                                  {activity.name}
+                                </span>
+                                
+                                {activity.description && (
+                                  <p className="text-xs text-gray-500 mt-0.5">
+                                    {activity.description}
+                                  </p>
+                                )}
+                                
+                                {linkedHabit && (
+                                  <div className="flex items-center gap-1.5 mt-1.5">
+                                    <div 
+                                      className="w-2 h-2 rounded-full"
+                                      style={{ backgroundColor: linkedHabit.color }}
+                                    />
+                                    <span className="text-[11px] text-gray-400 font-medium">
+                                      {linkedHabit.title}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                    </div>
                   </div>
                 </div>
               </div>
