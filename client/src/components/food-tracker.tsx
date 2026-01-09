@@ -1,17 +1,16 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Utensils, Save, Loader2, Plus, Trash2, Check, ChefHat, ChevronDown, ChevronUp, Calendar, Clock, Edit2 } from "lucide-react";
+import { Utensils, Save, Loader2, Plus, Trash2, Check, ChefHat, Calendar, Clock, Edit2, Sunrise, Sun, Moon, X } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { format, subDays, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface FoodOption {
   id: string;
@@ -34,6 +33,48 @@ const DEFAULT_OPTIONS: { name: string; mealType: string; description?: string }[
   { name: "Simple ham and cheese", mealType: "lunch" },
 ];
 
+const mealConfig = {
+  breakfast: {
+    label: "Breakfast",
+    icon: Sunrise,
+    gradient: "from-amber-50 to-orange-50",
+    border: "border-amber-200",
+    iconBg: "bg-amber-100",
+    iconColor: "text-amber-600",
+    selectedBg: "bg-amber-500/15",
+    selectedBorder: "border-amber-400",
+    accentColor: "text-amber-600",
+    chipBg: "bg-amber-100",
+    addBtnBg: "bg-amber-500 hover:bg-amber-600",
+  },
+  lunch: {
+    label: "Lunch",
+    icon: Sun,
+    gradient: "from-sky-50 to-blue-50",
+    border: "border-sky-200",
+    iconBg: "bg-sky-100",
+    iconColor: "text-sky-600",
+    selectedBg: "bg-sky-500/15",
+    selectedBorder: "border-sky-400",
+    accentColor: "text-sky-600",
+    chipBg: "bg-sky-100",
+    addBtnBg: "bg-sky-500 hover:bg-sky-600",
+  },
+  dinner: {
+    label: "Dinner",
+    icon: Moon,
+    gradient: "from-indigo-50 to-violet-50",
+    border: "border-indigo-200",
+    iconBg: "bg-indigo-100",
+    iconColor: "text-indigo-600",
+    selectedBg: "bg-indigo-500/15",
+    selectedBorder: "border-indigo-400",
+    accentColor: "text-indigo-600",
+    chipBg: "bg-indigo-100",
+    addBtnBg: "bg-indigo-500 hover:bg-indigo-600",
+  },
+};
+
 export function FoodTracker() {
   const today = format(new Date(), "yyyy-MM-dd");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -42,7 +83,7 @@ export function FoodTracker() {
   const [editRecipeMode, setEditRecipeMode] = useState(false);
   const [editedRecipe, setEditedRecipe] = useState("");
   const [newOption, setNewOption] = useState({ name: "", mealType: "dinner", description: "" });
-  const [expandedHistory, setExpandedHistory] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
   
   const { data: foodOptions = [], isLoading: optionsLoading } = useQuery<FoodOption[]>({
     queryKey: ["/api/food-options"],
@@ -168,11 +209,9 @@ export function FoodTracker() {
   const dinnerOptions = foodOptions.filter(o => o.mealType === "dinner");
 
   const handleSelect = (mealType: "breakfast" | "lunch" | "dinner", value: string) => {
-    setSelections(prev => ({ ...prev, [mealType]: value }));
-  };
-
-  const handleSave = () => {
-    saveMutation.mutate(selections);
+    const newSelections = { ...selections, [mealType]: value };
+    setSelections(newSelections);
+    saveMutation.mutate(newSelections);
   };
 
   const showRecipe = (opt: FoodOption) => {
@@ -193,51 +232,78 @@ export function FoodTracker() {
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 7);
 
+  const completedMeals = [selections.breakfast, selections.lunch, selections.dinner].filter(Boolean).length;
+
   if (optionsLoading || summaryLoading) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Utensils className="w-5 h-5 text-primary" />
-              <CardTitle>Today's Meals</CardTitle>
+    <div className="space-y-6">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/80 p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <Utensils className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-900">Today's Meals</h2>
+              <p className="text-sm text-slate-500">{format(new Date(), "EEEE, MMMM do")}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-sm">
+              <Check className="w-4 h-4 text-emerald-500" />
+              <span className="text-slate-600">{completedMeals}/3</span>
             </div>
             <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1" data-testid="button-add-option">
+                <Button size="sm" className="gap-1.5 bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-600 hover:to-indigo-600 text-white shadow-lg shadow-indigo-500/20" data-testid="button-add-option">
                   <Plus className="w-4 h-4" />
                   Add Meal
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>Add New Meal Option</DialogTitle>
-                  <DialogDescription>Create a meal option you can select each day</DialogDescription>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-indigo-500" />
+                    Add New Meal Option
+                  </DialogTitle>
+                  <DialogDescription>Create a meal option you can quickly select each day</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <Label>Meal Type</Label>
-                    <Select
-                      value={newOption.mealType}
-                      onValueChange={(val) => setNewOption({ ...newOption, mealType: val })}
-                    >
-                      <SelectTrigger data-testid="select-new-option-type">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="breakfast">Breakfast</SelectItem>
-                        <SelectItem value="lunch">Lunch</SelectItem>
-                        <SelectItem value="dinner">Dinner</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["breakfast", "lunch", "dinner"] as const).map((type) => {
+                        const config = mealConfig[type];
+                        const Icon = config.icon;
+                        return (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => setNewOption({ ...newOption, mealType: type })}
+                            className={cn(
+                              "p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5",
+                              newOption.mealType === type
+                                ? `${config.selectedBorder} ${config.selectedBg}`
+                                : "border-slate-200 hover:border-slate-300"
+                            )}
+                          >
+                            <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", config.iconBg)}>
+                              <Icon className={cn("w-4 h-4", config.iconColor)} />
+                            </div>
+                            <span className={cn("text-sm font-medium", newOption.mealType === type ? config.accentColor : "text-slate-600")}>
+                              {config.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Meal Name</Label>
@@ -245,12 +311,13 @@ export function FoodTracker() {
                       value={newOption.name}
                       onChange={(e) => setNewOption({ ...newOption, name: e.target.value })}
                       placeholder="e.g., Grilled chicken with rice"
+                      className="bg-white"
                       data-testid="input-new-option-name"
                     />
                   </div>
                   {newOption.mealType === "dinner" && (
-                    <div className="space-y-2 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                      <Label className="flex items-center gap-2 text-amber-600">
+                    <div className="space-y-2 p-4 rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-200">
+                      <Label className="flex items-center gap-2 text-indigo-700">
                         <ChefHat className="w-4 h-4" />
                         Recipe / Cooking Steps
                       </Label>
@@ -258,151 +325,171 @@ export function FoodTracker() {
                         value={newOption.description}
                         onChange={(e) => setNewOption({ ...newOption, description: e.target.value })}
                         placeholder={`Example:\n1. Season chicken with salt & pepper\n2. Heat pan with olive oil\n3. Cook 6 min each side\n4. Serve with steamed rice`}
-                        rows={6}
-                        className="font-mono text-sm"
+                        rows={5}
+                        className="font-mono text-sm bg-white/80"
                         data-testid="input-new-option-recipe"
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Add simple steps you can follow when cooking this meal
-                      </p>
                     </div>
                   )}
                   <Button
                     onClick={() => addOptionMutation.mutate(newOption)}
                     disabled={!newOption.name.trim() || addOptionMutation.isPending}
-                    className="w-full gap-2"
+                    className={cn("w-full gap-2 text-white", mealConfig[newOption.mealType as keyof typeof mealConfig].addBtnBg)}
                     data-testid="button-save-new-option"
                   >
                     {addOptionMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                    Add Meal Option
+                    Add {mealConfig[newOption.mealType as keyof typeof mealConfig].label} Option
                   </Button>
                 </div>
               </DialogContent>
             </Dialog>
           </div>
-          <CardDescription>{format(new Date(), "EEEE, MMMM do")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-4">
-            <MealSection
-              label="Breakfast"
-              emoji="🌅"
-              options={breakfastOptions}
-              selected={selections.breakfast}
-              onSelect={(val) => handleSelect("breakfast", val)}
-              onDelete={(id) => deleteOptionMutation.mutate(id)}
-              testIdPrefix="breakfast"
-            />
-            
-            <MealSection
-              label="Lunch"
-              emoji="☀️"
-              options={lunchOptions}
-              selected={selections.lunch}
-              onSelect={(val) => handleSelect("lunch", val)}
-              onDelete={(id) => deleteOptionMutation.mutate(id)}
-              testIdPrefix="lunch"
-            />
-            
-            <DinnerSection
-              options={dinnerOptions}
-              selected={selections.dinner}
-              onSelect={(val) => handleSelect("dinner", val)}
-              onDelete={(id) => deleteOptionMutation.mutate(id)}
-              onShowRecipe={showRecipe}
-            />
+        </div>
+
+        <div className="space-y-4">
+          <MealSection
+            mealType="breakfast"
+            options={breakfastOptions}
+            selected={selections.breakfast}
+            onSelect={(val) => handleSelect("breakfast", val)}
+            onDelete={(id) => deleteOptionMutation.mutate(id)}
+            onShowRecipe={showRecipe}
+          />
+          
+          <MealSection
+            mealType="lunch"
+            options={lunchOptions}
+            selected={selections.lunch}
+            onSelect={(val) => handleSelect("lunch", val)}
+            onDelete={(id) => deleteOptionMutation.mutate(id)}
+            onShowRecipe={showRecipe}
+          />
+          
+          <MealSection
+            mealType="dinner"
+            options={dinnerOptions}
+            selected={selections.dinner}
+            onSelect={(val) => handleSelect("dinner", val)}
+            onDelete={(id) => deleteOptionMutation.mutate(id)}
+            onShowRecipe={showRecipe}
+          />
+        </div>
+
+        {saveMutation.isPending && (
+          <div className="flex items-center justify-center gap-2 pt-4 text-sm text-slate-500">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Saving...
           </div>
+        )}
+      </div>
 
-          <Button 
-            onClick={handleSave} 
-            disabled={saveMutation.isPending}
-            className="w-full gap-2"
-            data-testid="button-save-meals"
+      <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-slate-200/80 overflow-hidden">
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="w-full px-5 py-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-slate-600" />
+            </div>
+            <span className="font-medium text-slate-700">Meal History</span>
+            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-xs text-slate-600">
+              {recentMealLogs.length} days
+            </span>
+          </div>
+          <motion.div
+            animate={{ rotate: showHistory ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
           >
-            {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save Today's Meals
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Collapsible open={expandedHistory} onOpenChange={setExpandedHistory}>
-        <Card className="border-border/50 bg-card/50">
-          <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-muted-foreground" />
-                  <CardTitle className="text-base">Meal History</CardTitle>
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                    {recentMealLogs.length} days
-                  </span>
-                </div>
-                {expandedHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </div>
-            </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="pt-0">
-              {historySummariesLoading ? (
-                <div className="flex justify-center p-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : recentMealLogs.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No meal entries yet. Save your meals to see history here.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {recentMealLogs.map((log) => {
+            <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </motion.div>
+        </button>
+        
+        <AnimatePresence>
+          {showHistory && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="px-5 pb-5 space-y-3">
+                {historySummariesLoading ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                  </div>
+                ) : recentMealLogs.length === 0 ? (
+                  <div className="text-center py-6 text-slate-500">
+                    <Clock className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm">No meal entries yet</p>
+                  </div>
+                ) : (
+                  recentMealLogs.map((log, index) => {
                     const isToday = log.date === today;
                     const dateLabel = isToday ? "Today" : format(parseISO(log.date), "EEE, MMM d");
                     return (
-                      <div 
-                        key={log.id} 
-                        className={`p-3 rounded-lg border ${isToday ? 'border-primary/30 bg-primary/5' : 'border-border/50 bg-muted/20'}`}
+                      <motion.div
+                        key={log.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className={cn(
+                          "p-4 rounded-xl border",
+                          isToday 
+                            ? "bg-gradient-to-r from-cyan-50/50 to-indigo-50/50 border-indigo-200" 
+                            : "bg-slate-50/50 border-slate-200"
+                        )}
                         data-testid={`meal-log-${log.date}`}
                       >
-                        <div className="flex items-center gap-2 mb-2">
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                          <span className={`text-sm font-medium ${isToday ? 'text-primary' : ''}`}>
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className={cn(
+                            "text-sm font-medium",
+                            isToday ? "text-indigo-600" : "text-slate-700"
+                          )}>
                             {dateLabel}
                           </span>
                         </div>
-                        <div className="grid grid-cols-3 gap-3 text-sm">
-                          <div>
-                            <span className="text-muted-foreground text-xs">Breakfast</span>
-                            <p className="font-medium truncate" title={log.breakfast || undefined}>
-                              {log.breakfast || <span className="text-muted-foreground italic">-</span>}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground text-xs">Lunch</span>
-                            <p className="font-medium truncate" title={log.lunch || undefined}>
-                              {log.lunch || <span className="text-muted-foreground italic">-</span>}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground text-xs">Dinner</span>
-                            <p className="font-medium truncate" title={log.dinner || undefined}>
-                              {log.dinner || <span className="text-muted-foreground italic">-</span>}
-                            </p>
-                          </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          {(["breakfast", "lunch", "dinner"] as const).map((mealType) => {
+                            const config = mealConfig[mealType];
+                            const meal = log[mealType];
+                            const Icon = config.icon;
+                            return (
+                              <div key={mealType} className="space-y-1">
+                                <div className="flex items-center gap-1.5">
+                                  <Icon className={cn("w-3.5 h-3.5", config.iconColor)} />
+                                  <span className="text-xs text-slate-500">{config.label}</span>
+                                </div>
+                                <p className={cn(
+                                  "text-sm font-medium truncate",
+                                  meal ? "text-slate-700" : "text-slate-400 italic"
+                                )} title={meal || undefined}>
+                                  {meal || "—"}
+                                </p>
+                              </div>
+                            );
+                          })}
                         </div>
-                      </div>
+                      </motion.div>
                     );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
+                  })
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       <Dialog open={recipeDialogOpen} onOpenChange={setRecipeDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <ChefHat className="w-5 h-5 text-amber-500" />
+              <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                <ChefHat className="w-4 h-4 text-indigo-600" />
+              </div>
               {selectedRecipe?.name}
             </DialogTitle>
             <DialogDescription>Recipe and cooking instructions</DialogDescription>
@@ -429,7 +516,7 @@ export function FoodTracker() {
                   <Button 
                     onClick={handleSaveRecipe}
                     disabled={updateRecipeMutation.isPending}
-                    className="flex-1 gap-2"
+                    className="flex-1 gap-2 bg-indigo-500 hover:bg-indigo-600"
                   >
                     {updateRecipeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Save Recipe
@@ -439,16 +526,16 @@ export function FoodTracker() {
             ) : (
               <>
                 {selectedRecipe?.description ? (
-                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
-                    <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
+                  <div className="bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-200 rounded-xl p-4">
+                    <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed text-slate-700">
                       {selectedRecipe.description}
                     </pre>
                   </div>
                 ) : (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <ChefHat className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                    <p>No recipe added yet</p>
-                    <p className="text-sm">Add cooking steps to reference later</p>
+                  <div className="text-center py-8 text-slate-500">
+                    <ChefHat className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="font-medium">No recipe added yet</p>
+                    <p className="text-sm text-slate-400">Add cooking steps to reference later</p>
                   </div>
                 )}
                 <Button 
@@ -469,148 +556,100 @@ export function FoodTracker() {
 }
 
 function MealSection({
-  label,
-  emoji,
-  options,
-  selected,
-  onSelect,
-  onDelete,
-  testIdPrefix,
-}: {
-  label: string;
-  emoji: string;
-  options: FoodOption[];
-  selected: string;
-  onSelect: (val: string) => void;
-  onDelete: (id: string) => void;
-  testIdPrefix: string;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label className="text-base font-medium flex items-center gap-2">
-        <span>{emoji}</span> {label}
-      </Label>
-      {options.length === 0 ? (
-        <p className="text-sm text-muted-foreground italic pl-6">No options yet. Add one above!</p>
-      ) : (
-        <div className="grid gap-2">
-          {options.map((opt) => (
-            <div
-              key={opt.id}
-              className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
-                selected === opt.name
-                  ? "border-primary bg-primary/10"
-                  : "border-border/50 hover:border-border hover:bg-muted/30"
-              }`}
-              onClick={() => onSelect(opt.name)}
-              data-testid={`option-${testIdPrefix}-${opt.id}`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                  selected === opt.name ? "border-primary bg-primary" : "border-muted-foreground/30"
-                }`}>
-                  {selected === opt.name && <Check className="w-3 h-3 text-primary-foreground" />}
-                </div>
-                <span className={selected === opt.name ? "font-medium" : ""}>{opt.name}</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(opt.id);
-                }}
-                data-testid={`delete-${testIdPrefix}-${opt.id}`}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function DinnerSection({
+  mealType,
   options,
   selected,
   onSelect,
   onDelete,
   onShowRecipe,
 }: {
+  mealType: "breakfast" | "lunch" | "dinner";
   options: FoodOption[];
   selected: string;
   onSelect: (val: string) => void;
   onDelete: (id: string) => void;
   onShowRecipe: (opt: FoodOption) => void;
 }) {
+  const config = mealConfig[mealType];
+  const Icon = config.icon;
+
   return (
-    <div className="space-y-2">
-      <Label className="text-base font-medium flex items-center gap-2">
-        <span>🌙</span> Dinner
-        <span className="text-xs text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-          <ChefHat className="w-3 h-3" /> with recipes
-        </span>
-      </Label>
+    <div className={cn(
+      "rounded-xl border p-4 bg-gradient-to-br transition-all",
+      config.gradient,
+      config.border
+    )}>
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", config.iconBg)}>
+          <Icon className={cn("w-4 h-4", config.iconColor)} />
+        </div>
+        <span className={cn("font-medium", config.accentColor)}>{config.label}</span>
+        {mealType === "dinner" && (
+          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600">
+            <ChefHat className="w-3 h-3" /> recipes
+          </span>
+        )}
+      </div>
+
       {options.length === 0 ? (
-        <p className="text-sm text-muted-foreground italic pl-6">No dinner options yet. Add one above!</p>
+        <p className="text-sm text-slate-500 italic pl-10">No options yet — add one above!</p>
       ) : (
-        <div className="grid gap-2">
-          {options.map((opt) => (
-            <div
-              key={opt.id}
-              className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
-                selected === opt.name
-                  ? "border-primary bg-primary/10"
-                  : "border-border/50 hover:border-border hover:bg-muted/30"
-              }`}
-              onClick={() => onSelect(opt.name)}
-              data-testid={`option-dinner-${opt.id}`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                  selected === opt.name ? "border-primary bg-primary" : "border-muted-foreground/30"
-                }`}>
-                  {selected === opt.name && <Check className="w-3 h-3 text-primary-foreground" />}
-                </div>
-                <div className="flex flex-col">
-                  <span className={selected === opt.name ? "font-medium" : ""}>{opt.name}</span>
-                  {opt.description && (
-                    <span className="text-xs text-amber-600">Has recipe</span>
+        <div className="flex flex-wrap gap-2">
+          <AnimatePresence mode="popLayout">
+            {options.map((opt) => (
+              <motion.div
+                key={opt.id}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="group relative flex items-center gap-1"
+              >
+                <button
+                  onClick={() => onSelect(selected === opt.name ? "" : opt.name)}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all text-sm font-medium",
+                    selected === opt.name
+                      ? `${config.selectedBg} ${config.selectedBorder} ${config.accentColor}`
+                      : "bg-white/80 border-slate-200 text-slate-700 hover:border-slate-300"
                   )}
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 gap-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onShowRecipe(opt);
-                  }}
-                  data-testid={`recipe-dinner-${opt.id}`}
+                  data-testid={`option-${mealType}-${opt.id}`}
                 >
-                  <ChefHat className="w-4 h-4" />
-                  <span className="text-xs">Recipe</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(opt.id);
-                  }}
-                  data-testid={`delete-dinner-${opt.id}`}
+                  <div className={cn(
+                    "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                    selected === opt.name 
+                      ? `${config.selectedBorder} ${config.selectedBg}` 
+                      : "border-slate-300"
+                  )}>
+                    {selected === opt.name && <Check className="w-3 h-3" />}
+                  </div>
+                  {opt.name}
+                </button>
+                {mealType === "dinner" && (
+                  <button
+                    onClick={() => onShowRecipe(opt)}
+                    className={cn(
+                      "p-1.5 rounded-lg transition-all",
+                      opt.description 
+                        ? "bg-indigo-100 text-indigo-600 hover:bg-indigo-200" 
+                        : "bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600"
+                    )}
+                    title={opt.description ? "View recipe" : "Add recipe"}
+                    data-testid={`recipe-${opt.id}`}
+                  >
+                    <ChefHat className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <button
+                  onClick={() => onDelete(opt.id)}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-sm hover:bg-rose-600"
+                  data-testid={`delete-${mealType}-${opt.id}`}
                 >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
+                  <X className="w-3 h-3" />
+                </button>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>
