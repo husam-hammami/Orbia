@@ -1,16 +1,26 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, RotateCcw, Volume2, VolumeX, SkipForward, Bell } from "lucide-react";
+import { Play, Pause, RotateCcw, Volume2, VolumeX, SkipForward, Bell, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useWorkTimer } from "@/hooks/use-work-timer";
 import { cn } from "@/lib/utils";
 
 const WORK_SESSION_MINUTES = 45;
 const BREAK_DURATION_MINUTES = 5;
+const AUTO_START_STORAGE_KEY = "neurozen-timer-autostart";
 
 export function WorkTimer() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [particles, setParticles] = useState<Array<{ id: number; angle: number; delay: number }>>([]);
+  const [autoStartEnabled, setAutoStartEnabled] = useState(() => {
+    const stored = localStorage.getItem(AUTO_START_STORAGE_KEY);
+    return stored === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem(AUTO_START_STORAGE_KEY, String(autoStartEnabled));
+  }, [autoStartEnabled]);
 
   const {
     state,
@@ -26,9 +36,12 @@ export function WorkTimer() {
     completedIntervals,
     isBreakTime,
     testSound,
+    isInWorkBlock,
+    currentBlockName,
   } = useWorkTimer({
     durationMinutes: WORK_SESSION_MINUTES,
     breakDurationMinutes: BREAK_DURATION_MINUTES,
+    autoStartEnabled,
   });
 
   // Generate ambient particles
@@ -502,6 +515,40 @@ export function WorkTimer() {
                   </span>
                 </motion.div>
               )}
+
+              {/* Work block indicator & Auto-start toggle */}
+              <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
+                {/* Current work block indicator */}
+                {isInWorkBlock && currentBlockName && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-center justify-center gap-2"
+                  >
+                    <Zap className="w-3 h-3 text-amber-500" />
+                    <span className="text-xs text-amber-500 font-medium">
+                      {currentBlockName}
+                    </span>
+                  </motion.div>
+                )}
+
+                {/* Auto-start toggle */}
+                <div className="flex items-center justify-between gap-3 px-2">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-medium text-foreground/80">
+                      Auto-start in work blocks
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      9-13h & 14-18h from routine
+                    </span>
+                  </div>
+                  <Switch
+                    checked={autoStartEnabled}
+                    onCheckedChange={setAutoStartEnabled}
+                    data-testid="timer-autostart-switch"
+                  />
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
