@@ -19,7 +19,12 @@ import {
   Music,
   Users,
   Home,
-  Zap
+  Zap,
+  Link2,
+  Pencil,
+  SkipForward,
+  Droplet,
+  CircleDot
 } from "lucide-react";
 import { useRoutineBlocks, useRoutineActivities, useRoutineLogs, useToggleRoutineActivity, useHabits } from "@/lib/api-hooks";
 import { cn } from "@/lib/utils";
@@ -43,6 +48,26 @@ function getBlockIcon(name: string, storedIcon?: string | null) {
   if (nameLower.includes("exercise") || nameLower.includes("gym") || nameLower.includes("workout")) return Dumbbell;
   if (nameLower.includes("learn") || nameLower.includes("study") || nameLower.includes("read")) return BookOpen;
   return Activity;
+}
+
+function getActivityIcon(name: string) {
+  const nameLower = name.toLowerCase();
+  if (nameLower.includes("wake") || nameLower.includes("sleep") || nameLower.includes("bed")) return Bed;
+  if (nameLower.includes("meal") || nameLower.includes("eat") || nameLower.includes("food") || 
+      nameLower.includes("breakfast") || nameLower.includes("lunch") || nameLower.includes("dinner")) return Utensils;
+  if (nameLower.includes("water") || nameLower.includes("drink")) return Droplet;
+  if (nameLower.includes("stretch") || nameLower.includes("exercise") || 
+      nameLower.includes("workout") || nameLower.includes("gym")) return Dumbbell;
+  if (nameLower.includes("journal") || nameLower.includes("write") || nameLower.includes("log")) return BookOpen;
+  if (nameLower.includes("work") || nameLower.includes("prep")) return Briefcase;
+  if (nameLower.includes("rest") || nameLower.includes("quiet")) return Coffee;
+  return CircleDot;
+}
+
+function isActivityPast(activityTime: string | null): boolean {
+  if (!activityTime) return false;
+  const now = format(new Date(), "HH:mm");
+  return activityTime < now;
 }
 
 export function RoutineTimeline() {
@@ -373,6 +398,9 @@ export function RoutineTimeline() {
                     {sortedActivities.map((activity, idx) => {
                       const isActivityComplete = completedActivityIds.has(activity.id);
                       const isLast = idx === sortedActivities.length - 1;
+                      const isPast = isActivityPast(activity.time);
+                      const shouldFade = isPast && !isActivityComplete;
+                      const ActivityIcon = getActivityIcon(activity.name);
 
                       return (
                         <motion.div
@@ -380,7 +408,10 @@ export function RoutineTimeline() {
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: idx * 0.03 }}
-                          className="flex gap-4 group cursor-pointer"
+                          className={cn(
+                            "flex gap-4 group cursor-pointer",
+                            shouldFade && "opacity-60"
+                          )}
                           onClick={() => handleToggleActivity(activity.id, activity.habitId)}
                           data-testid={`activity-card-${activity.id}`}
                         >
@@ -398,13 +429,22 @@ export function RoutineTimeline() {
                           <div className="relative flex flex-col items-center">
                             {/* Node */}
                             <div className="relative">
-                              <button
+                              <motion.button
                                 className={cn(
                                   "relative z-10 w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 shrink-0",
                                   isActivityComplete 
                                     ? `${theme.nodeBg} border-white text-white shadow-sm` 
                                     : "bg-white border-slate-300 group-hover:border-slate-400 group-hover:shadow-md"
                                 )}
+                                animate={isActivityComplete ? {
+                                  scale: [1, 1.2, 1],
+                                  boxShadow: [
+                                    "0 0 0 0 rgba(99, 102, 241, 0)",
+                                    "0 0 12px 4px rgba(99, 102, 241, 0.4)",
+                                    "0 0 0 0 rgba(99, 102, 241, 0)"
+                                  ]
+                                } : {}}
+                                transition={{ duration: 0.4 }}
                                 data-testid={`activity-checkbox-${activity.id}`}
                               >
                                 {isActivityComplete && (
@@ -416,7 +456,7 @@ export function RoutineTimeline() {
                                     <Check className="w-4 h-4" />
                                   </motion.div>
                                 )}
-                              </button>
+                              </motion.button>
                             </div>
                             
                             {/* Connector Line */}
@@ -436,23 +476,66 @@ export function RoutineTimeline() {
                           )}>
                             <div className="relative">
                               <div className={cn(
-                                "relative p-3 rounded-xl border transition-all",
+                                "relative p-3 rounded-xl border-l-4 border transition-all",
                                 isActivityComplete 
                                   ? `${theme.completedBg} ${theme.completedBorder} shadow-sm` 
-                                  : "bg-white border-slate-200 group-hover:border-slate-300 group-hover:shadow-sm"
-                              )}>
-                              <span className={cn(
-                                "text-sm font-semibold block",
-                                isActivityComplete ? `${theme.iconColor} line-through` : "text-slate-800"
-                              )}>
-                                {activity.name}
-                              </span>
-                              
-                              {activity.description && (
-                                <p className="text-xs text-slate-500 mt-1">
-                                  {activity.description}
-                                </p>
+                                  : "bg-white border-slate-200 group-hover:border-slate-300 group-hover:shadow-sm",
+                                isActivityComplete ? theme.borderColor : theme.borderColor
                               )}
+                              style={{ borderLeftColor: theme.accentColor }}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <ActivityIcon className={cn(
+                                        "w-3.5 h-3.5 shrink-0",
+                                        isActivityComplete ? theme.iconColor : "text-slate-400"
+                                      )} />
+                                      <span className={cn(
+                                        "text-sm font-semibold",
+                                        isActivityComplete ? `${theme.iconColor} line-through` : "text-slate-800"
+                                      )}>
+                                        {activity.name}
+                                      </span>
+                                      {activity.habitId && (
+                                        <span className={cn(
+                                          "inline-flex items-center justify-center w-5 h-5 rounded-full shrink-0",
+                                          theme.iconBg
+                                        )}>
+                                          <Link2 className={cn("w-3 h-3", theme.iconColor)} />
+                                        </span>
+                                      )}
+                                    </div>
+                              
+                                    {activity.description && (
+                                      <p className="text-xs text-slate-400 italic mt-1">
+                                        {activity.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Hover Actions */}
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); }}
+                                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
+                                      data-testid={`activity-edit-${activity.id}`}
+                                      aria-label="Edit activity"
+                                      title="Edit"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); }}
+                                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
+                                      data-testid={`activity-skip-${activity.id}`}
+                                      aria-label="Skip activity"
+                                      title="Skip"
+                                    >
+                                      <SkipForward className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
