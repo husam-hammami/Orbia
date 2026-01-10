@@ -251,43 +251,38 @@ function AIInsightDisplay({ content }: { content: string }) {
     const t = title.toLowerCase();
     if (t.includes("facts")) return { 
       icon: Activity, 
-      gradient: "from-blue-500 to-indigo-500",
-      bg: "bg-blue-50/50",
-      border: "border-blue-100",
-      iconBg: "bg-blue-100",
-      iconColor: "text-blue-600"
+      bg: "bg-slate-50/60",
+      border: "border-slate-200/60",
+      iconBg: "bg-slate-100",
+      iconColor: "text-slate-500"
     };
     if (t.includes("driver")) return { 
       icon: Target, 
-      gradient: "from-violet-500 to-purple-500",
-      bg: "bg-violet-50/50",
-      border: "border-violet-100",
-      iconBg: "bg-violet-100",
-      iconColor: "text-violet-600"
+      bg: "bg-slate-50/60",
+      border: "border-slate-200/60",
+      iconBg: "bg-slate-100",
+      iconColor: "text-slate-500"
     };
     if (t.includes("pattern")) return { 
       icon: Network, 
-      gradient: "from-amber-500 to-orange-500",
-      bg: "bg-amber-50/50",
-      border: "border-amber-100",
-      iconBg: "bg-amber-100",
-      iconColor: "text-amber-600"
+      bg: "bg-slate-50/60",
+      border: "border-slate-200/60",
+      iconBg: "bg-slate-100",
+      iconColor: "text-slate-500"
     };
     if (t.includes("action")) return { 
       icon: CheckCircle, 
-      gradient: "from-emerald-500 to-teal-500",
-      bg: "bg-emerald-50/50",
-      border: "border-emerald-100",
-      iconBg: "bg-emerald-100",
-      iconColor: "text-emerald-600"
+      bg: "bg-slate-50/60",
+      border: "border-slate-200/60",
+      iconBg: "bg-slate-100",
+      iconColor: "text-slate-500"
     };
     return { 
       icon: Brain, 
-      gradient: "from-slate-400 to-slate-500",
-      bg: "bg-slate-50/50",
-      border: "border-slate-100",
+      bg: "bg-slate-50/60",
+      border: "border-slate-200/60",
       iconBg: "bg-slate-100",
-      iconColor: "text-slate-600"
+      iconColor: "text-slate-500"
     };
   };
 
@@ -303,9 +298,9 @@ function AIInsightDisplay({ content }: { content: string }) {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.15 }}
-                className="px-3 py-1.5 rounded-lg bg-white border border-amber-200 shadow-sm"
+                className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-sm"
               >
-                <span className="text-sm font-medium text-amber-700">{step.replace(/[\[\]]/g, '')}</span>
+                <span className="text-sm font-medium text-slate-600">{step.replace(/[\[\]]/g, '')}</span>
               </motion.div>
               {i < steps.length - 1 && (
                 <motion.div
@@ -313,7 +308,7 @@ function AIInsightDisplay({ content }: { content: string }) {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.15 + 0.1 }}
                 >
-                  <ArrowRight className="w-4 h-4 text-amber-400" />
+                  <ArrowRight className="w-4 h-4 text-slate-400" />
                 </motion.div>
               )}
             </div>
@@ -339,13 +334,13 @@ function AIInsightDisplay({ content }: { content: string }) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="flex items-start gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-100"
+            className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200"
           >
-            <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <CheckCircle className="w-3.5 h-3.5 text-white" />
+            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <CheckCircle className="w-3.5 h-3.5 text-slate-600" />
             </div>
             <div>
-              <span className="text-xs font-semibold text-emerald-600 uppercase">Do</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase">Do</span>
               <p className="text-sm text-slate-700 mt-0.5">{item.replace(/^[•\-]\s*Do:\s*/i, '')}</p>
             </div>
           </motion.div>
@@ -356,13 +351,13 @@ function AIInsightDisplay({ content }: { content: string }) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: (doItems.length + i) * 0.1 }}
-            className="flex items-start gap-3 p-3 rounded-xl bg-rose-50 border border-rose-100"
+            className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200"
           >
-            <div className="w-6 h-6 rounded-full bg-rose-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <XCircle className="w-3.5 h-3.5 text-white" />
+            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <XCircle className="w-3.5 h-3.5 text-slate-600" />
             </div>
             <div>
-              <span className="text-xs font-semibold text-rose-600 uppercase">Avoid</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase">Avoid</span>
               <p className="text-sm text-slate-700 mt-0.5">{item.replace(/^[•\-]\s*Avoid:\s*/i, '')}</p>
             </div>
           </motion.div>
@@ -410,11 +405,10 @@ function AIInsightDisplay({ content }: { content: string }) {
                   
                   if (trimmed.toLowerCase().includes('confidence:')) {
                     const conf = trimmed.includes('High') ? 'High' : trimmed.includes('Medium') ? 'Medium' : 'Low';
-                    const confColor = conf === 'High' ? 'bg-emerald-100 text-emerald-700' : conf === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600';
                     return (
                       <div key={i} className="flex items-center gap-2">
                         <span className="text-sm text-slate-600">Confidence:</span>
-                        <Badge className={cn("text-xs", confColor)}>{conf}</Badge>
+                        <Badge className="text-xs bg-slate-100 text-slate-600 border-slate-200">{conf}</Badge>
                       </div>
                     );
                   }
