@@ -372,7 +372,9 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertTransactionSchema = createInsertSchema(transactions).omit({
+export const insertTransactionSchema = createInsertSchema(transactions, {
+  date: z.coerce.date(),
+}).omit({
   id: true,
   createdAt: true,
 });
