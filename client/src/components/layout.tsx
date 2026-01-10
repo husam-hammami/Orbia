@@ -73,11 +73,12 @@ function Sidebar({ className }: SidebarProps) {
       "bg-white/70 backdrop-blur-xl border-r border-slate-200/60",
       className
     )}>
-      <div className="mb-3 -mx-3 overflow-hidden">
+      <div className="mb-4 -mx-3 py-4 px-2">
         <img 
           src={logoUrl} 
           alt="Orbia Logo" 
-          className="w-full max-w-none h-auto object-contain" 
+          className="w-[120%] max-w-none h-auto object-contain -ml-[10%]" 
+          style={{ imageRendering: 'crisp-edges' }}
         />
       </div>
 
