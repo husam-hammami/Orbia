@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, jsonb, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, jsonb, serial, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -34,7 +34,7 @@ export const trackerEntries = pgTable("tracker_entries", {
   dissociation: integer("dissociation").notNull(), // 0-100
   stress: integer("stress").notNull(), // 0-100
   energy: integer("energy").notNull(), // 1-10 scale
-  sleepHours: integer("sleep_hours"), // Hours of sleep (0-24)
+  sleepHours: real("sleep_hours"), // Hours of sleep (0-24, allows decimals like 7.5)
   sleepQuality: integer("sleep_quality"), // 0-10 scale for sleep quality
   capacity: integer("capacity"), // 0-5 scale (how much capacity do I have right now?)
   pain: integer("pain"), // 0-10 scale for pain level
