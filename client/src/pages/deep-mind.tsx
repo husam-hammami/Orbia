@@ -232,6 +232,223 @@ function EmptyState({ icon: Icon, title, description }: { icon: any; title: stri
   );
 }
 
+function AIInsightDisplay({ content }: { content: string }) {
+  const parseInsight = (text: string) => {
+    const sections: { title: string; content: string }[] = [];
+    const parts = text.split(/\*\*([^*]+)\*\*/);
+    
+    for (let i = 1; i < parts.length; i += 2) {
+      const title = parts[i];
+      const body = parts[i + 1] || "";
+      sections.push({ title, content: body.trim() });
+    }
+    return sections;
+  };
+
+  const sections = parseInsight(content);
+  
+  const getConfig = (title: string) => {
+    const t = title.toLowerCase();
+    if (t.includes("facts")) return { 
+      icon: Activity, 
+      gradient: "from-blue-500 to-indigo-500",
+      bg: "bg-blue-50/50",
+      border: "border-blue-100",
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600"
+    };
+    if (t.includes("driver")) return { 
+      icon: Target, 
+      gradient: "from-violet-500 to-purple-500",
+      bg: "bg-violet-50/50",
+      border: "border-violet-100",
+      iconBg: "bg-violet-100",
+      iconColor: "text-violet-600"
+    };
+    if (t.includes("pattern")) return { 
+      icon: Network, 
+      gradient: "from-amber-500 to-orange-500",
+      bg: "bg-amber-50/50",
+      border: "border-amber-100",
+      iconBg: "bg-amber-100",
+      iconColor: "text-amber-600"
+    };
+    if (t.includes("action")) return { 
+      icon: CheckCircle, 
+      gradient: "from-emerald-500 to-teal-500",
+      bg: "bg-emerald-50/50",
+      border: "border-emerald-100",
+      iconBg: "bg-emerald-100",
+      iconColor: "text-emerald-600"
+    };
+    return { 
+      icon: Brain, 
+      gradient: "from-slate-400 to-slate-500",
+      bg: "bg-slate-50/50",
+      border: "border-slate-100",
+      iconBg: "bg-slate-100",
+      iconColor: "text-slate-600"
+    };
+  };
+
+  const renderPatternFlow = (text: string) => {
+    const arrowMatch = text.match(/Cycle:\s*(.+)/i);
+    if (arrowMatch) {
+      const steps = arrowMatch[1].split(/\s*[→➡]\s*/);
+      return (
+        <div className="flex items-center gap-2 flex-wrap py-2">
+          {steps.map((step, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.15 }}
+                className="px-3 py-1.5 rounded-lg bg-white border border-amber-200 shadow-sm"
+              >
+                <span className="text-sm font-medium text-amber-700">{step.replace(/[\[\]]/g, '')}</span>
+              </motion.div>
+              {i < steps.length - 1 && (
+                <motion.div
+                  initial={{ opacity: 0, x: -5 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.15 + 0.1 }}
+                >
+                  <ArrowRight className="w-4 h-4 text-amber-400" />
+                </motion.div>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const renderActionItems = (text: string) => {
+    const lines = text.split('\n').filter(l => l.trim());
+    const doItems = lines.filter(l => l.toLowerCase().includes('do:'));
+    const avoidItems = lines.filter(l => l.toLowerCase().includes('avoid:'));
+    
+    if (doItems.length === 0 && avoidItems.length === 0) return null;
+    
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2">
+        {doItems.map((item, i) => (
+          <motion.div
+            key={`do-${i}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+            className="flex items-start gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-100"
+          >
+            <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <CheckCircle className="w-3.5 h-3.5 text-white" />
+            </div>
+            <div>
+              <span className="text-xs font-semibold text-emerald-600 uppercase">Do</span>
+              <p className="text-sm text-slate-700 mt-0.5">{item.replace(/^[•\-]\s*Do:\s*/i, '')}</p>
+            </div>
+          </motion.div>
+        ))}
+        {avoidItems.map((item, i) => (
+          <motion.div
+            key={`avoid-${i}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: (doItems.length + i) * 0.1 }}
+            className="flex items-start gap-3 p-3 rounded-xl bg-rose-50 border border-rose-100"
+          >
+            <div className="w-6 h-6 rounded-full bg-rose-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <XCircle className="w-3.5 h-3.5 text-white" />
+            </div>
+            <div>
+              <span className="text-xs font-semibold text-rose-600 uppercase">Avoid</span>
+              <p className="text-sm text-slate-700 mt-0.5">{item.replace(/^[•\-]\s*Avoid:\s*/i, '')}</p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
+      {sections.map((section, idx) => {
+        const config = getConfig(section.title);
+        const Icon = config.icon;
+        const isPattern = section.title.toLowerCase().includes("pattern");
+        const isAction = section.title.toLowerCase().includes("action");
+        
+        return (
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.1, duration: 0.4 }}
+            className={cn(
+              "rounded-xl p-4 border",
+              config.bg,
+              config.border,
+              (isPattern || isAction) && "md:col-span-2"
+            )}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", config.iconBg)}>
+                <Icon className={cn("w-4 h-4", config.iconColor)} />
+              </div>
+              <h3 className="text-sm font-semibold text-slate-700">{section.title}</h3>
+            </div>
+            
+            {isPattern && renderPatternFlow(section.content)}
+            {isAction && renderActionItems(section.content)}
+            
+            {!isPattern && !isAction && (
+              <div className="space-y-1.5">
+                {section.content.split('\n').map((line, i) => {
+                  const trimmed = line.trim();
+                  if (!trimmed) return null;
+                  
+                  if (trimmed.toLowerCase().includes('confidence:')) {
+                    const conf = trimmed.includes('High') ? 'High' : trimmed.includes('Medium') ? 'Medium' : 'Low';
+                    const confColor = conf === 'High' ? 'bg-emerald-100 text-emerald-700' : conf === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600';
+                    return (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-sm text-slate-600">Confidence:</span>
+                        <Badge className={cn("text-xs", confColor)}>{conf}</Badge>
+                      </div>
+                    );
+                  }
+                  
+                  if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
+                    return (
+                      <div key={i} className="flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0" />
+                        <span className="text-sm text-slate-600">{trimmed.replace(/^[•\-]\s*/, '')}</span>
+                      </div>
+                    );
+                  }
+                  
+                  return <p key={i} className="text-sm text-slate-600">{trimmed}</p>;
+                })}
+              </div>
+            )}
+            
+            {(isPattern || isAction) && !renderPatternFlow(section.content) && !renderActionItems(section.content) && (
+              <div className="space-y-1.5">
+                {section.content.split('\n').map((line, i) => {
+                  const trimmed = line.trim();
+                  if (!trimmed) return null;
+                  return <p key={i} className="text-sm text-slate-600">{trimmed.replace(/^[•\-]\s*/, '')}</p>;
+                })}
+              </div>
+            )}
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function DeepMind() {
   const [activeTab, setActiveTab] = useState("now");
   const [sleepMetric, setSleepMetric] = useState<"mood" | "dissociation" | "urges">("mood");
@@ -1024,59 +1241,23 @@ export default function DeepMind() {
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-0">
                     {aiInsight ? (
-                      <div className="space-y-6">
-                        {aiInsight.split(/\*\*([^*]+)\*\*/).map((section, idx) => {
-                          if (idx % 2 === 1) {
-                            const sectionName = section.toLowerCase();
-                            let accentColor = "bg-slate-300";
-                            
-                            if (sectionName.includes("facts")) {
-                              accentColor = "bg-blue-400";
-                            } else if (sectionName.includes("driver")) {
-                              accentColor = "bg-violet-400";
-                            } else if (sectionName.includes("pattern")) {
-                              accentColor = "bg-amber-400";
-                            } else if (sectionName.includes("action")) {
-                              accentColor = "bg-emerald-400";
-                            }
-                            
-                            return (
-                              <div key={idx} className="flex items-center gap-2 pt-2">
-                                <div className={`w-1 h-4 rounded-full ${accentColor}`} />
-                                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                  {section}
-                                </h3>
-                              </div>
-                            );
-                          } else if (section.trim()) {
-                            return (
-                              <div key={idx} className="space-y-1.5 -mt-1">
-                                {section.split('\n').map((line, lineIdx) => {
-                                  const trimmedLine = line.trim();
-                                  if (!trimmedLine) return null;
-                                  
-                                  if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
-                                    return (
-                                      <div key={lineIdx} className="flex items-start gap-2 pl-3">
-                                        <div className="w-1 h-1 rounded-full bg-slate-400 mt-2 flex-shrink-0" />
-                                        <span className="text-sm text-slate-700 leading-relaxed">{trimmedLine.replace(/^[•\-]\s*/, '')}</span>
-                                      </div>
-                                    );
-                                  }
-                                  return (
-                                    <p key={lineIdx} className="text-sm text-slate-700 leading-relaxed pl-3">{trimmedLine}</p>
-                                  );
-                                })}
-                              </div>
-                            );
-                          }
-                          return null;
-                        })}
+                      <AIInsightDisplay content={aiInsight} />
+                    ) : isLoadingInsight ? (
+                      <div className="text-center py-16 px-6">
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                          className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center"
+                        >
+                          <Brain className="w-8 h-8 text-teal-500" />
+                        </motion.div>
+                        <p className="text-sm text-slate-600 font-medium">Analyzing your patterns...</p>
+                        <p className="text-xs text-muted-foreground mt-1">This may take a moment</p>
                       </div>
                     ) : (
-                      <div className="text-center py-12">
+                      <div className="text-center py-16 px-6">
                         <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-slate-100 flex items-center justify-center">
                           <Brain className="w-7 h-7 text-slate-400" />
                         </div>
