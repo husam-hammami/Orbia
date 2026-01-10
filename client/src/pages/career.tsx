@@ -113,8 +113,8 @@ function CircularProgress({ progress, size = 64, strokeWidth = 6 }: { progress: 
         />
         <defs>
           <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#2dd4bf" />
-            <stop offset="100%" stopColor="#5eead4" />
+            <stop offset="0%" stopColor="#5eead4" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#99f6e4" stopOpacity="0.7" />
           </linearGradient>
         </defs>
       </svg>
@@ -132,7 +132,7 @@ function AnimatedCheckbox({ checked, onChange }: { checked: boolean; onChange: (
       className={cn(
         "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
         checked 
-          ? "bg-gradient-to-br from-teal-400 to-cyan-400 border-transparent" 
+          ? "bg-teal-500 border-transparent" 
           : "border-slate-300 dark:border-slate-600 hover:border-teal-400"
       )}
       whileTap={{ scale: 0.9 }}
@@ -803,14 +803,14 @@ export default function CareerPage() {
           <TabsList className={cn(glassCard, "w-full grid grid-cols-2 p-1 h-auto")}>
             <TabsTrigger 
               value="projects" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-400/80 data-[state=active]:to-cyan-300/80 data-[state=active]:text-white data-[state=active]:shadow-md py-2.5 rounded-xl transition-all"
+              className="relative data-[state=active]:bg-white/60 data-[state=active]:dark:bg-slate-800/60 data-[state=active]:text-teal-700 data-[state=active]:dark:text-teal-300 data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-1/2 data-[state=active]:after:-translate-x-1/2 data-[state=active]:after:w-8 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-teal-500/70 data-[state=active]:after:rounded-full"
             >
               <Rocket className="w-4 h-4 mr-2" />
               Projects
             </TabsTrigger>
             <TabsTrigger 
               value="coach" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-400/80 data-[state=active]:to-purple-300/80 data-[state=active]:text-white data-[state=active]:shadow-md py-2.5 rounded-xl transition-all"
+              className="relative data-[state=active]:bg-white/60 data-[state=active]:dark:bg-slate-800/60 data-[state=active]:text-violet-700 data-[state=active]:dark:text-violet-300 data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-1/2 data-[state=active]:after:-translate-x-1/2 data-[state=active]:after:w-8 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-violet-500/70 data-[state=active]:after:rounded-full"
             >
               <Compass className="w-4 h-4 mr-2" />
               Career Coach
@@ -826,7 +826,8 @@ export default function CareerPage() {
                 </h2>
                 <Button 
                   onClick={() => openProjectDialog(null)}
-                  className="bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white border-0 shadow-sm"
+                  variant="outline"
+                  className="border-teal-300 dark:border-teal-700 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20"
                   size="sm"
                 >
                   <Plus className="w-4 h-4 mr-2" /> New Project
@@ -933,7 +934,7 @@ export default function CareerPage() {
                   <Button 
                     type="submit" 
                     disabled={!newTask.trim() || createTask.isPending}
-                    className="bg-teal-500 hover:bg-teal-600 text-white border-0"
+                    className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-200 dark:hover:bg-slate-100 text-white dark:text-slate-900 border-0"
                   >
                     <Plus className="w-4 h-4 mr-2" /> Add Task
                   </Button>
@@ -997,7 +998,8 @@ export default function CareerPage() {
                 </p>
                 <Button 
                   onClick={fetchCoach}
-                  className="bg-gradient-to-r from-violet-400 to-purple-400 hover:from-violet-500 hover:to-purple-500 text-white border-0 shadow-sm"
+                  variant="outline"
+                  className="border-violet-300 dark:border-violet-700 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20"
                   size="lg"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
@@ -1046,7 +1048,7 @@ export default function CareerPage() {
                       Career Coach
                     </h3>
                     {coachData.weeklyTheme && (
-                      <Badge className="bg-gradient-to-r from-violet-400/70 to-purple-300/70 text-white border-0 text-xs shadow-sm">
+                      <Badge variant="outline" className="border-violet-200 dark:border-violet-700 text-violet-600 dark:text-violet-400 text-xs bg-violet-50/50 dark:bg-violet-900/20">
                         <Star className="w-3 h-3 mr-1" />
                         {coachData.weeklyTheme}
                       </Badge>
@@ -1099,7 +1101,7 @@ export default function CareerPage() {
                                     initial={{ width: 0 }}
                                     animate={{ width: `${phaseProgress}%` }}
                                     transition={{ duration: 0.5, ease: "easeOut" }}
-                                    className="h-full bg-gradient-to-r from-teal-400/70 to-cyan-300/70"
+                                    className="h-full bg-teal-400/60 dark:bg-teal-500/50"
                                   />
                                 </div>
                               )}
@@ -1407,7 +1409,7 @@ export default function CareerPage() {
                                 <motion.div
                                   initial={{ width: 0 }}
                                   animate={{ width: `${getPhaseProgressPercent(activePhaseIndex)}%` }}
-                                  className="h-full bg-gradient-to-r from-teal-400/80 to-cyan-300/80 rounded-full"
+                                  className="h-full bg-teal-400/60 dark:bg-teal-500/50 rounded-full"
                                 />
                               </div>
                               <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-2">
@@ -1531,7 +1533,7 @@ export default function CareerPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsVisionDialogOpen(false)}>Cancel</Button>
-              <Button onClick={saveVision} disabled={updateVisionMutation.isPending} className="bg-teal-500 hover:bg-teal-600 text-white border-0">
+              <Button onClick={saveVision} disabled={updateVisionMutation.isPending} className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-200 dark:hover:bg-slate-100 text-white dark:text-slate-900 border-0">
                 {updateVisionMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 Save Changes
               </Button>
@@ -1622,7 +1624,7 @@ export default function CareerPage() {
                   <X className="w-4 h-4 mr-1" /> Delete
                 </Button>
               )}
-              <Button onClick={handleSaveTask} disabled={updateTask.isPending} className="bg-teal-500 hover:bg-teal-600 text-white border-0">
+              <Button onClick={handleSaveTask} disabled={updateTask.isPending} className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-200 dark:hover:bg-slate-100 text-white dark:text-slate-900 border-0">
                 {updateTask.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 Save
               </Button>
@@ -1720,7 +1722,7 @@ export default function CareerPage() {
                       size="sm"
                       onClick={handleAddEditingTask}
                       disabled={!newEditingProjectTask.trim()}
-                      className="bg-teal-500 hover:bg-teal-600 text-white border-0"
+                      className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-200 dark:hover:bg-slate-100 text-white dark:text-slate-900 border-0"
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
@@ -1792,7 +1794,7 @@ export default function CareerPage() {
                   <X className="w-4 h-4 mr-1" /> Delete
                 </Button>
               )}
-              <Button onClick={handleSaveProject} disabled={updateProject.isPending || createProject.isPending} className="bg-teal-500 hover:bg-teal-600 text-white border-0">
+              <Button onClick={handleSaveProject} disabled={updateProject.isPending || createProject.isPending} className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-200 dark:hover:bg-slate-100 text-white dark:text-slate-900 border-0">
                 {(updateProject.isPending || createProject.isPending) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 {selectedProject?.id ? "Save Changes" : "Create Project"}
               </Button>
@@ -1840,7 +1842,7 @@ export default function CareerPage() {
                       </div>
                       <div className="w-48 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                         <motion.div 
-                          className="h-full bg-gradient-to-r from-teal-400/80 to-cyan-300/80 rounded-full"
+                          className="h-full bg-teal-400/60 dark:bg-teal-500/50 rounded-full"
                           initial={{ width: 0 }}
                           animate={{ width: `${progress}%` }}
                           transition={{ duration: 0.5 }}
@@ -1900,7 +1902,7 @@ export default function CareerPage() {
                         size="sm"
                         onClick={() => handleAddProjectTask(selectedProject.id)}
                         disabled={!newProjectTask.trim() || createTask.isPending}
-                        className="bg-teal-500 hover:bg-teal-600 text-white border-0"
+                        className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-200 dark:hover:bg-slate-100 text-white dark:text-slate-900 border-0"
                       >
                         {createTask.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                       </Button>
@@ -2003,7 +2005,8 @@ export default function CareerPage() {
                   setLogWinText("");
                   setIsLogWinDialogOpen(false);
                 }}
-                className="bg-amber-500 hover:bg-amber-600 text-white border-0"
+                variant="outline"
+                className="border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
               >
                 <Trophy className="w-4 h-4 mr-2" />
                 Save Win
