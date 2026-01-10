@@ -300,6 +300,55 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/export", async (req, res) => {
+    try {
+      const [settings, habits, habitCompletions, routineBlocks, routineActivities, 
+             trackerEntries, journalEntries, todos, members, visionItems, 
+             dailySummaries, expenses, transactions] = await Promise.all([
+        storage.getSettings(),
+        storage.getAllHabits(),
+        storage.getAllHabitCompletions(),
+        storage.getRoutineBlocks(),
+        storage.getRoutineActivities(),
+        storage.getRecentTrackerEntries(10000),
+        storage.getAllJournalEntries(),
+        storage.getAllTodos(),
+        storage.getAllMembers(),
+        storage.getVision(),
+        storage.getAllDailySummaries(),
+        storage.getExpenses(),
+        storage.getTransactions(),
+      ]);
+      
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        version: "1.0",
+        data: {
+          settings,
+          habits,
+          habitCompletions,
+          routineBlocks,
+          routineActivities,
+          trackerEntries,
+          journalEntries,
+          todos,
+          members,
+          visionItems,
+          dailySummaries,
+          expenses,
+          transactions,
+        }
+      };
+      
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader("Content-Disposition", `attachment; filename=orbia-export-${new Date().toISOString().split('T')[0]}.json`);
+      res.json(exportData);
+    } catch (error) {
+      console.error("Export error:", error);
+      res.status(500).json({ error: "Failed to export data" });
+    }
+  });
+
   // Habits Routes
   app.get("/api/habits", async (req, res) => {
     try {
