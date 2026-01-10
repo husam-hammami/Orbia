@@ -670,13 +670,13 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {insights.journal.mostCommonTypes.length > 0 && (
+                {insights.journal.topDrivers && insights.journal.topDrivers.length > 0 && (
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2">Entry Types</p>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Top Drivers</p>
                     <div className="flex flex-wrap gap-2">
-                      {insights.journal.mostCommonTypes.slice(0, 4).map((type) => (
-                        <Badge key={type.type} variant="outline" className="bg-white" data-testid={`journal-type-${type.type}`}>
-                          {type.type} ({type.count})
+                      {insights.journal.topDrivers.slice(0, 4).map((driver: any) => (
+                        <Badge key={driver.driver} variant="outline" className="bg-white" data-testid={`journal-driver-${driver.driver}`}>
+                          {driver.driver} ({driver.count})
                         </Badge>
                       ))}
                     </div>
