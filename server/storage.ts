@@ -824,8 +824,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteLoan(id: string): Promise<boolean> {
-    // Delete all payments first
+    // Get all payments to delete their linked transactions
+    const payments = await this.getLoanPayments(id);
+    
+    // Delete linked transactions first
+    for (const payment of payments) {
+      if (payment.transactionId) {
+        await db.delete(transactions).where(eq(transactions.id, payment.transactionId));
+      }
+    }
+    
+    // Delete all payments
     await db.delete(loanPayments).where(eq(loanPayments.loanId, id));
+    
+    // Delete the loan
     const result = await db.delete(loans).where(eq(loans.id, id)).returning();
     return result.length > 0;
   }
@@ -850,6 +862,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteLoanPayment(id: string): Promise<boolean> {
+    // Get the payment to find its linked transaction and loan
+    const paymentResult = await db.select().from(loanPayments).where(eq(loanPayments.id, id));
+    const payment = paymentResult[0];
+    
+    if (!payment) return false;
+    
+    // Delete the linked transaction
+    if (payment.transactionId) {
+      await db.delete(transactions).where(eq(transactions.id, payment.transactionId));
+    }
+    
+    // Restore the loan balance
+    const loan = await this.getLoan(payment.loanId);
+    if (loan) {
+      const restoredBalance = loan.currentBalance + payment.amount;
+      await this.updateLoan(payment.loanId, {
+        currentBalance: restoredBalance,
+        status: "active"
+      });
+    }
+    
+    // Delete the payment
     const result = await db.delete(loanPayments).where(eq(loanPayments.id, id)).returning();
     return result.length > 0;
   }

@@ -64,9 +64,13 @@ import {
   useFinanceSettings, 
   useUpdateFinanceSettings,
   useImportTransactions,
-  useCreateManyTransactions
+  useCreateManyTransactions,
+  useLoans,
+  useCreateLoan,
+  useDeleteLoan,
+  useCreateLoanPayment
 } from "@/lib/api-hooks";
-import type { Transaction, IncomeStream } from "@shared/schema";
+import type { Transaction, IncomeStream, Loan } from "@shared/schema";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -116,6 +120,9 @@ export default function FinancePage() {
   const [isIncomeDialogOpen, setIsIncomeDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+  const [isLoanDialogOpen, setIsLoanDialogOpen] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   
   const [transactionType, setTransactionType] = useState<"income" | "expense">("expense");
   const [importText, setImportText] = useState("");
@@ -125,6 +132,7 @@ export default function FinancePage() {
   const { data: transactions = [], isLoading: transactionsLoading } = useTransactions(currentMonth);
   const { data: incomeStreams = [], isLoading: incomeLoading } = useIncomeStreams();
   const { data: financeSettings } = useFinanceSettings();
+  const { data: loans = [], isLoading: loansLoading } = useLoans();
   
   const createTransaction = useCreateTransaction();
   const deleteTransaction = useDeleteTransaction();
@@ -133,6 +141,9 @@ export default function FinancePage() {
   const updateFinanceSettings = useUpdateFinanceSettings();
   const importTransactions = useImportTransactions();
   const createManyTransactions = useCreateManyTransactions();
+  const createLoan = useCreateLoan();
+  const deleteLoan = useDeleteLoan();
+  const createLoanPayment = useCreateLoanPayment();
 
   const currency = financeSettings?.currency || "AED";
   const savingsGoal = financeSettings?.savingsGoal || 0;
@@ -154,6 +165,21 @@ export default function FinancePage() {
   const [settingsForm, setSettingsForm] = useState({
     currency: currency,
     savingsGoal: savingsGoal
+  });
+
+  const [loanForm, setLoanForm] = useState({
+    name: "",
+    lender: "",
+    originalAmount: 0,
+    minimumPayment: 0,
+    interestRate: "",
+    dueDay: "",
+    notes: ""
+  });
+
+  const [paymentForm, setPaymentForm] = useState({
+    amount: 0,
+    notes: ""
   });
 
   const monthlyIncome = useMemo(() => {
@@ -286,6 +312,68 @@ export default function FinancePage() {
       onSuccess: () => {
         toast.success("Settings saved");
         setIsSettingsDialogOpen(false);
+      }
+    });
+  };
+
+  const handleAddLoan = () => {
+    if (!loanForm.name || loanForm.originalAmount <= 0 || loanForm.minimumPayment <= 0) {
+      toast.error("Please enter name, original amount, and minimum payment");
+      return;
+    }
+    
+    const interestRateBasisPoints = loanForm.interestRate 
+      ? Math.round(parseFloat(loanForm.interestRate) * 100) 
+      : undefined;
+    
+    createLoan.mutate({
+      name: loanForm.name,
+      lender: loanForm.lender || null,
+      principal: loanForm.originalAmount,
+      currentBalance: loanForm.originalAmount,
+      minimumPayment: loanForm.minimumPayment,
+      interestRate: interestRateBasisPoints,
+      dueDay: loanForm.dueDay ? parseInt(loanForm.dueDay) : undefined,
+      notes: loanForm.notes || null,
+      status: "active"
+    }, {
+      onSuccess: () => {
+        toast.success("Loan added");
+        setIsLoanDialogOpen(false);
+        setLoanForm({ name: "", lender: "", originalAmount: 0, minimumPayment: 0, interestRate: "", dueDay: "", notes: "" });
+      }
+    });
+  };
+
+  const handleDeleteLoan = (id: string) => {
+    deleteLoan.mutate(id, {
+      onSuccess: () => toast.success("Loan deleted")
+    });
+  };
+
+  const handleOpenPaymentDialog = (loan: Loan) => {
+    setSelectedLoan(loan);
+    setPaymentForm({ amount: loan.minimumPayment, notes: "" });
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handleMakePayment = () => {
+    if (!selectedLoan || paymentForm.amount <= 0) {
+      toast.error("Please enter a valid payment amount");
+      return;
+    }
+    
+    createLoanPayment.mutate({
+      loanId: selectedLoan.id,
+      amount: paymentForm.amount,
+      paymentDate: new Date(),
+      notes: paymentForm.notes || null
+    }, {
+      onSuccess: () => {
+        toast.success("Payment recorded");
+        setIsPaymentDialogOpen(false);
+        setSelectedLoan(null);
+        setPaymentForm({ amount: 0, notes: "" });
       }
     });
   };
@@ -669,6 +757,91 @@ export default function FinancePage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Loans */}
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-indigo-600" />
+                  Loans
+                </CardTitle>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-7 w-7"
+                  onClick={() => setIsLoanDialogOpen(true)}
+                  data-testid="btn-add-loan"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {loansLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                ) : loans.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No loans added yet
+                  </p>
+                ) : (
+                  loans.map((loan) => {
+                    const paidAmount = loan.principal - loan.currentBalance;
+                    const progressPercent = loan.principal > 0 ? (paidAmount / loan.principal) * 100 : 0;
+                    return (
+                      <div 
+                        key={loan.id} 
+                        className="p-3 rounded-lg border border-border/50 bg-muted/30 space-y-2"
+                        data-testid={`loan-${loan.id}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium text-sm">{loan.name}</div>
+                            {loan.lender && (
+                              <div className="text-xs text-muted-foreground">{loan.lender}</div>
+                            )}
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7"
+                            onClick={() => handleDeleteLoan(loan.id)}
+                          >
+                            <Trash2 className="w-3 h-3 text-rose-500" />
+                          </Button>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full rounded-full bg-emerald-600"
+                              style={{ width: `${Math.min(progressPercent, 100)}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>{progressPercent.toFixed(0)}% paid</span>
+                            <span className="font-mono">
+                              {formatCurrency(loan.currentBalance, currency)} / {formatCurrency(loan.principal, currency)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-xs text-muted-foreground">
+                            Min: {formatCurrency(loan.minimumPayment, currency)}
+                          </span>
+                          <Button 
+                            variant="default" 
+                            size="sm" 
+                            className="h-7 text-xs px-3 bg-emerald-600 hover:bg-emerald-700"
+                            onClick={() => handleOpenPaymentDialog(loan)}
+                            data-testid={`make-payment-${loan.id}`}
+                          >
+                            <DollarSign className="w-3 h-3 mr-1" /> Make Payment
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
 
@@ -973,6 +1146,174 @@ export default function FinancePage() {
                 </DialogFooter>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Loan Dialog */}
+        <Dialog open={isLoanDialogOpen} onOpenChange={setIsLoanDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-indigo-600" />
+                Add Loan
+              </DialogTitle>
+              <DialogDescription>
+                Track a loan or debt to monitor your repayment progress
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="loan-name" className="text-right">Name *</Label>
+                <Input 
+                  id="loan-name" 
+                  value={loanForm.name}
+                  onChange={(e) => setLoanForm({...loanForm, name: e.target.value})}
+                  className="col-span-3"
+                  placeholder="e.g. Car Loan, Credit Card"
+                  data-testid="input-loan-name"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="loan-lender" className="text-right">Lender</Label>
+                <Input 
+                  id="loan-lender" 
+                  value={loanForm.lender}
+                  onChange={(e) => setLoanForm({...loanForm, lender: e.target.value})}
+                  className="col-span-3"
+                  placeholder="e.g. Bank ABC"
+                  data-testid="input-loan-lender"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="loan-amount" className="text-right">Original Amount *</Label>
+                <Input 
+                  id="loan-amount" 
+                  type="number"
+                  value={loanForm.originalAmount || ""}
+                  onChange={(e) => setLoanForm({...loanForm, originalAmount: parseFloat(e.target.value) || 0})}
+                  className="col-span-3"
+                  data-testid="input-loan-amount"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="loan-min-payment" className="text-right">Min Payment *</Label>
+                <Input 
+                  id="loan-min-payment" 
+                  type="number"
+                  value={loanForm.minimumPayment || ""}
+                  onChange={(e) => setLoanForm({...loanForm, minimumPayment: parseFloat(e.target.value) || 0})}
+                  className="col-span-3"
+                  data-testid="input-loan-min-payment"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="loan-rate" className="text-right">Interest Rate</Label>
+                <Input 
+                  id="loan-rate" 
+                  type="number"
+                  step="0.1"
+                  value={loanForm.interestRate}
+                  onChange={(e) => setLoanForm({...loanForm, interestRate: e.target.value})}
+                  className="col-span-3"
+                  placeholder="e.g. 5.5%"
+                  data-testid="input-loan-rate"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="loan-due-day" className="text-right">Due Day</Label>
+                <Input 
+                  id="loan-due-day" 
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={loanForm.dueDay}
+                  onChange={(e) => setLoanForm({...loanForm, dueDay: e.target.value})}
+                  className="col-span-3"
+                  placeholder="1-31"
+                  data-testid="input-loan-due-day"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="loan-notes" className="text-right">Notes</Label>
+                <Input 
+                  id="loan-notes" 
+                  value={loanForm.notes}
+                  onChange={(e) => setLoanForm({...loanForm, notes: e.target.value})}
+                  className="col-span-3"
+                  placeholder="Optional notes"
+                  data-testid="input-loan-notes"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsLoanDialogOpen(false)}>Cancel</Button>
+              <Button 
+                onClick={handleAddLoan}
+                disabled={createLoan.isPending}
+                className="bg-indigo-600 hover:bg-indigo-700"
+                data-testid="btn-save-loan"
+              >
+                {createLoan.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Add Loan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Make Payment Dialog */}
+        <Dialog open={isPaymentDialogOpen} onOpenChange={(open) => {
+          setIsPaymentDialogOpen(open);
+          if (!open) {
+            setSelectedLoan(null);
+            setPaymentForm({ amount: 0, notes: "" });
+          }
+        }}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-emerald-600" />
+                Make Payment
+              </DialogTitle>
+              <DialogDescription>
+                {selectedLoan && `Record a payment for ${selectedLoan.name}`}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="payment-amount" className="text-right">Amount *</Label>
+                <Input 
+                  id="payment-amount" 
+                  type="number"
+                  value={paymentForm.amount || ""}
+                  onChange={(e) => setPaymentForm({...paymentForm, amount: parseFloat(e.target.value) || 0})}
+                  className="col-span-3"
+                  data-testid="input-payment-amount"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="payment-notes" className="text-right">Notes</Label>
+                <Input 
+                  id="payment-notes" 
+                  value={paymentForm.notes}
+                  onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})}
+                  className="col-span-3"
+                  placeholder="Optional notes"
+                  data-testid="input-payment-notes"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>Cancel</Button>
+              <Button 
+                onClick={handleMakePayment}
+                disabled={createLoanPayment.isPending}
+                className="bg-emerald-600 hover:bg-emerald-700"
+                data-testid="btn-submit-payment"
+              >
+                {createLoanPayment.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Submit Payment
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
