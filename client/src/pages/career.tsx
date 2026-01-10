@@ -186,6 +186,8 @@ export default function CareerPage() {
   } | null>(null);
   const [coachLoading, setCoachLoading] = useState(false);
   const [coachError, setCoachError] = useState<string | null>(null);
+  const [coachGeneratedAt, setCoachGeneratedAt] = useState<Date | null>(null);
+  const [expandedPhases, setExpandedPhases] = useState<Set<number>>(new Set([0]));
 
   const getEmptyProject = (): Partial<CareerProject> => ({
     title: "",
@@ -243,6 +245,8 @@ export default function CareerPage() {
     );
   };
 
+  const coachTasks = tasks.filter(t => t.tags?.includes("coach"));
+  
   const fetchCoach = async () => {
     setCoachLoading(true);
     setCoachError(null);
@@ -257,6 +261,27 @@ export default function CareerPage() {
         setCoachData(null);
       } else {
         setCoachData(data);
+        setCoachGeneratedAt(new Date());
+        setExpandedPhases(new Set([0]));
+        
+        // Delete existing coach tasks and create new ones from immediate actions
+        for (const oldTask of coachTasks) {
+          await deleteTask.mutateAsync(oldTask.id);
+        }
+        
+        if (data.immediateActions) {
+          for (const action of data.immediateActions) {
+            await createTask.mutateAsync({
+              title: action.title,
+              description: action.why || "",
+              projectId: null,
+              completed: 0,
+              priority: action.priority || "medium",
+              due: null,
+              tags: ["coach"]
+            });
+          }
+        }
       }
     } catch (error) {
       console.error("Failed to fetch coaching:", error);
@@ -265,6 +290,38 @@ export default function CareerPage() {
     } finally {
       setCoachLoading(false);
     }
+  };
+
+  const toggleCoachTask = (actionTitle: string) => {
+    const task = coachTasks.find(t => t.title === actionTitle);
+    if (task) {
+      updateTask.mutate({ id: task.id, completed: task.completed === 1 ? 0 : 1 });
+    }
+  };
+  
+  const isCoachActionCompleted = (actionTitle: string) => {
+    const task = coachTasks.find(t => t.title === actionTitle);
+    return task?.completed === 1;
+  };
+
+  const togglePhaseExpanded = (index: number) => {
+    setExpandedPhases(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
+  const getLearningResourcesForPhase = (phaseIndex: number) => {
+    if (!coachData?.learningPath) return [];
+    const phaseCount = coachData.roadmap?.length || 1;
+    const resourcesPerPhase = Math.ceil(coachData.learningPath.length / phaseCount);
+    const start = phaseIndex * resourcesPerPhase;
+    return coachData.learningPath.slice(start, start + resourcesPerPhase);
   };
 
   const toggleTask = (id: string) => {
@@ -767,26 +824,27 @@ export default function CareerPage() {
             </section>
           </TabsContent>
 
-          <TabsContent value="coach" className="mt-6 space-y-6">
+          <TabsContent value="coach" className="mt-6 space-y-4">
             {!coachData && !coachLoading && !coachError && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(glassCard, "p-8 text-center")}
               >
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-500/10 to-purple-500/10 flex items-center justify-center mx-auto mb-4">
-                  <Compass className="w-8 h-8 text-violet-500" />
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-violet-500/10 to-purple-500/10 flex items-center justify-center mx-auto mb-4">
+                  <Compass className="w-7 h-7 text-violet-500" />
                 </div>
-                <h3 className="text-lg font-medium text-foreground mb-2">Get AI Career Coaching</h3>
+                <h3 className="text-lg font-medium text-foreground mb-2">Ready for your personalized career guidance?</h3>
                 <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-                  Based on your North Star vision and current projects, get personalized career guidance, learning paths, and actionable next steps.
+                  Based on your North Star vision, I'll create a focused roadmap with weekly actions.
                 </p>
                 <Button 
                   onClick={fetchCoach}
                   className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0 hover:opacity-90"
+                  size="lg"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Generate Coaching Insights
+                  Get Started
                 </Button>
               </motion.div>
             )}
@@ -795,10 +853,10 @@ export default function CareerPage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={cn(glassCard, "p-8 text-center")}
+                className={cn(glassCard, "p-6 flex items-center justify-center gap-3")}
               >
-                <Loader2 className="w-8 h-8 animate-spin text-violet-500 mx-auto mb-4" />
-                <p className="text-sm text-muted-foreground">Analyzing your vision...</p>
+                <Loader2 className="w-5 h-5 animate-spin text-violet-500" />
+                <p className="text-sm text-muted-foreground">Generating your personalized guidance...</p>
               </motion.div>
             )}
 
@@ -806,22 +864,22 @@ export default function CareerPage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={cn(glassCard, "p-6 border-red-200/60 dark:border-red-700/40")}
+                className={cn(glassCard, "p-5 border-red-200/60 dark:border-red-700/40")}
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
-                    <X className="w-5 h-5 text-red-500" />
+                  <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+                    <X className="w-4 h-4 text-red-500" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-medium text-foreground mb-1">Unable to Generate Coaching Insights</h4>
-                    <p className="text-sm text-muted-foreground mb-3">{coachError}</p>
+                    <h4 className="font-medium text-foreground text-sm mb-1">Unable to Generate Insights</h4>
+                    <p className="text-xs text-muted-foreground mb-2">{coachError}</p>
                     <Button 
                       onClick={fetchCoach}
                       variant="outline"
                       size="sm"
-                      className="border-violet-500/40 text-violet-600 dark:text-violet-400"
+                      className="border-violet-500/40 text-violet-600 dark:text-violet-400 h-7 text-xs"
                     >
-                      <RefreshCw className="w-4 h-4 mr-2" />
+                      <RefreshCw className="w-3 h-3 mr-1" />
                       Try Again
                     </Button>
                   </div>
@@ -830,238 +888,276 @@ export default function CareerPage() {
             )}
 
             {coachData && !coachLoading && (
-              <div className="space-y-6">
-                {coachData.weeklyTheme && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-2xl bg-gradient-to-r from-violet-500 to-purple-500 text-white"
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Star className="w-4 h-4" />
-                      <span className="text-xs font-semibold uppercase tracking-wide opacity-90">Weekly Theme</span>
-                    </div>
-                    <p className="text-lg font-medium">{coachData.weeklyTheme}</p>
-                  </motion.div>
-                )}
+              <div className="space-y-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                      <Compass className="w-5 h-5 text-violet-500" />
+                      Career Coach
+                    </h3>
+                    {coachData.weeklyTheme && (
+                      <Badge className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0 text-xs">
+                        <Star className="w-3 h-3 mr-1" />
+                        {coachData.weeklyTheme}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {coachGeneratedAt && (
+                      <span>Generated {format(coachGeneratedAt, "MMM d, h:mm a")}</span>
+                    )}
+                    <Button
+                      onClick={fetchCoach}
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-violet-600 dark:text-violet-400 hover:text-violet-700 hover:bg-violet-50 dark:hover:bg-violet-900/20"
+                    >
+                      <RefreshCw className="w-3 h-3 mr-1" />
+                      Refresh
+                    </Button>
+                  </div>
+                </motion.div>
 
-                {coachData.northStarAnalysis && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className={cn(glassCard, "p-5 space-y-4")}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Compass className="w-5 h-5 text-teal-500" />
-                      <h3 className="font-semibold text-foreground">North Star Analysis</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{coachData.northStarAnalysis.summary}</p>
-                    <div className="space-y-3">
-                      {coachData.northStarAnalysis.strengths?.length > 0 && (
-                        <div>
-                          <span className="text-xs font-semibold text-muted-foreground uppercase">Strengths</span>
-                          <div className="flex flex-wrap gap-1.5 mt-1.5">
-                            {coachData.northStarAnalysis.strengths.map((strength, i) => (
-                              <Badge key={i} className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">
-                                {strength}
-                              </Badge>
-                            ))}
-                          </div>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+                  <div className="lg:col-span-3 space-y-3">
+                    {coachData.roadmap && coachData.roadmap.length > 0 && (
+                      <>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Map className="w-4 h-4 text-violet-500" />
+                          <h4 className="font-medium text-foreground text-sm">Roadmap Timeline</h4>
                         </div>
-                      )}
-                      {coachData.northStarAnalysis.gaps?.length > 0 && (
-                        <div>
-                          <span className="text-xs font-semibold text-muted-foreground uppercase">Growth Areas</span>
-                          <div className="flex flex-wrap gap-1.5 mt-1.5">
-                            {coachData.northStarAnalysis.gaps.map((gap, i) => (
-                              <Badge key={i} className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-xs">
-                                {gap}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-
-                {coachData.roadmap && coachData.roadmap.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="space-y-3"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Map className="w-5 h-5 text-violet-500" />
-                      <h3 className="font-semibold text-foreground">Roadmap Phases</h3>
-                    </div>
-                    {coachData.roadmap.map((phase, index) => (
-                      <Collapsible key={index}>
-                        <motion.div
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.2 + index * 0.1 }}
-                          className={cn(glassCard, "overflow-hidden")}
-                        >
-                          <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/10 flex items-center justify-center">
-                                <TrendingUp className="w-4 h-4 text-violet-500" />
-                              </div>
-                              <div className="text-left">
-                                <h4 className="font-medium text-foreground text-sm">{phase.phase}</h4>
-                                <p className="text-xs text-muted-foreground">{phase.timeframe}</p>
-                              </div>
-                            </div>
-                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                          </CollapsibleTrigger>
-                          <CollapsibleContent>
-                            <div className="px-4 pb-4 space-y-3">
-                              {phase.goal && (
-                                <p className="text-sm text-muted-foreground">{phase.goal}</p>
-                              )}
-                              {phase.milestones?.length > 0 && (
-                                <ul className="space-y-1.5">
-                                  {phase.milestones.map((milestone, mIndex) => (
-                                    <li key={mIndex} className="text-sm text-muted-foreground flex items-start gap-2">
-                                      <Check className="w-4 h-4 text-teal-500 shrink-0 mt-0.5" />
-                                      {milestone}
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                              {phase.weeklyFocus && (
-                                <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-200/60 dark:border-violet-700/40">
-                                  <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">Weekly Focus:</span>
-                                  <p className="text-sm text-foreground mt-1">{phase.weeklyFocus}</p>
+                        {coachData.roadmap.map((phase, index) => {
+                          const phaseResources = getLearningResourcesForPhase(index);
+                          const isExpanded = expandedPhases.has(index);
+                          const shouldCollapse = coachData.roadmap && coachData.roadmap.length >= 3;
+                          
+                          return (
+                            <motion.div
+                              key={index}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                              className={cn(glassCard, "overflow-hidden")}
+                            >
+                              {shouldCollapse ? (
+                                <Collapsible open={isExpanded} onOpenChange={() => togglePhaseExpanded(index)}>
+                                  <CollapsibleTrigger className="w-full p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/10 flex items-center justify-center">
+                                        <TrendingUp className="w-3 h-3 text-violet-500" />
+                                      </div>
+                                      <div className="text-left">
+                                        <h5 className="font-medium text-foreground text-sm">{phase.phase}</h5>
+                                        <p className="text-[10px] text-muted-foreground">{phase.timeframe}</p>
+                                      </div>
+                                    </div>
+                                    <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent>
+                                    <div className="px-3 pb-3 space-y-2">
+                                      {phase.goal && (
+                                        <p className="text-xs text-muted-foreground">{phase.goal}</p>
+                                      )}
+                                      {phase.milestones?.length > 0 && (
+                                        <ul className="space-y-1">
+                                          {phase.milestones.map((milestone, mIndex) => (
+                                            <li key={mIndex} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                              <div className="w-3.5 h-3.5 rounded border border-slate-300 dark:border-slate-600 flex items-center justify-center shrink-0 mt-0.5">
+                                                <Check className="w-2 h-2 text-slate-400" />
+                                              </div>
+                                              {milestone}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      )}
+                                      {phase.weeklyFocus && (
+                                        <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200/60 dark:border-violet-700/40">
+                                          <span className="text-[10px] font-semibold text-violet-600 dark:text-violet-400">Weekly Focus:</span>
+                                          <p className="text-xs text-foreground mt-0.5">{phase.weeklyFocus}</p>
+                                        </div>
+                                      )}
+                                      {phaseResources.length > 0 && (
+                                        <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                                          <div className="flex items-center gap-1 mb-1.5">
+                                            <BookOpen className="w-3 h-3 text-cyan-500" />
+                                            <span className="text-[10px] font-medium text-muted-foreground uppercase">Learning Resources</span>
+                                          </div>
+                                          <div className="space-y-1">
+                                            {phaseResources.flatMap(skill => skill.resources?.slice(0, 2) || []).slice(0, 3).map((resource, rIndex) => (
+                                              <a
+                                                key={rIndex}
+                                                href={resource.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1.5 text-xs text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors"
+                                              >
+                                                <ExternalLink className="w-3 h-3" />
+                                                <span className="truncate">{resource.title}</span>
+                                              </a>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </CollapsibleContent>
+                                </Collapsible>
+                              ) : (
+                                <div className="p-3 space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/10 flex items-center justify-center">
+                                      <TrendingUp className="w-3 h-3 text-violet-500" />
+                                    </div>
+                                    <div>
+                                      <h5 className="font-medium text-foreground text-sm">{phase.phase}</h5>
+                                      <p className="text-[10px] text-muted-foreground">{phase.timeframe}</p>
+                                    </div>
+                                  </div>
+                                  {phase.goal && (
+                                    <p className="text-xs text-muted-foreground">{phase.goal}</p>
+                                  )}
+                                  {phase.milestones?.length > 0 && (
+                                    <ul className="space-y-1">
+                                      {phase.milestones.map((milestone, mIndex) => (
+                                        <li key={mIndex} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                          <div className="w-3.5 h-3.5 rounded border border-slate-300 dark:border-slate-600 flex items-center justify-center shrink-0 mt-0.5">
+                                            <Check className="w-2 h-2 text-slate-400" />
+                                          </div>
+                                          {milestone}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                  {phase.weeklyFocus && (
+                                    <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200/60 dark:border-violet-700/40">
+                                      <span className="text-[10px] font-semibold text-violet-600 dark:text-violet-400">Weekly Focus:</span>
+                                      <p className="text-xs text-foreground mt-0.5">{phase.weeklyFocus}</p>
+                                    </div>
+                                  )}
+                                  {phaseResources.length > 0 && (
+                                    <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                                      <div className="flex items-center gap-1 mb-1.5">
+                                        <BookOpen className="w-3 h-3 text-cyan-500" />
+                                        <span className="text-[10px] font-medium text-muted-foreground uppercase">Learning Resources</span>
+                                      </div>
+                                      <div className="space-y-1">
+                                        {phaseResources.flatMap(skill => skill.resources?.slice(0, 2) || []).slice(0, 3).map((resource, rIndex) => (
+                                          <a
+                                            key={rIndex}
+                                            href={resource.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-1.5 text-xs text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors"
+                                          >
+                                            <ExternalLink className="w-3 h-3" />
+                                            <span className="truncate">{resource.title}</span>
+                                          </a>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
-                            </div>
-                          </CollapsibleContent>
-                        </motion.div>
-                      </Collapsible>
-                    ))}
-                  </motion.div>
-                )}
+                            </motion.div>
+                          );
+                        })}
+                      </>
+                    )}
+                  </div>
 
-                {coachData.immediateActions && coachData.immediateActions.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className={cn(glassCard, "p-5 space-y-4")}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-5 h-5 text-amber-500" />
-                      <h3 className="font-semibold text-foreground">Immediate Actions</h3>
-                    </div>
-                    <div className="space-y-2">
-                      {coachData.immediateActions.map((action, index) => (
+                  <div className="lg:col-span-2">
+                    <div className="lg:sticky lg:top-4 space-y-3">
+                      {coachData.immediateActions && coachData.immediateActions.length > 0 && (
                         <motion.div
-                          key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.3 + index * 0.05 }}
-                          className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex items-start gap-3"
-                        >
-                          <div className={cn(
-                            "w-2 h-2 rounded-full mt-1.5 shrink-0",
-                            action.priority === "high" && "bg-red-500",
-                            action.priority === "medium" && "bg-amber-500",
-                            action.priority === "low" && "bg-slate-400"
-                          )} />
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <p className="text-sm font-medium text-foreground">{action.title}</p>
-                            <p className="text-xs text-muted-foreground">{action.why}</p>
-                            <Badge variant="outline" className="text-[10px]">
-                              <Clock className="w-3 h-3 mr-1" />
-                              {action.timeEstimate}
-                            </Badge>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-
-                {coachData.learningPath && coachData.learningPath.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="space-y-3"
-                  >
-                    <div className="flex items-center gap-2">
-                      <GraduationCap className="w-5 h-5 text-cyan-500" />
-                      <h3 className="font-semibold text-foreground">Learning Path</h3>
-                    </div>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {coachData.learningPath.map((skill, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, y: 10 }}
+                          initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.4 + index * 0.1 }}
-                          className={cn(glassCard, "p-4 space-y-3")}
+                          transition={{ delay: 0.2 }}
+                          className={cn(glassCard, "p-4")}
                         >
-                          <div>
-                            <h4 className="font-medium text-foreground text-sm">{skill.skill}</h4>
-                            <p className="text-xs text-muted-foreground">{skill.importance}</p>
+                          <div className="flex items-center gap-2 mb-3">
+                            <Zap className="w-4 h-4 text-amber-500" />
+                            <h4 className="font-medium text-foreground text-sm">This Week's Focus</h4>
                           </div>
-                          {skill.resources?.length > 0 && (
-                            <div className="space-y-2">
-                              {skill.resources.map((resource, rIndex) => (
-                                <a
-                                  key={rIndex}
-                                  href={resource.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group"
+                          <div className="space-y-2">
+                            {coachData.immediateActions.map((action, index) => {
+                              const isCompleted = isCoachActionCompleted(action.title);
+                              return (
+                                <motion.div
+                                  key={index}
+                                  initial={{ opacity: 0, x: 10 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: 0.2 + index * 0.05 }}
+                                  className="group"
                                 >
-                                  <BookOpen className="w-4 h-4 text-cyan-500" />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium text-foreground truncate group-hover:text-cyan-600">{resource.title}</p>
-                                    <p className="text-[10px] text-muted-foreground">{resource.type} • {resource.timeCommitment}</p>
+                                  <div 
+                                    className={cn(
+                                      "p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-slate-700/50",
+                                      isCompleted && "opacity-60"
+                                    )}
+                                    onClick={() => toggleCoachTask(action.title)}
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      <AnimatedCheckbox 
+                                        checked={isCompleted} 
+                                        onChange={() => toggleCoachTask(action.title)} 
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                          <div className={cn(
+                                            "w-1.5 h-1.5 rounded-full shrink-0",
+                                            action.priority === "high" && "bg-red-500",
+                                            action.priority === "medium" && "bg-amber-500",
+                                            action.priority === "low" && "bg-slate-400"
+                                          )} />
+                                          <p className={cn(
+                                            "text-sm font-medium text-foreground",
+                                            isCompleted && "line-through text-muted-foreground"
+                                          )}>{action.title}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                            <Clock className="w-2.5 h-2.5" />
+                                            {action.timeEstimate}
+                                          </span>
+                                        </div>
+                                        <Collapsible>
+                                          <CollapsibleTrigger className="text-[10px] text-violet-600 dark:text-violet-400 hover:underline mt-1">
+                                            Why this matters
+                                          </CollapsibleTrigger>
+                                          <CollapsibleContent>
+                                            <p className="text-[10px] text-muted-foreground mt-1 pl-0.5">{action.why}</p>
+                                          </CollapsibleContent>
+                                        </Collapsible>
+                                      </div>
+                                    </div>
                                   </div>
-                                  <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-cyan-500" />
-                                </a>
-                              ))}
-                            </div>
-                          )}
+                                </motion.div>
+                              );
+                            })}
+                          </div>
                         </motion.div>
-                      ))}
+                      )}
                     </div>
-                  </motion.div>
-                )}
+                  </div>
+                </div>
 
                 {coachData.coachingNote && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="p-4 rounded-2xl bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 border border-teal-200/60 dark:border-teal-800/60"
+                    transition={{ delay: 0.4 }}
+                    className="p-3 rounded-xl border-l-4 border-teal-500 bg-teal-50/50 dark:bg-teal-900/10"
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      <Lightbulb className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                      <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 uppercase">Coaching Note</span>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Lightbulb className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                      <span className="text-[10px] font-semibold text-teal-600 dark:text-teal-400 uppercase">Coach's Note</span>
                     </div>
-                    <p className="text-sm text-teal-700 dark:text-teal-300">{coachData.coachingNote}</p>
+                    <p className="text-xs text-teal-700 dark:text-teal-300 line-clamp-2">{coachData.coachingNote}</p>
                   </motion.div>
                 )}
-
-                <div className="flex justify-center pt-4">
-                  <Button
-                    onClick={fetchCoach}
-                    variant="outline"
-                    size="sm"
-                    className="border-violet-500/40 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Refresh Insights
-                  </Button>
-                </div>
               </div>
             )}
           </TabsContent>
