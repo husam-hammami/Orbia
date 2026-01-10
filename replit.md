@@ -130,6 +130,37 @@ High-Confidence Multi-Factor Correlation Engine:
 - **Confidence scoring**: Automated confidence levels (high/moderate/low) based on sample sizes
 - **Effect size calculation**: Cohen's d approximation for correlation strength (strong/moderate/weak)
 
+### Deep Mind (System Intelligence Dashboard)
+
+A redesigned system health and intelligence page that transforms the static member directory into an actionable insights hub:
+
+**System Pulse** (Top metrics):
+- Stability Index: Calculated from mood variance and dissociation levels (0-100%)
+- Average Mood, Energy: Aggregated from tracker entries over selectable time range
+- Switches/Day: Average number of fronting transitions per day
+
+**Current Fronter Banner**: Shows who's currently fronting with member color
+
+**Three Tabs**:
+1. **Intelligence**: Member insights grid + AI analysis
+2. **Headspace Map**: Visual fronting timeline (see below)
+3. **Directory**: Member CRUD management
+
+**Member Intelligence Grid**:
+- Per-member cards showing fronting %, mood, stress, energy averages
+- Mood trend arrows (improving/stable/declining) comparing older vs newer data
+- Last fronting timestamp
+- Color-coded by member
+
+**AI System Analysis**:
+- Streaming insights powered by GPT-4o-mini
+- Three focus modes: Overview, Patterns, Suggestions
+- Grounded in actual tracker data to avoid hallucination
+
+**API Endpoints**:
+- `GET /api/deep-mind/overview?days=30`: Returns system metrics, member stats, current fronter
+- `POST /api/deep-mind/insights`: Streaming AI analysis with focus parameter
+
 ### Headspace Map (Enhanced)
 
 Multi-scale presence dashboard for understanding alter fronting patterns over time:
