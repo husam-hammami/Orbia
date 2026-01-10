@@ -248,3 +248,46 @@
 .animate-subtle-pulse {
   animation: subtle-pulse 3s ease-in-out infinite;
 }
+
+/* Cosmic gradient text */
+.text-cosmic-gradient {
+  background: linear-gradient(135deg, #14b8a6 0%, #06b6d4 50%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Cosmic card glow on hover */
+.cosmic-glow {
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+.cosmic-glow:hover {
+  box-shadow: 0 0 20px rgba(20, 184, 166, 0.15), 0 0 40px rgba(139, 92, 246, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Subtle cosmic border gradient */
+.cosmic-border {
+  position: relative;
+}
+.cosmic-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.3), rgba(139, 92, 246, 0.3));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Amber accent color */
+.text-amber-accent {
+  color: #f59e0b;
+}
+.bg-amber-accent {
+  background-color: #f59e0b;
+}
