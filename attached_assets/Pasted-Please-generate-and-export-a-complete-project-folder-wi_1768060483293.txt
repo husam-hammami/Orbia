@@ -1,0 +1,100 @@
+Please generate and export a complete project folder with this exact structure:
+
+NeuroZen-Android/
+├── .gitignore
+├── package.json
+├── package-lock.json
+├── tsconfig.json
+├── capacitor.config.ts
+├── vite.config.ts
+├── drizzle.config.ts
+├── postcss.config.js
+├── components.json
+├── vite-plugin-meta-images.ts
+├── replit.md
+│
+├── android/                          [CRITICAL - Complete Android project]
+│   ├── app/
+│   │   ├── build.gradle
+│   │   ├── capacitor.build.gradle
+│   │   ├── proguard-rules.pro
+│   │   └── src/
+│   │       └── main/
+│   │           ├── AndroidManifest.xml
+│   │           ├── assets/
+│   │           │   └── public/        [Built web app files]
+│   │           └── res/
+│   │               ├── mipmap-*/      [App icons]
+│   │               ├── values/
+│   │               └── xml/
+│   ├── build.gradle
+│   ├── settings.gradle
+│   ├── variables.gradle
+│   ├── capacitor.settings.gradle
+│   ├── gradle.properties
+│   ├── local.properties              [If exists]
+│   ├── gradle/
+│   │   └── wrapper/                  [Gradle wrapper files]
+│   ├── gradlew
+│   ├── gradlew.bat
+│   └── capacitor-cordova-android-plugins/
+│
+├── client/                            [Frontend source]
+│   ├── index.html
+│   ├── src/
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   ├── index.css
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── lib/
+│   │   └── hooks/
+│   └── public/
+│
+├── server/                            [Backend source]
+│   ├── index.ts
+│   ├── routes.ts
+│   ├── storage.ts
+│   ├── db.ts
+│   ├── static.ts
+│   ├── vite.ts
+│   ├── lib/
+│   └── replit_integrations/
+│
+├── shared/                            [Shared types/schemas]
+│   ├── schema.ts
+│   └── models/
+│
+├── script/                            [Build scripts]
+│   ├── build.ts
+│   ├── generate-android-icons.js
+│   └── setup-logo.js
+│
+├── attached_assets/                  [Images, logos, assets]
+│   └── generated_images/
+│
+├── dist/                              [Built web app]
+│   ├── index.cjs
+│   └── public/
+│       ├── index.html
+│       └── assets/
+│
+└── Documentation files:
+    ├── ANDROID_BUILD_GUIDE.md
+    ├── MOBILE_APP_GUIDE.md
+    ├── ANDROID_ICON_SETUP.md
+    └── README_LOGO.md
+
+CRITICAL REQUIREMENTS:
+1. The android/ folder MUST be complete and ready for Android Studio
+2. The dist/public/ folder MUST contain the built web application
+3. android/app/src/main/assets/public/ MUST contain the synced web build
+4. All Gradle files must be present and properly configured
+5. All Capacitor plugins must be synced
+6. App icons must be in android/app/src/main/res/mipmap-*/
+7. AndroidManifest.xml must be properly configured
+8. All dependencies in package.json must be listed
+9. capacitor.config.ts must be properly configured
+10. No build artifacts should be missing
+
+Please create a .zip file of this complete structure and provide download link.

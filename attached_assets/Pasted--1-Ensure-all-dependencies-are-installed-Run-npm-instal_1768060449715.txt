@@ -1,0 +1,64 @@
+
+1. Ensure all dependencies are installed:
+   - Run: npm install
+   - Verify all Capacitor plugins are installed (@capacitor/android, @capacitor/cli, etc.)
+
+2. Build the web application:
+   - Run: npm run build
+   - This creates the dist/public folder with the production build
+
+3. Sync web assets to Android project:
+   - Run: npm run cap:sync:android
+   - This updates the android/ folder with the latest web build
+
+4. Verify the android/ folder exists and contains:
+   - android/app/src/main/assets/public/ (with built web files)
+   - android/app/build.gradle
+   - android/build.gradle
+   - android/gradle/ (Gradle wrapper)
+   - android/local.properties (if exists)
+
+5. Check that capacitor.config.ts is properly configured:
+   - appId: 'com.neurozen.app'
+   - appName: 'NeuroZen'
+   - webDir: 'dist/public'
+
+6. Ensure all required files are present:
+   - package.json (with all scripts and dependencies)
+   - capacitor.config.ts
+   - android/ folder (complete Android project)
+   - client/ folder (source code)
+   - server/ folder (backend code)
+   - attached_assets/ folder (images, logos)
+   - script/ folder (build scripts)
+
+7. Create a .zip file of the ENTIRE project including:
+   - Root folder with all config files
+   - android/ folder (complete, with all generated files)
+   - client/ folder
+   - server/ folder
+   - dist/ folder (built web app)
+   - attached_assets/ folder
+   - script/ folder
+   - node_modules/ (optional, but helpful)
+   - All .json, .ts, .tsx, .gradle, .xml files
+
+8. Make sure the android/ folder includes:
+   - android/app/src/main/AndroidManifest.xml
+   - android/app/src/main/res/ (all resources, icons, splash screens)
+   - android/app/build.gradle
+   - android/build.gradle
+   - android/gradle/wrapper/ (Gradle wrapper files)
+   - android/gradle.properties
+   - android/local.properties (if it exists)
+   - android/settings.gradle
+   - android/variables.gradle
+   - android/capacitor.settings.gradle
+   - android/capacitor-cordova-android-plugins/ (all plugin files)
+
+9. Verify no critical files are missing:
+   - Check that android/app/src/main/assets/public/ contains the built web app
+   - Verify all Capacitor plugins are synced
+   - Ensure app icons are in android/app/src/main/res/mipmap-*/
+
+10. After verification, provide download link for the complete project .zip file
