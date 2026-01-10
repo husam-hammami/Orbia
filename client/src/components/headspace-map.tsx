@@ -508,7 +508,7 @@ export function HeadspaceMap() {
                     <div className="relative p-6">
                       <div className="flex items-center gap-2 mb-4">
                         <Activity className="w-4 h-4 text-violet-500" />
-                        <span className="text-xs font-semibold text-violet-600 uppercase tracking-wider">Flowing Consciousness</span>
+                        <span className="text-xs font-semibold text-violet-600 uppercase tracking-wider">Flowing States</span>
                       </div>
 
                       <div className="relative h-32 flex items-end gap-[2px] overflow-hidden">

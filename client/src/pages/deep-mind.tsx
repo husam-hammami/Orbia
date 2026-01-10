@@ -80,17 +80,17 @@ const staggerItem = {
 function ConfidenceBadge({ confidence, sampleSize }: { confidence: "Low" | "Medium" | "High"; sampleSize: number }) {
   const config = {
     Low: { 
-      className: "bg-amber-100 text-amber-700 border-amber-200", 
+      className: "bg-[#F7F3EF] text-[#8B6A45] border-[#E1D7C7]", 
       icon: <Sparkles className="w-3 h-3" />,
       label: "early signal" 
     },
     Medium: { 
-      className: "bg-cyan-100 text-cyan-700 border-cyan-200", 
+      className: "bg-[#F2F5F9] text-[#4F6E8F] border-[#D4DEE8]", 
       icon: <TrendingUp className="w-3 h-3" />,
       label: "building" 
     },
     High: { 
-      className: "bg-emerald-100 text-emerald-700 border-emerald-200", 
+      className: "bg-[#E5F2EB] text-[#4D7A63] border-[#C4E1D1]", 
       icon: <CheckCircle className="w-3 h-3" />,
       label: "validated" 
     },
@@ -108,9 +108,9 @@ function ConfidenceBadge({ confidence, sampleSize }: { confidence: "Low" | "Medi
 
 function IntensityBadge({ intensity }: { intensity: "Low" | "Medium" | "High" }) {
   const config = {
-    Low: { bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-200", glow: "shadow-emerald-100" },
-    Medium: { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-200", glow: "shadow-amber-100" },
-    High: { bg: "bg-rose-100", text: "text-rose-700", border: "border-rose-200", glow: "shadow-rose-100" },
+    Low: { bg: "bg-[#E5F2EB]", text: "text-[#4D7A63]", border: "border-[#C4E1D1]" },
+    Medium: { bg: "bg-[#F7F3EF]", text: "text-[#8B6A45]", border: "border-[#E1D7C7]" },
+    High: { bg: "bg-[#F3E8E8]", text: "text-[#8F6264]", border: "border-[#E2CBCD]" },
   };
   
   const style = config[intensity];
@@ -748,36 +748,35 @@ export default function DeepMind() {
                 </motion.div>
                 
                 <motion.div variants={staggerItem}>
-                  <GlassCard glow glowColor="emerald" className="overflow-hidden h-full">
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5 pointer-events-none" />
+                  <GlassCard className="overflow-hidden h-full">
                     <CardHeader className="pb-4 relative">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/30 to-teal-500/30 flex items-center justify-center border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                          <Brain className="w-5 h-5 text-emerald-400" />
+                        <div className="w-10 h-10 rounded-xl bg-[#E0EBE6] flex items-center justify-center border border-[#CFE2DA]">
+                          <Brain className="w-5 h-5 text-[#4D7A63]" />
                         </div>
                         <CardTitle className="text-lg font-semibold text-foreground">Smart Suggestion</CardTitle>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4 relative">
-                      <div className="p-5 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 rounded-xl">
+                      <div className="p-5 bg-[#E5F2EB] border border-[#C4E1D1] rounded-xl">
                         <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                            <CheckCircle className="w-5 h-5 text-emerald-400" />
+                          <div className="w-10 h-10 rounded-xl bg-[#D0E5D9] flex items-center justify-center shrink-0">
+                            <CheckCircle className="w-5 h-5 text-[#4D7A63]" />
                           </div>
                           <div className="flex-1">
-                            <span className="text-xs uppercase font-bold text-emerald-400 tracking-wider">Do This</span>
+                            <span className="text-xs uppercase font-bold text-[#4D7A63] tracking-wider">Do This</span>
                             <p className="text-sm text-slate-700 mt-1.5 leading-relaxed">{nowData.suggestion.do}</p>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="p-5 bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20 rounded-xl">
+                      <div className="p-5 bg-[#F3E8E8] border border-[#E2CBCD] rounded-xl">
                         <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-                            <XCircle className="w-5 h-5 text-amber-400" />
+                          <div className="w-10 h-10 rounded-xl bg-[#E5D5D6] flex items-center justify-center shrink-0">
+                            <XCircle className="w-5 h-5 text-[#8F6264]" />
                           </div>
                           <div className="flex-1">
-                            <span className="text-xs uppercase font-bold text-amber-400 tracking-wider">Avoid (Next 12-24h)</span>
+                            <span className="text-xs uppercase font-bold text-[#8F6264] tracking-wider">Avoid (Next 12-24h)</span>
                             <p className="text-sm text-slate-700 mt-1.5 leading-relaxed">{nowData.suggestion.avoid}</p>
                           </div>
                         </div>
@@ -822,13 +821,13 @@ export default function DeepMind() {
                   className="grid grid-cols-1 md:grid-cols-3 gap-6"
                 >
                   <motion.div variants={staggerItem}>
-                    <GlassCard glow glowColor="rose" className="h-full overflow-hidden">
-                      <div className="h-1 bg-gradient-to-r from-rose-500 to-orange-500" />
+                    <GlassCard className="h-full overflow-hidden">
+                      <div className="h-1 bg-gradient-to-r from-[#8F6264] to-[#A07577]" />
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-rose-500/20 flex items-center justify-center">
-                              <AlertTriangle className="w-4 h-4 text-rose-400" />
+                            <div className="w-9 h-9 rounded-lg bg-[#F3E8E8] flex items-center justify-center">
+                              <AlertTriangle className="w-4 h-4 text-[#8F6264]" />
                             </div>
                             <div>
                               <CardTitle className="text-base text-foreground">Top 3 Triggers</CardTitle>
@@ -843,7 +842,7 @@ export default function DeepMind() {
                             {loopsData.triggers.map((trigger, i) => (
                               <li key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
                                 <div className="flex items-center gap-3">
-                                  <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-rose-100 to-orange-100 flex items-center justify-center text-[11px] font-bold text-rose-600 border border-rose-200">
+                                  <span className="w-6 h-6 rounded-lg bg-[#F3E8E8] flex items-center justify-center text-[11px] font-bold text-[#8F6264] border border-[#E2CBCD]">
                                     {i + 1}
                                   </span>
                                   <span className="text-sm font-medium text-slate-700">{trigger.name}</span>
@@ -869,13 +868,13 @@ export default function DeepMind() {
                   </motion.div>
                   
                   <motion.div variants={staggerItem}>
-                    <GlassCard glow glowColor="emerald" className="h-full overflow-hidden">
-                      <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+                    <GlassCard className="h-full overflow-hidden">
+                      <div className="h-1 bg-gradient-to-r from-[#4D7A63] to-[#5D8A73]" />
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                              <Shield className="w-4 h-4 text-emerald-400" />
+                            <div className="w-9 h-9 rounded-lg bg-[#E5F2EB] flex items-center justify-center">
+                              <Shield className="w-4 h-4 text-[#4D7A63]" />
                             </div>
                             <div>
                               <CardTitle className="text-base text-foreground">Top 3 Stabilizers</CardTitle>
@@ -890,7 +889,7 @@ export default function DeepMind() {
                             {loopsData.stabilizers.map((stabilizer, i) => (
                               <li key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
                                 <div className="flex items-center gap-3">
-                                  <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center text-[11px] font-bold text-emerald-600 border border-emerald-200">
+                                  <span className="w-6 h-6 rounded-lg bg-[#E5F2EB] flex items-center justify-center text-[11px] font-bold text-[#4D7A63] border border-[#C4E1D1]">
                                     {i + 1}
                                   </span>
                                   <span className="text-sm font-medium text-slate-700">{stabilizer.name}</span>
@@ -902,9 +901,9 @@ export default function DeepMind() {
                                     className={cn(
                                       "text-[9px] px-1.5",
                                       stabilizer.effect === "Strong" 
-                                        ? "bg-emerald-100 text-emerald-700 border-emerald-200" 
+                                        ? "bg-[#E5F2EB] text-[#4D7A63] border-[#C4E1D1]" 
                                         : stabilizer.effect === "Moderate"
-                                        ? "bg-cyan-100 text-cyan-700 border-cyan-200"
+                                        ? "bg-[#F2F5F9] text-[#4F6E8F] border-[#D4DEE8]"
                                         : "bg-slate-100 text-slate-600 border-slate-300"
                                     )}
                                   >
@@ -926,13 +925,13 @@ export default function DeepMind() {
                   </motion.div>
                   
                   <motion.div variants={staggerItem}>
-                    <GlassCard glow glowColor="amber" className="h-full overflow-hidden">
-                      <div className="h-1 bg-gradient-to-r from-amber-500 to-yellow-500" />
+                    <GlassCard className="h-full overflow-hidden">
+                      <div className="h-1 bg-gradient-to-r from-[#8B6A45] to-[#9B7A55]" />
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                              <RefreshCw className="w-4 h-4 text-amber-400" />
+                            <div className="w-9 h-9 rounded-lg bg-[#F7F3EF] flex items-center justify-center">
+                              <RefreshCw className="w-4 h-4 text-[#8B6A45]" />
                             </div>
                             <div>
                               <CardTitle className="text-base text-foreground">Top 3 Crash Loops</CardTitle>
@@ -947,7 +946,7 @@ export default function DeepMind() {
                             {loopsData.crashLoops.map((loop, i) => (
                               <li key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                                 <div className="flex items-start gap-3">
-                                  <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-amber-100 to-yellow-100 flex items-center justify-center text-[11px] font-bold text-amber-600 border border-amber-200 shrink-0">
+                                  <span className="w-6 h-6 rounded-lg bg-[#F7F3EF] flex items-center justify-center text-[11px] font-bold text-[#8B6A45] border border-[#E1D7C7] shrink-0">
                                     {i + 1}
                                   </span>
                                   <span className="text-sm font-mono text-slate-700">{loop.pattern}</span>
@@ -958,7 +957,7 @@ export default function DeepMind() {
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 pl-9">
-                                  <Badge className="bg-teal-100 text-teal-700 border-teal-200 text-[10px] px-2 py-0.5 gap-1">
+                                  <Badge className="bg-[#E5F2EB] text-[#4D7A63] border-[#C4E1D1] text-[10px] px-2 py-0.5 gap-1">
                                     <Sparkles className="w-3 h-3" />
                                     {loop.interrupt}
                                   </Badge>
@@ -1206,12 +1205,12 @@ export default function DeepMind() {
               className="space-y-6"
             >
               <motion.div variants={staggerItem}>
-                <GlassCard glow glowColor="cyan" className="overflow-hidden">
+                <GlassCard className="overflow-hidden">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between flex-wrap gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500/30 to-cyan-500/30 flex items-center justify-center border border-teal-500/30">
-                          <Sparkles className="w-5 h-5 text-teal-400" />
+                        <div className="w-10 h-10 rounded-xl bg-[#E4ECF5] flex items-center justify-center border border-[#D4DEE8]">
+                          <Sparkles className="w-5 h-5 text-[#4F6E8F]" />
                         </div>
                         <div>
                           <CardTitle className="text-lg text-foreground">AI System Analysis</CardTitle>
@@ -1220,7 +1219,7 @@ export default function DeepMind() {
                       </div>
                       <Button 
                         size="sm" 
-                        className="bg-teal-600 hover:bg-teal-500 text-white"
+                        className="bg-[#4F6E8F] hover:bg-[#3D5A78] text-white"
                         onClick={() => fetchAIInsight("system")}
                         disabled={isLoadingInsight}
                         data-testid="button-overview-insight"
@@ -1244,9 +1243,9 @@ export default function DeepMind() {
                         <motion.div
                           animate={{ rotate: 360 }}
                           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                          className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center"
+                          className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#E4ECF5] flex items-center justify-center"
                         >
-                          <Brain className="w-8 h-8 text-teal-500" />
+                          <Brain className="w-8 h-8 text-[#4F6E8F]" />
                         </motion.div>
                         <p className="text-sm text-slate-600 font-medium">Analyzing your patterns...</p>
                         <p className="text-xs text-muted-foreground mt-1">This may take a moment</p>
