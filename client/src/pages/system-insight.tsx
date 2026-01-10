@@ -267,12 +267,12 @@ export default function SystemInsight() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border/40 pb-6">
           <div className="space-y-1">
             <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className="border-teal-600/30 text-teal-700 bg-teal-600/5 gap-1">
-                <Brain className="w-3 h-3" /> System Intelligence
+              <Badge variant="outline" className="border-violet-600/30 text-violet-700 bg-violet-600/5 gap-1">
+                <Users className="w-3 h-3" /> System States
               </Badge>
             </div>
-            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">Deep Mind</h1>
-            <p className="text-muted-foreground text-lg">Understand your system's patterns and wellbeing</p>
+            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">Headspace</h1>
+            <p className="text-muted-foreground text-lg">Visualize and manage your system states</p>
           </div>
           <div className="flex items-center gap-2">
             <Select value={String(timeRange)} onValueChange={(v) => setTimeRange(Number(v))}>
@@ -296,75 +296,11 @@ export default function SystemInsight() {
           </div>
         ) : (
           <>
-            <Tabs defaultValue="intelligence" className="space-y-6">
+            <Tabs defaultValue="visualizer" className="space-y-6">
               <TabsList className="bg-muted/30 p-1 border border-border/40">
-                <TabsTrigger value="intelligence" className="gap-2"><Brain className="w-4 h-4" /> Intelligence</TabsTrigger>
                 <TabsTrigger value="visualizer" className="gap-2"><LayoutTemplate className="w-4 h-4" /> Headspace Map</TabsTrigger>
                 <TabsTrigger value="directory" className="gap-2"><Users className="w-4 h-4" /> Directory</TabsTrigger>
               </TabsList>
-
-              <TabsContent value="intelligence" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-                {/* AI Insights */}
-                <Card className="border-teal-600/20">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-teal-600" />
-                        AI System Analysis
-                      </CardTitle>
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => fetchAIInsight("patterns")}
-                          disabled={isLoadingInsight}
-                          data-testid="button-patterns-insight"
-                        >
-                          Patterns
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => fetchAIInsight("recommendations")}
-                          disabled={isLoadingInsight}
-                          data-testid="button-recommendations-insight"
-                        >
-                          Suggestions
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          className="bg-teal-700 hover:bg-teal-600 text-white"
-                          onClick={() => fetchAIInsight("system")}
-                          disabled={isLoadingInsight}
-                          data-testid="button-overview-insight"
-                        >
-                          {isLoadingInsight ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <>
-                              <RefreshCw className="w-4 h-4 mr-1" />
-                              Analyze
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                    <CardDescription>AI-powered insights based on your tracking data</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {aiInsight ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <p className="whitespace-pre-wrap text-foreground/90 leading-relaxed">{aiInsight}</p>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Brain className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                        <p>Click "Analyze" to get AI insights about your system</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
 
               <TabsContent value="visualizer" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <HeadspaceMap />
