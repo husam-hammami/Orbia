@@ -2714,39 +2714,95 @@ ${JSON.stringify(context, null, 2)}`;
     }
   });
   
-  // Deep Mind AI Insights endpoint
+  // Deep Mind AI Insights endpoint - Evidence-based analysis
   app.post("/api/deep-mind/insights", async (req, res) => {
     try {
-      const { focus } = req.body; // "system" | "patterns" | "recommendations"
-      const [entries, members] = await Promise.all([
+      const [entries, journalEntries, members] = await Promise.all([
         storage.getRecentTrackerEntries(200),
+        storage.getAllJournalEntries(),
         storage.getAllMembers(),
       ]);
       
-      // Build context for AI
-      const memberSummaries = members.map(m => {
-        const memberEntries = entries.filter(e => e.frontingMemberId === m.id);
-        const entryCount = memberEntries.length;
-        if (entryCount === 0) return `${m.name} (${m.role}): No recent data`;
-        
-        const avgMood = memberEntries.reduce((s, e) => s + e.mood, 0) / entryCount;
-        const avgStress = memberEntries.reduce((s, e) => s + e.stress, 0) / entryCount;
-        return `${m.name} (${m.role}): ${entryCount} entries, avg mood ${avgMood.toFixed(1)}/10, avg stress ${avgStress.toFixed(0)}%`;
-      }).join("\n");
+      // Calculate facts for last 7 days
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const todayStr = now.toISOString().split('T')[0];
       
-      const recentMoodTrend = entries.slice(0, 14).map(e => 
-        `${new Date(e.timestamp).toLocaleDateString()}: mood ${e.mood}/10, stress ${e.stress}%, fronter: ${members.find(m => m.id === e.frontingMemberId)?.name || 'Unknown'}`
-      ).join("\n");
+      const recentEntries = entries.filter(e => new Date(e.timestamp) >= sevenDaysAgo);
+      const todayEntries = entries.filter(e => new Date(e.timestamp).toISOString().split('T')[0] === todayStr);
       
-      const systemPrompt = `You are a compassionate system health analyst for a plural/DID system. Analyze this data and provide brief, actionable insights. Be warm but clinical. Focus on patterns, not diagnoses.
+      // Compute averages (7 days)
+      const avgSleep = recentEntries.filter(e => e.sleepHours != null).length > 0
+        ? (recentEntries.filter(e => e.sleepHours != null).reduce((s, e) => s + (e.sleepHours || 0), 0) / recentEntries.filter(e => e.sleepHours != null).length).toFixed(1)
+        : "N/A";
+      const avgMood = recentEntries.length > 0
+        ? (recentEntries.reduce((s, e) => s + e.mood, 0) / recentEntries.length).toFixed(1)
+        : "N/A";
+      const avgEnergy = recentEntries.length > 0
+        ? (recentEntries.reduce((s, e) => s + e.energy, 0) / recentEntries.length).toFixed(1)
+        : "N/A";
+      
+      // Today's values
+      const todaySleep = todayEntries.find(e => e.sleepHours != null)?.sleepHours ?? "N/A";
+      const todayMood = todayEntries.length > 0 ? todayEntries[0].mood : "N/A";
+      const todayEnergy = todayEntries.length > 0 ? todayEntries[0].energy : "N/A";
+      const todayCapacity = todayEntries.find(e => e.capacity != null)?.capacity ?? "N/A";
+      
+      // Journal excerpts (most recent with recency bias)
+      const recentJournals = journalEntries
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 10);
+      const journalExcerpts = recentJournals.map(j => {
+        const date = new Date(j.createdAt).toLocaleDateString();
+        const content = j.content.slice(0, 200) + (j.content.length > 200 ? "..." : "");
+        return `[${date}] ${content}`;
+      }).join("\n\n");
+      
+      // Build rolling memory from journal analysis
+      const allJournalText = journalEntries.map(j => j.content).join(" ").toLowerCase();
+      const triggerKeywords = ["stressed", "anxious", "overwhelmed", "exhausted", "lonely", "pain", "work", "deadline", "conflict"];
+      const stabilizerKeywords = ["walk", "rest", "sleep", "friend", "calm", "better", "helped", "relaxed"];
+      
+      // Current state (from most recent entry)
+      const currentState = entries[0]?.frontingMemberId 
+        ? members.find(m => m.id === entries[0].frontingMemberId)?.name || "Unknown"
+        : "Unknown";
+      
+      const systemPrompt = `You are an evidence-based wellness analyst. Output MUST follow this exact 4-section structure. Max 6 bullet points total. No long paragraphs. Every claim needs a quote or metric as evidence.
 
-SYSTEM MEMBERS:
-${memberSummaries}
+FACTS (provided):
+- Sleep avg (7d): ${avgSleep}h | Mood avg: ${avgMood}/10 | Energy avg: ${avgEnergy}/10
+- Today: sleep=${todaySleep}h, mood=${todayMood}/10, energy=${todayEnergy}/10, capacity=${todayCapacity}/5
+- Journal present: ${journalEntries.length > 0 ? "yes" : "no"}
+- Current state: ${currentState}
 
-RECENT ENTRIES (last 14):
-${recentMoodTrend}
+JOURNAL EXCERPTS (analyze deeply, link patterns across entries):
+${journalExcerpts || "No journal entries"}
 
-Provide 2-3 key observations about system health, fronting patterns, or stress management. Keep each insight to 1-2 sentences. End with one gentle, actionable suggestion.`;
+OUTPUT FORMAT (follow exactly):
+
+**Facts** (last 7 days + today)
+• sleepHours avg: ${avgSleep}h, mood avg: ${avgMood}, energy avg: ${avgEnergy}
+• today: sleep ${todaySleep}h / mood ${todayMood} / energy ${todayEnergy} / capacity ${todayCapacity}
+
+**Main Driver** (pick 1: Sleep / Work / Loneliness / Pain / Urges)
+• Driver: [one word]
+• Confidence: [High/Med/Low]
+• Evidence: [quote from journal OR specific metric]
+
+**Pattern** (1-2 lines max, from journal history)
+• Cycle: [trigger] → [coping] → [outcome]
+
+**Action**
+• Do: [1 tiny action ≤10 min, matched to capacity]
+• Avoid: [1 "minimize damage" suggestion for next 12-24h]
+
+RULES:
+- Weight priority: journal text > sleep hours > mood/energy/stress > habits/routine (low weight, context only)
+- Never blame habits/routine completion. Say "low completion likely due to low capacity" not "you failed"
+- Use neutral language: "state" not "alter/member/fronting"
+- Every insight needs evidence (quote or metric)
+- Max 6 bullet points total`;
 
       res.setHeader("Content-Type", "text/plain");
       res.setHeader("Transfer-Encoding", "chunked");
@@ -2755,15 +2811,10 @@ Provide 2-3 key observations about system health, fronting patterns, or stress m
         model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: focus === "patterns" 
-            ? "What patterns do you notice in fronting and mood data?" 
-            : focus === "recommendations"
-            ? "What would help this system thrive right now?"
-            : "Give me a brief system health overview."
-          }
+          { role: "user", content: "Analyze my data following the exact 4-section format." }
         ],
         stream: true,
-        max_tokens: 400,
+        max_tokens: 500,
       });
       
       for await (const chunk of stream) {
