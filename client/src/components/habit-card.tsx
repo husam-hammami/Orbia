@@ -38,7 +38,7 @@ export function HabitCard({ habit, onToggle }: HabitCardProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "group relative bg-card rounded-2xl border border-border shadow-sm hover:shadow-md transition-all duration-300 cosmic-glow",
+        "group relative bg-card rounded-2xl border border-border shadow-sm hover:shadow-md transition-all duration-300",
         completed && "bg-opacity-50 border-primary/20"
       )}
     >
