@@ -92,7 +92,7 @@ function Sidebar({ className }: SidebarProps) {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
                 isActive
-                  ? "bg-violet-600 text-white shadow-lg shadow-violet-600/25"
+                  ? "bg-gradient-to-r from-teal-700 to-teal-600 text-white shadow-lg shadow-teal-700/25"
                   : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
               )}
             >
