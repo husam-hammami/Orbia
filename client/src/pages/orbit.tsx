@@ -942,8 +942,8 @@ export default function OrbitPage() {
       <div className="h-[calc(100vh-120px)] flex flex-col animate-in fade-in duration-500">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-              <OrbitIcon className="w-5 h-5 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 via-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+              <OrbitIcon className="w-5 h-5 text-white" />
             </div>
             <div>
               <h1 className="text-2xl font-display font-bold tracking-tight">Orbit</h1>
@@ -967,9 +967,9 @@ export default function OrbitPage() {
               exit={{ opacity: 0, y: -10, height: 0 }}
               className="mb-3"
             >
-              <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border border-primary/20 backdrop-blur-sm">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-cyan-500/10 via-violet-500/15 to-purple-500/10 border border-violet-300/30 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
-                  <div className="p-1.5 rounded-lg bg-primary/10">
+                  <div className="p-1.5 rounded-lg bg-violet-500/15">
                     {nudge.icon}
                   </div>
                   <span className="text-sm font-medium">{nudge.message}</span>
@@ -993,8 +993,8 @@ export default function OrbitPage() {
             <div className="space-y-4 pb-4">
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                    <OrbitIcon className="w-8 h-8 text-primary" />
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 via-violet-500/20 to-purple-500/20 flex items-center justify-center mb-4">
+                    <OrbitIcon className="w-8 h-8 text-violet-600" />
                   </div>
                   <h3 className="text-lg font-semibold mb-2">Ready to help</h3>
                   <p className="text-sm text-muted-foreground max-w-sm">
@@ -1018,7 +1018,7 @@ export default function OrbitPage() {
                     <div className={cn(
                       "max-w-[80%] rounded-2xl px-4 py-3 shadow-sm",
                       message.role === "user" 
-                        ? "bg-primary text-primary-foreground" 
+                        ? "bg-gradient-to-r from-cyan-500 via-violet-500 to-purple-600 text-white" 
                         : "bg-muted/80 text-foreground border border-border/50"
                     )}>
                       <p className="text-sm whitespace-pre-wrap leading-relaxed">
@@ -1065,7 +1065,7 @@ export default function OrbitPage() {
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="bg-muted/80 border border-border/50 rounded-2xl px-4 py-3 shadow-sm">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    <Loader2 className="w-4 h-4 animate-spin text-violet-500" />
                   </div>
                 </div>
               )}
@@ -1102,6 +1102,7 @@ export default function OrbitPage() {
             <Button 
               onClick={() => handleSend()} 
               disabled={isLoading || !input.trim()}
+              className="bg-gradient-to-r from-cyan-500 via-violet-500 to-purple-600 hover:from-cyan-600 hover:via-violet-600 hover:to-purple-700 text-white border-0"
               data-testid="button-send-orbit"
             >
               <Send className="w-4 h-4" />
