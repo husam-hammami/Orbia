@@ -253,32 +253,28 @@ export function WorkTimer() {
                     const canSelect = isIdle;
                     
                     return (
-                      <motion.button
+                      <button
                         key={duration}
                         className={cn(
                           "absolute w-11 h-11 rounded-full flex items-center justify-center z-10",
-                          "font-mono text-sm font-bold transition-all duration-300",
+                          "font-mono text-sm font-bold transition-all duration-200",
                           "border-2",
                           isSelected
                             ? "bg-gradient-to-br from-teal-400 to-cyan-500 text-white border-teal-300/60 shadow-[0_0_25px_rgba(20,184,166,0.6)]"
                             : canSelect
-                              ? "bg-slate-800/90 text-slate-400 border-slate-600/40 hover:border-teal-500/60 hover:text-teal-300 hover:shadow-[0_0_15px_rgba(20,184,166,0.3)]"
+                              ? "bg-slate-800/90 text-slate-400 border-slate-600/40 hover:border-teal-500/60 hover:text-teal-300 hover:shadow-[0_0_15px_rgba(20,184,166,0.3)] hover:scale-110 active:scale-95"
                               : "bg-slate-800/50 text-slate-600 border-slate-700/40 cursor-not-allowed"
                         )}
                         style={{
-                          left: "50%",
-                          top: "50%",
-                          marginLeft: "-22px",
-                          marginTop: "-22px",
-                          transform: `translate(${x}px, ${y}px)`,
+                          left: `calc(50% + ${x}px - 22px)`,
+                          top: `calc(50% + ${y}px - 22px)`,
                         }}
                         onClick={() => canSelect && handleDurationSelect(duration)}
-                        whileHover={canSelect ? { scale: 1.15 } : {}}
-                        whileTap={canSelect ? { scale: 0.95 } : {}}
+                        disabled={!canSelect}
                         data-testid={`duration-${duration}`}
                       >
                         {duration}
-                      </motion.button>
+                      </button>
                     );
                   })}
 
