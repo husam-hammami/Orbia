@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Play, Pause, RotateCcw, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -6,20 +6,53 @@ const DURATION_OPTIONS = [15, 25, 45, 60];
 
 type Status = "idle" | "running" | "paused";
 
+function playCompletionSound() {
+  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  
+  const playTone = (frequency: number, startTime: number, duration: number, volume: number) => {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime + startTime);
+    oscillator.type = "sine";
+    
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime + startTime);
+    gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + startTime + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + startTime + duration);
+    
+    oscillator.start(audioContext.currentTime + startTime);
+    oscillator.stop(audioContext.currentTime + startTime + duration);
+  };
+
+  playTone(523.25, 0, 0.4, 0.15);
+  playTone(659.25, 0.15, 0.4, 0.12);
+  playTone(783.99, 0.3, 0.5, 0.1);
+  playTone(1046.50, 0.45, 0.8, 0.08);
+}
+
 export function WorkTimer() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [duration, setDuration] = useState(25);
   const [remaining, setRemaining] = useState(25 * 60);
   const [status, setStatus] = useState<Status>("idle");
   const intervalRef = useRef<number | null>(null);
+  const hasPlayedRef = useRef(false);
 
   useEffect(() => {
     if (status === "running") {
+      hasPlayedRef.current = false;
       intervalRef.current = window.setInterval(() => {
         setRemaining((r) => {
           if (r <= 1) {
             clearInterval(intervalRef.current!);
             setStatus("idle");
+            if (!hasPlayedRef.current) {
+              hasPlayedRef.current = true;
+              playCompletionSound();
+            }
             return duration * 60;
           }
           return r - 1;
