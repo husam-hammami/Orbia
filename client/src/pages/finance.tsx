@@ -603,7 +603,7 @@ export default function FinancePage() {
                   incomeStreams.map((stream) => (
                     <div 
                       key={stream.id} 
-                      className="group flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
+                      className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-muted/30"
                       data-testid={`income-stream-${stream.id}`}
                     >
                       <div>
@@ -615,18 +615,18 @@ export default function FinancePage() {
                           {formatCurrency(Number(stream.amount), currency)}
                         </span>
                         <Button 
-                          variant="outline" 
+                          variant="default" 
                           size="sm" 
-                          className="h-6 text-xs px-2 opacity-0 group-hover:opacity-100"
+                          className="h-7 text-xs px-3 bg-emerald-600 hover:bg-emerald-700"
                           onClick={() => handleLogIncomePayment(stream)}
                           data-testid={`log-payment-${stream.id}`}
                         >
-                          <Check className="w-3 h-3 mr-1" /> Log
+                          <Check className="w-3 h-3 mr-1" /> Log Payment
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                          className="h-7 w-7"
                           onClick={() => handleDeleteIncomeStream(stream.id)}
                         >
                           <Trash2 className="w-3 h-3 text-rose-500" />
