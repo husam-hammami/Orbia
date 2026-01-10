@@ -83,8 +83,7 @@ export const TodoInsightsSchema = z.object({
 
 export const JournalInsightsSchema = z.object({
   entryFrequency7Day: z.number(),
-  mostCommonTypes: z.array(z.object({ type: z.string(), count: z.number() })),
-  mostUsedTags: z.array(z.object({ tag: z.string(), count: z.number() })),
+  topDrivers: z.array(z.object({ driver: z.string(), count: z.number() })),
   averageMood: z.number().nullable(),
   averageEnergy: z.number().nullable(),
   totalEntries: z.number(),
@@ -556,28 +555,18 @@ export function computeJournalInsights(entries: JournalEntry[]): JournalInsights
   const sevenDaysAgo = getDaysAgo(7);
   const entries7Day = entries.filter(e => new Date(e.createdAt) >= sevenDaysAgo);
 
-  const typeCounts = new Map<string, number>();
+  const driverCounts = new Map<string, number>();
   for (const entry of entries) {
-    typeCounts.set(entry.entryType, (typeCounts.get(entry.entryType) || 0) + 1);
-  }
-
-  const mostCommonTypes = Array.from(typeCounts.entries())
-    .map(([type, count]) => ({ type, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
-
-  const tagCounts = new Map<string, number>();
-  for (const entry of entries) {
-    const tags = entry.tags as string[] | null;
-    if (tags) {
-      for (const tag of tags) {
-        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
-      }
+    if (entry.primaryDriver) {
+      driverCounts.set(entry.primaryDriver, (driverCounts.get(entry.primaryDriver) || 0) + 1);
+    }
+    if (entry.secondaryDriver) {
+      driverCounts.set(entry.secondaryDriver, (driverCounts.get(entry.secondaryDriver) || 0) + 0.5);
     }
   }
 
-  const mostUsedTags = Array.from(tagCounts.entries())
-    .map(([tag, count]) => ({ tag, count }))
+  const topDrivers = Array.from(driverCounts.entries())
+    .map(([driver, count]) => ({ driver, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
@@ -593,8 +582,7 @@ export function computeJournalInsights(entries: JournalEntry[]): JournalInsights
 
   return {
     entryFrequency7Day: entries7Day.length,
-    mostCommonTypes,
-    mostUsedTags,
+    topDrivers,
     averageMood,
     averageEnergy,
     totalEntries: entries.length,

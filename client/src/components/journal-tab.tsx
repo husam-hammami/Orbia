@@ -47,31 +47,11 @@ import { toast } from "sonner";
 import { useJournalEntries, useCreateJournalEntry, useUpdateJournalEntry, useDeleteJournalEntry, useMembers } from "@/lib/api-hooks";
 import { cn } from "@/lib/utils";
 
-const entryTypes = [
-  { value: "freewrite", label: "Free Write", icon: BookOpen, color: "#6366f1", emoji: "✍️" },
-  { value: "reflection", label: "Reflect", icon: Lightbulb, color: "#3b82f6", emoji: "💭" },
-  { value: "vent", label: "Vent", icon: Flame, color: "#ef4444", emoji: "🔥" },
-  { value: "gratitude", label: "Grateful", icon: Heart, color: "#ec4899", emoji: "💝" },
-  { value: "grounding", label: "Ground", icon: Leaf, color: "#22c55e", emoji: "🌿" },
-  { value: "system_note", label: "System", icon: Users, color: "#8b5cf6", emoji: "👥" },
-  { value: "memory", label: "Memory", icon: Brain, color: "#a855f7", emoji: "🧠" },
-  { value: "achievement", label: "Win", icon: Star, color: "#eab308", emoji: "⭐" },
-  { value: "safety", label: "Safety Plan", icon: Shield, color: "#06b6d4", emoji: "🛡️" },
-  { value: "letter", label: "Letter", icon: MessageCircle, color: "#f97316", emoji: "💌" },
-  { value: "trigger", label: "Trigger Log", icon: AlertTriangle, color: "#dc2626", emoji: "⚡" },
-];
-
 const timeOfDayOptions = [
   { value: "morning", label: "Morning", icon: Sun, color: "text-amber-500" },
   { value: "afternoon", label: "Afternoon", icon: Cloud, color: "text-blue-400" },
   { value: "evening", label: "Evening", icon: Sunset, color: "text-orange-500" },
   { value: "night", label: "Night", icon: Moon, color: "text-indigo-400" },
-];
-
-const tagOptions = [
-  "anxiety", "calm", "dissociation", "grounded", "triggered", "safe", 
-  "state shift", "co-conscious", "pain", "tired", "hopeful", "overwhelmed",
-  "productive", "creative", "lonely", "connected", "numb", "present"
 ];
 
 const writingPrompts = [
@@ -126,12 +106,10 @@ export function JournalTab() {
   const [isWriting, setIsWriting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [content, setContent] = useState("");
-  const [entryType, setEntryType] = useState("freewrite");
   const [mood, setMood] = useState<number | null>(null);
   const [energy, setEnergy] = useState<number | null>(null);
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDayAuto());
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
   const [showContext, setShowContext] = useState(false);
   const [showVitals, setShowVitals] = useState(false);
@@ -165,12 +143,10 @@ export function JournalTab() {
 
   const resetForm = () => {
     setContent("");
-    setEntryType("freewrite");
     setMood(null);
     setEnergy(null);
     setAuthorId(null);
     setTimeOfDay(getTimeOfDayAuto());
-    setSelectedTags([]);
     setEditingId(null);
     setIsWriting(false);
     setShowContext(false);
@@ -189,12 +165,12 @@ export function JournalTab() {
 
     const data = {
       content: content.trim(),
-      entryType,
+      entryType: "freewrite",
       mood,
       energy,
       authorId,
       timeOfDay,
-      tags: selectedTags,
+      tags: [],
       isPrivate: 0,
       entryDate,
       primaryDriver,
@@ -223,12 +199,10 @@ export function JournalTab() {
   const handleEdit = (entry: any) => {
     setEditingId(entry.id);
     setContent(entry.content);
-    setEntryType(entry.entryType);
     setMood(entry.mood);
     setEnergy(entry.energy);
     setAuthorId(entry.authorId);
     setTimeOfDay(entry.timeOfDay || getTimeOfDayAuto());
-    setSelectedTags(entry.tags || []);
     setEntryDate(entry.entryDate ? new Date(entry.entryDate) : new Date());
     setPrimaryDriver(entry.primaryDriver || null);
     setSecondaryDriver(entry.secondaryDriver || null);
@@ -242,20 +216,12 @@ export function JournalTab() {
     });
   };
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-    );
-  };
-
   const insertPrompt = (prompt: string) => {
     setContent(prev => prev ? `${prev}\n\n${prompt}` : prompt);
     textareaRef.current?.focus();
   };
 
-  const getTypeConfig = (type: string) => entryTypes.find(t => t.value === type) || entryTypes[0];
   const getAuthor = (id: string | null) => members?.find(m => m.id === id);
-  const currentTypeConfig = getTypeConfig(entryType);
 
   return (
     <div className="space-y-4">
@@ -330,10 +296,10 @@ export function JournalTab() {
             ) : (
               <div className="space-y-2">
                 {entries?.map((entry, index) => {
-                  const typeConfig = getTypeConfig(entry.entryType);
                   const author = getAuthor(entry.authorId);
                   const isExpanded = expandedEntry === entry.id;
                   const preview = entry.content.slice(0, 120);
+                  const driverInfo = entry.primaryDriver ? allDrivers.find(d => d.value === entry.primaryDriver) : null;
                   
                   return (
                     <motion.div
@@ -355,9 +321,9 @@ export function JournalTab() {
                         <span 
                           className="text-lg shrink-0"
                           role="img" 
-                          aria-label={typeConfig.label}
+                          aria-label={driverInfo?.label || "Journal"}
                         >
-                          {typeConfig.emoji}
+                          {driverInfo?.emoji || "📝"}
                         </span>
                         
                         <div className="flex-1 min-w-0">
@@ -385,18 +351,13 @@ export function JournalTab() {
                             )}
                           </div>
                           
-                          {entry.tags && entry.tags.length > 0 && !isExpanded && (
+                          {entry.primaryDriver && !isExpanded && (
                             <div className="flex gap-1 mt-2 flex-wrap">
-                              {entry.tags.slice(0, 3).map((tag: string) => (
-                                <span key={tag} className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded">
-                                  {tag}
-                                </span>
-                              ))}
-                              {entry.tags.length > 3 && (
-                                <span className="text-[10px] px-1.5 py-0.5 text-slate-400">
-                                  +{entry.tags.length - 3}
-                                </span>
-                              )}
+                              <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded flex items-center gap-1">
+                                <Zap className="w-2.5 h-2.5" />
+                                {allDrivers.find(d => d.value === entry.primaryDriver)?.label}
+                                {entry.secondaryDriver && ` → ${allDrivers.find(d => d.value === entry.secondaryDriver)?.label}`}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -433,13 +394,13 @@ export function JournalTab() {
                                 </div>
                               )}
                               
-                              {entry.tags && entry.tags.length > 0 && (
-                                <div className="flex gap-1.5 flex-wrap">
-                                  {entry.tags.map((tag: string) => (
-                                    <span key={tag} className="text-xs px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full">
-                                      {tag}
-                                    </span>
-                                  ))}
+                              {entry.primaryDriver && (
+                                <div className="flex gap-1.5 flex-wrap items-center">
+                                  <Zap className="w-3.5 h-3.5 text-amber-500" />
+                                  <span className="text-xs text-slate-600">
+                                    {allDrivers.find(d => d.value === entry.primaryDriver)?.emoji} {allDrivers.find(d => d.value === entry.primaryDriver)?.label}
+                                    {entry.secondaryDriver && ` → ${allDrivers.find(d => d.value === entry.secondaryDriver)?.emoji} ${allDrivers.find(d => d.value === entry.secondaryDriver)?.label}`}
+                                  </span>
                                 </div>
                               )}
                               
@@ -511,31 +472,6 @@ export function JournalTab() {
               <ChevronRight className="w-4 h-4 rotate-180" />
               <span className="text-sm font-medium">Back</span>
             </button>
-
-            <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
-              {entryTypes.map((type) => {
-                const isSelected = entryType === type.value;
-                return (
-                  <motion.button
-                    key={type.value}
-                    onClick={() => setEntryType(type.value)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border",
-                      isSelected
-                        ? "text-white shadow-md"
-                        : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
-                    )}
-                    style={isSelected ? { backgroundColor: type.color, borderColor: type.color } : {}}
-                    data-testid={`button-type-${type.value}`}
-                  >
-                    <span>{type.emoji}</span>
-                    {type.label}
-                  </motion.button>
-                );
-              })}
-            </div>
 
             {/* Drivers Section - always visible at top */}
             <div className="bg-white rounded-xl border border-slate-200 p-3">
@@ -732,36 +668,6 @@ export function JournalTab() {
                     </button>
                   ))}
                 </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-200 p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="w-4 h-4 text-indigo-500" />
-                <span className="text-xs font-medium text-slate-600">Tags</span>
-                {selectedTags.length > 0 && (
-                  <span className="text-xs text-indigo-500">({selectedTags.length})</span>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {tagOptions.map((tag) => {
-                  const isSelected = selectedTags.includes(tag);
-                  return (
-                    <button
-                      key={tag}
-                      onClick={() => toggleTag(tag)}
-                      className={cn(
-                        "px-2.5 py-1 rounded-full text-xs font-medium transition-all",
-                        isSelected 
-                          ? "bg-indigo-500 text-white" 
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                      )}
-                      data-testid={`tag-${tag}`}
-                    >
-                      {tag}
-                    </button>
-                  );
-                })}
               </div>
             </div>
 

@@ -1,0 +1,121 @@
+
+For deep mind page: 
+The simple rework: 3 cards + 1 rule
+Rule: Always show sample size + confidence
+
+Every chart/insight must show: N = number of days/entries used and confidence: Low / Medium / High.
+If N is small, label it “early signal”.
+
+1) Live Monitor tab → make it “Now”
+
+Replace the current big chart emphasis with one Now card:
+
+NOW
+
+Driver: Sleep / Work / Loneliness / Pain / Urges (pick 1)
+
+State: (your state label) + “State intensity”
+
+Load vs Stability: keep the % if you like, but make it secondary
+
+Risk flag (optional): “High risk of crash in next 12h” (only if rules match)
+
+One Smart Suggestion
+
+Do: 1 tiny stabilizer (≤10 min)
+
+Avoid: 1 thing that increases damage (next 12–24h)
+
+That’s all Live Monitor needs.
+
+2) Analysis & Patterns tab → make it “Your 3 loops”
+
+This tab should show only 3 things, derived from your journal history + sleep.
+
+Top 3 Triggers (last 30–90 days)
+
+Example: work conflict, sleep loss, rejection cues
+
+Top 3 Stabilizers
+
+Example: sleep >6h, 2 meals, leaving the house
+
+Top 3 Crash Loops
+
+Example:
+
+Work blowup → shutdown → insomnia → next-day low capacity
+
+Urge spike → porn/sexting → shame → dissociation → insomnia
+
+Each loop shows:
+
+How often (count)
+
+How recent
+
+1 recommended interrupt (tiny)
+
+No charts needed here—just clean bullets.
+
+3) Visualizations tab → keep only 2 charts (the ones that matter)
+
+Right now you have many charts that are easy to misread. Keep only:
+
+Chart A: Sleep hours vs (Mood / Dissociation / Urges)
+
+Sleep is your highest-leverage variable.
+
+Show it as a simple bar/line with N and confidence.
+
+Chart B: Driver frequency over time
+
+A stacked bar: Sleep/Work/Loneliness/Pain/Urges per week.
+
+This tells you “what’s been running my life lately.”
+
+Remove (or demote) the “habit impact” and “synergy” charts until you have lots of data (N≥30–60 days). Otherwise it will confidently lie.
+
+4) Headspace Map tab → rename + simplify (make it “State Timeline”)
+
+Rename everything:
+
+“Top fronter” → Most common state
+
+“Avg switches/day” → Avg state shifts/day
+
+“Alter currents” → State distribution
+
+“System member patterns” → State patterns
+
+Make it useful by adding only 2 things:
+
+State timeline (what state you were in across the day/week)
+
+State → driver association (which drivers tend to precede which states)
+
+Example:
+
+“Noised state most often follows: sleep <5.5h or work conflict”
+
+The key upgrade (still simple): add a “Driver” field to journaling
+
+To avoid unreliable NLP, add one dropdown in Journal or Mood entry:
+Main driver today: Sleep / Work / Loneliness / Pain / Urges
+
+That single field makes patterns accurate fast, and lets the Deep Mind page become genuinely smart.
+
+Final cleanup (easy wins)
+
+Kill phrases like “statistically validated” unless you truly do stats and have enough N.
+
+If you keep “confidence” badges, base them on:
+
+N (sample size)
+
+effect size (difference)
+
+consistency (repeats across weeks)
+
+Make the entire Deep Mind page answer this in 5 seconds:
+“What’s driving me, what loop am I in, what do I do next?”

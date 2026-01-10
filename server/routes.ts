@@ -1279,11 +1279,9 @@ export async function registerRoutes(
         journalEntries: recentJournalEntries.map(j => ({
           id: j.id,
           date: j.createdAt,
-          entryType: j.entryType,
           mood: j.mood,
           energy: j.energy,
           timeOfDay: j.timeOfDay,
-          tags: j.tags,
           isPrivate: j.isPrivate,
           primaryDriver: j.primaryDriver,
           secondaryDriver: j.secondaryDriver,
@@ -1291,21 +1289,9 @@ export async function registerRoutes(
           contentPreview: j.content.length > 300 ? j.content.slice(0, 300) + "..." : j.content
         })),
         journalAnalytics: (() => {
-          const typeBreakdown = recentJournalEntries.reduce((acc, j) => {
-            acc[j.entryType] = (acc[j.entryType] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
-          
           const driverFrequency = recentJournalEntries.reduce((acc, j) => {
             if (j.primaryDriver) acc[j.primaryDriver] = (acc[j.primaryDriver] || 0) + 1;
             if (j.secondaryDriver) acc[j.secondaryDriver] = (acc[j.secondaryDriver] || 0) + 0.5;
-            return acc;
-          }, {} as Record<string, number>);
-          
-          const tagFrequency = recentJournalEntries.reduce((acc, j) => {
-            (j.tags || []).forEach((tag: string) => {
-              acc[tag] = (acc[tag] || 0) + 1;
-            });
             return acc;
           }, {} as Record<string, number>);
           
@@ -1314,9 +1300,7 @@ export async function registerRoutes(
           
           return {
             totalEntries: recentJournalEntries.length,
-            typeBreakdown,
             driverFrequency: Object.entries(driverFrequency).sort((a, b) => b[1] - a[1]).slice(0, 5),
-            tagFrequency: Object.entries(tagFrequency).sort((a, b) => b[1] - a[1]).slice(0, 10),
             avgMood: withMood.length > 0 ? (withMood.reduce((s, j) => s + (j.mood || 0), 0) / withMood.length).toFixed(1) : null,
             avgEnergy: withEnergy.length > 0 ? (withEnergy.reduce((s, j) => s + (j.energy || 0), 0) / withEnergy.length).toFixed(1) : null,
             entriesByTimeOfDay: recentJournalEntries.reduce((acc, j) => {
@@ -1369,16 +1353,13 @@ KEY DATA AVAILABLE:
    - bestWorstDaysAnalysis: Pattern analysis of your best vs worst mood days
 
 7. journalEntries - Full journal data with:
-   - entryType: reflection/vent/gratitude/grounding/memory/system_note
-   - mood and energy scores, timeOfDay, tags
+   - mood and energy scores, timeOfDay
    - primaryDriver/secondaryDriver (HIGH WEIGHT - user-tagged: Sleep, Work, Relationships, Body, Anxiety, Urges/Escape, Shame, Trauma, Joy, Connection, Growth, Peace)
    - authorName (which system member wrote it)
    - contentPreview (first 300 chars of content)
 
 8. journalAnalytics - Aggregated journal statistics:
-   - typeBreakdown: Count of entries by type (vent vs gratitude vs reflection, etc.)
-   - driverFrequency: Most common drivers tagged in journal entries (HIGH WEIGHT EVIDENCE)
-   - tagFrequency: Most common tags used
+   - driverFrequency: Most common drivers tagged in journal entries (HIGH WEIGHT EVIDENCE - primary source of categorization)
    - avgMood/avgEnergy: Journal-specific averages
    - entriesByTimeOfDay: When journaling happens most
 

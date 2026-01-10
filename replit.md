@@ -64,7 +64,7 @@ Key data models:
 - `todos`: Simple to-do list items with priority levels, due dates, and overdue tracking
 - `conversations`: AI chat conversation threads
 - `messages`: Individual messages within AI conversations
-- `journalEntries`: Rich journal entries with entry types, mood/energy tracking, alter attribution, tags, custom entry dates, and markdown content support
+- `journalEntries`: Rich journal entries with mood/energy tracking, alter attribution, custom entry dates, markdown content support, and driver-based categorization (primaryDriver/secondaryDriver) as the sole classification method (entry types and tags deprecated)
 
 ### AI Integration
 
