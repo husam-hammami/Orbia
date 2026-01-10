@@ -894,7 +894,7 @@ export default function OrbitPage() {
         nudges.push({
           id: routineNudgeId,
           message: `Still time to complete ${remaining} more routine item${remaining > 1 ? 's' : ''}`,
-          icon: <Activity className="w-4 h-4 text-violet-500" />
+          icon: <Activity className="w-4 h-4 text-teal-600" />
         });
       }
     }
@@ -943,7 +943,7 @@ export default function OrbitPage() {
                 <>
                   <div className="w-px h-4 bg-border" />
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-violet-600" />
+                    <Sparkles className="w-4 h-4 text-teal-600" />
                     <span className="text-muted-foreground">Front:</span>
                     <span className="font-medium">{latestFronter}</span>
                   </div>
