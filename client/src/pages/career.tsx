@@ -113,8 +113,8 @@ function CircularProgress({ progress, size = 64, strokeWidth = 6 }: { progress: 
         />
         <defs>
           <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#5eead4" stopOpacity="0.7" />
-            <stop offset="100%" stopColor="#99f6e4" stopOpacity="0.7" />
+            <stop offset="0%" stopColor="#64748b" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#94a3b8" stopOpacity="0.8" />
           </linearGradient>
         </defs>
       </svg>
@@ -132,8 +132,8 @@ function AnimatedCheckbox({ checked, onChange }: { checked: boolean; onChange: (
       className={cn(
         "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
         checked 
-          ? "bg-teal-500 border-transparent" 
-          : "border-slate-300 dark:border-slate-600 hover:border-teal-400"
+          ? "bg-slate-600 dark:bg-slate-500 border-transparent" 
+          : "border-slate-300 dark:border-slate-600 hover:border-slate-400"
       )}
       whileTap={{ scale: 0.9 }}
     >
@@ -746,7 +746,7 @@ export default function CareerPage() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-2"
         >
-          <h1 className="text-3xl md:text-4xl font-display font-bold bg-gradient-to-r from-teal-500 to-cyan-500 bg-clip-text text-transparent">
+          <h1 className="text-3xl md:text-4xl font-display font-bold bg-gradient-to-r from-slate-700 to-slate-500 dark:from-slate-300 dark:to-slate-400 bg-clip-text text-transparent">
             Career & Vision
           </h1>
           <p className="text-muted-foreground">Your professional growth dashboard</p>
@@ -779,12 +779,12 @@ export default function CareerPage() {
                   transition={{ delay: index * 0.1 }}
                   className={cn(
                     glassCard,
-                    "p-5 group hover:border-teal-500/40 transition-all duration-300"
+                    "p-5 group hover:border-slate-400/60 transition-all duration-300"
                   )}
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 flex items-center justify-center shrink-0">
-                      <Icon className="w-5 h-5 text-teal-500" />
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                      <Icon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-foreground text-sm leading-tight">{item.title}</h3>
@@ -803,14 +803,14 @@ export default function CareerPage() {
           <TabsList className={cn(glassCard, "w-full grid grid-cols-2 p-1 h-auto")}>
             <TabsTrigger 
               value="projects" 
-              className="relative data-[state=active]:bg-white/60 data-[state=active]:dark:bg-slate-800/60 data-[state=active]:text-teal-700 data-[state=active]:dark:text-teal-300 data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-1/2 data-[state=active]:after:-translate-x-1/2 data-[state=active]:after:w-8 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-teal-500/70 data-[state=active]:after:rounded-full"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-slate-600 data-[state=active]:to-slate-500 data-[state=active]:text-white data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
             >
               <Rocket className="w-4 h-4 mr-2" />
               Projects
             </TabsTrigger>
             <TabsTrigger 
               value="coach" 
-              className="relative data-[state=active]:bg-white/60 data-[state=active]:dark:bg-slate-800/60 data-[state=active]:text-violet-700 data-[state=active]:dark:text-violet-300 data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-1/2 data-[state=active]:after:-translate-x-1/2 data-[state=active]:after:w-8 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-violet-500/70 data-[state=active]:after:rounded-full"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-slate-600 data-[state=active]:to-slate-500 data-[state=active]:text-white data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
             >
               <Compass className="w-4 h-4 mr-2" />
               Career Coach
@@ -821,13 +821,12 @@ export default function CareerPage() {
             <section className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                  <Rocket className="w-5 h-5 text-cyan-500" />
+                  <Rocket className="w-5 h-5 text-slate-500" />
                   Active Projects
                 </h2>
                 <Button 
                   onClick={() => openProjectDialog(null)}
-                  variant="outline"
-                  className="border-teal-300 dark:border-teal-700 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+                  className="bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white border-0"
                   size="sm"
                 >
                   <Plus className="w-4 h-4 mr-2" /> New Project
@@ -858,10 +857,10 @@ export default function CareerPage() {
                                 variant="outline" 
                                 className={cn(
                                   "text-[10px] font-medium",
-                                  project.status === "in_progress" && "border-cyan-500/40 text-cyan-600 dark:text-cyan-400",
-                                  project.status === "planning" && "border-violet-500/40 text-violet-600 dark:text-violet-400",
+                                  project.status === "in_progress" && "border-slate-400/60 text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50",
+                                  project.status === "planning" && "border-slate-300/60 text-slate-500 dark:text-slate-400",
                                   project.status === "completed" && "border-slate-400/40 text-slate-500",
-                                  project.status === "ongoing" && "border-teal-500/40 text-teal-600 dark:text-teal-400"
+                                  project.status === "ongoing" && "border-slate-400/60 text-slate-600 dark:text-slate-400"
                                 )}
                               >
                                 {STATUS_DISPLAY[project.status] || project.status}
@@ -876,7 +875,7 @@ export default function CareerPage() {
 
                           {project.nextAction && (
                             <p className="text-xs text-muted-foreground line-clamp-2">
-                              <span className="text-teal-500 font-medium">Next:</span> {project.nextAction}
+                              <span className="text-slate-600 dark:text-slate-400 font-medium">Next:</span> {project.nextAction}
                             </p>
                           )}
 
@@ -904,7 +903,7 @@ export default function CareerPage() {
                   className={cn(
                     glassCard,
                     "p-5 border-dashed border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2",
-                    "text-muted-foreground hover:text-teal-500 hover:border-teal-500/40 transition-all duration-300 min-h-[140px]"
+                    "text-muted-foreground hover:text-slate-600 hover:border-slate-400 transition-all duration-300 min-h-[140px]"
                   )}
                 >
                   <Plus className="w-5 h-5" />
@@ -998,8 +997,7 @@ export default function CareerPage() {
                 </p>
                 <Button 
                   onClick={fetchCoach}
-                  variant="outline"
-                  className="border-violet-300 dark:border-violet-700 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20"
+                  className="bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white border-0"
                   size="lg"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
@@ -1044,11 +1042,11 @@ export default function CareerPage() {
                 >
                   <div className="flex items-center gap-3 flex-wrap">
                     <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                      <Compass className="w-5 h-5 text-violet-500" />
+                      <Compass className="w-5 h-5 text-slate-500" />
                       Career Coach
                     </h3>
                     {coachData.weeklyTheme && (
-                      <Badge variant="outline" className="border-violet-200 dark:border-violet-700 text-violet-600 dark:text-violet-400 text-xs bg-violet-50/50 dark:bg-violet-900/20">
+                      <Badge variant="secondary" className="text-xs">
                         <Star className="w-3 h-3 mr-1" />
                         {coachData.weeklyTheme}
                       </Badge>
@@ -1062,7 +1060,7 @@ export default function CareerPage() {
                       onClick={fetchCoach}
                       variant="ghost"
                       size="sm"
-                      className="h-7 text-xs text-violet-600 dark:text-violet-400 hover:text-violet-700 hover:bg-violet-50 dark:hover:bg-violet-900/20"
+                      className="h-7 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
                       <RefreshCw className="w-3 h-3 mr-1" />
                       Refresh
@@ -1075,7 +1073,7 @@ export default function CareerPage() {
                     {coachData.roadmap && coachData.roadmap.length > 0 && (
                       <>
                         <div className="flex items-center gap-2 mb-2">
-                          <Map className="w-4 h-4 text-violet-500" />
+                          <Map className="w-4 h-4 text-slate-500" />
                           <h4 className="font-medium text-foreground text-sm">Roadmap Timeline</h4>
                         </div>
                         {coachData.roadmap.map((phase, index) => {
@@ -1101,7 +1099,7 @@ export default function CareerPage() {
                                     initial={{ width: 0 }}
                                     animate={{ width: `${phaseProgress}%` }}
                                     transition={{ duration: 0.5, ease: "easeOut" }}
-                                    className="h-full bg-teal-400/60 dark:bg-teal-500/50"
+                                    className="h-full bg-slate-400/70 dark:bg-slate-500/60"
                                   />
                                 </div>
                               )}
@@ -1109,8 +1107,8 @@ export default function CareerPage() {
                                 <Collapsible open={isExpanded} onOpenChange={() => togglePhaseExpanded(index)}>
                                   <CollapsibleTrigger className="w-full p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                     <div className="flex items-center gap-2">
-                                      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/10 flex items-center justify-center">
-                                        <TrendingUp className="w-3 h-3 text-violet-500" />
+                                      <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                                        <TrendingUp className="w-3 h-3 text-slate-500" />
                                       </div>
                                       <div className="text-left">
                                         <div className="flex items-center gap-2">
@@ -1401,7 +1399,7 @@ export default function CareerPage() {
                             <div className="p-2.5 rounded-lg bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 mb-3">
                               <div className="flex items-center justify-between text-xs mb-1.5">
                                 <span className="text-muted-foreground">Phase Progress</span>
-                                <span className="font-medium text-teal-600 dark:text-teal-400">
+                                <span className="font-medium text-slate-600 dark:text-slate-400">
                                   {getPhaseCompletedCount(activePhaseIndex)}/{activePhase.milestones?.length || 0} done
                                 </span>
                               </div>
@@ -1409,7 +1407,7 @@ export default function CareerPage() {
                                 <motion.div
                                   initial={{ width: 0 }}
                                   animate={{ width: `${getPhaseProgressPercent(activePhaseIndex)}%` }}
-                                  className="h-full bg-teal-400/60 dark:bg-teal-500/50 rounded-full"
+                                  className="h-full bg-slate-400/70 dark:bg-slate-500/60 rounded-full"
                                 />
                               </div>
                               <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-2">
@@ -1819,10 +1817,10 @@ export default function CareerPage() {
                       variant="outline" 
                       className={cn(
                         "font-medium",
-                        selectedProject.status === "in_progress" && "border-cyan-500/40 text-cyan-600",
-                        selectedProject.status === "planning" && "border-violet-500/40 text-violet-600",
+                        selectedProject.status === "in_progress" && "border-slate-400/60 text-slate-600 bg-slate-50",
+                        selectedProject.status === "planning" && "border-slate-300/60 text-slate-500",
                         selectedProject.status === "completed" && "border-slate-400/40 text-slate-500",
-                        selectedProject.status === "ongoing" && "border-teal-500/40 text-teal-600"
+                        selectedProject.status === "ongoing" && "border-slate-400/60 text-slate-600"
                       )}
                     >
                       {STATUS_DISPLAY[selectedProject.status]}
@@ -1842,7 +1840,7 @@ export default function CareerPage() {
                       </div>
                       <div className="w-48 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                         <motion.div 
-                          className="h-full bg-teal-400/60 dark:bg-teal-500/50 rounded-full"
+                          className="h-full bg-slate-400/70 dark:bg-slate-500/60 rounded-full"
                           initial={{ width: 0 }}
                           animate={{ width: `${progress}%` }}
                           transition={{ duration: 0.5 }}
@@ -1874,7 +1872,7 @@ export default function CareerPage() {
 
                   {selectedProject.nextAction && (
                     <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
-                      <div className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase mb-1">Next Action</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400 font-semibold uppercase mb-1">Next Action</div>
                       <p className="text-sm text-slate-700 dark:text-slate-300">{selectedProject.nextAction}</p>
                     </div>
                   )}
