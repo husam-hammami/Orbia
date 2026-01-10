@@ -52,7 +52,7 @@ export default function Settings() {
                 </Badge>
              </div>
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">System Settings</h1>
-            <p className="text-muted-foreground text-lg">Customize your NeuroZen experience and manage your data.</p>
+            <p className="text-muted-foreground text-lg">Customize your Orbia experience and manage your data.</p>
           </div>
           <div className="flex gap-2">
              <Button variant="outline" onClick={() => window.location.reload()}>Cancel</Button>
@@ -185,7 +185,7 @@ export default function Settings() {
                             Appearance
                         </CardTitle>
                         <CardDescription>
-                            Manage how NeuroZen looks and feels.
+                            Manage how Orbia looks and feels.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
