@@ -849,6 +849,8 @@ interface FinanceSettingsData {
   debtTotal: number;
   debtPaid: number;
   debtMonthlyPayment: number;
+  currency: string;
+  savingsGoal: number;
   updatedAt?: Date;
 }
 
