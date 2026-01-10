@@ -974,25 +974,6 @@ export default function DeepMind() {
                 </motion.div>
 
                 <motion.div variants={staggerItem}>
-                  <GlassCard glow glowColor="violet" className="overflow-hidden">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/30 to-purple-500/30 flex items-center justify-center border border-violet-500/30">
-                          <Layers className="w-5 h-5 text-violet-400" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-base text-foreground">State Distribution</CardTitle>
-                          <CardDescription className="text-xs text-muted-foreground">State patterns and transitions over time</CardDescription>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <HeadspaceMap />
-                    </CardContent>
-                  </GlassCard>
-                </motion.div>
-
-                <motion.div variants={staggerItem}>
                   <GlassCard glow glowColor="amber" className="overflow-hidden">
                     <CardHeader className="pb-4">
                       <div className="flex items-center justify-between">

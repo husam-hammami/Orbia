@@ -504,38 +504,11 @@ export function HeadspaceMap() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="relative rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c0a1d 0%, #1a0a2e 25%, #0d1117 50%, #0a192f 75%, #0c0a1d 100%)' }}>
-                    <div className="absolute inset-0 overflow-hidden">
-                      <motion.div
-                        className="absolute inset-0"
-                        style={{
-                          background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(139,92,246,0.15) 0%, transparent 50%)',
-                        }}
-                        animate={{ opacity: [0.3, 0.6, 0.3] }}
-                        transition={{ duration: 4, repeat: Infinity }}
-                      />
-                      <motion.div
-                        className="absolute inset-0"
-                        style={{
-                          background: 'radial-gradient(ellipse 60% 40% at 30% 100%, rgba(236,72,153,0.1) 0%, transparent 50%)',
-                        }}
-                        animate={{ opacity: [0.2, 0.5, 0.2] }}
-                        transition={{ duration: 5, repeat: Infinity, delay: 1 }}
-                      />
-                      <motion.div
-                        className="absolute inset-0"
-                        style={{
-                          background: 'radial-gradient(ellipse 50% 30% at 80% 50%, rgba(59,130,246,0.1) 0%, transparent 50%)',
-                        }}
-                        animate={{ opacity: [0.3, 0.4, 0.3] }}
-                        transition={{ duration: 6, repeat: Infinity, delay: 2 }}
-                      />
-                    </div>
-
+                  <div className="relative rounded-2xl overflow-hidden bg-slate-100 border border-slate-200">
                     <div className="relative p-6">
                       <div className="flex items-center gap-2 mb-4">
-                        <Activity className="w-4 h-4 text-violet-400" />
-                        <span className="text-xs font-semibold text-violet-300 uppercase tracking-wider">Flowing Consciousness</span>
+                        <Activity className="w-4 h-4 text-violet-500" />
+                        <span className="text-xs font-semibold text-violet-600 uppercase tracking-wider">Flowing Consciousness</span>
                       </div>
 
                       <div className="relative h-32 flex items-end gap-[2px] overflow-hidden">
@@ -638,7 +611,7 @@ export function HeadspaceMap() {
                         })()}
                       </div>
 
-                      <div className="flex justify-between mt-3 text-[10px] text-slate-500 font-mono">
+                      <div className="flex justify-between mt-3 text-[10px] text-slate-600 font-mono">
                         <span>← Earlier</span>
                         <span>Recent →</span>
                       </div>
