@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo, DailySummary, CareerProject, CareerTask, Expense, JournalEntry, InsertJournalEntry, IncomeStream, Transaction, InsertIncomeStream, InsertTransaction } from "@shared/schema";
+import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo, DailySummary, CareerProject, CareerTask, Expense, JournalEntry, InsertJournalEntry, IncomeStream, Transaction, InsertIncomeStream, InsertTransaction, Loan, InsertLoan, LoanPayment, InsertLoanPayment } from "@shared/schema";
 import type { DashboardInsights } from "../../../server/lib/dashboard-analytics";
 
 // Helper to handle API calls
@@ -1188,6 +1188,83 @@ export function useImportTransactions() {
       }) as Promise<ParsedTransactionResult>,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+}
+
+// Loans Hooks
+export function useLoans() {
+  return useQuery<Loan[]>({
+    queryKey: ["loans"],
+    queryFn: () => fetchAPI("/api/loans"),
+  });
+}
+
+export function useCreateLoan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: InsertLoan) =>
+      fetchAPI("/api/loans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["loans"] });
+    },
+  });
+}
+
+export function useUpdateLoan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<InsertLoan> }) =>
+      fetchAPI(`/api/loans/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["loans"] });
+    },
+  });
+}
+
+export function useDeleteLoan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchAPI(`/api/loans/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["loans"] });
+      queryClient.invalidateQueries({ queryKey: ["loanPayments"] });
+    },
+  });
+}
+
+// Loan Payments Hooks
+export function useLoanPayments(loanId?: string) {
+  return useQuery<LoanPayment[]>({
+    queryKey: ["loanPayments", loanId],
+    queryFn: () => fetchAPI(`/api/loans/${loanId}/payments`),
+    enabled: !!loanId,
+  });
+}
+
+export function useCreateLoanPayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: InsertLoanPayment) =>
+      fetchAPI(`/api/loans/${data.loanId}/payments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["loanPayments", variables.loanId] });
+      queryClient.invalidateQueries({ queryKey: ["loans"] });
     },
   });
 }

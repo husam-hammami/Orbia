@@ -21,7 +21,9 @@ import {
   insertJournalEntrySchema,
   insertFoodOptionSchema,
   insertIncomeStreamSchema,
-  insertTransactionSchema
+  insertTransactionSchema,
+  insertLoanSchema,
+  insertLoanPaymentSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { registerChatRoutes } from "./replit_integrations/chat";
@@ -3618,6 +3620,101 @@ RULES:
     } catch (error) {
       console.error("Dashboard insights error:", error);
       res.status(500).json({ error: "Failed to compute dashboard insights" });
+    }
+  });
+
+  // Loans Routes
+  app.get("/api/loans", async (req, res) => {
+    try {
+      const loans = await storage.getAllLoans();
+      res.json(loans);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch loans" });
+    }
+  });
+
+  app.post("/api/loans", async (req, res) => {
+    try {
+      const validatedData = insertLoanSchema.parse(req.body);
+      const loan = await storage.createLoan(validatedData);
+      res.status(201).json(loan);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.put("/api/loans/:id", async (req, res) => {
+    try {
+      const validatedData = insertLoanSchema.partial().parse(req.body);
+      const loan = await storage.updateLoan(req.params.id, validatedData);
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      res.json(loan);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/loans/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteLoan(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete loan" });
+    }
+  });
+
+  // Loan Payments Routes
+  app.get("/api/loans/:id/payments", async (req, res) => {
+    try {
+      const payments = await storage.getLoanPayments(req.params.id);
+      res.json(payments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch loan payments" });
+    }
+  });
+
+  app.post("/api/loans/:id/payments", async (req, res) => {
+    try {
+      const loan = await storage.getLoan(req.params.id);
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+
+      const validatedData = insertLoanPaymentSchema.parse({
+        ...req.body,
+        loanId: req.params.id
+      });
+
+      const paymentDate = validatedData.paymentDate || new Date();
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const month = `${monthNames[paymentDate.getMonth()]} ${paymentDate.getFullYear()}`;
+      
+      const transaction = await storage.createTransaction({
+        type: "expense",
+        category: "debt_payment",
+        amount: validatedData.amount,
+        name: `Loan payment: ${loan.name}`,
+        date: paymentDate,
+        month: month,
+        isRecurring: 0
+      });
+
+      const payment = await storage.createLoanPayment({
+        ...validatedData,
+        transactionId: transaction.id
+      });
+
+      res.status(201).json(payment);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
     }
   });
 

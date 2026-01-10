@@ -64,6 +64,12 @@ import {
   type CareerCoachSnapshot,
   incomeStreams,
   transactions,
+  loans,
+  loanPayments,
+  type Loan,
+  type InsertLoan,
+  type LoanPayment,
+  type InsertLoanPayment,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, asc } from "drizzle-orm";
@@ -204,6 +210,18 @@ export interface IStorage {
   // Career Coach Snapshots
   getLatestCoachSnapshot(): Promise<CareerCoachSnapshot | undefined>;
   upsertCoachSnapshot(payload: any): Promise<CareerCoachSnapshot>;
+
+  // Loans
+  getAllLoans(): Promise<Loan[]>;
+  getLoan(id: string): Promise<Loan | undefined>;
+  createLoan(loan: InsertLoan): Promise<Loan>;
+  updateLoan(id: string, loan: Partial<InsertLoan>): Promise<Loan | undefined>;
+  deleteLoan(id: string): Promise<boolean>;
+
+  // Loan Payments
+  getLoanPayments(loanId: string): Promise<LoanPayment[]>;
+  createLoanPayment(payment: InsertLoanPayment): Promise<LoanPayment>;
+  deleteLoanPayment(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -782,6 +800,57 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTransaction(id: string): Promise<boolean> {
     const result = await db.delete(transactions).where(eq(transactions.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Loans
+  async getAllLoans(): Promise<Loan[]> {
+    return await db.select().from(loans).orderBy(desc(loans.createdAt));
+  }
+
+  async getLoan(id: string): Promise<Loan | undefined> {
+    const result = await db.select().from(loans).where(eq(loans.id, id));
+    return result[0];
+  }
+
+  async createLoan(loan: InsertLoan): Promise<Loan> {
+    const result = await db.insert(loans).values(loan).returning();
+    return result[0];
+  }
+
+  async updateLoan(id: string, loan: Partial<InsertLoan>): Promise<Loan | undefined> {
+    const result = await db.update(loans).set(loan).where(eq(loans.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteLoan(id: string): Promise<boolean> {
+    // Delete all payments first
+    await db.delete(loanPayments).where(eq(loanPayments.loanId, id));
+    const result = await db.delete(loans).where(eq(loans.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Loan Payments
+  async getLoanPayments(loanId: string): Promise<LoanPayment[]> {
+    return await db.select().from(loanPayments).where(eq(loanPayments.loanId, loanId)).orderBy(desc(loanPayments.paymentDate));
+  }
+
+  async createLoanPayment(payment: InsertLoanPayment): Promise<LoanPayment> {
+    const result = await db.insert(loanPayments).values(payment).returning();
+    // Update loan balance
+    const loan = await this.getLoan(payment.loanId);
+    if (loan) {
+      const newBalance = Math.max(0, loan.currentBalance - payment.amount);
+      await this.updateLoan(payment.loanId, { 
+        currentBalance: newBalance,
+        status: newBalance === 0 ? "paid_off" : "active"
+      });
+    }
+    return result[0];
+  }
+
+  async deleteLoanPayment(id: string): Promise<boolean> {
+    const result = await db.delete(loanPayments).where(eq(loanPayments.id, id)).returning();
     return result.length > 0;
   }
 }

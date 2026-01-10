@@ -460,3 +460,52 @@ export const insertCareerCoachSnapshotSchema = createInsertSchema(careerCoachSna
 
 export type CareerCoachSnapshot = typeof careerCoachSnapshots.$inferSelect;
 export type InsertCareerCoachSnapshot = z.infer<typeof insertCareerCoachSnapshotSchema>;
+
+// Loans (debt tracking with progress)
+export const loans = pgTable("loans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(), // "Car Loan", "Credit Card", "Student Loan"
+  lender: text("lender"), // "Bank ABC", "Credit Union"
+  principal: integer("principal").notNull(), // original loan amount
+  currentBalance: integer("current_balance").notNull(), // remaining balance
+  interestRate: integer("interest_rate"), // stored as basis points (e.g., 500 = 5.00%)
+  minimumPayment: integer("minimum_payment").notNull(), // monthly minimum
+  dueDay: integer("due_day"), // day of month payment is due (1-31)
+  startDate: timestamp("start_date"), // when loan was taken
+  status: text("status").notNull().default("active"), // "active" | "paid_off" | "deferred"
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertLoanSchema = createInsertSchema(loans, {
+  startDate: z.coerce.date().optional().nullable(),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Loan = typeof loans.$inferSelect;
+export type InsertLoan = z.infer<typeof insertLoanSchema>;
+
+// Loan Payments (individual payments toward a loan)
+export const loanPayments = pgTable("loan_payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  loanId: varchar("loan_id").references(() => loans.id).notNull(),
+  amount: integer("amount").notNull(), // total payment amount
+  principalPaid: integer("principal_paid"), // portion applied to principal
+  interestPaid: integer("interest_paid"), // portion applied to interest
+  paymentDate: timestamp("payment_date").notNull(),
+  transactionId: varchar("transaction_id").references(() => transactions.id), // linked transaction
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertLoanPaymentSchema = createInsertSchema(loanPayments, {
+  paymentDate: z.coerce.date(),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type LoanPayment = typeof loanPayments.$inferSelect;
+export type InsertLoanPayment = z.infer<typeof insertLoanPaymentSchema>;
