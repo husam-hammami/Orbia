@@ -247,6 +247,40 @@ export default function CareerPage() {
 
   const coachTasks = tasks.filter(t => t.tags?.includes("coach"));
   
+  const getMilestoneTasks = (phaseIndex: number) => {
+    return tasks.filter(t => 
+      t.tags?.includes("coach") && 
+      t.tags?.includes("milestone") && 
+      t.tags?.includes(`phase-${phaseIndex}`)
+    );
+  };
+
+  const toggleMilestone = (phaseIndex: number, title: string) => {
+    const milestoneTasks = getMilestoneTasks(phaseIndex);
+    const task = milestoneTasks.find(t => t.title === title);
+    if (task) {
+      updateTask.mutate({ id: task.id, completed: task.completed === 1 ? 0 : 1 });
+    }
+  };
+
+  const isMilestoneCompleted = (phaseIndex: number, title: string) => {
+    const milestoneTasks = getMilestoneTasks(phaseIndex);
+    const task = milestoneTasks.find(t => t.title === title);
+    return task?.completed === 1;
+  };
+
+  const getPhaseProgressPercent = (phaseIndex: number) => {
+    const milestoneTasks = getMilestoneTasks(phaseIndex);
+    if (milestoneTasks.length === 0) return 0;
+    const completed = milestoneTasks.filter(t => t.completed === 1).length;
+    return Math.round((completed / milestoneTasks.length) * 100);
+  };
+
+  const getPhaseCompletedCount = (phaseIndex: number) => {
+    const milestoneTasks = getMilestoneTasks(phaseIndex);
+    return milestoneTasks.filter(t => t.completed === 1).length;
+  };
+
   const fetchCoach = async () => {
     setCoachLoading(true);
     setCoachError(null);
@@ -280,6 +314,25 @@ export default function CareerPage() {
               due: null,
               tags: ["coach"]
             });
+          }
+        }
+
+        if (data.roadmap) {
+          for (let phaseIndex = 0; phaseIndex < data.roadmap.length; phaseIndex++) {
+            const phase = data.roadmap[phaseIndex];
+            if (phase.milestones) {
+              for (const milestone of phase.milestones) {
+                await createTask.mutateAsync({
+                  title: milestone,
+                  description: `Phase: ${phase.phase} | ${phase.timeframe}`,
+                  projectId: null,
+                  completed: 0,
+                  priority: "medium",
+                  due: null,
+                  tags: ["coach", "milestone", `phase-${phaseIndex}`]
+                });
+              }
+            }
           }
         }
       }
@@ -934,6 +987,10 @@ export default function CareerPage() {
                           const phaseResources = getLearningResourcesForPhase(index);
                           const isExpanded = expandedPhases.has(index);
                           const shouldCollapse = coachData.roadmap && coachData.roadmap.length >= 3;
+                          const phaseProgress = getPhaseProgressPercent(index);
+                          const completedCount = getPhaseCompletedCount(index);
+                          const totalMilestones = phase.milestones?.length || 0;
+                          const firstIncompleteIndex = phase.milestones?.findIndex(m => !isMilestoneCompleted(index, m)) ?? -1;
                           
                           return (
                             <motion.div
@@ -943,6 +1000,16 @@ export default function CareerPage() {
                               transition={{ delay: index * 0.1 }}
                               className={cn(glassCard, "overflow-hidden")}
                             >
+                              {totalMilestones > 0 && (
+                                <div className="h-1 w-full bg-slate-200/60 dark:bg-slate-700/60">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${phaseProgress}%` }}
+                                    transition={{ duration: 0.5, ease: "easeOut" }}
+                                    className="h-full bg-gradient-to-r from-teal-500 to-cyan-500"
+                                  />
+                                </div>
+                              )}
                               {shouldCollapse ? (
                                 <Collapsible open={isExpanded} onOpenChange={() => togglePhaseExpanded(index)}>
                                   <CollapsibleTrigger className="w-full p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
@@ -951,7 +1018,12 @@ export default function CareerPage() {
                                         <TrendingUp className="w-3 h-3 text-violet-500" />
                                       </div>
                                       <div className="text-left">
-                                        <h5 className="font-medium text-foreground text-sm">{phase.phase}</h5>
+                                        <div className="flex items-center gap-2">
+                                          <h5 className="font-medium text-foreground text-sm">{phase.phase}</h5>
+                                          {totalMilestones > 0 && (
+                                            <span className="text-[10px] text-muted-foreground">{completedCount}/{totalMilestones} done</span>
+                                          )}
+                                        </div>
                                         <p className="text-[10px] text-muted-foreground">{phase.timeframe}</p>
                                       </div>
                                     </div>
@@ -963,15 +1035,28 @@ export default function CareerPage() {
                                         <p className="text-xs text-muted-foreground">{phase.goal}</p>
                                       )}
                                       {phase.milestones?.length > 0 && (
-                                        <ul className="space-y-1">
-                                          {phase.milestones.map((milestone, mIndex) => (
-                                            <li key={mIndex} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                                              <div className="w-3.5 h-3.5 rounded border border-slate-300 dark:border-slate-600 flex items-center justify-center shrink-0 mt-0.5">
-                                                <Check className="w-2 h-2 text-slate-400" />
-                                              </div>
-                                              {milestone}
-                                            </li>
-                                          ))}
+                                        <ul className="space-y-1.5">
+                                          {phase.milestones.map((milestone, mIndex) => {
+                                            const isCompleted = isMilestoneCompleted(index, milestone);
+                                            const isNext = mIndex === firstIncompleteIndex;
+                                            return (
+                                              <li 
+                                                key={mIndex} 
+                                                className={cn(
+                                                  "text-xs flex items-start gap-2 p-1.5 rounded-lg transition-all cursor-pointer",
+                                                  isCompleted && "text-muted-foreground",
+                                                  isNext && "border-l-2 border-teal-500 bg-teal-50/50 dark:bg-teal-900/10 pl-2"
+                                                )}
+                                                onClick={() => toggleMilestone(index, milestone)}
+                                              >
+                                                <AnimatedCheckbox 
+                                                  checked={isCompleted} 
+                                                  onChange={() => toggleMilestone(index, milestone)} 
+                                                />
+                                                <span className={cn(isCompleted && "line-through")}>{milestone}</span>
+                                              </li>
+                                            );
+                                          })}
                                         </ul>
                                       )}
                                       {phase.weeklyFocus && (
@@ -1012,7 +1097,12 @@ export default function CareerPage() {
                                       <TrendingUp className="w-3 h-3 text-violet-500" />
                                     </div>
                                     <div>
-                                      <h5 className="font-medium text-foreground text-sm">{phase.phase}</h5>
+                                      <div className="flex items-center gap-2">
+                                        <h5 className="font-medium text-foreground text-sm">{phase.phase}</h5>
+                                        {totalMilestones > 0 && (
+                                          <span className="text-[10px] text-muted-foreground">{completedCount}/{totalMilestones} done</span>
+                                        )}
+                                      </div>
                                       <p className="text-[10px] text-muted-foreground">{phase.timeframe}</p>
                                     </div>
                                   </div>
@@ -1020,15 +1110,28 @@ export default function CareerPage() {
                                     <p className="text-xs text-muted-foreground">{phase.goal}</p>
                                   )}
                                   {phase.milestones?.length > 0 && (
-                                    <ul className="space-y-1">
-                                      {phase.milestones.map((milestone, mIndex) => (
-                                        <li key={mIndex} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                                          <div className="w-3.5 h-3.5 rounded border border-slate-300 dark:border-slate-600 flex items-center justify-center shrink-0 mt-0.5">
-                                            <Check className="w-2 h-2 text-slate-400" />
-                                          </div>
-                                          {milestone}
-                                        </li>
-                                      ))}
+                                    <ul className="space-y-1.5">
+                                      {phase.milestones.map((milestone, mIndex) => {
+                                        const isCompleted = isMilestoneCompleted(index, milestone);
+                                        const isNext = mIndex === firstIncompleteIndex;
+                                        return (
+                                          <li 
+                                            key={mIndex} 
+                                            className={cn(
+                                              "text-xs flex items-start gap-2 p-1.5 rounded-lg transition-all cursor-pointer",
+                                              isCompleted && "text-muted-foreground",
+                                              isNext && "border-l-2 border-teal-500 bg-teal-50/50 dark:bg-teal-900/10 pl-2"
+                                            )}
+                                            onClick={() => toggleMilestone(index, milestone)}
+                                          >
+                                            <AnimatedCheckbox 
+                                              checked={isCompleted} 
+                                              onChange={() => toggleMilestone(index, milestone)} 
+                                            />
+                                            <span className={cn(isCompleted && "line-through")}>{milestone}</span>
+                                          </li>
+                                        );
+                                      })}
                                     </ul>
                                   )}
                                   {phase.weeklyFocus && (
