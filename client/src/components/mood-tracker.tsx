@@ -37,7 +37,7 @@ export function MoodTracker() {
   const [dissociation, setDissociation] = useState([2]); 
   const [urges, setUrges] = useState([1]); 
   const [stress, setStress] = useState([3]);
-  const [sleep, setSleep] = useState([7]); 
+  const [sleep, setSleep] = useState([7.5]); 
   const [systemComm, setSystemComm] = useState([5]); 
   const [capacity, setCapacity] = useState([3]); // 0-5 capacity scale
   const [triggerTag, setTriggerTag] = useState<string | null>(null); // optional context tag
@@ -88,12 +88,12 @@ export function MoodTracker() {
   }));
 
 
-  const moods = [
-    { value: "terrible", icon: Frown, color: "text-red-500", bg: "bg-red-100", label: "Terrible" },
-    { value: "bad", icon: Meh, color: "text-orange-500", bg: "bg-orange-100", label: "Bad" },
-    { value: "neutral", icon: Meh, color: "text-yellow-500", bg: "bg-yellow-100", label: "Okay" },
-    { value: "good", icon: Smile, color: "text-green-500", bg: "bg-green-100", label: "Good" },
-    { value: "excellent", icon: Zap, color: "text-blue-500", bg: "bg-blue-100", label: "Great" },
+  const emotionalStates = [
+    { value: "terrible", icon: Frown, color: "text-red-500", bg: "bg-red-100", label: "Distressed" },
+    { value: "bad", icon: Meh, color: "text-orange-500", bg: "bg-orange-100", label: "Struggling" },
+    { value: "neutral", icon: Meh, color: "text-yellow-500", bg: "bg-yellow-100", label: "Neutral" },
+    { value: "good", icon: Smile, color: "text-green-500", bg: "bg-green-100", label: "Stable" },
+    { value: "excellent", icon: Zap, color: "text-blue-500", bg: "bg-blue-100", label: "Thriving" },
   ];
 
   const tags = [
@@ -208,9 +208,9 @@ export function MoodTracker() {
                 </p>
             </div>
             
-            {/* Quick Mood Select */}
+            {/* Emotional State Select */}
             <div className="flex gap-1 bg-muted/30 p-1 rounded-full">
-                {moods.map((m) => {
+                {emotionalStates.map((m) => {
                   const Icon = m.icon;
                   const isSelected = mood === m.value;
                   const glowColor = m.value === "terrible" ? "rgba(239,68,68,0.4)" : 
@@ -405,13 +405,24 @@ export function MoodTracker() {
                        <Slider value={comfort} onValueChange={setComfort} max={10} step={1} />
                     </div>
 
-                    {/* Sleep */}
-                    <div>
-                       <div className="flex justify-between text-xs mb-1.5">
-                          <span className="text-muted-foreground">Sleep Quality</span>
-                          <span className="font-mono">{sleep[0]}/10</span>
+                    {/* Sleep Hours */}
+                    <div 
+                      className="bg-indigo-50/50 dark:bg-indigo-900/10 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900/30 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
+                      style={{ 
+                        boxShadow: sleep[0] >= 7 ? '0 0 25px -8px rgba(99,102,241,0.35)' : undefined,
+                        background: sleep[0] >= 7 ? 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, transparent 100%)' : undefined
+                      }}
+                    >
+                       <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-1.5 text-indigo-600">
+                             <Moon className="w-3.5 h-3.5" style={{ filter: sleep[0] >= 7 ? 'drop-shadow(0 0 4px rgba(99,102,241,0.5))' : undefined }} />
+                             <span className="text-xs font-semibold">Sleep Hours</span>
+                          </div>
+                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border">
+                             {sleep[0]}h
+                          </span>
                        </div>
-                       <Slider value={sleep} onValueChange={setSleep} max={10} step={1} />
+                       <Slider value={sleep} onValueChange={setSleep} max={12} step={0.5} className="h-4 [&_.bg-primary]:bg-indigo-500" />
                     </div>
 
                     {/* Energy */}
