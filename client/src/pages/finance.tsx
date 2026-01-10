@@ -1439,32 +1439,39 @@ export default function FinancePage() {
                 <div className="text-sm text-muted-foreground mb-2">
                   Found {importPreview.length} transactions. Review and confirm:
                 </div>
-                <div className="max-h-[300px] overflow-y-auto space-y-2 border rounded-lg p-2">
+                <div className="max-h-[300px] overflow-y-auto space-y-1 border rounded-lg p-2">
                   {importPreview.map((tx, i) => {
                     const txDate = tx.date ? new Date(tx.date) : null;
                     const dateStr = txDate && !isNaN(txDate.getTime()) 
                       ? txDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
                       : null;
                     return (
-                      <div key={i} className="flex items-center justify-between p-2 rounded bg-muted/50 text-sm gap-2">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div key={i} className="grid grid-cols-[auto,1fr,auto] gap-2 p-2 rounded bg-muted/50 text-sm items-start">
+                        <div className="pt-0.5">
                           {tx.type === "income" ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                           ) : (
-                            <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                            <XCircle className="w-4 h-4 text-rose-500" />
                           )}
-                          <span className="truncate">{tx.name}</span>
-                          <Badge variant="outline" className="text-xs shrink-0">
-                            {tx.category}{tx.merchant ? ` - ${tx.merchant}` : ''}
-                          </Badge>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {dateStr && (
-                            <span className="text-xs text-muted-foreground">{dateStr}</span>
-                          )}
-                          <span className={cn("font-mono", tx.type === "income" ? "text-emerald-600" : "text-rose-600")}>
+                        <div className="min-w-0">
+                          <div className="truncate font-medium">{tx.name}</div>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              {tx.category}
+                            </Badge>
+                            {tx.merchant && (
+                              <span className="text-[10px] text-muted-foreground">{tx.merchant}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={cn("font-mono font-medium", tx.type === "income" ? "text-emerald-600" : "text-rose-600")}>
                             {tx.type === "income" ? "+" : "-"}{formatCurrency(tx.amount, currency)}
-                          </span>
+                          </div>
+                          {dateStr && (
+                            <div className="text-[10px] text-muted-foreground mt-0.5">{dateStr}</div>
+                          )}
                         </div>
                       </div>
                     );
