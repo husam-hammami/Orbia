@@ -1040,13 +1040,71 @@ export default function DeepMind() {
                   </CardHeader>
                   <CardContent>
                     {aiInsight ? (
-                      <div className="prose prose-sm max-w-none">
-                        <p className="whitespace-pre-wrap text-foreground/90 leading-relaxed">{aiInsight}</p>
+                      <div className="space-y-4">
+                        {aiInsight.split(/\*\*([^*]+)\*\*/).map((section, idx) => {
+                          if (idx % 2 === 1) {
+                            const sectionName = section.toLowerCase();
+                            let bgColor = "bg-slate-100";
+                            let borderColor = "border-slate-200";
+                            let iconColor = "text-slate-500";
+                            
+                            if (sectionName.includes("facts")) {
+                              bgColor = "bg-blue-50";
+                              borderColor = "border-blue-200";
+                              iconColor = "text-blue-600";
+                            } else if (sectionName.includes("driver")) {
+                              bgColor = "bg-violet-50";
+                              borderColor = "border-violet-200";
+                              iconColor = "text-violet-600";
+                            } else if (sectionName.includes("pattern")) {
+                              bgColor = "bg-amber-50";
+                              borderColor = "border-amber-200";
+                              iconColor = "text-amber-600";
+                            } else if (sectionName.includes("action")) {
+                              bgColor = "bg-emerald-50";
+                              borderColor = "border-emerald-200";
+                              iconColor = "text-emerald-600";
+                            }
+                            
+                            return (
+                              <div key={idx} className={`rounded-xl p-4 ${bgColor} border ${borderColor}`}>
+                                <h3 className={`text-sm font-bold ${iconColor} uppercase tracking-wide mb-2`}>
+                                  {section}
+                                </h3>
+                              </div>
+                            );
+                          } else if (section.trim()) {
+                            return (
+                              <div key={idx} className="pl-4 -mt-2 mb-4">
+                                {section.split('\n').map((line, lineIdx) => {
+                                  const trimmedLine = line.trim();
+                                  if (!trimmedLine) return null;
+                                  
+                                  if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
+                                    return (
+                                      <div key={lineIdx} className="flex items-start gap-2 py-1">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0" />
+                                        <span className="text-sm text-slate-700 leading-relaxed">{trimmedLine.replace(/^[•\-]\s*/, '')}</span>
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <p key={lineIdx} className="text-sm text-slate-700 leading-relaxed py-0.5">{trimmedLine}</p>
+                                  );
+                                })}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })}
                       </div>
                     ) : (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <Brain className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                        <p className="text-sm">Click "Analyze" to get AI insights about your system</p>
+                      <div className="text-center py-12">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center">
+                          <Brain className="w-8 h-8 text-teal-500" />
+                        </div>
+                        <p className="text-sm text-slate-600 font-medium">Ready to analyze your patterns</p>
+                        <p className="text-xs text-muted-foreground mt-1">Click "Analyze" to get AI-powered insights</p>
                       </div>
                     )}
                   </CardContent>
