@@ -390,3 +390,19 @@ export const insertJournalEntrySchema = createInsertSchema(journalEntries).omit(
 
 export type JournalEntry = typeof journalEntries.$inferSelect;
 export type InsertJournalEntry = z.infer<typeof insertJournalEntrySchema>;
+
+// Career Coach Snapshots (persisted AI coaching data)
+export const careerCoachSnapshots = pgTable("career_coach_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  payload: jsonb("payload").notNull(),
+  generatedAt: timestamp("generated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCareerCoachSnapshotSchema = createInsertSchema(careerCoachSnapshots).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type CareerCoachSnapshot = typeof careerCoachSnapshots.$inferSelect;
+export type InsertCareerCoachSnapshot = z.infer<typeof insertCareerCoachSnapshotSchema>;

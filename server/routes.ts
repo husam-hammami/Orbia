@@ -1954,6 +1954,22 @@ Based on this vision and current project state, create a strategic roadmap and s
 
   app.get("/api/career/coach", async (req, res) => {
     try {
+      const snapshot = await storage.getLatestCoachSnapshot();
+      if (!snapshot) {
+        return res.json({ empty: true, message: "No coaching data yet. Click Refresh to generate." });
+      }
+      res.json({
+        ...snapshot.payload,
+        generatedAt: snapshot.generatedAt,
+      });
+    } catch (error) {
+      console.error("Failed to get coach snapshot:", error);
+      res.status(500).json({ error: true, message: "Failed to load coaching data" });
+    }
+  });
+
+  app.post("/api/career/coach", async (req, res) => {
+    try {
       if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY || !process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {
         return res.json({
           error: "missing_credentials",
@@ -2057,14 +2073,58 @@ Based on my North Star vision, create a comprehensive career coaching plan. Be s
       const content = response.choices[0]?.message?.content || "{}";
       const parsed = JSON.parse(content);
 
-      res.json({
+      const coachData = {
         ...parsed,
         vision: vision,
-        generatedAt: new Date().toISOString(),
+      };
+
+      const snapshot = await storage.upsertCoachSnapshot(coachData);
+
+      const coachTasks = tasks.filter(t => t.tags?.includes("coach"));
+      for (const task of coachTasks) {
+        await storage.deleteCareerTask(task.id);
+      }
+
+      if (parsed.immediateActions) {
+        for (const action of parsed.immediateActions) {
+          await storage.createCareerTask({
+            title: action.title,
+            description: action.why || "",
+            projectId: null,
+            completed: 0,
+            priority: action.priority || "medium",
+            due: null,
+            tags: ["coach"],
+          });
+        }
+      }
+
+      if (parsed.roadmap) {
+        for (let phaseIndex = 0; phaseIndex < parsed.roadmap.length; phaseIndex++) {
+          const phase = parsed.roadmap[phaseIndex];
+          if (phase.milestones) {
+            for (const milestone of phase.milestones) {
+              await storage.createCareerTask({
+                title: milestone,
+                description: `Phase: ${phase.phase} | ${phase.timeframe}`,
+                projectId: null,
+                completed: 0,
+                priority: "medium",
+                due: null,
+                tags: ["coach", "milestone", `phase-${phaseIndex}`],
+              });
+            }
+          }
+        }
+      }
+
+      res.json({
+        ...coachData,
+        generatedAt: snapshot.generatedAt,
       });
     } catch (error) {
       console.error("AI career coach error:", error);
-      res.status(500).json({ error: "Failed to generate career coaching" });
+      res.status(500).json({ error: true, message: "Failed to generate career coaching" });
     }
   });
 

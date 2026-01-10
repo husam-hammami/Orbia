@@ -56,6 +56,8 @@ import {
   foodOptions,
   type FoodOption,
   type InsertFoodOption,
+  careerCoachSnapshots,
+  type CareerCoachSnapshot,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, asc } from "drizzle-orm";
@@ -176,6 +178,10 @@ export interface IStorage {
   createFoodOption(option: InsertFoodOption): Promise<FoodOption>;
   updateFoodOption(id: string, option: Partial<InsertFoodOption>): Promise<FoodOption | undefined>;
   deleteFoodOption(id: string): Promise<boolean>;
+
+  // Career Coach Snapshots
+  getLatestCoachSnapshot(): Promise<CareerCoachSnapshot | undefined>;
+  upsertCoachSnapshot(payload: any): Promise<CareerCoachSnapshot>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -655,6 +661,29 @@ export class DatabaseStorage implements IStorage {
   async deleteFoodOption(id: string): Promise<boolean> {
     const result = await db.delete(foodOptions).where(eq(foodOptions.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Career Coach Snapshots
+  async getLatestCoachSnapshot(): Promise<CareerCoachSnapshot | undefined> {
+    const [snapshot] = await db.select().from(careerCoachSnapshots).orderBy(desc(careerCoachSnapshots.generatedAt)).limit(1);
+    return snapshot;
+  }
+
+  async upsertCoachSnapshot(payload: any): Promise<CareerCoachSnapshot> {
+    const existing = await this.getLatestCoachSnapshot();
+    if (existing) {
+      const [updated] = await db.update(careerCoachSnapshots)
+        .set({ payload, generatedAt: new Date() })
+        .where(eq(careerCoachSnapshots.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [snapshot] = await db.insert(careerCoachSnapshots).values({
+        payload,
+        generatedAt: new Date(),
+      }).returning();
+      return snapshot;
+    }
   }
 }
 

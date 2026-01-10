@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   Plus, Target, Rocket, Sparkles, ChevronDown, Check, 
   Calendar, Clock, Pencil, Loader2, X, Map, Zap, Lightbulb, RefreshCw,
@@ -148,8 +149,18 @@ const glassCard = "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border bord
 const glassCardHover = "hover:shadow-xl hover:scale-[1.02] transition-all duration-300";
 
 export default function CareerPage() {
+  const queryClient = useQueryClient();
   const { data: projects = [], isLoading: projectsLoading } = useCareerProjects();
   const { data: tasks = [], isLoading: tasksLoading } = useCareerTasks();
+
+  const { data: storedCoach, isLoading: isLoadingStoredCoach } = useQuery({
+    queryKey: ["/api/career/coach"],
+    queryFn: async () => {
+      const res = await fetch("/api/career/coach");
+      if (!res.ok) throw new Error("Failed to load coach data");
+      return res.json();
+    },
+  });
   
   const createProject = useCreateCareerProject();
   const updateProject = useUpdateCareerProject();
@@ -246,6 +257,16 @@ export default function CareerPage() {
   };
 
   const coachTasks = tasks.filter(t => t.tags?.includes("coach"));
+
+  useEffect(() => {
+    if (storedCoach && !storedCoach.empty) {
+      setCoachData(storedCoach);
+      if (storedCoach.generatedAt) {
+        setCoachGeneratedAt(new Date(storedCoach.generatedAt));
+      }
+      setExpandedPhases(new Set([0]));
+    }
+  }, [storedCoach]);
   
   const getMilestoneTasks = (phaseIndex: number) => {
     return tasks.filter(t => 
@@ -285,60 +306,23 @@ export default function CareerPage() {
     setCoachLoading(true);
     setCoachError(null);
     try {
-      const response = await fetch("/api/career/coach");
+      const response = await fetch("/api/career/coach", { method: "POST" });
       if (!response.ok) {
-        throw new Error(`Failed to get coaching insights: ${response.statusText}`);
+        throw new Error(`Failed to regenerate coaching: ${response.statusText}`);
       }
       const data = await response.json();
       if (data.error) {
-        setCoachError(data.message || "An error occurred while generating coaching insights.");
+        setCoachError(data.message || "An error occurred");
         setCoachData(null);
       } else {
         setCoachData(data);
-        setCoachGeneratedAt(new Date());
+        setCoachGeneratedAt(new Date(data.generatedAt || Date.now()));
         setExpandedPhases(new Set([0]));
-        
-        // Delete existing coach tasks and create new ones from immediate actions
-        for (const oldTask of coachTasks) {
-          await deleteTask.mutateAsync(oldTask.id);
-        }
-        
-        if (data.immediateActions) {
-          for (const action of data.immediateActions) {
-            await createTask.mutateAsync({
-              title: action.title,
-              description: action.why || "",
-              projectId: null,
-              completed: 0,
-              priority: action.priority || "medium",
-              due: null,
-              tags: ["coach"]
-            });
-          }
-        }
-
-        if (data.roadmap) {
-          for (let phaseIndex = 0; phaseIndex < data.roadmap.length; phaseIndex++) {
-            const phase = data.roadmap[phaseIndex];
-            if (phase.milestones) {
-              for (const milestone of phase.milestones) {
-                await createTask.mutateAsync({
-                  title: milestone,
-                  description: `Phase: ${phase.phase} | ${phase.timeframe}`,
-                  projectId: null,
-                  completed: 0,
-                  priority: "medium",
-                  due: null,
-                  tags: ["coach", "milestone", `phase-${phaseIndex}`]
-                });
-              }
-            }
-          }
-        }
+        queryClient.invalidateQueries({ queryKey: ["/api/career/tasks"] });
       }
     } catch (error) {
-      console.error("Failed to fetch coaching:", error);
-      setCoachError(error instanceof Error ? error.message : "Failed to get coaching insights. Please try again.");
+      console.error("Failed to regenerate coaching:", error);
+      setCoachError(error instanceof Error ? error.message : "Failed to regenerate coaching");
       setCoachData(null);
     } finally {
       setCoachLoading(false);
@@ -558,7 +542,7 @@ export default function CareerPage() {
     !todayTasks.some(tt => tt.id === t.id) && !weekTasks.some(wt => wt.id === t.id)
   );
 
-  const isLoading = projectsLoading || tasksLoading;
+  const isLoading = projectsLoading || tasksLoading || isLoadingStoredCoach;
 
   if (isLoading) {
     return (
@@ -878,7 +862,20 @@ export default function CareerPage() {
           </TabsContent>
 
           <TabsContent value="coach" className="mt-6 space-y-4">
-            {!coachData && !coachLoading && !coachError && (
+            {(isLoadingStoredCoach || coachLoading) && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(glassCard, "p-6 flex items-center justify-center gap-3")}
+              >
+                <Loader2 className="w-5 h-5 animate-spin text-violet-500" />
+                <p className="text-sm text-muted-foreground">
+                  {isLoadingStoredCoach ? "Loading your guidance..." : "Generating your personalized guidance..."}
+                </p>
+              </motion.div>
+            )}
+
+            {!coachData && !coachLoading && !coachError && !isLoadingStoredCoach && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -902,18 +899,7 @@ export default function CareerPage() {
               </motion.div>
             )}
 
-            {coachLoading && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={cn(glassCard, "p-6 flex items-center justify-center gap-3")}
-              >
-                <Loader2 className="w-5 h-5 animate-spin text-violet-500" />
-                <p className="text-sm text-muted-foreground">Generating your personalized guidance...</p>
-              </motion.div>
-            )}
-
-            {coachError && !coachLoading && (
+            {coachError && !coachLoading && !isLoadingStoredCoach && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -940,7 +926,7 @@ export default function CareerPage() {
               </motion.div>
             )}
 
-            {coachData && !coachLoading && (
+            {coachData && !coachLoading && !isLoadingStoredCoach && (
               <div className="space-y-4">
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
