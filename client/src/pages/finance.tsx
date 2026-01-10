@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useDateScope } from "@/hooks/use-date-scope";
+import { DateScopeControl } from "@/components/date-scope-control";
 import {
   ComposedChart,
   Bar,
@@ -71,7 +73,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { 
-  useTransactions,
   useAllTransactions,
   useCreateTransaction, 
   useDeleteTransaction,
@@ -145,9 +146,7 @@ const formatCurrency = (amount: number, currency = "AED") =>
   `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
 export default function FinancePage() {
-  const [currentMonthIndex, setCurrentMonthIndex] = useState(new Date().getMonth());
-  const currentYear = new Date().getFullYear();
-  const currentMonth = `${MONTHS[currentMonthIndex]} ${currentYear}`;
+  const { scope, mode, setMode, goNext, goPrev, goToday, setCustomRange, isInRange } = useDateScope("monthly");
   
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   const [isIncomeDialogOpen, setIsIncomeDialogOpen] = useState(false);
@@ -162,8 +161,15 @@ export default function FinancePage() {
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
   const [isImporting, setIsImporting] = useState(false);
 
-  const { data: transactions = [], isLoading: transactionsLoading } = useTransactions(currentMonth);
-  const { data: allTransactions = [] } = useAllTransactions();
+  const { data: allTransactions = [], isLoading: transactionsLoading } = useAllTransactions();
+  
+  const transactions = useMemo(() => {
+    return allTransactions.filter(tx => {
+      if (!tx.date) return false;
+      const txDate = new Date(tx.date);
+      return txDate >= scope.range.start && txDate <= scope.range.end;
+    });
+  }, [allTransactions, scope.range]);
   const { data: incomeStreams = [], isLoading: incomeLoading } = useIncomeStreams();
   const { data: financeSettings } = useFinanceSettings();
   const { data: loans = [], isLoading: loansLoading } = useLoans();
@@ -325,14 +331,6 @@ export default function FinancePage() {
       }));
   }, [transactions]);
 
-  const handleMonthChange = (direction: 'prev' | 'next') => {
-    if (direction === 'prev') {
-      setCurrentMonthIndex(prev => prev === 0 ? 11 : prev - 1);
-    } else {
-      setCurrentMonthIndex(prev => prev === 11 ? 0 : prev + 1);
-    }
-  };
-
   const handleAddTransaction = () => {
     if (!txForm.name || txForm.amount <= 0) {
       toast.error("Please enter a name and amount");
@@ -346,7 +344,7 @@ export default function FinancePage() {
       amount: txForm.amount,
       category: txForm.category,
       date: now,
-      month: currentMonth,
+      month: now.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
       isRecurring: 0,
       notes: txForm.notes || null
     }, {
@@ -398,7 +396,7 @@ export default function FinancePage() {
       amount: stream.amount,
       category: stream.category || "salary",
       date: now,
-      month: currentMonth,
+      month: now.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
       isRecurring: 0,
       incomeStreamId: stream.id,
       notes: null
@@ -551,31 +549,16 @@ export default function FinancePage() {
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">Financial Wellness</h1>
             <p className="text-muted-foreground text-lg">Track income, expenses, and cash flow.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center bg-muted/50 rounded-lg p-1 border border-border/50">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8" 
-                onClick={() => handleMonthChange('prev')}
-                data-testid="btn-prev-month"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <div className="px-3 font-medium min-w-[140px] text-center flex items-center justify-center gap-2">
-                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                {currentMonth}
-              </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8"
-                onClick={() => handleMonthChange('next')}
-                data-testid="btn-next-month"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <DateScopeControl
+              scope={scope}
+              mode={mode}
+              onModeChange={setMode}
+              onPrev={goPrev}
+              onNext={goNext}
+              onToday={goToday}
+              onCustomRange={setCustomRange}
+            />
             
             <Button 
               variant="outline" 
@@ -682,7 +665,7 @@ export default function FinancePage() {
                     <FileText className="w-5 h-5 text-indigo-500" />
                     Transactions
                   </CardTitle>
-                  <CardDescription>All income and expenses for {currentMonth}</CardDescription>
+                  <CardDescription>All income and expenses for {scope.label}</CardDescription>
                 </div>
                 <div className="flex gap-2">
                   <Button 
@@ -1186,7 +1169,7 @@ export default function FinancePage() {
                 Add {transactionType === "income" ? "Income" : "Expense"}
               </DialogTitle>
               <DialogDescription>
-                Record a new {transactionType} for {currentMonth}
+                Record a new {transactionType}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
