@@ -1398,7 +1398,7 @@ export default function FinancePage() {
             setImportPreview(null);
           }
         }}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-indigo-500" />
@@ -1410,14 +1410,16 @@ export default function FinancePage() {
             </DialogHeader>
             
             {!importPreview ? (
-              <div className="space-y-4 py-4">
-                <Textarea
-                  value={importText}
-                  onChange={(e) => setImportText(e.target.value)}
-                  placeholder="Paste your bank statement, receipt, or transaction history here..."
-                  className="min-h-[200px] font-mono text-sm"
-                  data-testid="textarea-import"
-                />
+              <>
+                <div className="flex-1 py-4">
+                  <Textarea
+                    value={importText}
+                    onChange={(e) => setImportText(e.target.value)}
+                    placeholder="Paste your bank statement, receipt, or transaction history here..."
+                    className="min-h-[200px] font-mono text-sm"
+                    data-testid="textarea-import"
+                  />
+                </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>Cancel</Button>
                   <Button 
@@ -1433,13 +1435,13 @@ export default function FinancePage() {
                     )}
                   </Button>
                 </DialogFooter>
-              </div>
+              </>
             ) : (
-              <div className="space-y-4 py-4">
-                <div className="text-sm text-muted-foreground mb-2">
+              <>
+                <div className="text-sm text-muted-foreground">
                   Found {importPreview.length} transactions. Review and confirm:
                 </div>
-                <div className="max-h-[300px] overflow-y-auto space-y-1 border rounded-lg p-2">
+                <div className="flex-1 overflow-y-auto space-y-1 border rounded-lg p-2 my-2">
                   {importPreview.map((tx, i) => {
                     const txDate = tx.date ? new Date(tx.date) : null;
                     const dateStr = txDate && !isNaN(txDate.getTime()) 
@@ -1492,7 +1494,7 @@ export default function FinancePage() {
                     )}
                   </Button>
                 </DialogFooter>
-              </div>
+              </>
             )}
           </DialogContent>
         </Dialog>
