@@ -507,23 +507,39 @@ export default function FinancePage() {
     if (!importPreview?.length) return;
     
     try {
-      await createManyTransactions.mutateAsync(importPreview.map(t => ({
-        type: t.type,
-        name: t.name,
-        amount: t.amount,
-        category: t.category,
-        date: new Date(t.date),
-        month: currentMonth,
-        isRecurring: 0,
-        notes: t.notes,
-        importSource: "ai_import"
-      })));
+      const transactionsToImport = importPreview.map(t => {
+        let txDate: Date;
+        if (t.date) {
+          txDate = new Date(t.date);
+          if (isNaN(txDate.getTime())) {
+            txDate = new Date();
+          }
+        } else {
+          txDate = new Date();
+        }
+        const monthName = txDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+        
+        return {
+          type: t.type,
+          name: t.name,
+          amount: t.amount,
+          category: t.category,
+          date: txDate,
+          month: monthName,
+          isRecurring: 0,
+          notes: t.notes || null,
+          importSource: "ai_import"
+        };
+      });
+      
+      await createManyTransactions.mutateAsync(transactionsToImport);
       toast.success(`Imported ${importPreview.length} transactions`);
       setIsImportDialogOpen(false);
       setImportText("");
       setImportPreview(null);
-    } catch (e) {
-      toast.error("Failed to import transactions");
+    } catch (e: any) {
+      console.error("Import error:", e);
+      toast.error(e?.message || "Failed to import transactions");
     }
   };
 
@@ -1424,22 +1440,35 @@ export default function FinancePage() {
                   Found {importPreview.length} transactions. Review and confirm:
                 </div>
                 <div className="max-h-[300px] overflow-y-auto space-y-2 border rounded-lg p-2">
-                  {importPreview.map((tx, i) => (
-                    <div key={i} className="flex items-center justify-between p-2 rounded bg-muted/50 text-sm">
-                      <div className="flex items-center gap-2">
-                        {tx.type === "income" ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-rose-500" />
-                        )}
-                        <span>{tx.name}</span>
-                        <Badge variant="outline" className="text-xs">{tx.category}</Badge>
+                  {importPreview.map((tx, i) => {
+                    const txDate = tx.date ? new Date(tx.date) : null;
+                    const dateStr = txDate && !isNaN(txDate.getTime()) 
+                      ? txDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+                      : null;
+                    return (
+                      <div key={i} className="flex items-center justify-between p-2 rounded bg-muted/50 text-sm gap-2">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          {tx.type === "income" ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                          )}
+                          <span className="truncate">{tx.name}</span>
+                          <Badge variant="outline" className="text-xs shrink-0">
+                            {tx.category}{tx.merchant ? ` - ${tx.merchant}` : ''}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {dateStr && (
+                            <span className="text-xs text-muted-foreground">{dateStr}</span>
+                          )}
+                          <span className={cn("font-mono", tx.type === "income" ? "text-emerald-600" : "text-rose-600")}>
+                            {tx.type === "income" ? "+" : "-"}{formatCurrency(tx.amount, currency)}
+                          </span>
+                        </div>
                       </div>
-                      <span className={cn("font-mono", tx.type === "income" ? "text-emerald-600" : "text-rose-600")}>
-                        {tx.type === "income" ? "+" : "-"}{formatCurrency(tx.amount, currency)}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setImportPreview(null)}>Back</Button>

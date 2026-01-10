@@ -2396,35 +2396,62 @@ Generate a different, equally specific milestone that serves the same purpose bu
         return res.status(400).json({ error: "Document text is required" });
       }
 
+      const today = new Date().toISOString().split('T')[0];
+      
       const response = await openai.chat.completions.create({
         model: "gpt-5.1",
         messages: [
           {
             role: "system",
-            content: `You are a financial document parser. Extract transactions from bank statements, receipts, or purchase histories.
+            content: `You are an expert financial document parser specializing in UAE bank statements.
 
-Return a JSON array of transactions with this exact format:
-[{
+Return JSON: {"transactions": [...]}
+
+Each transaction MUST have:
+{
   "type": "income" or "expense",
-  "name": "Description of transaction",
-  "amount": number (always positive),
-  "category": one of ["salary", "food", "transport", "utilities", "entertainment", "healthcare", "shopping", "debt_payment", "savings", "investment", "freelance", "benefits", "other"],
-  "date": "YYYY-MM-DD",
-  "notes": "optional additional details"
-}]
+  "name": "Merchant/description",
+  "amount": number (positive),
+  "category": string,
+  "date": "YYYY-MM-DD" (REQUIRED - extract from statement, default to ${today} if not found),
+  "merchant": "Recognized app/brand name if applicable",
+  "notes": "optional"
+}
 
-Guidelines:
-- Deposits, credits, salary, refunds = "income"
-- Withdrawals, debits, purchases, fees = "expense"
-- Amount is always positive; type indicates direction
-- Infer the best category from the description
-- Use ISO date format (YYYY-MM-DD)
-- If date not clear, use today's date
-- Extract ALL transactions you can find`
+CATEGORY RULES (be precise):
+- "groceries": Carrefour, Lulu, Spinneys, Noon (daily items), Union Coop, Choithrams, mini marts, supermarkets
+- "food": Talabat, Keeta, Deliveroo, Zomato, restaurants, cafes, Starbucks, food delivery
+- "transport": Careem, Uber, RTA, Salik, petrol stations, Emirates, Etihad, taxi
+- "travel": Travel agencies, hotels, booking.com, Airbnb, visa fees, airlines (NOT entertainment)
+- "utilities": DU, Etisalat, DEWA, internet, phone bills, Telec/telecom payments
+- "entertainment": Netflix, Spotify, cinema, gaming, MBC, streaming services
+- "shopping": Noon (electronics/fashion), Amazon, clothing stores, electronics, furniture
+- "healthcare": Pharmacies, hospitals, clinics, medical
+- "debt_payment": Loan payments, credit card payments
+- "savings": Transfers to savings
+- "salary": Salary credits
+- "freelance": Freelance income
+- "other": If uncertain
+
+KEY DISTINCTIONS:
+- Noon for groceries vs Noon for electronics = check amount (small = groceries, large = shopping)
+- Travel agencies = "travel", NOT "entertainment"
+- Mini marts (MINI MART, MART, GROCERY) = "groceries"
+- Food apps (KEETA, TALABAT) = "food"
+
+DATE EXTRACTION (CRITICAL):
+- Look for date columns in the statement (DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD, DD-MMM-YY)
+- Each transaction row usually has a date - EXTRACT IT
+- Convert to YYYY-MM-DD format
+- If date is ambiguous, prefer DD/MM/YYYY (UAE format)
+
+MERCHANT FIELD:
+- For recognized apps/brands, include the merchant name: Talabat, Keeta, Noon, Careem, etc.
+- This helps users track spending by app`
           },
           {
             role: "user",
-            content: `Document type: ${documentType || "bank statement"}\n\nDocument content:\n${documentText}`
+            content: `Document type: ${documentType || "bank statement"}\n\nExtract ALL transactions with dates:\n${documentText}`
           }
         ],
         response_format: { type: "json_object" },
@@ -2441,17 +2468,26 @@ Guidelines:
       
       const now = new Date();
       const formattedTransactions = extractedTransactions.map((t: any) => {
-        const txDate = new Date(t.date || now);
+        let txDate: Date;
+        if (t.date && t.date !== "null" && t.date !== "undefined") {
+          txDate = new Date(t.date);
+          if (isNaN(txDate.getTime())) {
+            txDate = now;
+          }
+        } else {
+          txDate = now;
+        }
         const monthName = txDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
         return {
           type: t.type,
           name: t.name,
           amount: Math.abs(Number(t.amount)),
           category: t.category || "other",
-          date: txDate,
+          date: txDate.toISOString(),
           month: monthName,
           isRecurring: 0,
           notes: t.notes || null,
+          merchant: t.merchant || null,
           importSource: "ai_import"
         };
       });
