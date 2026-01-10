@@ -440,6 +440,10 @@ export const journalEntries = pgTable("journal_entries", {
 export const insertJournalEntrySchema = createInsertSchema(journalEntries).omit({
   id: true,
   createdAt: true,
+}).extend({
+  entryDate: z.union([z.date(), z.string()]).transform(val => 
+    typeof val === 'string' ? new Date(val) : val
+  ).optional(),
 });
 
 export type JournalEntry = typeof journalEntries.$inferSelect;
