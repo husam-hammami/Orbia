@@ -295,337 +295,272 @@ export function MoodTracker() {
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="border-t border-border"
           >
-            <div className="p-6 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 
-                {/* 1. Headspace & System */}
-                <div className="space-y-4">
-                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Internal System</h4>
-                    
-                    {/* Dissociation */}
-                    <div 
-                      className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 transition-all duration-300 hover:border-purple-300 dark:hover:border-purple-700"
-                      style={{ 
-                        boxShadow: dissociation[0] > 5 ? '0 0 25px -8px rgba(147,51,234,0.35)' : undefined,
-                        background: dissociation[0] > 5 ? 'linear-gradient(135deg, rgba(147,51,234,0.05) 0%, transparent 100%)' : undefined
-                      }}
-                    >
-                       <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-1.5 text-purple-600">
-                             <CloudFog className="w-3.5 h-3.5" style={{ filter: dissociation[0] > 5 ? 'drop-shadow(0 0 4px rgba(147,51,234,0.5))' : undefined }} />
-                             <span className="text-xs font-semibold">Dissociation</span>
-                          </div>
-                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border">
-                             {dissociation[0]}/10
-                          </span>
-                       </div>
-                       <Slider value={dissociation} onValueChange={setDissociation} max={10} step={1} className="h-4" />
+                {/* LEFT COLUMN: State & System */}
+                <div className="space-y-3">
+                  {/* State Snapshot Capsule - Hero summary */}
+                  <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/30 dark:to-violet-950/30 p-3 rounded-xl border border-indigo-100/50 dark:border-indigo-900/30">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">State Snapshot</span>
+                      <span className="text-[10px] text-muted-foreground">{entriesToday.length} today</span>
                     </div>
+                    <div className="flex items-center gap-3">
+                      {/* Emotional State Display */}
+                      {mood && (() => {
+                        const currentMood = emotionalStates.find(m => m.value === mood);
+                        const Icon = currentMood?.icon || Meh;
+                        return (
+                          <div className={cn("p-2 rounded-lg", currentMood?.bg)}>
+                            <Icon className={cn("w-5 h-5", currentMood?.color)} />
+                          </div>
+                        );
+                      })()}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">
+                          {emotionalStates.find(m => m.value === mood)?.label || "Select state"}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {selectedFronter && (
+                            <span className="flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: selectedFronter.color }} />
+                              {selectedFronter.name}
+                            </span>
+                          )}
+                          <span>{entryTime}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-                    {/* System Comm */}
-                    <div 
-                      className="bg-indigo-50/50 dark:bg-indigo-900/10 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900/30 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
-                      style={{ 
-                        boxShadow: systemComm[0] > 5 ? '0 0 25px -8px rgba(99,102,241,0.35)' : undefined,
-                        background: systemComm[0] > 5 ? 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, transparent 100%)' : undefined
-                      }}
-                    >
-                       <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-1.5 text-indigo-600">
-                             <MessageSquare className="w-3.5 h-3.5" style={{ filter: systemComm[0] > 5 ? 'drop-shadow(0 0 4px rgba(99,102,241,0.5))' : undefined }} />
-                             <span className="text-xs font-semibold">Communication</span>
-                          </div>
-                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border">
-                             {systemComm[0]}/10
-                          </span>
-                       </div>
-                       <Slider value={systemComm} onValueChange={setSystemComm} max={10} step={1} className="h-4 [&_.bg-primary]:bg-indigo-500" />
-                    </div>
-                    
-                    {/* Active State */}
-                    <div>
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Active State</label>
-                        {membersLoading ? (
-                          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                            <Loader2 className="w-4 h-4 animate-spin" /> Loading...
-                          </div>
-                        ) : members && members.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                              {members.map(member => (
-                                  <motion.button
-                                      key={member.id}
-                                      onClick={() => setSelectedFronterId(member.id)}
-                                      data-testid={`button-fronter-${member.id}`}
-                                      whileHover={{ scale: 1.05 }}
-                                      whileTap={{ scale: 0.95 }}
-                                      className={cn(
-                                          "text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 relative",
-                                          selectedFronter?.id === member.id 
-                                              ? "bg-background border-indigo-500" 
-                                              : "bg-muted/30 border-transparent hover:bg-muted"
-                                      )}
-                                      style={{ 
-                                        color: selectedFronter?.id === member.id ? member.color : undefined,
-                                        boxShadow: selectedFronter?.id === member.id ? `0 0 20px -5px ${member.color}` : undefined
-                                      }}
-                                  >
-                                      <span 
-                                        className="w-2 h-2 rounded-full" 
-                                        style={{ 
-                                          backgroundColor: member.color,
-                                          boxShadow: selectedFronter?.id === member.id ? `0 0 8px ${member.color}` : undefined
-                                        }} 
-                                      />
-                                      {member.name}
-                                  </motion.button>
-                              ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">No states yet. Add states in Deep Mind.</p>
-                        )}
-                    </div>
+                  {/* Active State Selector - Compact */}
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide block mb-1.5">Who's here?</span>
+                    {membersLoading ? (
+                      <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Loading...
+                      </div>
+                    ) : members && members.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {members.map(member => (
+                          <button
+                            key={member.id}
+                            onClick={() => setSelectedFronterId(member.id)}
+                            data-testid={`button-fronter-${member.id}`}
+                            className={cn(
+                              "text-[11px] px-2 py-0.5 rounded-full transition-all flex items-center gap-1",
+                              selectedFronter?.id === member.id 
+                                ? "bg-white dark:bg-slate-800 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700" 
+                                : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                            )}
+                            style={{ color: selectedFronter?.id === member.id ? member.color : undefined }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: member.color }} />
+                            {member.name}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No states yet.</p>
+                    )}
+                  </div>
 
-                    {/* Daily Note - moved here to fill space */}
-                    <Textarea 
-                         placeholder="Daily Note..."
-                         className="bg-muted/30 resize-none h-[88px] text-xs"
-                         value={note}
-                         onChange={(e) => setNote(e.target.value)}
-                    />
+                  {/* Internal Panel: Dissociation + Communication */}
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <CloudFog className="w-4 h-4 text-purple-500" />
+                      <span className="text-sm font-medium">Internal</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Dissociation</span>
+                          <span className="font-mono text-purple-600">{dissociation[0]}/10</span>
+                        </div>
+                        <Slider value={dissociation} onValueChange={setDissociation} max={10} step={1} className="h-2" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Communication</span>
+                          <span className="font-mono text-indigo-600">{systemComm[0]}/10</span>
+                        </div>
+                        <Slider value={systemComm} onValueChange={setSystemComm} max={10} step={1} className="h-2" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Daily Note */}
+                  <Textarea 
+                    placeholder="Daily note..."
+                    className="bg-slate-50 dark:bg-slate-900/50 border-slate-200/50 dark:border-slate-800/50 resize-none h-20 text-xs"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
                 </div>
 
-                {/* 2. Physical Body */}
-                <div className="space-y-4">
-                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Body Vitals</h4>
-                    
-                    {/* Pain Level */}
-                    <div 
-                      className="bg-rose-50/50 dark:bg-rose-900/10 p-3 rounded-lg border border-rose-100 dark:border-rose-900/30 transition-all duration-300 hover:border-rose-300 dark:hover:border-rose-700"
-                      style={{ 
-                        boxShadow: comfort[0] >= 6 ? '0 0 25px -8px rgba(244,63,94,0.35)' : undefined,
-                        background: comfort[0] >= 6 ? 'linear-gradient(135deg, rgba(244,63,94,0.08) 0%, transparent 100%)' : undefined
-                      }}
-                    >
-                       <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-1.5 text-rose-600">
-                             <HeartPulse className="w-3.5 h-3.5" style={{ filter: comfort[0] >= 6 ? 'drop-shadow(0 0 4px rgba(244,63,94,0.5))' : undefined }} />
-                             <span className="text-xs font-semibold">Pain Level</span>
-                          </div>
-                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-rose-600">
-                             {comfort[0] === 0 ? "None" : comfort[0] <= 3 ? "Mild" : comfort[0] <= 6 ? "Moderate" : "Severe"}
-                          </span>
-                       </div>
-                       <Slider value={comfort} onValueChange={setComfort} max={10} step={1} className="h-4 [&_.bg-primary]:bg-rose-500" />
-                    </div>
+                {/* MIDDLE COLUMN: Wellbeing */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 pb-1 border-b border-border/50">
+                    <HeartPulse className="w-4 h-4 text-rose-500" />
+                    <span className="text-sm font-semibold">Wellbeing</span>
+                  </div>
 
-                    {/* Sleep Hours */}
-                    <div 
-                      className="bg-indigo-50/50 dark:bg-indigo-900/10 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900/30 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
-                      style={{ 
-                        boxShadow: sleep[0] >= 7 ? '0 0 25px -8px rgba(99,102,241,0.35)' : undefined,
-                        background: sleep[0] >= 7 ? 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, transparent 100%)' : undefined
-                      }}
-                    >
-                       <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-1.5 text-indigo-600">
-                             <Moon className="w-3.5 h-3.5" style={{ filter: sleep[0] >= 7 ? 'drop-shadow(0 0 4px rgba(99,102,241,0.5))' : undefined }} />
-                             <span className="text-xs font-semibold">Sleep Hours</span>
-                          </div>
-                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border">
-                             {sleep[0]}h
-                          </span>
-                       </div>
-                       <Slider value={sleep} onValueChange={setSleep} max={12} step={0.5} className="h-4 [&_.bg-primary]:bg-indigo-500" />
+                  {/* Sleep Panel: Hours + Quality */}
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Moon className="w-4 h-4 text-indigo-500" />
+                      <span className="text-sm font-medium">Sleep</span>
                     </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Hours</span>
+                          <span className="font-mono text-indigo-600">{sleep[0]}h</span>
+                        </div>
+                        <Slider value={sleep} onValueChange={setSleep} max={12} step={0.5} className="h-2" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Quality</span>
+                          <span className="font-mono text-violet-600">
+                            {sleepQuality[0] <= 3 ? "Poor" : sleepQuality[0] <= 5 ? "Fair" : sleepQuality[0] <= 7 ? "Good" : "Great"}
+                          </span>
+                        </div>
+                        <Slider value={sleepQuality} onValueChange={setSleepQuality} max={10} step={1} className="h-2" />
+                      </div>
+                    </div>
+                  </div>
 
-                    {/* Sleep Quality */}
-                    <div 
-                      className="bg-violet-50/50 dark:bg-violet-900/10 p-3 rounded-lg border border-violet-100 dark:border-violet-900/30 transition-all duration-300 hover:border-violet-300 dark:hover:border-violet-700"
-                      style={{ 
-                        boxShadow: sleepQuality[0] >= 7 ? '0 0 25px -8px rgba(139,92,246,0.35)' : undefined,
-                        background: sleepQuality[0] >= 7 ? 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, transparent 100%)' : undefined
-                      }}
-                    >
-                       <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-1.5 text-violet-600">
-                             <BedDouble className="w-3.5 h-3.5" style={{ filter: sleepQuality[0] >= 7 ? 'drop-shadow(0 0 4px rgba(139,92,246,0.5))' : undefined }} />
-                             <span className="text-xs font-semibold">Sleep Quality</span>
-                          </div>
-                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-violet-600">
-                             {sleepQuality[0] <= 3 ? "Poor" : sleepQuality[0] <= 5 ? "Fair" : sleepQuality[0] <= 7 ? "Good" : "Excellent"}
-                          </span>
-                       </div>
-                       <Slider value={sleepQuality} onValueChange={setSleepQuality} max={10} step={1} className="h-4 [&_.bg-primary]:bg-violet-500" />
+                  {/* Vitals Panel: Pain + Energy + Stress */}
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-orange-500" />
+                      <span className="text-sm font-medium">Vitals</span>
                     </div>
+                    <div className="space-y-2">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Pain</span>
+                          <span className="font-mono text-rose-600">
+                            {comfort[0] === 0 ? "None" : comfort[0] <= 3 ? "Mild" : comfort[0] <= 6 ? "Mod" : "High"}
+                          </span>
+                        </div>
+                        <Slider value={comfort} onValueChange={setComfort} max={10} step={1} className="h-2" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Energy</span>
+                            <span className="font-mono text-yellow-600">{motivation[0]}/10</span>
+                          </div>
+                          <Slider value={motivation} onValueChange={setMotivation} max={10} step={1} className="h-2" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Stress</span>
+                            <span className="font-mono text-orange-600">{stress[0]}/10</span>
+                          </div>
+                          <Slider value={stress} onValueChange={setStress} max={10} step={1} className="h-2" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-                    {/* Energy */}
-                    <div 
-                      className="bg-yellow-50/50 dark:bg-yellow-900/10 p-3 rounded-lg border border-yellow-100 dark:border-yellow-900/30 transition-all duration-300 hover:border-yellow-300 dark:hover:border-yellow-700"
-                      style={{ 
-                        boxShadow: motivation[0] >= 7 ? '0 0 25px -8px rgba(234,179,8,0.35)' : undefined,
-                        background: motivation[0] >= 7 ? 'linear-gradient(135deg, rgba(234,179,8,0.08) 0%, transparent 100%)' : undefined
-                      }}
-                    >
-                       <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-1.5 text-yellow-600">
-                             <Zap className="w-3.5 h-3.5" style={{ filter: motivation[0] >= 7 ? 'drop-shadow(0 0 4px rgba(234,179,8,0.5))' : undefined }} />
-                             <span className="text-xs font-semibold">Energy</span>
-                          </div>
-                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-yellow-600">
-                             {motivation[0] <= 3 ? "Drained" : motivation[0] <= 5 ? "Low" : motivation[0] <= 7 ? "Moderate" : "High"}
-                          </span>
-                       </div>
-                       <Slider value={motivation} onValueChange={setMotivation} max={10} step={1} className="h-4 [&_.bg-primary]:bg-yellow-500" />
+                  {/* Work Load Panel */}
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">💼</span>
+                        <span className="text-sm font-medium">Work Load</span>
+                      </div>
+                      <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-slate-200/50 dark:bg-slate-700/50 text-amber-600">
+                        {workLoad[0] === 0 ? "Off" : workLoad[0] <= 3 ? "Light" : workLoad[0] <= 6 ? "Hard" : "Toxic"}
+                      </span>
                     </div>
-
-                    {/* Stress Level */}
-                    <div 
-                      className="bg-orange-50/50 dark:bg-orange-900/10 p-3 rounded-lg border border-orange-100 dark:border-orange-900/30 transition-all duration-300 hover:border-orange-300 dark:hover:border-orange-700"
-                      style={{ 
-                        boxShadow: stress[0] >= 7 ? '0 0 25px -8px rgba(249,115,22,0.35)' : undefined,
-                        background: stress[0] >= 7 ? 'linear-gradient(135deg, rgba(249,115,22,0.08) 0%, transparent 100%)' : undefined
-                      }}
-                    >
-                       <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-1.5 text-orange-600">
-                             <Activity className="w-3.5 h-3.5" style={{ filter: stress[0] >= 7 ? 'drop-shadow(0 0 4px rgba(249,115,22,0.5))' : undefined }} />
-                             <span className="text-xs font-semibold">Stress Level</span>
-                          </div>
-                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-orange-600">
-                             {stress[0] <= 3 ? "Calm" : stress[0] <= 5 ? "Mild" : stress[0] <= 7 ? "Elevated" : "High"}
-                          </span>
-                       </div>
-                       <Slider value={stress} onValueChange={setStress} max={10} step={1} className="h-4 [&_.bg-primary]:bg-orange-500" />
-                    </div>
-
-                    {/* Work Environment Load */}
-                    <div 
-                      className="bg-amber-50/50 dark:bg-amber-900/10 p-3 rounded-lg border border-amber-100 dark:border-amber-900/30 transition-all duration-300 hover:border-amber-300 dark:hover:border-amber-700"
-                      style={{ 
-                        boxShadow: workLoad[0] >= 7 ? '0 0 25px -8px rgba(245,158,11,0.4)' : undefined,
-                        background: workLoad[0] >= 7 ? 'linear-gradient(135deg, rgba(245,158,11,0.08) 0%, transparent 100%)' : undefined
-                      }}
-                    >
-                       <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-1.5 text-amber-700">
-                             <span className="text-sm" style={{ filter: workLoad[0] >= 7 ? 'drop-shadow(0 0 4px rgba(245,158,11,0.5))' : undefined }}>💼</span>
-                             <span className="text-xs font-semibold">Work Environment Load</span>
-                          </div>
-                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-amber-700">
-                             {workLoad[0] === 0 ? "No work" : workLoad[0] <= 3 ? "Manageable" : workLoad[0] <= 6 ? "Difficult" : "Toxic"}
-                          </span>
-                       </div>
-                       <Slider value={workLoad} onValueChange={setWorkLoad} max={10} step={1} className="h-4 [&_.bg-primary]:bg-amber-500" />
-                       <p className="text-[9px] text-muted-foreground mt-1.5">How hostile or draining was work today? (0 = no work/neutral)</p>
-                       
-                       {/* Work-specific tags (optional) */}
-                       {workLoad[0] > 0 && (
-                          <div className="mt-2 pt-2 border-t border-amber-200/50">
-                             <p className="text-[9px] text-muted-foreground mb-1.5">What made it hard? (optional, pick one):</p>
-                             <div className="flex flex-wrap gap-1">
-                                {workTags.map(tag => (
-                                   <button
-                                      key={tag.value}
-                                      onClick={() => setWorkTag(workTag === tag.value ? null : tag.value)}
-                                      data-testid={`button-work-${tag.value}`}
-                                      className={cn(
-                                         "text-[9px] px-1.5 py-0.5 rounded border transition-all",
-                                         workTag === tag.value
-                                            ? "bg-amber-500 text-white border-amber-500"
-                                            : "bg-background border-amber-200 text-amber-700 hover:border-amber-300"
-                                      )}
-                                   >
-                                      {tag.label}
-                                   </button>
-                                ))}
-                             </div>
-                          </div>
-                       )}
-                    </div>
+                    <Slider value={workLoad} onValueChange={setWorkLoad} max={10} step={1} className="h-2" />
+                    {workLoad[0] > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {workTags.map(tag => (
+                          <button
+                            key={tag.value}
+                            onClick={() => setWorkTag(workTag === tag.value ? null : tag.value)}
+                            data-testid={`button-work-${tag.value}`}
+                            className={cn(
+                              "text-[10px] px-1.5 py-0.5 rounded transition-all",
+                              workTag === tag.value
+                                ? "bg-amber-500 text-white"
+                                : "bg-slate-200/50 dark:bg-slate-700/50 text-muted-foreground hover:bg-slate-300/50"
+                            )}
+                          >
+                            {tag.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* 3. Intensity & Notes */}
-                <div className="space-y-4">
-                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Intensity & Context</h4>
+                {/* RIGHT COLUMN: Context */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 pb-1 border-b border-border/50">
+                    <AlertCircle className="w-4 h-4 text-violet-500" />
+                    <span className="text-sm font-semibold">Context</span>
+                  </div>
 
-                    {/* Capacity (0-5) - Key metric for DID */}
-                    <div 
-                      className="bg-emerald-50/50 dark:bg-emerald-900/10 p-3 rounded-lg border border-emerald-100 dark:border-emerald-900/30 transition-all duration-300 hover:border-emerald-300 dark:hover:border-emerald-700"
-                      style={{ 
-                        boxShadow: capacity[0] >= 4 ? '0 0 25px -8px rgba(16,185,129,0.4)' : undefined,
-                        background: capacity[0] >= 4 ? 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, transparent 100%)' : undefined
-                      }}
-                    >
-                       <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-1.5 text-emerald-600">
-                             <BatteryFull className="w-3.5 h-3.5" style={{ filter: capacity[0] >= 4 ? 'drop-shadow(0 0 4px rgba(16,185,129,0.5))' : undefined }} />
-                             <span className="text-xs font-semibold">Capacity</span>
-                          </div>
-                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-emerald-700">
-                             {capacity[0] === 0 ? "Empty" : capacity[0] <= 2 ? "Low" : capacity[0] <= 4 ? "Moderate" : "Full"}
-                          </span>
-                       </div>
-                       <Slider value={capacity} onValueChange={setCapacity} max={5} step={1} className="h-4 [&_.bg-primary]:bg-emerald-500" />
-                       <p className="text-[9px] text-muted-foreground mt-1.5">How much can you handle right now? (Not mood or energy)</p>
+                  {/* Capacity Slider */}
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BatteryFull className="w-4 h-4 text-emerald-500" />
+                        <span className="text-sm font-medium">Capacity</span>
+                      </div>
+                      <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-slate-200/50 dark:bg-slate-700/50 text-emerald-600">
+                        {capacity[0] === 0 ? "Empty" : capacity[0] <= 2 ? "Low" : capacity[0] <= 4 ? "Mod" : "Full"}
+                      </span>
                     </div>
+                    <Slider value={capacity} onValueChange={setCapacity} max={5} step={1} className="h-2" />
+                    <p className="text-[10px] text-muted-foreground">How much can you handle right now?</p>
+                  </div>
 
-                    {/* What influenced this entry? (trigger tag) */}
-                    <div 
-                      className="bg-violet-50/50 dark:bg-violet-900/10 p-3 rounded-lg border border-violet-100 dark:border-violet-900/30 transition-all duration-300 hover:border-violet-300 dark:hover:border-violet-700"
-                      style={{ 
-                        boxShadow: triggerTag ? '0 0 25px -8px rgba(139,92,246,0.35)' : undefined,
-                        background: triggerTag ? 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, transparent 100%)' : undefined
-                      }}
-                    >
-                       <div className="flex items-center gap-1.5 text-violet-600 mb-2">
-                          <AlertCircle className="w-3.5 h-3.5" style={{ filter: triggerTag ? 'drop-shadow(0 0 4px rgba(139,92,246,0.5))' : undefined }} />
-                          <span className="text-xs font-semibold">What influenced this?</span>
-                          <span className="text-[9px] text-muted-foreground ml-1">(optional)</span>
-                       </div>
-                       <div className="flex flex-wrap gap-1.5">
-                          {triggerTags.map(tag => (
-                             <motion.button
-                                key={tag.value}
-                                onClick={() => setTriggerTag(triggerTag === tag.value ? null : tag.value)}
-                                data-testid={`button-trigger-${tag.value}`}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className={cn(
-                                   "text-[10px] px-2 py-1 rounded-full border transition-all flex items-center gap-1",
-                                   triggerTag === tag.value
-                                      ? "bg-violet-500 text-white border-violet-500"
-                                      : "bg-background border-violet-200 text-violet-600 hover:border-violet-300"
-                                )}
-                                style={triggerTag === tag.value ? {
-                                  boxShadow: '0 0 15px -3px rgba(139,92,246,0.5)'
-                                } : undefined}
-                             >
-                                <span>{tag.icon}</span>
-                                {tag.label}
-                             </motion.button>
-                          ))}
-                       </div>
+                  {/* Trigger Tags */}
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">What influenced this?</span>
                     </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {triggerTags.map(tag => (
+                        <button
+                          key={tag.value}
+                          onClick={() => setTriggerTag(triggerTag === tag.value ? null : tag.value)}
+                          data-testid={`button-trigger-${tag.value}`}
+                          className={cn(
+                            "text-[10px] px-2 py-1 rounded-full border transition-all flex items-center gap-1",
+                            triggerTag === tag.value
+                              ? "bg-violet-500 text-white border-violet-500"
+                              : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-muted-foreground hover:border-violet-300"
+                          )}
+                        >
+                          <span>{tag.icon}</span>
+                          {tag.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-                    {/* Urges */}
-                    <div 
-                      className="bg-red-50/50 dark:bg-red-900/10 p-3 rounded-lg border border-red-100 dark:border-red-900/30 transition-all duration-300 hover:border-orange-300 dark:hover:border-orange-700"
-                      style={{ 
-                        boxShadow: urges[0] >= 7 ? '0 0 25px -8px rgba(249,115,22,0.4)' : undefined,
-                        background: urges[0] >= 7 ? 'linear-gradient(135deg, rgba(249,115,22,0.08) 0%, transparent 100%)' : undefined
-                      }}
-                    >
-                       <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-1.5 text-orange-600">
-                             <Flame className="w-3.5 h-3.5" style={{ filter: urges[0] >= 7 ? 'drop-shadow(0 0 4px rgba(249,115,22,0.5))' : undefined }} />
-                             <span className="text-xs font-semibold">Intrusive Urges</span>
-                          </div>
-                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-orange-700">
-                             {urges[0] < 3 ? "Quiet" : urges[0] < 7 ? "Present" : "Intense"}
-                          </span>
-                       </div>
-                       <Slider value={urges} onValueChange={setUrges} max={10} step={1} className="h-4 [&_.bg-primary]:bg-orange-500" />
+                  {/* Urges Slider */}
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Flame className="w-4 h-4 text-orange-500" />
+                        <span className="text-sm font-medium">Urges</span>
+                      </div>
+                      <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-slate-200/50 dark:bg-slate-700/50 text-orange-600">
+                        {urges[0] < 3 ? "Quiet" : urges[0] < 7 ? "Present" : "Intense"}
+                      </span>
                     </div>
+                    <Slider value={urges} onValueChange={setUrges} max={10} step={1} className="h-2" />
+                  </div>
                 </div>
               </div>
 
