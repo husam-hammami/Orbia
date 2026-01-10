@@ -2512,11 +2512,15 @@ MERCHANT FIELD:
       }
 
       // Fetch comprehensive data like Deep Mind does
-      const [entries, journalEntries, members, visionItems] = await Promise.all([
+      const [entries, journalEntries, members, visionItems, allTransactions, loans, incomeStreams, financeSettings] = await Promise.all([
         storage.getRecentTrackerEntries(200),
         storage.getAllJournalEntries(),
         storage.getAllMembers(),
         storage.getVision(),
+        storage.getAllTransactions(),
+        storage.getAllLoans(),
+        storage.getAllIncomeStreams(),
+        storage.getFinanceSettings(),
       ]);
       
       // Calculate facts for last 7 days
@@ -2655,6 +2659,103 @@ ${recentTrackerNotes || "No daily notes"}
 ${journalExcerpts || "No older journal entries"}
 
 Note: [Driver: X → Y] means primary driver X with secondary Y. These are user-tagged and HIGH WEIGHT evidence.`;
+
+      // Build comprehensive finance context
+      const currency = financeSettings?.currency || "AED";
+      const savingsGoal = financeSettings?.savingsGoal || 0;
+      
+      // Get current month's transactions
+      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const thisMonthTransactions = allTransactions.filter(t => {
+        const txDate = new Date(t.date);
+        return txDate >= currentMonthStart && txDate <= currentMonthEnd;
+      });
+      
+      // Calculate monthly totals
+      const monthlyIncome = thisMonthTransactions
+        .filter(t => t.type === "income")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      const monthlyExpenses = thisMonthTransactions
+        .filter(t => t.type === "expense")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      const netFlow = monthlyIncome - monthlyExpenses;
+      const savingsProgress = savingsGoal > 0 ? Math.round((netFlow / savingsGoal) * 100) : 0;
+      
+      // Spending by category this month
+      const categorySpending: Record<string, number> = {};
+      thisMonthTransactions.filter(t => t.type === "expense").forEach(t => {
+        const cat = t.category || "other";
+        categorySpending[cat] = (categorySpending[cat] || 0) + Number(t.amount);
+      });
+      const topCategories = Object.entries(categorySpending)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([cat, amt]) => `${cat}: ${currency} ${amt.toLocaleString()}`)
+        .join(", ") || "No spending recorded";
+      
+      // Recent transactions (last 10)
+      const recentTransactions = allTransactions
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 15)
+        .map(t => {
+          const date = new Date(t.date).toLocaleDateString();
+          const sign = t.type === "income" ? "+" : "-";
+          const merchant = t.notes ? ` (${t.notes.slice(0, 30)})` : "";
+          return `[${date}] ${sign}${currency} ${t.amount} ${t.name}${merchant} [${t.category}]`;
+        }).join("\n");
+      
+      // Active loans summary
+      const activeLoans = loans.filter(l => l.status === "active");
+      const totalDebt = activeLoans.reduce((sum, l) => sum + Number(l.currentBalance), 0);
+      const loansList = activeLoans.map(l => {
+        const interestStr = l.interestRate ? ` @ ${(l.interestRate / 100).toFixed(1)}%` : "";
+        return `- "${l.name}" (${l.lender || "Unknown lender"}): ${currency} ${Number(l.currentBalance).toLocaleString()} remaining${interestStr}, min payment: ${currency} ${l.minimumPayment}`;
+      }).join("\n") || "No active loans";
+      
+      // Income streams
+      const activeIncomeStreams = incomeStreams.filter(s => s.isActive === 1);
+      const expectedMonthlyIncome = activeIncomeStreams.reduce((sum, s) => {
+        if (s.frequency === "monthly") return sum + Number(s.amount);
+        if (s.frequency === "weekly") return sum + (Number(s.amount) * 4);
+        if (s.frequency === "biweekly") return sum + (Number(s.amount) * 2);
+        if (s.frequency === "yearly") return sum + (Number(s.amount) / 12);
+        return sum;
+      }, 0);
+      const incomeStreamsList = activeIncomeStreams.map(s => 
+        `- "${s.name}": ${currency} ${s.amount} (${s.frequency})`
+      ).join("\n") || "No income streams configured";
+      
+      const financeContext = `
+=== COMPREHENSIVE FINANCE DATA ===
+
+MONTHLY SNAPSHOT (${now.toLocaleString('en-US', { month: 'long', year: 'numeric' })}):
+- Income: ${currency} ${monthlyIncome.toLocaleString()}
+- Expenses: ${currency} ${monthlyExpenses.toLocaleString()}
+- Net Flow: ${currency} ${netFlow.toLocaleString()} (${netFlow >= 0 ? "surplus" : "deficit"})
+- Savings Goal: ${savingsGoal > 0 ? `${currency} ${savingsGoal.toLocaleString()} (${savingsProgress}% achieved)` : "Not set"}
+- Expected Monthly Income: ${currency} ${expectedMonthlyIncome.toLocaleString()}
+
+TOP SPENDING CATEGORIES:
+${topCategories}
+
+RECENT TRANSACTIONS:
+${recentTransactions || "No transactions recorded"}
+
+ACTIVE LOANS (Total Debt: ${currency} ${totalDebt.toLocaleString()}):
+${loansList}
+
+INCOME STREAMS:
+${incomeStreamsList}
+
+TRANSACTION IDs FOR REFERENCE (use for queries about specific transactions):
+${allTransactions.slice(0, 20).map(t => `ID: "${t.id}" | ${t.name} | ${t.type} | ${currency} ${t.amount} | ${t.category} | ${new Date(t.date).toLocaleDateString()}`).join("\n")}
+
+LOAN IDs FOR REFERENCE:
+${loans.map(l => `ID: "${l.id}" | ${l.name} | Balance: ${currency} ${l.currentBalance} | Status: ${l.status}`).join("\n") || "No loans"}
+
+INCOME STREAM IDs FOR REFERENCE:
+${incomeStreams.map(s => `ID: "${s.id}" | ${s.name} | ${currency} ${s.amount} ${s.frequency} | Active: ${s.isActive === 1 ? "Yes" : "No"}`).join("\n") || "No income streams"}`;
 
       const orbitSystemPrompt = `You are Orbit, a genius-level pattern analyst for Orbia.
 
@@ -2827,7 +2928,27 @@ VISION & ROADMAP:
 - delete_vision: {"vision_id": "..."} - ALWAYS set confirm:true
 - refresh_roadmap: {} - Regenerates the AI roadmap based on current vision. Use after updating vision!
 
-EXPENSES:
+FINANCE TRANSACTIONS:
+- add_transaction: {"type": "income/expense", "name": "...", "amount": number, "category": "salary/freelance/groceries/food/transport/utilities/entertainment/shopping/health/subscriptions/travel/other", "notes": "..." (optional)}
+- delete_transaction: {"transaction_id": "..."} - ALWAYS set confirm:true
+- search_transactions: {"query": "..."} - Search transactions by name, merchant, or notes (read-only, returns matching results)
+
+LOANS:
+- add_loan_payment: {"loan_id": "...", "amount": number, "notes": "..." (optional)}
+- get_loan_status: {"loan_id": "..."} - Get detailed loan info including payment history
+
+INCOME STREAMS:
+- log_income_payment: {"income_stream_id": "...", "amount": number (optional, defaults to stream amount)}
+
+SPENDING ANALYSIS (read-only queries Orbit can answer):
+- "How much did I spend on [category] this month?"
+- "What's my biggest expense category?"
+- "Show me all [merchant] transactions"
+- "Am I on track for my savings goal?"
+- "When is my next loan payment due?"
+- "What subscriptions am I paying for?"
+
+LEGACY EXPENSES:
 - create_expense: {"name": "...", "amount": number, "budget": number, "category": "Fixed/Variable/Savings/Debt", "status": "paid/pending/variable", "date": "Jan 1", "month": "January"}
 - update_expense: {"expense_id": "...", "amount": number, "status": "paid/pending/variable", "name": "..."}
 - delete_expense: {"expense_id": "..."} - ALWAYS set confirm:true
@@ -2857,6 +2978,8 @@ CONFIRMATION RULES:
 - Never blame habits/routine. Say "low completion likely due to low capacity"
 
 ${analyticsContext}
+
+${financeContext}
 
 NORTH STAR VISION ITEMS (use these IDs for vision actions):
 ${visionItems.length > 0 ? visionItems.map(v => `- ID: "${v.id}" | Title: "${v.title}" | Timeframe: ${v.timeframe}`).join('\n') : 'No vision items yet'}
