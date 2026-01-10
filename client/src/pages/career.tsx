@@ -113,8 +113,8 @@ function CircularProgress({ progress, size = 64, strokeWidth = 6 }: { progress: 
         />
         <defs>
           <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#14b8a6" />
-            <stop offset="100%" stopColor="#06b6d4" />
+            <stop offset="0%" stopColor="#2dd4bf" />
+            <stop offset="100%" stopColor="#5eead4" />
           </linearGradient>
         </defs>
       </svg>
@@ -132,8 +132,8 @@ function AnimatedCheckbox({ checked, onChange }: { checked: boolean; onChange: (
       className={cn(
         "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
         checked 
-          ? "bg-gradient-to-br from-teal-500 to-cyan-500 border-transparent" 
-          : "border-slate-300 dark:border-slate-600 hover:border-teal-500"
+          ? "bg-teal-500 border-transparent" 
+          : "border-slate-300 dark:border-slate-600 hover:border-teal-400"
       )}
       whileTap={{ scale: 0.9 }}
     >
@@ -803,14 +803,14 @@ export default function CareerPage() {
           <TabsList className={cn(glassCard, "w-full grid grid-cols-2 p-1 h-auto")}>
             <TabsTrigger 
               value="projects" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white py-2.5 rounded-xl transition-all"
+              className="data-[state=active]:bg-white/70 data-[state=active]:dark:bg-slate-800/70 data-[state=active]:border data-[state=active]:border-teal-300 data-[state=active]:dark:border-teal-600 data-[state=active]:text-teal-700 data-[state=active]:dark:text-teal-300 data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
             >
               <Rocket className="w-4 h-4 mr-2" />
               Projects
             </TabsTrigger>
             <TabsTrigger 
               value="coach" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-500 data-[state=active]:text-white py-2.5 rounded-xl transition-all"
+              className="data-[state=active]:bg-white/70 data-[state=active]:dark:bg-slate-800/70 data-[state=active]:border data-[state=active]:border-violet-300 data-[state=active]:dark:border-violet-600 data-[state=active]:text-violet-700 data-[state=active]:dark:text-violet-300 data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
             >
               <Compass className="w-4 h-4 mr-2" />
               Career Coach
@@ -826,7 +826,7 @@ export default function CareerPage() {
                 </h2>
                 <Button 
                   onClick={() => openProjectDialog(null)}
-                  className={cn(glassCard, "bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0 hover:opacity-90")}
+                  className="bg-teal-500 hover:bg-teal-600 text-white border-0"
                   size="sm"
                 >
                   <Plus className="w-4 h-4 mr-2" /> New Project
@@ -933,7 +933,7 @@ export default function CareerPage() {
                   <Button 
                     type="submit" 
                     disabled={!newTask.trim() || createTask.isPending}
-                    className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0 hover:opacity-90"
+                    className="bg-teal-500 hover:bg-teal-600 text-white border-0"
                   >
                     <Plus className="w-4 h-4 mr-2" /> Add Task
                   </Button>
@@ -997,7 +997,7 @@ export default function CareerPage() {
                 </p>
                 <Button 
                   onClick={fetchCoach}
-                  className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0 hover:opacity-90"
+                  className="bg-violet-500 hover:bg-violet-600 text-white border-0"
                   size="lg"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
@@ -1046,7 +1046,7 @@ export default function CareerPage() {
                       Career Coach
                     </h3>
                     {coachData.weeklyTheme && (
-                      <Badge className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0 text-xs">
+                      <Badge variant="outline" className="border-violet-300 dark:border-violet-600 text-violet-600 dark:text-violet-400 text-xs">
                         <Star className="w-3 h-3 mr-1" />
                         {coachData.weeklyTheme}
                       </Badge>
@@ -1099,7 +1099,7 @@ export default function CareerPage() {
                                     initial={{ width: 0 }}
                                     animate={{ width: `${phaseProgress}%` }}
                                     transition={{ duration: 0.5, ease: "easeOut" }}
-                                    className="h-full bg-gradient-to-r from-teal-500 to-cyan-500"
+                                    className="h-full bg-teal-400/80"
                                   />
                                 </div>
                               )}
@@ -1396,7 +1396,7 @@ export default function CareerPage() {
                               <p className="text-xs text-muted-foreground">{activePhase.timeframe}</p>
                             </div>
                             
-                            <div className="p-2.5 rounded-lg bg-gradient-to-r from-teal-500/10 to-cyan-500/10 border border-teal-500/20 mb-3">
+                            <div className="p-2.5 rounded-lg bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 mb-3">
                               <div className="flex items-center justify-between text-xs mb-1.5">
                                 <span className="text-muted-foreground">Phase Progress</span>
                                 <span className="font-medium text-teal-600 dark:text-teal-400">
@@ -1407,7 +1407,7 @@ export default function CareerPage() {
                                 <motion.div
                                   initial={{ width: 0 }}
                                   animate={{ width: `${getPhaseProgressPercent(activePhaseIndex)}%` }}
-                                  className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full"
+                                  className="h-full bg-teal-400 rounded-full"
                                 />
                               </div>
                               <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-2">
@@ -1531,7 +1531,7 @@ export default function CareerPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsVisionDialogOpen(false)}>Cancel</Button>
-              <Button onClick={saveVision} disabled={updateVisionMutation.isPending} className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0">
+              <Button onClick={saveVision} disabled={updateVisionMutation.isPending} className="bg-teal-500 hover:bg-teal-600 text-white border-0">
                 {updateVisionMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 Save Changes
               </Button>
@@ -1622,7 +1622,7 @@ export default function CareerPage() {
                   <X className="w-4 h-4 mr-1" /> Delete
                 </Button>
               )}
-              <Button onClick={handleSaveTask} disabled={updateTask.isPending} className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0">
+              <Button onClick={handleSaveTask} disabled={updateTask.isPending} className="bg-teal-500 hover:bg-teal-600 text-white border-0">
                 {updateTask.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 Save
               </Button>
@@ -1720,7 +1720,7 @@ export default function CareerPage() {
                       size="sm"
                       onClick={handleAddEditingTask}
                       disabled={!newEditingProjectTask.trim()}
-                      className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0"
+                      className="bg-teal-500 hover:bg-teal-600 text-white border-0"
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
@@ -1792,7 +1792,7 @@ export default function CareerPage() {
                   <X className="w-4 h-4 mr-1" /> Delete
                 </Button>
               )}
-              <Button onClick={handleSaveProject} disabled={updateProject.isPending || createProject.isPending} className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0">
+              <Button onClick={handleSaveProject} disabled={updateProject.isPending || createProject.isPending} className="bg-teal-500 hover:bg-teal-600 text-white border-0">
                 {(updateProject.isPending || createProject.isPending) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 {selectedProject?.id ? "Save Changes" : "Create Project"}
               </Button>
@@ -1840,7 +1840,7 @@ export default function CareerPage() {
                       </div>
                       <div className="w-48 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                         <motion.div 
-                          className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full"
+                          className="h-full bg-teal-400 rounded-full"
                           initial={{ width: 0 }}
                           animate={{ width: `${progress}%` }}
                           transition={{ duration: 0.5 }}
@@ -1871,9 +1871,9 @@ export default function CareerPage() {
                   </div>
 
                   {selectedProject.nextAction && (
-                    <div className="p-4 rounded-xl bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 border border-teal-200/60 dark:border-teal-800/60">
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
                       <div className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase mb-1">Next Action</div>
-                      <p className="text-sm text-teal-700 dark:text-teal-300">{selectedProject.nextAction}</p>
+                      <p className="text-sm text-slate-700 dark:text-slate-300">{selectedProject.nextAction}</p>
                     </div>
                   )}
 
@@ -1900,7 +1900,7 @@ export default function CareerPage() {
                         size="sm"
                         onClick={() => handleAddProjectTask(selectedProject.id)}
                         disabled={!newProjectTask.trim() || createTask.isPending}
-                        className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0"
+                        className="bg-teal-500 hover:bg-teal-600 text-white border-0"
                       >
                         {createTask.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                       </Button>
@@ -2003,7 +2003,7 @@ export default function CareerPage() {
                   setLogWinText("");
                   setIsLogWinDialogOpen(false);
                 }}
-                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0"
+                className="bg-amber-500 hover:bg-amber-600 text-white border-0"
               >
                 <Trophy className="w-4 h-4 mr-2" />
                 Save Win
