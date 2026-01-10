@@ -35,6 +35,7 @@ export const trackerEntries = pgTable("tracker_entries", {
   stress: integer("stress").notNull(), // 0-100
   energy: integer("energy").notNull(), // 1-10 scale
   sleepHours: integer("sleep_hours"), // Hours of sleep (0-24)
+  sleepQuality: integer("sleep_quality"), // 0-10 scale for sleep quality
   capacity: integer("capacity"), // 0-5 scale (how much capacity do I have right now?)
   pain: integer("pain"), // 0-10 scale for pain level
   triggerTag: text("trigger_tag"), // "work" | "loneliness" | "pain" | "noise" | "sleep" | "body" | "unknown"
