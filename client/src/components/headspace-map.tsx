@@ -422,57 +422,61 @@ export function HeadspaceMap() {
   return (
     <div className="space-y-6 py-2" data-testid="headspace-timeline">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <Card className="bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-500/30 shadow-sm">
+        <Card className="bg-slate-900/80 backdrop-blur-md border border-violet-500/30 rounded-2xl overflow-hidden relative">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-violet-500" />
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center">
-                <Users className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/30 to-purple-500/30 border border-violet-500/30 flex items-center justify-center">
+                <Users className="w-5 h-5 text-violet-400" />
               </div>
               <div>
-                <p className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">Top State</p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">{summaryStats.topMember?.name || "—"}</p>
+                <p className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Top State</p>
+                <p className="text-sm font-semibold text-slate-100">{summaryStats.topMember?.name || "—"}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-500/30 shadow-sm">
+        <Card className="bg-slate-900/80 backdrop-blur-md border border-amber-500/30 rounded-2xl overflow-hidden relative">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/30 to-orange-500/30 border border-amber-500/30 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <p className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">Avg State Shifts/Day</p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">{summaryStats.avgTransitionsPerDay || 0}</p>
+                <p className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Avg State Shifts/Day</p>
+                <p className="text-sm font-semibold text-slate-100">{summaryStats.avgTransitionsPerDay || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 shadow-sm">
+        <Card className="bg-slate-900/80 backdrop-blur-md border border-emerald-500/30 rounded-2xl overflow-hidden relative">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/30 to-teal-500/30 border border-emerald-500/30 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <p className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">Days Tracked</p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">{summaryStats.daysWithData} / 30</p>
+                <p className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Days Tracked</p>
+                <p className="text-sm font-semibold text-slate-100">{summaryStats.daysWithData} / 30</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-500/30 shadow-sm">
+        <Card className="bg-slate-900/80 backdrop-blur-md border border-cyan-500/30 rounded-2xl overflow-hidden relative">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500" />
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center">
-                <Activity className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/30 to-teal-500/30 border border-cyan-500/30 flex items-center justify-center">
+                <Activity className="w-5 h-5 text-cyan-400" />
               </div>
               <div>
-                <p className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">Total Entries</p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">{summaryStats.totalEntries}</p>
+                <p className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Total Entries</p>
+                <p className="text-sm font-semibold text-slate-100">{summaryStats.totalEntries}</p>
               </div>
             </div>
           </CardContent>
@@ -480,20 +484,40 @@ export function HeadspaceMap() {
       </div>
 
       <Tabs value={activeView} onValueChange={setActiveView} className="space-y-4">
-        <TabsList className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1 shadow-sm">
-          <TabsTrigger value="alltime" className="gap-2 text-xs data-[state=active]:bg-violet-100 dark:data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-300" data-testid="view-alltime">
+        <TabsList className="bg-slate-800/50 backdrop-blur-md border border-slate-700/50 p-1 rounded-xl">
+          <TabsTrigger 
+            value="alltime" 
+            className="gap-2 text-xs rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500/30 data-[state=active]:to-purple-500/30 data-[state=active]:text-violet-300 data-[state=active]:border data-[state=active]:border-violet-500/30 data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.2)] text-slate-400 hover:text-slate-300" 
+            data-testid="view-alltime"
+          >
             <Grid3x3 className="w-3.5 h-3.5" /> All Time
           </TabsTrigger>
-          <TabsTrigger value="weekly" className="gap-2 text-xs data-[state=active]:bg-indigo-100 dark:data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-700 dark:data-[state=active]:text-indigo-300" data-testid="view-weekly">
+          <TabsTrigger 
+            value="weekly" 
+            className="gap-2 text-xs rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500/30 data-[state=active]:to-blue-500/30 data-[state=active]:text-indigo-300 data-[state=active]:border data-[state=active]:border-indigo-500/30 data-[state=active]:shadow-[0_0_10px_rgba(99,102,241,0.2)] text-slate-400 hover:text-slate-300" 
+            data-testid="view-weekly"
+          >
             <BarChart3 className="w-3.5 h-3.5" /> Weekly
           </TabsTrigger>
-          <TabsTrigger value="calendar" className="gap-2 text-xs data-[state=active]:bg-emerald-100 dark:data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-300" data-testid="view-calendar">
+          <TabsTrigger 
+            value="calendar" 
+            className="gap-2 text-xs rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500/30 data-[state=active]:to-teal-500/30 data-[state=active]:text-emerald-300 data-[state=active]:border data-[state=active]:border-emerald-500/30 data-[state=active]:shadow-[0_0_10px_rgba(16,185,129,0.2)] text-slate-400 hover:text-slate-300" 
+            data-testid="view-calendar"
+          >
             <Calendar className="w-3.5 h-3.5" /> Monthly
           </TabsTrigger>
-          <TabsTrigger value="trends" className="gap-2 text-xs data-[state=active]:bg-fuchsia-100 dark:data-[state=active]:bg-fuchsia-500/20 data-[state=active]:text-fuchsia-700 dark:data-[state=active]:text-fuchsia-300" data-testid="view-trends">
+          <TabsTrigger 
+            value="trends" 
+            className="gap-2 text-xs rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-fuchsia-500/30 data-[state=active]:to-pink-500/30 data-[state=active]:text-fuchsia-300 data-[state=active]:border data-[state=active]:border-fuchsia-500/30 data-[state=active]:shadow-[0_0_10px_rgba(217,70,239,0.2)] text-slate-400 hover:text-slate-300" 
+            data-testid="view-trends"
+          >
             <TrendingUp className="w-3.5 h-3.5" /> Trends
           </TabsTrigger>
-          <TabsTrigger value="today" className="gap-2 text-xs data-[state=active]:bg-amber-100 dark:data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-700 dark:data-[state=active]:text-amber-300" data-testid="view-today">
+          <TabsTrigger 
+            value="today" 
+            className="gap-2 text-xs rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500/30 data-[state=active]:to-orange-500/30 data-[state=active]:text-amber-300 data-[state=active]:border data-[state=active]:border-amber-500/30 data-[state=active]:shadow-[0_0_10px_rgba(245,158,11,0.2)] text-slate-400 hover:text-slate-300" 
+            data-testid="view-today"
+          >
             <Clock className="w-3.5 h-3.5" /> 24h
           </TabsTrigger>
         </TabsList>
@@ -758,12 +782,12 @@ export function HeadspaceMap() {
         </TabsContent>
 
         <TabsContent value="weekly" className="space-y-4">
-          <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+          <Card className="bg-slate-900/80 backdrop-blur-md border border-indigo-500/30 rounded-2xl overflow-hidden">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
-                    <BarChart3 className="w-4 h-4 text-indigo-500" /> 
+                  <CardTitle className="text-base flex items-center gap-2 text-slate-100">
+                    <BarChart3 className="w-4 h-4 text-indigo-400" /> 
                     Weekly Balance
                   </CardTitle>
                   <CardDescription className="text-xs text-slate-500">Hours per day by each member</CardDescription>
@@ -804,12 +828,12 @@ export function HeadspaceMap() {
         </TabsContent>
 
         <TabsContent value="calendar" className="space-y-4">
-          <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+          <Card className="bg-slate-900/80 backdrop-blur-md border border-emerald-500/30 rounded-2xl overflow-hidden">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
-                    <Calendar className="w-4 h-4 text-emerald-500" /> 
+                  <CardTitle className="text-base flex items-center gap-2 text-slate-100">
+                    <Calendar className="w-4 h-4 text-emerald-400" /> 
                     Monthly Presence
                   </CardTitle>
                   <CardDescription className="text-xs text-slate-500">Each day colored by dominant state</CardDescription>
@@ -900,14 +924,14 @@ export function HeadspaceMap() {
                 </div>
               </div>
               
-              <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-800">
                 {members.map(m => (
                   <div key={m.id} className="flex items-center gap-2">
                     <div 
-                      className="w-4 h-4 rounded" 
-                      style={{ backgroundColor: m.color }} 
+                      className="w-4 h-4 rounded shadow-lg" 
+                      style={{ backgroundColor: m.color, boxShadow: `0 2px 8px ${m.color}40` }} 
                     />
-                    <span className="text-xs text-slate-600 dark:text-slate-300">{m.name}</span>
+                    <span className="text-xs text-slate-300">{m.name}</span>
                   </div>
                 ))}
               </div>
@@ -916,10 +940,10 @@ export function HeadspaceMap() {
         </TabsContent>
 
         <TabsContent value="trends" className="space-y-4">
-          <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+          <Card className="bg-slate-900/80 backdrop-blur-md border border-fuchsia-500/30 rounded-2xl overflow-hidden">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
-                <TrendingUp className="w-4 h-4 text-fuchsia-500" /> 
+              <CardTitle className="text-base flex items-center gap-2 text-slate-100">
+                <TrendingUp className="w-4 h-4 text-fuchsia-400" /> 
                 30-Day Trends
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">Active hours per day over the last month</CardDescription>
@@ -961,33 +985,40 @@ export function HeadspaceMap() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+                <Card className="bg-slate-900/80 backdrop-blur-md border border-slate-700/50 rounded-xl overflow-hidden relative">
+                  <div 
+                    className="absolute left-0 top-0 bottom-0 w-1"
+                    style={{ backgroundColor: stat.normalizedColor }}
+                  />
                   <CardContent className="p-3">
                     <div className="flex items-center gap-2 mb-2">
                       <div 
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-[10px] font-bold"
-                        style={{ backgroundColor: stat.normalizedColor }}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-[10px] font-bold shadow-lg"
+                        style={{ 
+                          background: `linear-gradient(135deg, ${stat.normalizedColor}cc, ${stat.normalizedColor}88)`,
+                          boxShadow: `0 4px 12px ${stat.normalizedColor}40`
+                        }}
                       >
                         {stat.name.substring(0, 2).toUpperCase()}
                       </div>
-                      <span className="text-sm font-semibold text-slate-900 dark:text-white">{stat.name}</span>
+                      <span className="text-sm font-semibold text-slate-100">{stat.name}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-[10px]">
                       <div>
                         <p className="text-slate-500">Total</p>
-                        <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{stat.totalHours}h</p>
+                        <p className="font-mono font-bold text-slate-200">{stat.totalHours}h</p>
                       </div>
                       <div>
                         <p className="text-slate-500">Avg/Day</p>
-                        <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{stat.avgPerDay}h</p>
+                        <p className="font-mono font-bold text-slate-200">{stat.avgPerDay}h</p>
                       </div>
                       <div>
                         <p className="text-slate-500">Days Active</p>
-                        <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{stat.daysActive}</p>
+                        <p className="font-mono font-bold text-slate-200">{stat.daysActive}</p>
                       </div>
                       <div>
                         <p className="text-slate-500">Share</p>
-                        <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{stat.percentOfTotal}%</p>
+                        <p className="font-mono font-bold text-slate-200">{stat.percentOfTotal}%</p>
                       </div>
                     </div>
                   </CardContent>
