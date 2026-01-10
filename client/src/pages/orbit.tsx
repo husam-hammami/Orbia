@@ -958,49 +958,6 @@ export default function OrbitPage() {
           </div>
         </div>
 
-        <Card className="bg-card/80 border-border/50 mb-4 shadow-sm">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-6 text-sm flex-wrap">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span className="text-muted-foreground">Habits:</span>
-                <span className="font-mono font-bold">{habitsCompletedToday}/{totalHabits}</span>
-              </div>
-              <div className="w-px h-4 bg-border" />
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-blue-600" />
-                <span className="text-muted-foreground">Routine:</span>
-                <span className="font-mono font-bold">{routinePercent}%</span>
-              </div>
-              {latestFronter && (
-                <>
-                  <div className="w-px h-4 bg-border" />
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-teal-600" />
-                    <span className="text-muted-foreground">Active:</span>
-                    <span className="font-medium">{latestFronter}</span>
-                  </div>
-                </>
-              )}
-              {externalPressure !== null && (
-                <>
-                  <div className="w-px h-4 bg-border" />
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-amber-600" />
-                    <span className="text-muted-foreground">Load:</span>
-                    <span className="font-mono font-bold text-amber-600">{externalPressure}%</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-emerald-600" />
-                    <span className="text-muted-foreground">Stable:</span>
-                    <span className="font-mono font-bold text-emerald-600">{internalStability}%</span>
-                  </div>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
         <AnimatePresence>
           {activeNudges.map((nudge) => (
             <motion.div
