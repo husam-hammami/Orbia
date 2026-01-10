@@ -830,198 +830,486 @@ export default function CareerPage() {
             )}
 
             {coachData && !coachLoading && (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {coachData.weeklyTheme && (
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-2xl bg-gradient-to-r from-violet-500 to-purple-500 text-white"
+                    className="flex items-center gap-2 text-sm"
                   >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Star className="w-4 h-4" />
-                      <span className="text-xs font-semibold uppercase tracking-wide opacity-90">Weekly Theme</span>
-                    </div>
-                    <p className="text-lg font-medium">{coachData.weeklyTheme}</p>
+                    <Star className="w-4 h-4 text-violet-500" />
+                    <span className="text-muted-foreground">This week:</span>
+                    <span className="font-medium text-foreground">{coachData.weeklyTheme}</span>
                   </motion.div>
                 )}
 
-                {coachData.northStarAnalysis && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className={cn(glassCard, "p-5 space-y-4")}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Compass className="w-5 h-5 text-teal-500" />
-                      <h3 className="font-semibold text-foreground">North Star Analysis</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{coachData.northStarAnalysis.summary}</p>
-                    <div className="space-y-3">
-                      {coachData.northStarAnalysis.strengths?.length > 0 && (
-                        <div>
-                          <span className="text-xs font-semibold text-muted-foreground uppercase">Strengths</span>
-                          <div className="flex flex-wrap gap-1.5 mt-1.5">
-                            {coachData.northStarAnalysis.strengths.map((strength, i) => (
-                              <Badge key={i} className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">
-                                {strength}
-                              </Badge>
-                            ))}
+                <div className="grid gap-4 md:grid-cols-2">
+                  {coachData.immediateActions && coachData.immediateActions.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cn(glassCard, "p-4 space-y-3")}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-amber-500" />
+                        <h3 className="font-semibold text-foreground text-sm">Priority Actions</h3>
+                      </div>
+                      <div className="space-y-2">
+                        {coachData.immediateActions.slice(0, 3).map((action, index) => (
+                          <div
+                            key={index}
+                            className="flex items-start gap-2"
+                          >
+                            <div className={cn(
+                              "w-1.5 h-1.5 rounded-full mt-2 shrink-0",
+                              action.priority === "high" && "bg-red-500",
+                              action.priority === "medium" && "bg-amber-500",
+                              action.priority === "low" && "bg-slate-400"
+                            )} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-foreground leading-tight">{action.title}</p>
+                              <span className="text-[10px] text-muted-foreground">{action.timeEstimate}</span>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      {coachData.northStarAnalysis.gaps?.length > 0 && (
-                        <div>
-                          <span className="text-xs font-semibold text-muted-foreground uppercase">Growth Areas</span>
-                          <div className="flex flex-wrap gap-1.5 mt-1.5">
-                            {coachData.northStarAnalysis.gaps.map((gap, i) => (
-                              <Badge key={i} className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-xs">
-                                {gap}
-                              </Badge>
-                            ))}
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {coachData.learningPath && coachData.learningPath.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className={cn(glassCard, "p-4 space-y-3")}
+                    >
+                      <div className="flex items-center gap-2">
+                        <GraduationCap className="w-4 h-4 text-cyan-500" />
+                        <h3 className="font-semibold text-foreground text-sm">Learn Next</h3>
+                      </div>
+                      <div className="space-y-2">
+                        {coachData.learningPath.slice(0, 2).map((skill, index) => (
+                          <div key={index}>
+                            <p className="text-sm font-medium text-foreground">{skill.skill}</p>
+                            {skill.resources?.[0] && (
+                              <a
+                                href={skill.resources[0].url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-400 hover:underline mt-0.5"
+                              >
+                                <BookOpen className="w-3 h-3" />
+                                {skill.resources[0].title}
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
 
                 {coachData.roadmap && coachData.roadmap.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="space-y-3"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Map className="w-5 h-5 text-violet-500" />
-                      <h3 className="font-semibold text-foreground">Roadmap Phases</h3>
-                    </div>
-                    {coachData.roadmap.map((phase, index) => (
-                      <Collapsible key={index}>
-                        <motion.div
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.2 + index * 0.1 }}
-                          className={cn(glassCard, "overflow-hidden")}
-                        >
-                          <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/10 flex items-center justify-center">
-                                <TrendingUp className="w-4 h-4 text-violet-500" />
-                              </div>
-                              <div className="text-left">
-                                <h4 className="font-medium text-foreground text-sm">{phase.phase}</h4>
-                                <p className="text-xs text-muted-foreground">{phase.timeframe}</p>
-                              </div>
-                            </div>
-                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                          </CollapsibleTrigger>
-                          <CollapsibleContent>
-                            <div className="px-4 pb-4 space-y-3">
-                              {phase.goal && (
-                                <p className="text-sm text-muted-foreground">{phase.goal}</p>
-                              )}
-                              {phase.milestones?.length > 0 && (
-                                <ul className="space-y-1.5">
-                                  {phase.milestones.map((milestone, mIndex) => (
-                                    <li key={mIndex} className="text-sm text-muted-foreground flex items-start gap-2">
-                                      <Check className="w-4 h-4 text-teal-500 shrink-0 mt-0.5" />
-                                      {milestone}
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                              {phase.weeklyFocus && (
-                                <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-200/60 dark:border-violet-700/40">
-                                  <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">Weekly Focus:</span>
-                                  <p className="text-sm text-foreground mt-1">{phase.weeklyFocus}</p>
+                  <Collapsible>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className={cn(glassCard, "overflow-hidden")}
+                    >
+                      <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <Map className="w-4 h-4 text-violet-500" />
+                          <span className="font-semibold text-foreground text-sm">Roadmap</span>
+                          <Badge variant="secondary" className="text-[10px]">{coachData.roadmap.length} phases</Badge>
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="px-4 pb-4 space-y-3">
+                          {coachData.roadmap.map((phase, index) => (
+                            <div key={index} className="flex gap-3">
+                              <div className="flex flex-col items-center">
+                                <div className="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-xs font-medium text-violet-600 dark:text-violet-400">
+                                  {index + 1}
                                 </div>
-                              )}
+                                {index < coachData.roadmap!.length - 1 && (
+                                  <div className="w-0.5 flex-1 bg-violet-200 dark:bg-violet-800 mt-1" />
+                                )}
+                              </div>
+                              <div className="flex-1 pb-3">
+                                <div className="flex items-baseline gap-2">
+                                  <span className="font-medium text-foreground text-sm">{phase.phase}</span>
+                                  <span className="text-xs text-muted-foreground">{phase.timeframe}</span>
+                                </div>
+                                {phase.weeklyFocus && (
+                                  <p className="text-xs text-muted-foreground mt-1">{phase.weeklyFocus}</p>
+                                )}
+                              </div>
                             </div>
-                          </CollapsibleContent>
-                        </motion.div>
-                      </Collapsible>
-                    ))}
-                  </motion.div>
+                          ))}
+                        </div>
+                      </CollapsibleContent>
+                    </motion.div>
+                  </Collapsible>
                 )}
 
-                {coachData.immediateActions && coachData.immediateActions.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                {coachData.coachingNote && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
-                    className={cn(glassCard, "p-5 space-y-4")}
+                    className="text-xs text-muted-foreground italic px-1"
                   >
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-5 h-5 text-amber-500" />
-                      <h3 className="font-semibold text-foreground">Immediate Actions</h3>
-                    </div>
-                    <div className="space-y-2">
-                      {coachData.immediateActions.map((action, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.3 + index * 0.05 }}
-                          className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex items-start gap-3"
-                        >
-                          <div className={cn(
-                            "w-2 h-2 rounded-full mt-1.5 shrink-0",
-                            action.priority === "high" && "bg-red-500",
-                            action.priority === "medium" && "bg-amber-500",
-                            action.priority === "low" && "bg-slate-400"
-                          )} />
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <p className="text-sm font-medium text-foreground">{action.title}</p>
-                            <p className="text-xs text-muted-foreground">{action.why}</p>
-                            <Badge variant="outline" className="text-[10px]">
-                              <Clock className="w-3 h-3 mr-1" />
-                              {action.timeEstimate}
-                            </Badge>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </motion.div>
+                    {coachData.coachingNote}
+                  </motion.p>
                 )}
 
-                {coachData.learningPath && coachData.learningPath.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="space-y-3"
+                <div className="flex justify-center pt-2">
+                  <Button 
+                    onClick={fetchCoach}
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground"
                   >
-                    <div className="flex items-center gap-2">
-                      <GraduationCap className="w-5 h-5 text-cyan-500" />
-                      <h3 className="font-semibold text-foreground">Learning Path</h3>
-                    </div>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {coachData.learningPath.map((skill, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.4 + index * 0.1 }}
-                          className={cn(glassCard, "p-4 space-y-3")}
+                    <RefreshCw className="w-3 h-3 mr-2" />
+                    Refresh
+                  </Button>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        <Dialog open={isProjectDialogOpen} onOpenChange={setIsProjectDialogOpen}>
+          <DialogContent className={cn(glassCard, "sm:max-w-lg max-h-[85vh] overflow-y-auto")}>
+            <DialogHeader>
+              <DialogTitle>{selectedProject?.id ? "Edit Project" : "New Project"}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <Input
+                  value={selectedProject?.title || ""}
+                  onChange={(e) => setSelectedProject(prev => prev ? { ...prev, title: e.target.value } : { ...getEmptyProject(), title: e.target.value })}
+                  placeholder="Project title"
+                  className="bg-white/50 dark:bg-slate-800/50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  value={selectedProject?.description || ""}
+                  onChange={(e) => setSelectedProject(prev => prev ? { ...prev, description: e.target.value } : { ...getEmptyProject(), description: e.target.value })}
+                  placeholder="What is this project about?"
+                  className="bg-white/50 dark:bg-slate-800/50 min-h-[80px]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select
+                    value={selectedProject?.status || "planning"}
+                    onValueChange={(value) => setSelectedProject(prev => prev ? { ...prev, status: value as CareerProject["status"] } : { ...getEmptyProject(), status: value as CareerProject["status"] })}
+                  >
+                    <SelectTrigger className="bg-white/50 dark:bg-slate-800/50">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="planning">Planning</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="ongoing">Ongoing</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Deadline</Label>
+                  <Input
+                    type="date"
+                    value={selectedProject?.deadline?.split("T")[0] || ""}
+                    onChange={(e) => setSelectedProject(prev => prev ? { ...prev, deadline: e.target.value ? new Date(e.target.value).toISOString() : null } : { ...getEmptyProject(), deadline: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                    className="bg-white/50 dark:bg-slate-800/50"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Next Action</Label>
+                <Input
+                  value={selectedProject?.nextAction || ""}
+                  onChange={(e) => setSelectedProject(prev => prev ? { ...prev, nextAction: e.target.value } : { ...getEmptyProject(), nextAction: e.target.value })}
+                  placeholder="What's the next step?"
+                  className="bg-white/50 dark:bg-slate-800/50"
+                />
+              </div>
+
+              {selectedProject?.id && (
+                <div className="space-y-2">
+                  <Label>Tasks</Label>
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                    {editingProjectTasks.filter(t => !t.isDeleted).map((task) => (
+                      <div key={task.id} className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingProjectTasks(prev => prev.map(t => 
+                              t.id === task.id ? { ...t, completed: t.completed === 1 ? 0 : 1 } : t
+                            ));
+                          }}
+                          className={cn(
+                            "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+                            task.completed === 1 
+                              ? "bg-teal-500 border-teal-500 text-white" 
+                              : "border-slate-300 dark:border-slate-600 hover:border-teal-500"
+                          )}
                         >
-                          <div>
-                            <h4 className="font-medium text-foreground text-sm">{skill.skill}</h4>
-                            <p className="text-xs text-muted-foreground">{skill.importance}</p>
-                          </div>
-                          {skill.resources?.length > 0 && (
-                            <div className="space-y-2">
-                              {skill.resources.map((resource, rIndex) => (
-                                <a
-                                  key={rIndex}
-                                  href={resource.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group"
-                                >
-                                  <BookOpen className="w-4 h-4 text-cyan-500" />
-                                  <div className="flex-1 min-w-0">
+                          {task.completed === 1 && <Check className="w-3 h-3" />}
+                        </button>
+                        <span className={cn(
+                          "flex-1 text-sm",
+                          task.completed === 1 && "line-through text-muted-foreground"
+                        )}>
+                          {task.title}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingProjectTasks(prev => prev.map(t => 
+                              t.id === task.id ? { ...t, isDeleted: true } : t
+                            ));
+                          }}
+                          className="text-muted-foreground hover:text-red-500 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newEditingProjectTask}
+                      onChange={(e) => setNewEditingProjectTask(e.target.value)}
+                      placeholder="Add a task..."
+                      className="flex-1 bg-white/50 dark:bg-slate-800/50"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newEditingProjectTask.trim()) {
+                          e.preventDefault();
+                          setEditingProjectTasks(prev => [...prev, {
+                            id: `new-${Date.now()}`,
+                            projectId: selectedProject.id,
+                            title: newEditingProjectTask.trim(),
+                            description: null,
+                            completed: 0,
+                            priority: "medium",
+                            due: null,
+                            tags: [],
+                            createdAt: new Date().toISOString(),
+                            isNew: true,
+                          }]);
+                          setNewEditingProjectTask("");
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (newEditingProjectTask.trim()) {
+                          setEditingProjectTasks(prev => [...prev, {
+                            id: `new-${Date.now()}`,
+                            projectId: selectedProject.id,
+                            title: newEditingProjectTask.trim(),
+                            description: null,
+                            completed: 0,
+                            priority: "medium",
+                            due: null,
+                            tags: [],
+                            createdAt: new Date().toISOString(),
+                            isNew: true,
+                          }]);
+                          setNewEditingProjectTask("");
+                        }
+                      }}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <DialogFooter className="flex gap-2">
+              {selectedProject?.id && (
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (selectedProject.id) {
+                      deleteProject.mutate(selectedProject.id);
+                      setIsProjectDialogOpen(false);
+                    }
+                  }}
+                  disabled={deleteProject.isPending}
+                >
+                  Delete
+                </Button>
+              )}
+              <Button
+                onClick={handleSaveProject}
+                disabled={!selectedProject?.title || createProject.isPending || updateProject.isPending}
+                className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0"
+              >
+                {createProject.isPending || updateProject.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : null}
+                Save Project
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isProjectDetailsOpen} onOpenChange={setIsProjectDetailsOpen}>
+          <DialogContent className={cn(glassCard, "sm:max-w-lg max-h-[85vh] overflow-y-auto")}>
+            <DialogHeader>
+              <DialogTitle>{selectedProject?.title}</DialogTitle>
+            </DialogHeader>
+            {selectedProject && (
+              <div className="space-y-4 py-4">
+                {selectedProject.description && (
+                  <p className="text-sm text-muted-foreground">{selectedProject.description}</p>
+                )}
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge 
+                    variant="outline" 
+                    className={cn(
+                      "text-xs",
+                      selectedProject.status === "in_progress" && "border-cyan-500/40 text-cyan-600 dark:text-cyan-400",
+                      selectedProject.status === "planning" && "border-violet-500/40 text-violet-600 dark:text-violet-400",
+                      selectedProject.status === "completed" && "border-slate-400/40 text-slate-500",
+                      selectedProject.status === "ongoing" && "border-teal-500/40 text-teal-600 dark:text-teal-400"
+                    )}
+                  >
+                    {STATUS_DISPLAY[selectedProject.status] || selectedProject.status}
+                  </Badge>
+                  {selectedProject.deadline && (
+                    <Badge variant="secondary" className="text-xs">
+                      <Calendar className="w-3 h-3 mr-1" />
+                      {new Date(selectedProject.deadline).toLocaleDateString()}
+                    </Badge>
+                  )}
+                </div>
+
+                {selectedProject.nextAction && (
+                  <div className="p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 border border-teal-200/60 dark:border-teal-700/40">
+                    <span className="text-xs font-semibold text-teal-600 dark:text-teal-400">Next Action:</span>
+                    <p className="text-sm text-foreground mt-1">{selectedProject.nextAction}</p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Tasks</Label>
+                  <div className="space-y-2">
+                    {getProjectTasks(selectedProject.id).map((task) => (
+                      <div key={task.id} className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                        <button
+                          onClick={() => updateTask.mutate({ id: task.id, completed: task.completed === 1 ? 0 : 1 })}
+                          className={cn(
+                            "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+                            task.completed === 1 
+                              ? "bg-teal-500 border-teal-500 text-white" 
+                              : "border-slate-300 dark:border-slate-600 hover:border-teal-500"
+                          )}
+                        >
+                          {task.completed === 1 && <Check className="w-3 h-3" />}
+                        </button>
+                        <span className={cn(
+                          "flex-1 text-sm",
+                          task.completed === 1 && "line-through text-muted-foreground"
+                        )}>
+                          {task.title}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <form 
+                    onSubmit={(e) => { e.preventDefault(); handleAddProjectTask(selectedProject.id); }}
+                    className="flex gap-2"
+                  >
+                    <Input
+                      value={newProjectTask}
+                      onChange={(e) => setNewProjectTask(e.target.value)}
+                      placeholder="Add a task..."
+                      className="flex-1 bg-white/50 dark:bg-slate-800/50"
+                    />
+                    <Button type="submit" size="sm" variant="outline" disabled={!newProjectTask.trim()}>
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </form>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => { setIsProjectDetailsOpen(false); openProjectDialog(selectedProject); }}
+                  >
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Edit Project
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isVisionDialogOpen} onOpenChange={setIsVisionDialogOpen}>
+          <DialogContent className={cn(glassCard, "sm:max-w-lg")}>
+            <DialogHeader>
+              <DialogTitle>Edit North Star Vision</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {editingVision.map((item, index) => (
+                <div key={item.id} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    {(() => { const Icon = VISION_ICONS[index] || Sparkles; return <Icon className="w-4 h-4 text-teal-500" />; })()}
+                    <Label>{index === 0 ? "Short-term (6 months)" : index === 1 ? "Mid-term (2 years)" : "Long-term (5+ years)"}</Label>
+                  </div>
+                  <Input
+                    value={item.title}
+                    onChange={(e) => {
+                      const newVision = [...editingVision];
+                      newVision[index] = { ...item, title: e.target.value };
+                      setEditingVision(newVision);
+                    }}
+                    placeholder="Your vision..."
+                    className="bg-white/50 dark:bg-slate-800/50"
+                  />
+                </div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={handleSaveVision}
+                disabled={updateVisionMutation.isPending}
+                className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0"
+              >
+                {updateVisionMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : null}
+                Save Vision
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </Layout>
+  );
+}
                                     <p className="text-xs font-medium text-foreground truncate group-hover:text-cyan-600">{resource.title}</p>
                                     <p className="text-[10px] text-muted-foreground">{resource.type} • {resource.timeCommitment}</p>
                                   </div>
