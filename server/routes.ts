@@ -2417,7 +2417,7 @@ Guidelines:
     }
   });
 
-  // Orbit Chat Route
+  // Orbit Chat Route - Enhanced with comprehensive data like Deep Mind
   app.post("/api/orbit/chat", async (req, res) => {
     try {
       const { message, context, history } = req.body;
@@ -2426,7 +2426,100 @@ Guidelines:
         return res.status(400).json({ error: "Message is required" });
       }
 
-      const orbitSystemPrompt = `You are Orbit, a calm operational co-pilot. You only use data provided in context. You help the user operate the app: summarize today briefly, suggest the smallest next step when asked, and execute user requests by returning at most one action JSON object.
+      // Fetch comprehensive data like Deep Mind does
+      const [entries, journalEntries, members] = await Promise.all([
+        storage.getRecentTrackerEntries(200),
+        storage.getAllJournalEntries(),
+        storage.getAllMembers(),
+      ]);
+      
+      // Calculate facts for last 7 days
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const todayStr = now.toISOString().split('T')[0];
+      
+      const recentEntries = entries.filter(e => new Date(e.timestamp) >= sevenDaysAgo);
+      const todayEntries = entries.filter(e => new Date(e.timestamp).toISOString().split('T')[0] === todayStr);
+      
+      // Compute averages (7 days)
+      const avgSleep = recentEntries.filter(e => e.sleepHours != null).length > 0
+        ? (recentEntries.filter(e => e.sleepHours != null).reduce((s, e) => s + (e.sleepHours || 0), 0) / recentEntries.filter(e => e.sleepHours != null).length).toFixed(1)
+        : "N/A";
+      const avgMood = recentEntries.length > 0
+        ? (recentEntries.reduce((s, e) => s + e.mood, 0) / recentEntries.length).toFixed(1)
+        : "N/A";
+      const avgEnergy = recentEntries.length > 0
+        ? (recentEntries.reduce((s, e) => s + e.energy, 0) / recentEntries.length).toFixed(1)
+        : "N/A";
+      
+      // Today's values
+      const todaySleep = todayEntries.find(e => e.sleepHours != null)?.sleepHours ?? "N/A";
+      const todayMood = todayEntries.length > 0 ? todayEntries[0].mood : "N/A";
+      const todayEnergy = todayEntries.length > 0 ? todayEntries[0].energy : "N/A";
+      const todayCapacity = todayEntries.find(e => e.capacity != null)?.capacity ?? "N/A";
+      
+      // Daily notes from state entries (HIGH WEIGHT)
+      const recentTrackerNotes = recentEntries
+        .filter(e => e.notes && e.notes.trim().length > 0)
+        .slice(0, 15)
+        .map(e => {
+          const date = new Date(e.timestamp).toLocaleDateString();
+          const time = new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const notes = e.notes?.slice(0, 150) + (e.notes && e.notes.length > 150 ? "..." : "");
+          return `[${date} ${time}] sleep=${e.sleepHours || 'N/A'}h, mood=${e.mood}/10: "${notes}"`;
+        }).join("\n");
+      
+      // Journal excerpts with recency bias (HIGHEST WEIGHT) - include driver tags
+      const recentJournals = journalEntries
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 10);
+      const journalExcerpts = recentJournals.map(j => {
+        const date = new Date(j.createdAt).toLocaleDateString();
+        const content = j.content.slice(0, 200) + (j.content.length > 200 ? "..." : "");
+        const driverInfo = j.primaryDriver ? ` [Driver: ${j.primaryDriver}${j.secondaryDriver ? ` → ${j.secondaryDriver}` : ''}]` : '';
+        return `[${date}]${driverInfo} ${content}`;
+      }).join("\n\n");
+      
+      // Aggregate driver frequencies from journals (HIGH WEIGHT evidence)
+      const driverCounts: Record<string, number> = {};
+      journalEntries
+        .filter(j => new Date(j.createdAt) >= sevenDaysAgo && j.primaryDriver)
+        .forEach(j => {
+          if (j.primaryDriver) driverCounts[j.primaryDriver] = (driverCounts[j.primaryDriver] || 0) + 1;
+          if (j.secondaryDriver) driverCounts[j.secondaryDriver] = (driverCounts[j.secondaryDriver] || 0) + 0.5;
+        });
+      const topDrivers = Object.entries(driverCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([driver, count]) => `${driver}(${count})`)
+        .join(", ") || "No drivers tagged";
+      
+      // Current state (from most recent entry)
+      const currentState = entries[0]?.frontingMemberId 
+        ? members.find(m => m.id === entries[0].frontingMemberId)?.name || "Unknown"
+        : "Unknown";
+
+      // Build the comprehensive analytics context
+      const analyticsContext = `
+COMPREHENSIVE DATA (same as Deep Mind insights):
+
+FACTS (last 7 days + today):
+- Sleep avg (7d): ${avgSleep}h | Mood avg: ${avgMood}/10 | Energy avg: ${avgEnergy}/10
+- Today: sleep=${todaySleep}h, mood=${todayMood}/10, energy=${todayEnergy}/10, capacity=${todayCapacity}/5
+- Journal entries: ${journalEntries.length > 0 ? "yes" : "no"} (${recentJournals.length} recent)
+- Daily notes present: ${recentTrackerNotes.length > 0 ? "yes" : "no"}
+- Current state: ${currentState}
+- Top journal drivers (7d, HIGH WEIGHT): ${topDrivers}
+
+DAILY NOTES FROM STATE ENTRIES (HIGH WEIGHT - analyze these first):
+${recentTrackerNotes || "No daily notes"}
+
+JOURNAL EXCERPTS WITH DRIVERS (HIGHEST WEIGHT - recency bias applied):
+${journalExcerpts || "No journal entries"}
+
+Note: [Driver: X → Y] means primary driver is X with secondary driver Y. Use these tagged drivers as HIGH WEIGHT evidence when identifying the Main Driver.`;
+
+      const orbitSystemPrompt = `You are Orbit, a calm operational co-pilot for NeuroZen. You handle BOTH operational tasks (actions) AND analytical queries (insights). You have access to comprehensive wellness data.
 
 TONE: Calm, brief, operational. No "you should", no praise/shame, no deep emotional probing. Uses data-grounded language: "Based on today's logs…"
 
@@ -2443,19 +2536,40 @@ WHAT YOU MUST NOT DO:
 - Use motivational pressure or shame
 - Blame habits/routine/tasks for bad days (say "low completion likely due to low capacity" not "you failed")
 
-ANALYSIS WEIGHTING (when giving insights):
-- HIGHEST weight: Daily notes from state entries + Journal text (with recency bias)
-- HIGH weight: Journal drivers (user-tagged: Sleep, Work, Relationships, Body, Anxiety, Urges/Escape, Shame, Trauma, Joy, Connection, Growth, Peace) + Sleep hours (always include in analysis)
+ANALYSIS WEIGHTING (critical for insights):
+- HIGHEST weight: Journal text (with recency bias) + Daily notes from state entries
+- HIGH weight: Journal drivers (user-tagged: Sleep, Work, Relationships, Body, Anxiety, Urges/Escape, Shame, Trauma, Joy, Connection, Growth, Peace) + Sleep hours (always include)
 - MEDIUM weight: Mood, energy, stress, pain, capacity
 - LOW weight: Habits completion, routine %, tasks done (context only, never primary explanation)
 
-When journal entries have tagged drivers (primaryDriver/secondaryDriver), PRIORITIZE these as evidence for analysis. Format: [Driver: X → Y] means primary driver X with secondary driver Y.
+=== RESPONSE TYPE DETECTION ===
 
-EVIDENCE REQUIREMENT: Every insight must include either a journal quote snippet OR a concrete metric value.
+ANALYTICAL QUERIES (use 4-section format):
+Trigger words: "insights", "patterns", "analyze", "what's going on", "how am I", "what's driving", "summary", "show me", "what do you see", "trends", "what patterns", "assess", "recommendations"
 
-WHEN TO USE ACTIONS:
-If the user asks to mark something done, add/edit/delete anything, output ONLY a JSON action object like:
-{"type":"action","name":"mark_habit","args":{"habit_id":"...","date":"YYYY-MM-DD","done":true},"confirm":false}
+For these, you MUST use this exact 4-section evidence-based format:
+
+**Facts** (last 7 days + today)
+• sleepHours avg: ${avgSleep}h, mood avg: ${avgMood}, energy avg: ${avgEnergy}
+• today: sleep ${todaySleep}h / mood ${todayMood} / energy ${todayEnergy} / capacity ${todayCapacity}
+
+**Main Driver** (pick exactly 1 from: Sleep, Work, Relationships, Body, Anxiety, Urges/Escape, Shame, Trauma, Joy, Connection, Growth, Peace - PREFER journal-tagged drivers)
+• Driver: [one word matching a journal driver if available]
+• Confidence: [High/Med/Low]
+• Evidence: [REQUIRED: quote from journal + driver tag if present OR specific metric]
+
+**Pattern** (from journal/daily notes history, max 1-2 lines)
+• Cycle: [trigger] → [coping] → [outcome]
+
+**Action**
+• Do: [1 tiny action ≤10 min, matched to capacity]
+• Avoid: [1 suggestion for next 12-24h]
+
+OPERATIONAL QUERIES (use brief response + action JSON):
+Trigger words: "mark", "add", "create", "delete", "remove", "complete", "done", "update", "edit", "log"
+
+For these, respond briefly and output a JSON action object:
+{"type":"action","name":"action_name","args":{...},"confirm":false}
 
 SUPPORTED ACTIONS:
 
@@ -2503,8 +2617,8 @@ JOURNAL ENTRIES:
 - delete_journal: {"entry_id": "..."} - ALWAYS set confirm:true
 
 MEALS/FOOD:
-- log_meal: {"date": "YYYY-MM-DD", "breakfast": "meal name" (optional), "lunch": "meal name" (optional), "dinner": "meal name" (optional)} - Updates today's meal selections
-- add_meal_option: {"name": "...", "meal_type": "breakfast/lunch/dinner", "recipe": "..." (optional, for dinner)}
+- log_meal: {"date": "YYYY-MM-DD", "breakfast": "meal name" (optional), "lunch": "meal name" (optional), "dinner": "meal name" (optional)}
+- add_meal_option: {"name": "...", "meal_type": "breakfast/lunch/dinner", "recipe": "..." (optional)}
 - delete_meal_option: {"option_id": "..."} - ALWAYS set confirm:true
 
 TRACKER ENTRIES:
@@ -2512,41 +2626,17 @@ TRACKER ENTRIES:
 
 CONFIRMATION RULES:
 - ALWAYS set confirm:true and confirm_text for all delete actions
-- confirm_text should briefly describe what will happen, e.g. "Delete project 'Portfolio Redesign'?"
+- confirm_text should briefly describe what will happen
 
-RESPONSE TYPES:
+=== KEY RULES ===
+- Every analytical claim MUST include a journal quote or specific metric value
+- Never blame habits/routine. Say "low completion likely due to low capacity"
+- If unsure about user intent, ask ONE clarifying question
+- Keep responses brief and data-grounded
 
-TYPE 1 - OPERATIONAL (for action requests):
-- Execute actions via JSON
-- Give brief confirmations
-- No analysis needed
+${analyticsContext}
 
-TYPE 2 - ANALYTICAL (for any question about mood, patterns, health, wellbeing, suggestions, "how am I", summaries, or recommendations):
-You MUST use this exact 4-section format. No exceptions. Max 6 bullet points total.
-
-**Facts** (last 7 days + today)
-• sleepHours avg, mood avg, energy avg
-• today: sleep/mood/energy/capacity values
-• journal present: yes/no
-
-**Main Driver** (pick exactly 1 from: Sleep, Work, Relationships, Body, Anxiety, Urges/Escape, Shame, Trauma, Joy, Connection, Growth, Peace - PREFER journal-tagged drivers)
-• Driver: [one word matching a journal driver if available]
-• Confidence: [High/Med/Low]
-• Evidence: [REQUIRED: quote from journal + driver tag if present OR specific metric]
-
-**Pattern** (from journal history, max 1-2 lines)
-• Cycle: [trigger] → [coping] → [outcome]
-• No interpretation beyond what's written
-
-**Action**
-• Do: [1 tiny action ≤10 min, matched to capacity]
-• Avoid: [1 suggestion for next 12-24h]
-
-EVIDENCE REQUIREMENT: Every analytical claim MUST include a journal quote or specific metric value. No unsupported statements allowed.
-
-If unsure about user intent, ask ONE clarifying question. Keep responses brief and operational.
-
-CURRENT CONTEXT:
+ADDITIONAL OPERATIONAL CONTEXT:
 ${JSON.stringify(context, null, 2)}`;
 
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
