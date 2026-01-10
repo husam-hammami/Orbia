@@ -2638,17 +2638,20 @@ ${JSON.stringify(context, null, 2)}`;
         const mAvgMood = memberEntries.reduce((s, e) => s + e.mood, 0) / entryCount;
         const mAvgStress = memberEntries.reduce((s, e) => s + e.stress, 0) / entryCount;
         const mAvgEnergy = memberEntries.reduce((s, e) => s + e.energy, 0) / entryCount;
-        const lastEntry = memberEntries.sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        )[0];
         
-        // Calculate mood trend (compare first half to second half)
-        const midpoint = Math.floor(memberEntries.length / 2);
-        const firstHalf = memberEntries.slice(0, midpoint);
-        const secondHalf = memberEntries.slice(midpoint);
-        const firstAvg = firstHalf.length > 0 ? firstHalf.reduce((s, e) => s + e.mood, 0) / firstHalf.length : mAvgMood;
-        const secondAvg = secondHalf.length > 0 ? secondHalf.reduce((s, e) => s + e.mood, 0) / secondHalf.length : mAvgMood;
-        const moodTrend = secondAvg > firstAvg + 0.5 ? "improving" : secondAvg < firstAvg - 0.5 ? "declining" : "stable";
+        // Sort chronologically (oldest first) for trend calculation
+        const chronologicalEntries = [...memberEntries].sort((a, b) => 
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+        const lastEntry = chronologicalEntries[chronologicalEntries.length - 1];
+        
+        // Calculate mood trend (compare older half to newer half)
+        const midpoint = Math.floor(chronologicalEntries.length / 2);
+        const olderHalf = chronologicalEntries.slice(0, midpoint);
+        const newerHalf = chronologicalEntries.slice(midpoint);
+        const olderAvg = olderHalf.length > 0 ? olderHalf.reduce((s, e) => s + e.mood, 0) / olderHalf.length : mAvgMood;
+        const newerAvg = newerHalf.length > 0 ? newerHalf.reduce((s, e) => s + e.mood, 0) / newerHalf.length : mAvgMood;
+        const moodTrend = newerAvg > olderAvg + 0.5 ? "improving" : newerAvg < olderAvg - 0.5 ? "declining" : "stable";
         
         return {
           memberId: member.id,

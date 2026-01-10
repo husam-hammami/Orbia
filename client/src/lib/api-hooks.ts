@@ -890,3 +890,40 @@ export function useDashboardInsights() {
     refetchOnWindowFocus: false,
   });
 }
+
+export interface DeepMindOverview {
+  systemMetrics: {
+    avgMood: number;
+    avgStress: number;
+    avgDissociation: number;
+    avgEnergy: number;
+    stabilityIndex: number;
+    totalEntries: number;
+    daysTracked: number;
+    avgSwitchesPerDay: number;
+  };
+  currentFronter: { id: string; name: string; color: string } | null;
+  memberStats: Array<{
+    memberId: string;
+    name: string;
+    role: string;
+    color: string;
+    avatar: string;
+    frontingPercent: number;
+    avgMood: number | null;
+    avgStress: number | null;
+    avgEnergy: number | null;
+    entryCount: number;
+    lastFronting: string | null;
+    moodTrend: "improving" | "stable" | "declining";
+  }>;
+  timeRange: number;
+}
+
+export function useDeepMindOverview(days = 30) {
+  return useQuery<DeepMindOverview>({
+    queryKey: ["deepMindOverview", days],
+    queryFn: () => fetchAPI(`/api/deep-mind/overview?days=${days}`),
+    staleTime: 30000,
+  });
+}

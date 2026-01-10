@@ -1,14 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -36,26 +34,35 @@ import {
 } from "@/components/ui/alert-dialog";
 import { 
   Users, 
-  BrainCircuit, 
   Shield, 
   Ghost, 
   Cpu, 
   Eye, 
   Activity,
-  FileText,
-  Clock,
-  MapPin,
-  LayoutTemplate,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Brain,
+  Heart,
+  Zap,
+  Sparkles,
+  RefreshCw,
   Plus,
   Pencil,
   Trash2,
-  Loader2
+  Loader2,
+  Clock,
+  LayoutTemplate,
+  ArrowUpRight,
+  ArrowDownRight,
+  Calendar
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useMembers, useCreateMember, useUpdateMember, useDeleteMember } from "@/lib/api-hooks";
+import { useMembers, useCreateMember, useUpdateMember, useDeleteMember, useDeepMindOverview } from "@/lib/api-hooks";
 import { HeadspaceMap } from "@/components/headspace-map";
 import type { SystemMember, InsertSystemMember } from "@shared/schema";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
 const AVATAR_OPTIONS = [
   { value: "shield", label: "Shield", icon: Shield },
@@ -66,13 +73,37 @@ const AVATAR_OPTIONS = [
 ];
 
 const COLOR_OPTIONS = [
-  "#6366f1", "#8b5cf6", "#ec4899", "#ef4444", "#f59e0b", 
-  "#10b981", "#06b6d4", "#3b82f6", "#6b7280", "#78716c"
+  "#0f766e", "#0d9488", "#14b8a6", "#2dd4bf",
+  "#6366f1", "#8b5cf6", "#3b82f6",
+  "#ef4444", "#f59e0b", "#6b7280"
 ];
 
+const getIcon = (avatar: string) => {
+  switch(avatar) {
+    case 'shield': return Shield;
+    case 'ghost': return Ghost;
+    case 'cpu': return Cpu;
+    case 'eye': return Eye;
+    default: return Users;
+  }
+};
+
+const getMoodTrendIcon = (trend: "improving" | "stable" | "declining") => {
+  switch(trend) {
+    case "improving": return <ArrowUpRight className="w-4 h-4 text-emerald-500" />;
+    case "declining": return <ArrowDownRight className="w-4 h-4 text-rose-500" />;
+    default: return <Minus className="w-4 h-4 text-muted-foreground" />;
+  }
+};
+
 export default function SystemInsight() {
-  const { data: members = [], isLoading } = useMembers();
-  const [activeMember, setActiveMember] = useState<SystemMember | null>(null);
+  const { data: members = [], isLoading: membersLoading } = useMembers();
+  const [timeRange, setTimeRange] = useState(30);
+  const { data: overview, isLoading: overviewLoading, refetch: refetchOverview } = useDeepMindOverview(timeRange);
+  
+  const [aiInsight, setAiInsight] = useState("");
+  const [isLoadingInsight, setIsLoadingInsight] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   
   const createMember = useCreateMember();
   const updateMember = useUpdateMember();
@@ -88,7 +119,7 @@ export default function SystemInsight() {
     name: "",
     role: "",
     description: "",
-    color: "#6366f1",
+    color: "#0f766e",
     avatar: "users",
     location: "",
     traits: [] as string[],
@@ -99,7 +130,7 @@ export default function SystemInsight() {
       name: "",
       role: "",
       description: "",
-      color: "#6366f1",
+      color: "#0f766e",
       avatar: "users",
       location: "",
       traits: [],
@@ -149,16 +180,13 @@ export default function SystemInsight() {
       if (editingMember) {
         await updateMember.mutateAsync({ id: editingMember.id, data: payload });
         toast.success(`Updated ${payload.name}`);
-        if (activeMember?.id === editingMember.id) {
-          setActiveMember({ ...editingMember, ...payload, traits });
-        }
       } else {
-        const newMember = await createMember.mutateAsync(payload);
+        await createMember.mutateAsync(payload);
         toast.success(`Added ${payload.name}`);
-        setActiveMember(newMember);
       }
       setIsDialogOpen(false);
       resetForm();
+      refetchOverview();
     } catch (error) {
       toast.error("Failed to save member");
     }
@@ -169,11 +197,9 @@ export default function SystemInsight() {
     try {
       await deleteMember.mutateAsync(memberToDelete.id);
       toast.success(`Deleted ${memberToDelete.name}`);
-      if (activeMember?.id === memberToDelete.id) {
-        setActiveMember(null);
-      }
       setDeleteConfirmOpen(false);
       setMemberToDelete(null);
+      refetchOverview();
     } catch (error) {
       toast.error("Failed to delete member");
     }
@@ -183,210 +209,409 @@ export default function SystemInsight() {
     setMemberToDelete(member);
     setDeleteConfirmOpen(true);
   };
-
-  const getIcon = (avatar: string) => {
-    switch(avatar) {
-      case 'shield': return Shield;
-      case 'ghost': return Ghost;
-      case 'cpu': return Cpu;
-      case 'eye': return Eye;
-      default: return Users;
+  
+  const fetchAIInsight = async (focus: string = "system") => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    
+    setIsLoadingInsight(true);
+    setAiInsight("");
+    
+    try {
+      const response = await fetch("/api/deep-mind/insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ focus }),
+        signal: abortControllerRef.current.signal,
+      });
+      
+      if (!response.ok) throw new Error("Failed to fetch insights");
+      
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No reader available");
+      
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        setAiInsight(prev => prev + decoder.decode(value));
+      }
+    } catch (error: any) {
+      if (error.name !== "AbortError") {
+        setAiInsight("Unable to generate insights at this time. Please try again.");
+      }
+    } finally {
+      setIsLoadingInsight(false);
     }
   };
+  
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
-  // Auto-select first member if none selected
-  if (!activeMember && members.length > 0 && !isLoading) {
-    setActiveMember(members[0]);
-  }
+  const isLoading = membersLoading || overviewLoading;
+  const metrics = overview?.systemMetrics;
+  const memberStats = overview?.memberStats || [];
 
   return (
     <Layout>
-      <div className="space-y-8 animate-in fade-in duration-500 pb-12">
+      <div className="space-y-6 animate-in fade-in duration-500 pb-12">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border/40 pb-6">
           <div className="space-y-1">
-             <div className="flex items-center gap-2 mb-2">
-                <Badge variant="outline" className="border-indigo-500/30 text-indigo-600 bg-indigo-500/5 gap-1">
-                    <Users className="w-3 h-3" /> System Directory
-                </Badge>
-             </div>
-            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">Headspace & Alters</h1>
-            <p className="text-muted-foreground text-lg">Manage system members and visualize your internal world.</p>
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="outline" className="border-teal-600/30 text-teal-700 bg-teal-600/5 gap-1">
+                <Brain className="w-3 h-3" /> System Intelligence
+              </Badge>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">Deep Mind</h1>
+            <p className="text-muted-foreground text-lg">Understand your system's patterns and wellbeing</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={String(timeRange)} onValueChange={(v) => setTimeRange(Number(v))}>
+              <SelectTrigger className="w-[130px]" data-testid="select-time-range">
+                <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">Last 7 days</SelectItem>
+                <SelectItem value="14">Last 14 days</SelectItem>
+                <SelectItem value="30">Last 30 days</SelectItem>
+                <SelectItem value="90">Last 90 days</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="text-muted-foreground">Loading members...</div>
+            <Loader2 className="w-6 h-6 animate-spin text-teal-600" />
           </div>
         ) : (
-          <Tabs defaultValue="visualizer" className="space-y-6">
-            <TabsList className="bg-muted/30 p-1 border border-border/40">
-                 <TabsTrigger value="visualizer" className="gap-2"><LayoutTemplate className="w-4 h-4" /> Visual Headspace</TabsTrigger>
-                <TabsTrigger value="directory" className="gap-2"><Users className="w-4 h-4" /> Directory</TabsTrigger>
-            </TabsList>
+          <>
+            {/* System Pulse */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="bg-gradient-to-br from-teal-700/10 to-teal-600/5 border-teal-600/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-muted-foreground">Stability</span>
+                    <Activity className="w-4 h-4 text-teal-600" />
+                  </div>
+                  <div className="text-3xl font-bold text-teal-700">{metrics?.stabilityIndex || 0}%</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {metrics?.stabilityIndex && metrics.stabilityIndex >= 70 ? "System is balanced" : "Consider grounding"}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-border/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-muted-foreground">Avg Mood</span>
+                    <Heart className="w-4 h-4 text-rose-500" />
+                  </div>
+                  <div className="text-3xl font-bold">{metrics?.avgMood || 0}<span className="text-lg text-muted-foreground">/10</span></div>
+                  <div className="w-full bg-muted h-1.5 rounded-full mt-2">
+                    <div 
+                      className="h-full bg-rose-500 rounded-full transition-all" 
+                      style={{ width: `${((metrics?.avgMood || 0) / 10) * 100}%` }} 
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-border/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-muted-foreground">Avg Energy</span>
+                    <Zap className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <div className="text-3xl font-bold">{metrics?.avgEnergy || 0}<span className="text-lg text-muted-foreground">/10</span></div>
+                  <div className="w-full bg-muted h-1.5 rounded-full mt-2">
+                    <div 
+                      className="h-full bg-amber-500 rounded-full transition-all" 
+                      style={{ width: `${((metrics?.avgEnergy || 0) / 10) * 100}%` }} 
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-border/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-muted-foreground">Switches/Day</span>
+                    <Users className="w-4 h-4 text-indigo-500" />
+                  </div>
+                  <div className="text-3xl font-bold">{metrics?.avgSwitchesPerDay || 0}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {metrics?.daysTracked || 0} days tracked
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-            <TabsContent value="visualizer" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <HeadspaceMap />
-            </TabsContent>
-
-            <TabsContent value="directory" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    {/* Left Sidebar: Member List */}
-                    <Card className="lg:col-span-4 h-fit border-border/50">
-                        <CardHeader>
-                            <CardTitle className="text-lg flex items-center gap-2 justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Users className="w-5 h-5 text-muted-foreground" />
-                                    Members ({members.length})
-                                </div>
-                                <Button size="sm" variant="outline" className="gap-1" onClick={openAddDialog} data-testid="button-add-member">
-                                    <Plus className="w-4 h-4" /> Add
-                                </Button>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            <div className="flex flex-col">
-                                {members.map(member => {
-                                    const Icon = getIcon(member.avatar || 'user');
-                                    const isActive = activeMember?.id === member.id;
-                                    
-                                    return (
-                                        <button
-                                            key={member.id}
-                                            onClick={() => setActiveMember(member)}
-                                            className={cn(
-                                                "flex items-center gap-3 p-4 text-left transition-all border-l-4 hover:bg-muted/50",
-                                                isActive 
-                                                    ? "bg-muted/50 border-indigo-500" 
-                                                    : "border-transparent"
-                                            )}
-                                        >
-                                            <div className={cn(
-                                                "h-10 w-10 rounded-full flex items-center justify-center border",
-                                                isActive ? "shadow-md" : "shadow-sm"
-                                            )} style={{ backgroundColor: (member.color || "#6366f1") + '20', borderColor: (member.color || "#6366f1") + '40' }}>
-                                                <Icon className="w-5 h-5" style={{ color: member.color || "#6366f1" }} />
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="font-semibold text-sm flex justify-between">
-                                                    {member.name}
-                                                    {isActive && <Badge variant="secondary" className="text-[10px] h-5">Selected</Badge>}
-                                                </div>
-                                                <div className="text-xs text-muted-foreground">{member.role}</div>
-                                            </div>
-                                        </button>
-                                    )
-                                })}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Main Content: Member Profile */}
-                    <div className="lg:col-span-8 space-y-6">
-                        {activeMember && (
-                        <Card className="border-t-4 shadow-md" style={{ borderTopColor: activeMember.color || "#6366f1" }}>
-                            <CardHeader>
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <CardTitle className="text-3xl font-bold flex items-center gap-3">
-                                            {activeMember.name}
-                                            <Badge className="text-white border-0" style={{ backgroundColor: activeMember.color || "#6366f1" }}>
-                                                {activeMember.role}
-                                            </Badge>
-                                        </CardTitle>
-                                        <CardDescription className="mt-2 text-base">
-                                            {activeMember.description}
-                                        </CardDescription>
-                                    </div>
-                                    <div className="flex flex-col items-end gap-2">
-                                        <div className="h-16 w-16 rounded-full flex items-center justify-center bg-muted border-2 border-border" style={{ borderColor: activeMember.color || "#6366f1" }}>
-                                            {(() => {
-                                                const Icon = getIcon(activeMember.avatar || 'user');
-                                                return <Icon className="w-8 h-8 opacity-80" style={{ color: activeMember.color || "#6366f1" }} />
-                                            })()}
-                                        </div>
-                                        <div className="flex gap-1">
-                                            <Button size="sm" variant="outline" className="gap-1" onClick={() => openEditDialog(activeMember)} data-testid="button-edit-member">
-                                                <Pencil className="w-3 h-3" /> Edit
-                                            </Button>
-                                            <Button size="sm" variant="outline" className="gap-1 text-destructive hover:bg-destructive/10" onClick={() => confirmDelete(activeMember)} data-testid="button-delete-member">
-                                                <Trash2 className="w-3 h-3" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-8">
-                                {/* Traits */}
-                                <div>
-                                    <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Personality Traits</h3>
-                                    <div className="flex flex-wrap gap-2">
-                                        {activeMember.traits?.map(trait => (
-                                            <Badge key={trait} variant="outline" className="px-3 py-1 bg-background">
-                                                {trait}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Stats Grid */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div className="p-4 rounded-xl bg-muted/20 border border-border/50">
-                                        <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
-                                            <Activity className="w-3.5 h-3.5" /> Activity Level
-                                        </div>
-                                        <div className="text-2xl font-bold">{activeMember.stats?.activity ? `${activeMember.stats.activity}%` : "Await Data"}</div>
-                                        <Progress value={activeMember.stats?.activity || 0} className="h-1 mt-2" style={{ color: activeMember.color || "#6366f1" }} />
-                                    </div>
-                                    <div className="p-4 rounded-xl bg-muted/20 border border-border/50">
-                                        <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
-                                            <BrainCircuit className="w-3.5 h-3.5" /> Avg Stress
-                                        </div>
-                                        <div className="text-2xl font-bold">{activeMember.stats?.stress ? `${activeMember.stats.stress}/10` : "Await Data"}</div>
-                                        <div className="flex gap-0.5 mt-2 h-1">
-                                            {[...Array(10)].map((_, i) => (
-                                                <div key={i} className={cn("flex-1 rounded-full", i < (activeMember.stats?.stress || 0) ? "bg-rose-500" : "bg-muted")} />
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="p-4 rounded-xl bg-muted/20 border border-border/50">
-                                        <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
-                                            <Clock className="w-3.5 h-3.5" /> Last Front
-                                        </div>
-                                        <div className="text-lg font-bold text-muted-foreground">No Data</div>
-                                    </div>
-                                    <div className="p-4 rounded-xl bg-muted/20 border border-border/50">
-                                        <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
-                                            <MapPin className="w-3.5 h-3.5" /> Usual Spot
-                                        </div>
-                                        <div className="text-lg font-bold capitalize">{activeMember.location || 'Unknown'}</div>
-                                    </div>
-                                </div>
-
-                                {/* Journal/Notes Section Placeholder */}
-                                <div className="bg-muted/10 rounded-xl p-6 border border-border/50 border-dashed">
-                                    <h3 className="flex items-center gap-2 font-semibold mb-4">
-                                        <FileText className="w-4 h-4 text-muted-foreground" />
-                                        Recent Notes & Observations
-                                    </h3>
-                                    <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground/60">
-                                        <p className="text-sm">No recent notes recorded for this member.</p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                        )}
-                        {!activeMember && (
-                            <div className="h-full flex flex-col items-center justify-center p-12 text-center text-muted-foreground bg-muted/10 rounded-xl border border-dashed">
-                                <Users className="w-12 h-12 mb-4 opacity-20" />
-                                <p>Select a member to view their profile</p>
-                            </div>
-                        )}
+            {/* Current Fronter Banner */}
+            {overview?.currentFronter && (
+              <Card className="border-l-4 bg-muted/20" style={{ borderLeftColor: overview.currentFronter.color }}>
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div 
+                    className="w-12 h-12 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: overview.currentFronter.color + '20' }}
+                  >
+                    <Users className="w-6 h-6" style={{ color: overview.currentFronter.color }} />
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Currently Fronting</div>
+                    <div className="text-xl font-bold" style={{ color: overview.currentFronter.color }}>
+                      {overview.currentFronter.name}
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <Tabs defaultValue="intelligence" className="space-y-6">
+              <TabsList className="bg-muted/30 p-1 border border-border/40">
+                <TabsTrigger value="intelligence" className="gap-2"><Brain className="w-4 h-4" /> Intelligence</TabsTrigger>
+                <TabsTrigger value="visualizer" className="gap-2"><LayoutTemplate className="w-4 h-4" /> Headspace Map</TabsTrigger>
+                <TabsTrigger value="directory" className="gap-2"><Users className="w-4 h-4" /> Directory</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="intelligence" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                {/* Member Intelligence Grid */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-teal-600" />
+                      Member Insights
+                    </h2>
+                  </div>
+                  
+                  {memberStats.length === 0 ? (
+                    <Card className="border-dashed">
+                      <CardContent className="py-12 text-center text-muted-foreground">
+                        <Users className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                        <p>No member data yet. Add system members and track entries to see insights.</p>
+                        <Button variant="outline" className="mt-4" onClick={openAddDialog}>
+                          <Plus className="w-4 h-4 mr-2" /> Add Member
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {memberStats.map((stat) => {
+                        const Icon = getIcon(stat.avatar);
+                        return (
+                          <Card 
+                            key={stat.memberId} 
+                            className="hover:shadow-md transition-shadow border-t-4"
+                            style={{ borderTopColor: stat.color }}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-3 mb-4">
+                                <div 
+                                  className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                                  style={{ backgroundColor: stat.color + '20' }}
+                                >
+                                  <Icon className="w-5 h-5" style={{ color: stat.color }} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold truncate">{stat.name}</div>
+                                  <div className="text-sm text-muted-foreground">{stat.role}</div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-2xl font-bold" style={{ color: stat.color }}>
+                                    {stat.frontingPercent}%
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">fronting</div>
+                                </div>
+                              </div>
+                              
+                              {stat.entryCount > 0 ? (
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">Mood</span>
+                                    <span className="flex items-center gap-1 font-medium">
+                                      {stat.avgMood}/10
+                                      {getMoodTrendIcon(stat.moodTrend)}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">Stress</span>
+                                    <span className="font-medium">{stat.avgStress}%</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">Energy</span>
+                                    <span className="font-medium">{stat.avgEnergy}/10</span>
+                                  </div>
+                                  {stat.lastFronting && (
+                                    <div className="pt-2 border-t border-border/40 mt-2">
+                                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        Last fronted {formatDistanceToNow(new Date(stat.lastFronting), { addSuffix: true })}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="text-sm text-muted-foreground text-center py-4 bg-muted/20 rounded-lg">
+                                  No tracking data yet
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-            </TabsContent>
-          </Tabs>
+
+                {/* AI Insights */}
+                <Card className="border-teal-600/20">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-teal-600" />
+                        AI System Analysis
+                      </CardTitle>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => fetchAIInsight("patterns")}
+                          disabled={isLoadingInsight}
+                          data-testid="button-patterns-insight"
+                        >
+                          Patterns
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => fetchAIInsight("recommendations")}
+                          disabled={isLoadingInsight}
+                          data-testid="button-recommendations-insight"
+                        >
+                          Suggestions
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="bg-teal-700 hover:bg-teal-600 text-white"
+                          onClick={() => fetchAIInsight("system")}
+                          disabled={isLoadingInsight}
+                          data-testid="button-overview-insight"
+                        >
+                          {isLoadingInsight ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-1" />
+                              Analyze
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                    <CardDescription>AI-powered insights based on your tracking data</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {aiInsight ? (
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <p className="whitespace-pre-wrap text-foreground/90 leading-relaxed">{aiInsight}</p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Brain className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                        <p>Click "Analyze" to get AI insights about your system</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="visualizer" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <HeadspaceMap />
+              </TabsContent>
+
+              <TabsContent value="directory" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Users className="w-5 h-5 text-muted-foreground" />
+                          System Members ({members.length})
+                        </CardTitle>
+                        <CardDescription>Manage your system directory</CardDescription>
+                      </div>
+                      <Button onClick={openAddDialog} className="bg-teal-700 hover:bg-teal-600 text-white" data-testid="button-add-member">
+                        <Plus className="w-4 h-4 mr-2" /> Add Member
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {members.length === 0 ? (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Users className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                        <p>No members yet. Add your first system member to get started.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {members.map(member => {
+                          const Icon = getIcon(member.avatar || 'users');
+                          return (
+                            <div
+                              key={member.id}
+                              className="flex items-start gap-4 p-4 rounded-lg border border-border/50 hover:border-border transition-colors"
+                            >
+                              <div 
+                                className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+                                style={{ backgroundColor: (member.color || "#0f766e") + '20', borderColor: (member.color || "#0f766e") + '40' }}
+                              >
+                                <Icon className="w-6 h-6" style={{ color: member.color || "#0f766e" }} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="font-semibold">{member.name}</span>
+                                  <Badge variant="outline" className="text-xs" style={{ borderColor: member.color + '40', color: member.color }}>
+                                    {member.role}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground line-clamp-2">{member.description}</p>
+                                {member.traits && member.traits.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {member.traits.slice(0, 3).map(trait => (
+                                      <Badge key={trait} variant="secondary" className="text-xs">{trait}</Badge>
+                                    ))}
+                                    {member.traits.length > 3 && (
+                                      <Badge variant="secondary" className="text-xs">+{member.traits.length - 3}</Badge>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex gap-1 shrink-0">
+                                <Button size="icon" variant="ghost" onClick={() => openEditDialog(member)} data-testid={`button-edit-${member.id}`}>
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => confirmDelete(member)} data-testid={`button-delete-${member.id}`}>
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </>
         )}
       </div>
       
@@ -500,27 +725,26 @@ export default function SystemInsight() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)} data-testid="button-cancel-member">
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={createMember.isPending || updateMember.isPending} data-testid="button-save-member">
+            <Button onClick={handleSave} disabled={createMember.isPending || updateMember.isPending} className="bg-teal-700 hover:bg-teal-600 text-white" data-testid="button-save-member">
               {(createMember.isPending || updateMember.isPending) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {editingMember ? "Save Changes" : "Add Member"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* Delete Confirmation Dialog */}
+
+      {/* Delete Confirmation */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Member</AlertDialogTitle>
+            <AlertDialogTitle>Delete {memberToDelete?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{memberToDelete?.name}"? This action cannot be undone.
+              This will permanently remove this member from your system directory. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" data-testid="button-confirm-delete">
-              {deleteMember.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90" data-testid="button-confirm-delete">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
