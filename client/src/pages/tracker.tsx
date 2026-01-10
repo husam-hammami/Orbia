@@ -147,7 +147,7 @@ export default function TrackerPage() {
       <div className="space-y-6 animate-in fade-in duration-500">
         <div className="flex flex-col items-center gap-2 mb-2">
           <p className="text-muted-foreground font-medium">{format(new Date(), "EEEE, MMMM do")}</p>
-          <h1 className="text-3xl md:text-4xl font-display font-bold text-cosmic-gradient">
+          <h1 className="text-3xl md:text-4xl font-display font-bold text-violet-700">
             Daily Tracker
           </h1>
           <CurrentTimeDisplay />
