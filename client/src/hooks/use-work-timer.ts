@@ -75,13 +75,6 @@ export function useWorkTimer(config: WorkTimerConfig): WorkTimerReturn {
 
   const [state, setState] = useState<TimerState>("idle");
   const [remainingSeconds, setRemainingSeconds] = useState(workSeconds);
-
-  // Update remaining seconds when duration changes and timer is idle
-  useEffect(() => {
-    if (state === "idle") {
-      setRemainingSeconds(workSeconds);
-    }
-  }, [workSeconds, state]);
   const [isBreakTime, setIsBreakTime] = useState(false);
   const [completedIntervals, setCompletedIntervals] = useState(getStoredIntervals);
   const [isMuted, setIsMuted] = useState(() => {
@@ -94,6 +87,13 @@ export function useWorkTimer(config: WorkTimerConfig): WorkTimerReturn {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasAutoStartedRef = useRef(false);
+
+  // Update remaining seconds when duration changes and timer is idle
+  useEffect(() => {
+    if (state === "idle") {
+      setRemainingSeconds(workSeconds);
+    }
+  }, [workSeconds, state]);
 
   // Better notification sound - a pleasant chime
   useEffect(() => {
