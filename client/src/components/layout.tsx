@@ -10,7 +10,7 @@ interface SidebarProps {
   className?: string;
 }
 
-import logoUrl from '@assets/ChatGPT_Image_Jan_10,_2026,_04_39_47_PM_1768048792556.png';
+import logoUrl from '@assets/Gemini_Generated_Image_oj1k2doj1k2doj1k_1768049512846.png';
 
 const PHILOSOPHER_QUOTES = [
   { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
@@ -73,12 +73,11 @@ function Sidebar({ className }: SidebarProps) {
       "bg-white/70 backdrop-blur-xl border-r border-slate-200/60",
       className
     )}>
-      <div className="mb-4 -mx-3 py-4 px-2">
+      <div className="mb-2 py-3 flex justify-center">
         <img 
           src={logoUrl} 
           alt="Orbia Logo" 
-          className="w-[120%] max-w-none h-auto object-contain -ml-[10%]" 
-          style={{ imageRendering: 'crisp-edges' }}
+          className="h-28 w-auto object-contain" 
         />
       </div>
 
