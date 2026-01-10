@@ -1999,7 +1999,7 @@ Based on this vision and current project state, create a strategic roadmap and s
         return res.json({ empty: true, message: "No coaching data yet. Click Refresh to generate." });
       }
       res.json({
-        ...snapshot.payload,
+        ...(snapshot.payload as Record<string, unknown>),
         generatedAt: snapshot.generatedAt,
       });
     } catch (error) {
