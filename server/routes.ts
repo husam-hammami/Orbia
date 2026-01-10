@@ -2586,6 +2586,194 @@ ${JSON.stringify(context, null, 2)}`;
     }
   });
 
+  // Deep Mind Overview API - System intelligence dashboard
+  app.get("/api/deep-mind/overview", async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const [entries, members] = await Promise.all([
+        storage.getRecentTrackerEntries(500),
+        storage.getAllMembers(),
+      ]);
+      
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      const recentEntries = entries.filter(e => new Date(e.timestamp) >= cutoffDate);
+      
+      // System-level metrics
+      const totalEntries = recentEntries.length;
+      const avgMood = totalEntries > 0 ? recentEntries.reduce((sum, e) => sum + e.mood, 0) / totalEntries : 0;
+      const avgStress = totalEntries > 0 ? recentEntries.reduce((sum, e) => sum + e.stress, 0) / totalEntries : 0;
+      const avgDissociation = totalEntries > 0 ? recentEntries.reduce((sum, e) => sum + e.dissociation, 0) / totalEntries : 0;
+      const avgEnergy = totalEntries > 0 ? recentEntries.reduce((sum, e) => sum + e.energy, 0) / totalEntries : 0;
+      
+      // Calculate stability index (inverse of variance in mood + stress)
+      const moodVariance = totalEntries > 1 
+        ? recentEntries.reduce((sum, e) => sum + Math.pow(e.mood - avgMood, 2), 0) / totalEntries 
+        : 0;
+      const stabilityIndex = Math.max(0, Math.min(100, 100 - (moodVariance * 10) - (avgDissociation / 2)));
+      
+      // Per-member analytics
+      const memberStats = members.map(member => {
+        const memberEntries = recentEntries.filter(e => e.frontingMemberId === member.id);
+        const entryCount = memberEntries.length;
+        const frontingPercent = totalEntries > 0 ? Math.round((entryCount / totalEntries) * 100) : 0;
+        
+        if (entryCount === 0) {
+          return {
+            memberId: member.id,
+            name: member.name,
+            role: member.role,
+            color: member.color,
+            avatar: member.avatar,
+            frontingPercent: 0,
+            avgMood: null,
+            avgStress: null,
+            avgEnergy: null,
+            entryCount: 0,
+            lastFronting: null,
+            moodTrend: "stable" as const,
+          };
+        }
+        
+        const mAvgMood = memberEntries.reduce((s, e) => s + e.mood, 0) / entryCount;
+        const mAvgStress = memberEntries.reduce((s, e) => s + e.stress, 0) / entryCount;
+        const mAvgEnergy = memberEntries.reduce((s, e) => s + e.energy, 0) / entryCount;
+        const lastEntry = memberEntries.sort((a, b) => 
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        )[0];
+        
+        // Calculate mood trend (compare first half to second half)
+        const midpoint = Math.floor(memberEntries.length / 2);
+        const firstHalf = memberEntries.slice(0, midpoint);
+        const secondHalf = memberEntries.slice(midpoint);
+        const firstAvg = firstHalf.length > 0 ? firstHalf.reduce((s, e) => s + e.mood, 0) / firstHalf.length : mAvgMood;
+        const secondAvg = secondHalf.length > 0 ? secondHalf.reduce((s, e) => s + e.mood, 0) / secondHalf.length : mAvgMood;
+        const moodTrend = secondAvg > firstAvg + 0.5 ? "improving" : secondAvg < firstAvg - 0.5 ? "declining" : "stable";
+        
+        return {
+          memberId: member.id,
+          name: member.name,
+          role: member.role,
+          color: member.color,
+          avatar: member.avatar,
+          frontingPercent,
+          avgMood: Math.round(mAvgMood * 10) / 10,
+          avgStress: Math.round(mAvgStress),
+          avgEnergy: Math.round(mAvgEnergy * 10) / 10,
+          entryCount,
+          lastFronting: lastEntry?.timestamp || null,
+          moodTrend,
+        };
+      });
+      
+      // Find current/recent fronter
+      const sortedEntries = recentEntries.sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      const currentFronterId = sortedEntries[0]?.frontingMemberId || null;
+      const currentFronter = members.find(m => m.id === currentFronterId);
+      
+      // Calculate switch frequency (unique fronters per day)
+      const entriesByDay: Record<string, Set<string>> = {};
+      recentEntries.forEach(e => {
+        if (e.frontingMemberId) {
+          const day = new Date(e.timestamp).toISOString().split('T')[0];
+          if (!entriesByDay[day]) entriesByDay[day] = new Set();
+          entriesByDay[day].add(e.frontingMemberId);
+        }
+      });
+      const daysWithData = Object.keys(entriesByDay).length;
+      const totalSwitches = Object.values(entriesByDay).reduce((sum, set) => sum + Math.max(0, set.size - 1), 0);
+      const avgSwitchesPerDay = daysWithData > 0 ? Math.round((totalSwitches / daysWithData) * 10) / 10 : 0;
+      
+      res.json({
+        systemMetrics: {
+          avgMood: Math.round(avgMood * 10) / 10,
+          avgStress: Math.round(avgStress),
+          avgDissociation: Math.round(avgDissociation),
+          avgEnergy: Math.round(avgEnergy * 10) / 10,
+          stabilityIndex: Math.round(stabilityIndex),
+          totalEntries,
+          daysTracked: daysWithData,
+          avgSwitchesPerDay,
+        },
+        currentFronter: currentFronter ? {
+          id: currentFronter.id,
+          name: currentFronter.name,
+          color: currentFronter.color,
+        } : null,
+        memberStats: memberStats.sort((a, b) => b.frontingPercent - a.frontingPercent),
+        timeRange: days,
+      });
+    } catch (error) {
+      console.error("Deep mind overview error:", error);
+      res.status(500).json({ error: "Failed to compute deep mind overview" });
+    }
+  });
+  
+  // Deep Mind AI Insights endpoint
+  app.post("/api/deep-mind/insights", async (req, res) => {
+    try {
+      const { focus } = req.body; // "system" | "patterns" | "recommendations"
+      const [entries, members] = await Promise.all([
+        storage.getRecentTrackerEntries(200),
+        storage.getAllMembers(),
+      ]);
+      
+      // Build context for AI
+      const memberSummaries = members.map(m => {
+        const memberEntries = entries.filter(e => e.frontingMemberId === m.id);
+        const entryCount = memberEntries.length;
+        if (entryCount === 0) return `${m.name} (${m.role}): No recent data`;
+        
+        const avgMood = memberEntries.reduce((s, e) => s + e.mood, 0) / entryCount;
+        const avgStress = memberEntries.reduce((s, e) => s + e.stress, 0) / entryCount;
+        return `${m.name} (${m.role}): ${entryCount} entries, avg mood ${avgMood.toFixed(1)}/10, avg stress ${avgStress.toFixed(0)}%`;
+      }).join("\n");
+      
+      const recentMoodTrend = entries.slice(0, 14).map(e => 
+        `${new Date(e.timestamp).toLocaleDateString()}: mood ${e.mood}/10, stress ${e.stress}%, fronter: ${members.find(m => m.id === e.frontingMemberId)?.name || 'Unknown'}`
+      ).join("\n");
+      
+      const systemPrompt = `You are a compassionate system health analyst for a plural/DID system. Analyze this data and provide brief, actionable insights. Be warm but clinical. Focus on patterns, not diagnoses.
+
+SYSTEM MEMBERS:
+${memberSummaries}
+
+RECENT ENTRIES (last 14):
+${recentMoodTrend}
+
+Provide 2-3 key observations about system health, fronting patterns, or stress management. Keep each insight to 1-2 sentences. End with one gentle, actionable suggestion.`;
+
+      res.setHeader("Content-Type", "text/plain");
+      res.setHeader("Transfer-Encoding", "chunked");
+      
+      const stream = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: focus === "patterns" 
+            ? "What patterns do you notice in fronting and mood data?" 
+            : focus === "recommendations"
+            ? "What would help this system thrive right now?"
+            : "Give me a brief system health overview."
+          }
+        ],
+        stream: true,
+        max_tokens: 400,
+      });
+      
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || "";
+        if (content) res.write(content);
+      }
+      res.end();
+    } catch (error) {
+      console.error("Deep mind insights error:", error);
+      res.status(500).json({ error: "Failed to generate insights" });
+    }
+  });
+
   // Dashboard Insights API
   app.get("/api/insights/dashboard", async (req, res) => {
     try {
