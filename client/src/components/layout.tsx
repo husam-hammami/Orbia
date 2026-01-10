@@ -10,7 +10,7 @@ interface SidebarProps {
   className?: string;
 }
 
-import logoUrl from '@assets/ChatGPT_Image_Jan_10,_2026,_04_39_47_PM_1768048792556.png';
+import logoUrl from '@assets/ChatGPT_Image_Jan_10,_2026,_05_13_01_PM_1768050787078.png';
 
 const PHILOSOPHER_QUOTES = [
   { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
