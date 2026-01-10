@@ -73,7 +73,7 @@ function Sidebar({ className }: SidebarProps) {
       "bg-white/70 backdrop-blur-xl border-r border-slate-200/60",
       className
     )}>
-      <div className="mb-1 -mx-3 -mt-2">
+      <div className="-mb-2 -mx-3 -mt-4">
         <img 
           src={logoUrl} 
           alt="Orbia Logo" 
