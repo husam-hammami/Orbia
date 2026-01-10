@@ -1,10 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
 import { 
   Brain, 
   Activity, 
@@ -233,12 +235,60 @@ function EmptyState({ icon: Icon, title, description }: { icon: any; title: stri
 export default function DeepMind() {
   const [activeTab, setActiveTab] = useState("now");
   const [sleepMetric, setSleepMetric] = useState<"mood" | "dissociation" | "urges">("mood");
+  const [aiInsight, setAiInsight] = useState("");
+  const [isLoadingInsight, setIsLoadingInsight] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   
   const { data: nowData, isLoading: nowLoading } = useDeepMindNow();
   const { data: loopsData, isLoading: loopsLoading } = useDeepMindLoops();
   const { data: visualsData, isLoading: visualsLoading } = useDeepMindVisualizations();
   const { data: members = [], isLoading: membersLoading } = useMembers();
   const { data: entries = [], isLoading: entriesLoading } = useTrackerEntries(2000);
+
+  const fetchAIInsight = async (focus: string = "system") => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    
+    setIsLoadingInsight(true);
+    setAiInsight("");
+    
+    try {
+      const response = await fetch("/api/deep-mind/insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ focus }),
+        signal: abortControllerRef.current.signal,
+      });
+      
+      if (!response.ok) throw new Error("Failed to fetch insights");
+      
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No reader available");
+      
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        setAiInsight(prev => prev + decoder.decode(value));
+      }
+    } catch (error: any) {
+      if (error.name !== "AbortError") {
+        setAiInsight("Unable to generate insights at this time. Please try again.");
+      }
+    } finally {
+      setIsLoadingInsight(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const stateDriverAssociations = useMemo(() => {
     if (entries.length === 0 || members.length === 0) return { associations: [], sampleSize: 0, confidence: "Low" as const };
@@ -394,6 +444,13 @@ export default function DeepMind() {
               data-testid="tab-visuals"
             >
               <BarChart2 className="w-4 h-4" /> Visualizations
+            </TabsTrigger>
+            <TabsTrigger 
+              value="analysis" 
+              className="gap-2 data-[state=active]:bg-slate-100 data-[state=active]:text-teal-600 data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all" 
+              data-testid="tab-analysis"
+            >
+              <Sparkles className="w-4 h-4" /> AI Analysis
             </TabsTrigger>
           </TabsList>
 
@@ -921,6 +978,81 @@ export default function DeepMind() {
                 />
               </GlassCard>
             )}
+          </TabsContent>
+
+          <TabsContent value="analysis" className="space-y-6">
+            <motion.div 
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="space-y-6"
+            >
+              <motion.div variants={staggerItem}>
+                <GlassCard glow glowColor="cyan" className="overflow-hidden">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500/30 to-cyan-500/30 flex items-center justify-center border border-teal-500/30">
+                          <Sparkles className="w-5 h-5 text-teal-400" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg text-foreground">AI System Analysis</CardTitle>
+                          <CardDescription className="text-xs text-muted-foreground">AI-powered insights based on your tracking data</CardDescription>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => fetchAIInsight("patterns")}
+                          disabled={isLoadingInsight}
+                          data-testid="button-patterns-insight"
+                        >
+                          Patterns
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => fetchAIInsight("recommendations")}
+                          disabled={isLoadingInsight}
+                          data-testid="button-recommendations-insight"
+                        >
+                          Suggestions
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="bg-teal-600 hover:bg-teal-500 text-white"
+                          onClick={() => fetchAIInsight("system")}
+                          disabled={isLoadingInsight}
+                          data-testid="button-overview-insight"
+                        >
+                          {isLoadingInsight ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-1" />
+                              Analyze
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {aiInsight ? (
+                      <div className="prose prose-sm max-w-none">
+                        <p className="whitespace-pre-wrap text-foreground/90 leading-relaxed">{aiInsight}</p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Brain className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                        <p className="text-sm">Click "Analyze" to get AI insights about your system</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </GlassCard>
+              </motion.div>
+            </motion.div>
           </TabsContent>
         </Tabs>
       </div>
