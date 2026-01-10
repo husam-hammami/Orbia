@@ -132,7 +132,7 @@ function AnimatedCheckbox({ checked, onChange }: { checked: boolean; onChange: (
       className={cn(
         "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
         checked 
-          ? "bg-teal-500 border-transparent" 
+          ? "bg-gradient-to-br from-teal-400 to-cyan-400 border-transparent" 
           : "border-slate-300 dark:border-slate-600 hover:border-teal-400"
       )}
       whileTap={{ scale: 0.9 }}
@@ -803,14 +803,14 @@ export default function CareerPage() {
           <TabsList className={cn(glassCard, "w-full grid grid-cols-2 p-1 h-auto")}>
             <TabsTrigger 
               value="projects" 
-              className="data-[state=active]:bg-white/70 data-[state=active]:dark:bg-slate-800/70 data-[state=active]:border data-[state=active]:border-teal-300 data-[state=active]:dark:border-teal-600 data-[state=active]:text-teal-700 data-[state=active]:dark:text-teal-300 data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-400/80 data-[state=active]:to-cyan-300/80 data-[state=active]:text-white data-[state=active]:shadow-md py-2.5 rounded-xl transition-all"
             >
               <Rocket className="w-4 h-4 mr-2" />
               Projects
             </TabsTrigger>
             <TabsTrigger 
               value="coach" 
-              className="data-[state=active]:bg-white/70 data-[state=active]:dark:bg-slate-800/70 data-[state=active]:border data-[state=active]:border-violet-300 data-[state=active]:dark:border-violet-600 data-[state=active]:text-violet-700 data-[state=active]:dark:text-violet-300 data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-400/80 data-[state=active]:to-purple-300/80 data-[state=active]:text-white data-[state=active]:shadow-md py-2.5 rounded-xl transition-all"
             >
               <Compass className="w-4 h-4 mr-2" />
               Career Coach
@@ -826,7 +826,7 @@ export default function CareerPage() {
                 </h2>
                 <Button 
                   onClick={() => openProjectDialog(null)}
-                  className="bg-teal-500 hover:bg-teal-600 text-white border-0"
+                  className="bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white border-0 shadow-sm"
                   size="sm"
                 >
                   <Plus className="w-4 h-4 mr-2" /> New Project
@@ -997,7 +997,7 @@ export default function CareerPage() {
                 </p>
                 <Button 
                   onClick={fetchCoach}
-                  className="bg-violet-500 hover:bg-violet-600 text-white border-0"
+                  className="bg-gradient-to-r from-violet-400 to-purple-400 hover:from-violet-500 hover:to-purple-500 text-white border-0 shadow-sm"
                   size="lg"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
@@ -1046,7 +1046,7 @@ export default function CareerPage() {
                       Career Coach
                     </h3>
                     {coachData.weeklyTheme && (
-                      <Badge variant="outline" className="border-violet-300 dark:border-violet-600 text-violet-600 dark:text-violet-400 text-xs">
+                      <Badge className="bg-gradient-to-r from-violet-400/70 to-purple-300/70 text-white border-0 text-xs shadow-sm">
                         <Star className="w-3 h-3 mr-1" />
                         {coachData.weeklyTheme}
                       </Badge>
@@ -1099,7 +1099,7 @@ export default function CareerPage() {
                                     initial={{ width: 0 }}
                                     animate={{ width: `${phaseProgress}%` }}
                                     transition={{ duration: 0.5, ease: "easeOut" }}
-                                    className="h-full bg-teal-400/80"
+                                    className="h-full bg-gradient-to-r from-teal-400/70 to-cyan-300/70"
                                   />
                                 </div>
                               )}
@@ -1407,7 +1407,7 @@ export default function CareerPage() {
                                 <motion.div
                                   initial={{ width: 0 }}
                                   animate={{ width: `${getPhaseProgressPercent(activePhaseIndex)}%` }}
-                                  className="h-full bg-teal-400 rounded-full"
+                                  className="h-full bg-gradient-to-r from-teal-400/80 to-cyan-300/80 rounded-full"
                                 />
                               </div>
                               <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-2">
@@ -1840,7 +1840,7 @@ export default function CareerPage() {
                       </div>
                       <div className="w-48 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                         <motion.div 
-                          className="h-full bg-teal-400 rounded-full"
+                          className="h-full bg-gradient-to-r from-teal-400/80 to-cyan-300/80 rounded-full"
                           initial={{ width: 0 }}
                           animate={{ width: `${progress}%` }}
                           transition={{ duration: 0.5 }}
