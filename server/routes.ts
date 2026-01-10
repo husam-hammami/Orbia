@@ -308,16 +308,16 @@ export async function registerRoutes(
         storage.getSettings(),
         storage.getAllHabits(),
         storage.getAllHabitCompletions(),
-        storage.getRoutineBlocks(),
-        storage.getRoutineActivities(),
+        storage.getAllRoutineBlocks(),
+        storage.getAllRoutineActivities(),
         storage.getRecentTrackerEntries(10000),
         storage.getAllJournalEntries(),
         storage.getAllTodos(),
         storage.getAllMembers(),
         storage.getVision(),
         storage.getAllDailySummaries(),
-        storage.getExpenses(),
-        storage.getTransactions(),
+        storage.getAllExpenses(),
+        storage.getAllTransactions(),
       ]);
       
       const exportData = {
