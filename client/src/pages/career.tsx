@@ -132,7 +132,7 @@ function AnimatedCheckbox({ checked, onChange }: { checked: boolean; onChange: (
       className={cn(
         "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
         checked 
-          ? "bg-slate-600 dark:bg-slate-500 border-transparent" 
+          ? "bg-slate-500 dark:bg-slate-400 border-transparent" 
           : "border-slate-300 dark:border-slate-600 hover:border-slate-400"
       )}
       whileTap={{ scale: 0.9 }}
@@ -746,7 +746,7 @@ export default function CareerPage() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-2"
         >
-          <h1 className="text-3xl md:text-4xl font-display font-bold bg-gradient-to-r from-slate-700 to-slate-500 dark:from-slate-300 dark:to-slate-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl md:text-4xl font-display font-bold bg-gradient-to-r from-slate-600 to-slate-400 dark:from-slate-300 dark:to-slate-400 bg-clip-text text-transparent">
             Career & Vision
           </h1>
           <p className="text-muted-foreground">Your professional growth dashboard</p>
@@ -803,14 +803,14 @@ export default function CareerPage() {
           <TabsList className={cn(glassCard, "w-full grid grid-cols-2 p-1 h-auto")}>
             <TabsTrigger 
               value="projects" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-slate-600 data-[state=active]:to-slate-500 data-[state=active]:text-white data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-slate-400 data-[state=active]:to-slate-300 data-[state=active]:text-slate-800 data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
             >
               <Rocket className="w-4 h-4 mr-2" />
               Projects
             </TabsTrigger>
             <TabsTrigger 
               value="coach" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-slate-600 data-[state=active]:to-slate-500 data-[state=active]:text-white data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-slate-400 data-[state=active]:to-slate-300 data-[state=active]:text-slate-800 data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
             >
               <Compass className="w-4 h-4 mr-2" />
               Career Coach
@@ -826,7 +826,7 @@ export default function CareerPage() {
                 </h2>
                 <Button 
                   onClick={() => openProjectDialog(null)}
-                  className="bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white border-0"
+                  className="bg-slate-500 hover:bg-slate-600 dark:bg-slate-500 dark:hover:bg-slate-400 text-white border-0"
                   size="sm"
                 >
                   <Plus className="w-4 h-4 mr-2" /> New Project
@@ -997,7 +997,7 @@ export default function CareerPage() {
                 </p>
                 <Button 
                   onClick={fetchCoach}
-                  className="bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white border-0"
+                  className="bg-slate-500 hover:bg-slate-600 dark:bg-slate-500 dark:hover:bg-slate-400 text-white border-0"
                   size="lg"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
