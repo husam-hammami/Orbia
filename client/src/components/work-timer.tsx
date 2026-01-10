@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 const DURATION_OPTIONS = [15, 25, 45, 60];
 const AUTO_START_STORAGE_KEY = "neurozen-timer-autostart";
 const DURATION_STORAGE_KEY = "neurozen-timer-duration";
-const TIMER_STATE_KEY = "neurozen-work-timer";
 
 type TimerState = "idle" | "running" | "paused";
 
@@ -24,11 +23,15 @@ export function WorkTimer() {
   });
 
   const [state, setState] = useState<TimerState>("idle");
-  const [remainingSeconds, setRemainingSeconds] = useState(selectedDuration * 60);
+  const [remainingSeconds, setRemainingSeconds] = useState(() => selectedDuration * 60);
   const [completedIntervals, setCompletedIntervals] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  useEffect(() => {
+    localStorage.removeItem("neurozen-work-timer");
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(AUTO_START_STORAGE_KEY, String(autoStartEnabled));
@@ -334,58 +337,60 @@ export function WorkTimer() {
               {/* Control buttons */}
               <div className="flex items-center justify-center gap-3 mb-4">
                 {isIdle && (
-                  <Button
+                  <button
+                    type="button"
                     onClick={handleStart}
-                    className="h-11 px-6 rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-semibold shadow-[0_0_20px_rgba(20,184,166,0.4)]"
+                    className="h-11 px-6 rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-semibold shadow-[0_0_20px_rgba(20,184,166,0.4)] flex items-center"
                     data-testid="timer-start-button"
                   >
                     <Play className="w-4 h-4 mr-2 fill-white" />
                     Start
-                  </Button>
+                  </button>
                 )}
 
                 {isRunning && (
                   <>
-                    <Button
+                    <button
+                      type="button"
                       onClick={handlePause}
-                      variant="outline"
-                      className="h-11 px-5 rounded-full border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+                      className="h-11 px-5 rounded-full border border-amber-500/50 text-amber-400 hover:bg-amber-500/10 flex items-center bg-transparent"
                       data-testid="timer-pause-button"
                     >
                       <Pause className="w-4 h-4 mr-2" />
                       Pause
-                    </Button>
-                    <Button
+                    </button>
+                    <button
+                      type="button"
                       onClick={handleStop}
-                      variant="outline"
-                      className="h-11 px-5 rounded-full border-red-500/50 text-red-400 hover:bg-red-500/10"
+                      className="h-11 px-5 rounded-full border border-red-500/50 text-red-400 hover:bg-red-500/10 flex items-center bg-transparent"
                       data-testid="timer-stop-button"
                     >
                       <Square className="w-4 h-4 mr-2 fill-red-400" />
                       Stop
-                    </Button>
+                    </button>
                   </>
                 )}
 
                 {isPaused && (
                   <>
-                    <Button
+                    <button
+                      type="button"
                       onClick={handleResume}
-                      className="h-11 px-5 rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-semibold"
+                      className="h-11 px-5 rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-semibold flex items-center"
                       data-testid="timer-resume-button"
                     >
                       <Play className="w-4 h-4 mr-2 fill-white" />
                       Resume
-                    </Button>
-                    <Button
+                    </button>
+                    <button
+                      type="button"
                       onClick={handleReset}
-                      variant="outline"
-                      className="h-11 px-5 rounded-full border-slate-500/50 text-slate-300 hover:bg-slate-700/50"
+                      className="h-11 px-5 rounded-full border border-slate-500/50 text-slate-300 hover:bg-slate-700/50 flex items-center bg-transparent"
                       data-testid="timer-reset-button"
                     >
                       <RotateCcw className="w-4 h-4 mr-2" />
                       Reset
-                    </Button>
+                    </button>
                   </>
                 )}
                 
