@@ -290,6 +290,12 @@ export default function DeepMind() {
     };
   }, []);
 
+  useEffect(() => {
+    if (activeTab === "analysis" && !aiInsight && !isLoadingInsight) {
+      fetchAIInsight("system");
+    }
+  }, [activeTab]);
+
   const stateDriverAssociations = useMemo(() => {
     if (entries.length === 0 || members.length === 0) return { associations: [], sampleSize: 0, confidence: "Low" as const };
 
