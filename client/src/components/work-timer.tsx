@@ -1,17 +1,21 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, RotateCcw, Volume2, VolumeX, SkipForward, Bell, Timer, X } from "lucide-react";
+import { Play, Pause, RotateCcw, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useWorkTimer } from "@/hooks/use-work-timer";
 import { cn } from "@/lib/utils";
 
-const WORK_SESSION_MINUTES = 45;
-const BREAK_DURATION_MINUTES = 5;
+const DURATION_OPTIONS = [15, 25, 45, 60];
 const AUTO_START_STORAGE_KEY = "neurozen-timer-autostart";
+const DURATION_STORAGE_KEY = "neurozen-timer-duration";
 
 export function WorkTimer() {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [selectedDuration, setSelectedDuration] = useState(() => {
+    const stored = localStorage.getItem(DURATION_STORAGE_KEY);
+    return stored ? parseInt(stored) : 25;
+  });
   const [autoStartEnabled, setAutoStartEnabled] = useState(() => {
     const stored = localStorage.getItem(AUTO_START_STORAGE_KEY);
     return stored === "true";
@@ -20,6 +24,10 @@ export function WorkTimer() {
   useEffect(() => {
     localStorage.setItem(AUTO_START_STORAGE_KEY, String(autoStartEnabled));
   }, [autoStartEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem(DURATION_STORAGE_KEY, String(selectedDuration));
+  }, [selectedDuration]);
 
   const {
     state,
@@ -34,12 +42,9 @@ export function WorkTimer() {
     toggleMute,
     completedIntervals,
     isBreakTime,
-    testSound,
-    isInWorkBlock,
-    currentBlockName,
   } = useWorkTimer({
-    durationMinutes: WORK_SESSION_MINUTES,
-    breakDurationMinutes: BREAK_DURATION_MINUTES,
+    durationMinutes: selectedDuration,
+    breakDurationMinutes: 5,
     autoStartEnabled,
   });
 
@@ -48,326 +53,310 @@ export function WorkTimer() {
   const timeDisplay = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 
   const isActive = state === "running" || state === "break";
+  const isIdle = state === "idle";
+  const isPaused = state === "paused";
 
-  const getStateConfig = () => {
-    if (isBreakTime) return {
-      label: "Break",
-      ringColor: "stroke-emerald-400",
-      orbGradient: "from-emerald-400 to-teal-500",
-      glowColor: "rgba(16, 185, 129, 0.4)",
-      textColor: "text-emerald-500",
-    };
-    switch (state) {
-      case "running": return {
-        label: "Focus",
-        ringColor: "stroke-teal-500",
-        orbGradient: "from-teal-400 to-teal-600",
-        glowColor: "rgba(20, 184, 166, 0.4)",
-        textColor: "text-teal-600",
-      };
-      case "paused": return {
-        label: "Paused",
-        ringColor: "stroke-amber-400",
-        orbGradient: "from-amber-400 to-orange-500",
-        glowColor: "rgba(245, 158, 11, 0.4)",
-        textColor: "text-amber-500",
-      };
-      default: return {
-        label: "Ready",
-        ringColor: "stroke-slate-300",
-        orbGradient: "from-slate-400 to-slate-500",
-        glowColor: "rgba(100, 116, 139, 0.2)",
-        textColor: "text-slate-500",
-      };
+  const handleCoreClick = useCallback(() => {
+    if (isIdle) {
+      start();
+    } else if (state === "running") {
+      pause();
+    } else if (isPaused) {
+      resume();
+    } else if (isBreakTime) {
+      skipBreak();
     }
+  }, [isIdle, state, isPaused, isBreakTime, start, pause, resume, skipBreak]);
+
+  const getCoreColors = () => {
+    if (isBreakTime) return {
+      primary: "from-emerald-400 via-teal-400 to-cyan-400",
+      glow: "rgba(16, 185, 129, 0.6)",
+      ring: "#10b981",
+    };
+    if (state === "running") return {
+      primary: "from-cyan-400 via-teal-400 to-emerald-400",
+      glow: "rgba(20, 184, 166, 0.6)",
+      ring: "#14b8a6",
+    };
+    if (isPaused) return {
+      primary: "from-amber-400 via-orange-400 to-yellow-400",
+      glow: "rgba(251, 191, 36, 0.5)",
+      ring: "#f59e0b",
+    };
+    return {
+      primary: "from-slate-400 via-slate-300 to-slate-400",
+      glow: "rgba(148, 163, 184, 0.3)",
+      ring: "#94a3b8",
+    };
   };
 
-  const config = getStateConfig();
+  const colors = getCoreColors();
 
   return (
-    <motion.div
-      layout
-      className="relative"
-      data-testid="work-timer-container"
-    >
+    <motion.div layout className="relative" data-testid="work-timer-container">
       <AnimatePresence mode="wait">
         {!isExpanded ? (
           <motion.div
             key="collapsed"
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
+            exit={{ opacity: 0, scale: 0.8 }}
             className="cursor-pointer"
             onClick={() => setIsExpanded(true)}
           >
             <motion.div 
               className={cn(
-                "relative flex items-center gap-3 h-11 px-4 rounded-2xl",
-                "bg-gradient-to-r from-white/70 via-white/50 to-teal-50/40",
-                "backdrop-blur-xl border border-teal-200/40",
-                "shadow-[0_8px_30px_-8px_rgba(15,118,110,0.15)]",
-                "hover:shadow-[0_8px_30px_-4px_rgba(15,118,110,0.25)] hover:border-teal-300/50",
-                "transition-all duration-300"
+                "relative w-16 h-16 rounded-full",
+                "bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90",
+                "backdrop-blur-xl border border-cyan-500/20",
+                "shadow-[0_0_30px_-5px_rgba(6,182,212,0.3),inset_0_1px_1px_rgba(255,255,255,0.1)]",
+                "flex items-center justify-center"
               )}
               animate={isActive ? {
                 boxShadow: [
-                  "0 8px 30px -8px rgba(20, 184, 166, 0.2)",
-                  "0 8px 40px -4px rgba(20, 184, 166, 0.35)",
-                  "0 8px 30px -8px rgba(20, 184, 166, 0.2)",
+                  "0 0 30px -5px rgba(20, 184, 166, 0.3), inset 0 1px 1px rgba(255,255,255,0.1)",
+                  "0 0 50px -5px rgba(20, 184, 166, 0.5), inset 0 1px 1px rgba(255,255,255,0.1)",
+                  "0 0 30px -5px rgba(20, 184, 166, 0.3), inset 0 1px 1px rgba(255,255,255,0.1)",
                 ]
               } : {}}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              transition={{ duration: 2, repeat: Infinity }}
             >
-              <div className="relative w-8 h-8">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 32 32">
-                  <circle
-                    cx="16" cy="16" r="13"
-                    fill="none" strokeWidth="2"
-                    className="stroke-slate-200/60"
-                  />
-                  <motion.circle
-                    cx="16" cy="16" r="13"
-                    fill="none" strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeDasharray={81.68}
-                    strokeDashoffset={81.68 - (progress / 100) * 81.68}
-                    className={config.ringColor}
-                  />
-                </svg>
-                
-                <div className={cn(
-                  "absolute inset-1.5 rounded-full flex items-center justify-center",
+              <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="28" fill="none" strokeWidth="2" className="stroke-slate-700/50" />
+                <motion.circle
+                  cx="32" cy="32" r="28"
+                  fill="none" strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray={175.93}
+                  strokeDashoffset={175.93 - (progress / 100) * 175.93}
+                  stroke={colors.ring}
+                  style={{ filter: `drop-shadow(0 0 6px ${colors.glow})` }}
+                />
+              </svg>
+              
+              <motion.div
+                className={cn(
+                  "w-10 h-10 rounded-full",
                   "bg-gradient-to-br",
-                  config.orbGradient
-                )}>
-                  <Timer className="w-3 h-3 text-white" />
-                </div>
-              </div>
-
-              <div className="flex flex-col leading-tight">
-                <span className={cn(
-                  "font-mono text-base font-semibold tabular-nums",
-                  config.textColor
-                )} data-testid="timer-display">
-                  {timeDisplay}
+                  colors.primary,
+                  "flex items-center justify-center"
+                )}
+                animate={isActive ? { scale: [1, 1.1, 1] } : {}}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                style={{ boxShadow: `0 0 20px ${colors.glow}` }}
+              >
+                <span className="font-mono text-[10px] font-bold text-white tabular-nums">
+                  {minutes}:{seconds.toString().padStart(2, "0")}
                 </span>
-                <span className="text-[10px] text-slate-400 font-medium">
-                  {config.label}
-                </span>
-              </div>
-
-              {completedIntervals > 0 && (
-                <div className="flex items-center gap-0.5 ml-1">
-                  {Array.from({ length: Math.min(completedIntervals, 4) }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="w-1.5 h-1.5 rounded-full bg-gradient-to-br from-teal-400 to-teal-600"
-                    />
-                  ))}
-                  {completedIntervals > 4 && (
-                    <span className="text-[10px] text-slate-400 ml-0.5">
-                      +{completedIntervals - 4}
-                    </span>
-                  )}
-                </div>
-              )}
+              </motion.div>
             </motion.div>
           </motion.div>
         ) : (
           <motion.div
             key="expanded"
-            initial={{ opacity: 0, scale: 0.9, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: -10 }}
-            className="relative"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
           >
             <motion.div 
               className={cn(
-                "relative w-80 p-6 rounded-3xl",
-                "bg-gradient-to-br from-white/80 via-white/60 to-teal-50/50",
-                "backdrop-blur-2xl border border-teal-200/40",
-                "shadow-[0_20px_50px_-12px_rgba(15,118,110,0.25)]"
+                "relative w-72 p-6 rounded-3xl overflow-hidden",
+                "bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95",
+                "backdrop-blur-2xl border border-cyan-500/20",
+                "shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5),0_0_40px_-10px_rgba(6,182,212,0.3)]"
               )}
             >
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(20,184,166,0.15),transparent_50%)]" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(6,182,212,0.1),transparent_50%)]" />
+              
+              {[...Array(6)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-1 h-1 rounded-full bg-cyan-400/40"
+                  style={{
+                    left: `${20 + Math.random() * 60}%`,
+                    top: `${20 + Math.random() * 60}%`,
+                  }}
+                  animate={{
+                    y: [0, -20, 0],
+                    opacity: [0.2, 0.6, 0.2],
+                  }}
+                  transition={{
+                    duration: 3 + Math.random() * 2,
+                    delay: i * 0.5,
+                    repeat: Infinity,
+                  }}
+                />
+              ))}
+
               <button
                 onClick={() => setIsExpanded(false)}
-                className="absolute top-4 right-4 w-7 h-7 rounded-full bg-slate-100/80 hover:bg-slate-200/80 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-colors"
+                className="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors border border-slate-600/50"
                 data-testid="timer-close-button"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3 h-3" />
               </button>
 
-              <div className="text-center mb-6">
-                <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Focus Timer</h3>
-              </div>
+              <div className="relative mb-6">
+                <div className="relative w-44 h-44 mx-auto">
+                  {DURATION_OPTIONS.map((duration, i) => {
+                    const angle = -90 + (i * 90);
+                    const isSelected = selectedDuration === duration;
+                    const x = Math.cos((angle * Math.PI) / 180) * 75;
+                    const y = Math.sin((angle * Math.PI) / 180) * 75;
+                    
+                    return (
+                      <motion.button
+                        key={duration}
+                        className={cn(
+                          "absolute w-10 h-10 rounded-full flex items-center justify-center",
+                          "font-mono text-xs font-bold transition-all duration-300",
+                          "border",
+                          isSelected
+                            ? "bg-gradient-to-br from-cyan-400 to-teal-500 text-white border-cyan-300/50 shadow-[0_0_20px_rgba(6,182,212,0.5)]"
+                            : "bg-slate-800/80 text-slate-400 border-slate-600/50 hover:border-cyan-500/50 hover:text-cyan-400"
+                        )}
+                        style={{
+                          left: "50%",
+                          top: "50%",
+                          marginLeft: "-20px",
+                          marginTop: "-20px",
+                          transform: `translate(${x}px, ${y}px)`,
+                        }}
+                        onClick={() => isIdle && setSelectedDuration(duration)}
+                        disabled={!isIdle}
+                        whileHover={isIdle ? { scale: 1.1 } : {}}
+                        whileTap={isIdle ? { scale: 0.95 } : {}}
+                        data-testid={`duration-${duration}`}
+                      >
+                        {duration}
+                      </motion.button>
+                    );
+                  })}
 
-              <div className="relative w-40 h-40 mx-auto mb-6">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
-                  <circle
-                    cx="80" cy="80" r="70"
-                    fill="none" strokeWidth="4"
-                    className="stroke-slate-200/50"
-                  />
-                  <motion.circle
-                    cx="80" cy="80" r="70"
-                    fill="none" strokeWidth="6"
-                    strokeLinecap="round"
-                    strokeDasharray={439.82}
-                    strokeDashoffset={439.82 - (progress / 100) * 439.82}
-                    className={config.ringColor}
-                    style={{ filter: `drop-shadow(0 0 8px ${config.glowColor})` }}
-                  />
-                </svg>
+                  <svg className="absolute inset-6 w-32 h-32 -rotate-90" viewBox="0 0 128 128">
+                    <circle
+                      cx="64" cy="64" r="56"
+                      fill="none" strokeWidth="2"
+                      className="stroke-slate-700/30"
+                      strokeDasharray="4 4"
+                    />
+                    <motion.circle
+                      cx="64" cy="64" r="56"
+                      fill="none" strokeWidth="4"
+                      strokeLinecap="round"
+                      strokeDasharray={351.86}
+                      strokeDashoffset={351.86 - (progress / 100) * 351.86}
+                      stroke={colors.ring}
+                      style={{ filter: `drop-shadow(0 0 8px ${colors.glow})` }}
+                    />
+                  </svg>
 
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <motion.div
+                  <motion.button
                     className={cn(
-                      "w-28 h-28 rounded-full flex flex-col items-center justify-center",
+                      "absolute inset-6 w-32 h-32 rounded-full",
                       "bg-gradient-to-br",
-                      config.orbGradient,
-                      "shadow-lg"
+                      colors.primary,
+                      "flex flex-col items-center justify-center",
+                      "cursor-pointer transition-all",
+                      "border border-white/20"
                     )}
+                    onClick={handleCoreClick}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     animate={isActive ? {
-                      scale: [1, 1.02, 1],
-                    } : {}}
+                      boxShadow: [
+                        `0 0 30px ${colors.glow}, inset 0 0 30px rgba(255,255,255,0.1)`,
+                        `0 0 50px ${colors.glow}, inset 0 0 40px rgba(255,255,255,0.15)`,
+                        `0 0 30px ${colors.glow}, inset 0 0 30px rgba(255,255,255,0.1)`,
+                      ]
+                    } : {
+                      boxShadow: `0 0 20px ${colors.glow}, inset 0 0 20px rgba(255,255,255,0.1)`
+                    }}
                     transition={{ duration: 2, repeat: Infinity }}
-                    style={{ boxShadow: `0 8px 30px -4px ${config.glowColor}` }}
+                    style={{
+                      boxShadow: `0 0 30px ${colors.glow}, inset 0 0 30px rgba(255,255,255,0.1)`,
+                    }}
+                    data-testid="timer-core-button"
                   >
-                    <span className="text-2xl font-bold text-white font-mono tabular-nums">
+                    <div className="absolute inset-2 rounded-full bg-gradient-to-br from-white/20 via-transparent to-transparent" />
+                    
+                    <span className="relative font-mono text-2xl font-bold text-white tabular-nums drop-shadow-lg">
                       {timeDisplay}
                     </span>
-                    <span className="text-xs text-white/80 font-medium uppercase tracking-wider">
-                      {config.label}
-                    </span>
-                  </motion.div>
+                    
+                    {isIdle && (
+                      <motion.div
+                        className="relative mt-1"
+                        animate={{ scale: [1, 1.1, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      >
+                        <Play className="w-5 h-5 text-white/90 fill-white/90" />
+                      </motion.div>
+                    )}
+                    {state === "running" && (
+                      <Pause className="relative w-5 h-5 text-white/80 mt-1" />
+                    )}
+                    {isPaused && (
+                      <Play className="relative w-5 h-5 text-white/80 fill-white/80 mt-1" />
+                    )}
+                  </motion.button>
                 </div>
               </div>
 
               <div className="flex items-center justify-center gap-2 mb-4">
-                {state === "idle" && (
-                  <Button
-                    onClick={start}
-                    className={cn(
-                      "h-11 px-8 rounded-full",
-                      "bg-gradient-to-r from-teal-500 to-teal-600",
-                      "hover:from-teal-600 hover:to-teal-700",
-                      "border-0 text-white font-semibold",
-                      "shadow-[0_4px_20px_-4px_rgba(20,184,166,0.5)]",
-                      "transition-all duration-300"
-                    )}
-                    data-testid="timer-start-button"
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Start Focus
-                  </Button>
-                )}
-
-                {state === "running" && (
-                  <Button
-                    onClick={pause}
-                    variant="outline"
-                    className="h-11 px-6 rounded-full border-teal-400/60 text-teal-600 hover:bg-teal-50/50 hover:border-teal-500"
-                    data-testid="timer-pause-button"
-                  >
-                    <Pause className="w-4 h-4 mr-2" />
-                    Pause
-                  </Button>
-                )}
-
-                {state === "break" && (
-                  <Button
-                    onClick={skipBreak}
-                    variant="outline"
-                    className="h-11 px-6 rounded-full border-emerald-400/60 text-emerald-600 hover:bg-emerald-50/50"
-                    data-testid="timer-skip-break-button"
-                  >
-                    <SkipForward className="w-4 h-4 mr-2" />
-                    Skip Break
-                  </Button>
-                )}
-
-                {state === "paused" && (
-                  <>
-                    <Button
-                      onClick={resume}
-                      className={cn(
-                        "h-11 px-6 rounded-full",
-                        "bg-gradient-to-r from-teal-500 to-teal-600",
-                        "hover:from-teal-600 hover:to-teal-700",
-                        "border-0 text-white font-semibold",
-                        "shadow-[0_4px_20px_-4px_rgba(20,184,166,0.5)]"
-                      )}
-                      data-testid="timer-resume-button"
-                    >
-                      <Play className="w-4 h-4 mr-1" />
-                      Resume
-                    </Button>
-                    <Button
-                      onClick={reset}
-                      variant="ghost"
-                      className="h-11 w-11 rounded-full text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-                      data-testid="timer-reset-button"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </Button>
-                  </>
-                )}
-
+                <Button
+                  onClick={reset}
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 rounded-full text-slate-400 hover:text-white hover:bg-slate-700/50"
+                  data-testid="timer-reset-button"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+                
                 <Button
                   onClick={toggleMute}
                   variant="ghost"
                   size="icon"
                   className={cn(
                     "h-9 w-9 rounded-full",
-                    isMuted ? "text-red-400 hover:text-red-500" : "text-slate-400 hover:text-slate-600"
+                    isMuted ? "text-red-400 hover:text-red-300" : "text-slate-400 hover:text-white hover:bg-slate-700/50"
                   )}
                   data-testid="timer-mute-button"
                 >
                   {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                 </Button>
 
-                <Button
-                  onClick={testSound}
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 rounded-full text-slate-400 hover:text-teal-600"
-                  data-testid="timer-test-sound-button"
-                  title="Test notification sound"
-                >
-                  <Bell className="w-4 h-4" />
-                </Button>
-              </div>
-
-              {completedIntervals > 0 && (
-                <div className="text-center mb-4">
-                  <span className="text-xs text-slate-500 font-medium">
-                    {completedIntervals} session{completedIntervals !== 1 ? "s" : ""} completed
-                  </span>
-                </div>
-              )}
-
-              <div className="pt-4 border-t border-slate-200/60 space-y-3">
-                {isInWorkBlock && currentBlockName && (
-                  <div className="flex items-center justify-center gap-2 text-xs">
-                    <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-                    <span className="text-slate-500">
-                      In <span className="font-medium text-slate-700">{currentBlockName}</span> block
-                    </span>
+                {completedIntervals > 0 && (
+                  <div className="flex items-center gap-1 ml-2">
+                    {Array.from({ length: Math.min(completedIntervals, 5) }).map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className="w-2 h-2 rounded-full bg-gradient-to-br from-cyan-400 to-teal-500"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        style={{ boxShadow: "0 0 8px rgba(6,182,212,0.6)" }}
+                      />
+                    ))}
+                    {completedIntervals > 5 && (
+                      <span className="text-xs text-slate-500 ml-1">+{completedIntervals - 5}</span>
+                    )}
                   </div>
                 )}
+              </div>
 
+              <div className="pt-3 border-t border-slate-700/50">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-500">Auto-start in work blocks</span>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Auto-start</span>
                   <Switch
                     checked={autoStartEnabled}
                     onCheckedChange={setAutoStartEnabled}
-                    className="data-[state=checked]:bg-teal-500"
+                    className="data-[state=checked]:bg-cyan-500 scale-75"
                     data-testid="timer-autostart-toggle"
                   />
                 </div>
-                <p className="text-[10px] text-slate-400 text-center">
-                  9-13h & 14-18h from routine
-                </p>
               </div>
             </motion.div>
           </motion.div>
