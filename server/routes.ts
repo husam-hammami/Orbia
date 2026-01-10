@@ -2128,6 +2128,49 @@ Based on my North Star vision, create a comprehensive career coaching plan. Be s
     }
   });
 
+  app.post("/api/career/regenerate-milestone", async (req, res) => {
+    try {
+      const { currentMilestone, phaseName, phaseGoal, vision } = req.body;
+      
+      if (!currentMilestone || !phaseName) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const visionSummary = vision?.map((v: any) => v.title).filter(Boolean).join(", ") || "No vision set";
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5.1",
+        messages: [
+          {
+            role: "system",
+            content: `You are a career coach. Generate ONE alternative milestone for a career roadmap phase. The milestone should be specific, measurable, and achievable. Return ONLY the new milestone text, nothing else.`
+          },
+          {
+            role: "user",
+            content: `Vision: ${visionSummary}
+Phase: ${phaseName}
+Phase Goal: ${phaseGoal || "Not specified"}
+Current Milestone (to replace): ${currentMilestone}
+
+Generate a different, equally specific milestone that serves the same purpose but offers a fresh approach or alternative action.`
+          }
+        ],
+        max_completion_tokens: 200,
+      });
+
+      const newMilestone = response.choices[0]?.message?.content?.trim();
+      
+      if (!newMilestone) {
+        return res.status(500).json({ error: "Failed to generate new milestone" });
+      }
+
+      res.json({ newMilestone });
+    } catch (error) {
+      console.error("Regenerate milestone error:", error);
+      res.status(500).json({ error: "Failed to regenerate milestone" });
+    }
+  });
+
   // Finance Settings Routes
   app.get("/api/finance-settings", async (req, res) => {
     try {

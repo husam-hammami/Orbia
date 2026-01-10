@@ -4,8 +4,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   Plus, Target, Rocket, Sparkles, ChevronDown, Check, 
   Calendar, Clock, Pencil, Loader2, X, Map, Zap, Lightbulb, RefreshCw,
-  GraduationCap, ExternalLink, BookOpen, TrendingUp, Compass, Star
+  GraduationCap, ExternalLink, BookOpen, TrendingUp, Compass, Star,
+  MoreHorizontal, Trash2, MessageCircle, Trophy
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +33,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -199,6 +207,11 @@ export default function CareerPage() {
   const [coachError, setCoachError] = useState<string | null>(null);
   const [coachGeneratedAt, setCoachGeneratedAt] = useState<Date | null>(null);
   const [expandedPhases, setExpandedPhases] = useState<Set<number>>(new Set([0]));
+  const [activePhaseOverride, setActivePhaseOverride] = useState<number | null>(null);
+  const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null);
+  const [editingMilestoneText, setEditingMilestoneText] = useState("");
+  const [isLogWinDialogOpen, setIsLogWinDialogOpen] = useState(false);
+  const [logWinText, setLogWinText] = useState("");
 
   const getEmptyProject = (): Partial<CareerProject> => ({
     title: "",
@@ -290,6 +303,76 @@ export default function CareerPage() {
     return task?.completed === 1;
   };
 
+  const deleteMilestone = (phaseIndex: number, title: string) => {
+    if (!window.confirm("Delete this milestone?")) return;
+    const milestoneTasks = getMilestoneTasks(phaseIndex);
+    const task = milestoneTasks.find(t => t.title === title);
+    if (task) {
+      deleteTask.mutate(task.id);
+    }
+  };
+
+  const startEditMilestone = (phaseIndex: number, title: string) => {
+    const milestoneTasks = getMilestoneTasks(phaseIndex);
+    const task = milestoneTasks.find(t => t.title === title);
+    if (task) {
+      setEditingMilestoneId(task.id);
+      setEditingMilestoneText(task.title);
+    }
+  };
+
+  const saveMilestoneEdit = () => {
+    if (editingMilestoneId && editingMilestoneText.trim()) {
+      updateTask.mutate({ id: editingMilestoneId, title: editingMilestoneText.trim() });
+      setEditingMilestoneId(null);
+      setEditingMilestoneText("");
+    }
+  };
+
+  const cancelMilestoneEdit = () => {
+    setEditingMilestoneId(null);
+    setEditingMilestoneText("");
+  };
+
+  const [regeneratingMilestoneId, setRegeneratingMilestoneId] = useState<string | null>(null);
+
+  const regenerateMilestone = async (phaseIndex: number, title: string) => {
+    const milestoneTasks = getMilestoneTasks(phaseIndex);
+    const task = milestoneTasks.find(t => t.title === title);
+    if (!task || !coachData?.roadmap?.[phaseIndex]) return;
+    
+    const phase = coachData.roadmap[phaseIndex];
+    setRegeneratingMilestoneId(task.id);
+    
+    try {
+      const response = await fetch("/api/career/regenerate-milestone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentMilestone: title,
+          phaseName: phase.phase,
+          phaseGoal: phase.goal,
+          vision: vision,
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.newMilestone) {
+          updateTask.mutate({ id: task.id, title: data.newMilestone });
+          toast.success("Milestone regenerated!");
+        }
+      } else {
+        toast.error("Failed to regenerate milestone");
+      }
+    } catch (error) {
+      console.error("Failed to regenerate milestone:", error);
+      toast.error("Failed to regenerate milestone");
+    } finally {
+      setRegeneratingMilestoneId(null);
+    }
+  };
+
   const getPhaseProgressPercent = (phaseIndex: number) => {
     const milestoneTasks = getMilestoneTasks(phaseIndex);
     if (milestoneTasks.length === 0) return 0;
@@ -301,6 +384,30 @@ export default function CareerPage() {
     const milestoneTasks = getMilestoneTasks(phaseIndex);
     return milestoneTasks.filter(t => t.completed === 1).length;
   };
+
+  const getTotalMilestones = () => {
+    if (!coachData?.roadmap) return 0;
+    return coachData.roadmap.reduce((sum, phase) => sum + (phase.milestones?.length || 0), 0);
+  };
+
+  const getTotalCompletedMilestones = () => {
+    if (!coachData?.roadmap) return 0;
+    return coachData.roadmap.reduce((sum, phase, idx) => sum + getPhaseCompletedCount(idx), 0);
+  };
+
+  const getActivePhaseIndex = () => {
+    if (activePhaseOverride !== null) return activePhaseOverride;
+    if (!coachData?.roadmap) return 0;
+    
+    for (let i = 0; i < coachData.roadmap.length; i++) {
+      const progress = getPhaseProgressPercent(i);
+      if (progress < 100) return i;
+    }
+    return coachData.roadmap.length - 1;
+  };
+
+  const activePhaseIndex = getActivePhaseIndex();
+  const activePhase = coachData?.roadmap?.[activePhaseIndex];
 
   const fetchCoach = async () => {
     setCoachLoading(true);
@@ -1025,21 +1132,70 @@ export default function CareerPage() {
                                           {phase.milestones.map((milestone, mIndex) => {
                                             const isCompleted = isMilestoneCompleted(index, milestone);
                                             const isNext = mIndex === firstIncompleteIndex;
+                                            const milestoneTasks = getMilestoneTasks(index);
+                                            const task = milestoneTasks.find(t => t.title === milestone);
+                                            const isEditing = task && editingMilestoneId === task.id;
+
+                                            if (isEditing) {
+                                              return (
+                                                <li key={mIndex} className="flex items-center gap-2 p-1.5">
+                                                  <Input
+                                                    value={editingMilestoneText}
+                                                    onChange={(e) => setEditingMilestoneText(e.target.value)}
+                                                    className="h-7 text-xs flex-1"
+                                                    autoFocus
+                                                    onKeyDown={(e) => {
+                                                      if (e.key === 'Enter') saveMilestoneEdit();
+                                                      if (e.key === 'Escape') cancelMilestoneEdit();
+                                                    }}
+                                                  />
+                                                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveMilestoneEdit}>
+                                                    <Check className="w-3 h-3 text-teal-500" />
+                                                  </Button>
+                                                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelMilestoneEdit}>
+                                                    <X className="w-3 h-3 text-muted-foreground" />
+                                                  </Button>
+                                                </li>
+                                              );
+                                            }
+
                                             return (
                                               <li 
                                                 key={mIndex} 
                                                 className={cn(
-                                                  "text-xs flex items-start gap-2 p-1.5 rounded-lg transition-all cursor-pointer",
+                                                  "text-xs flex items-start gap-2 p-1.5 rounded-lg transition-all group",
                                                   isCompleted && "text-muted-foreground",
                                                   isNext && "border-l-2 border-teal-500 bg-teal-50/50 dark:bg-teal-900/10 pl-2"
                                                 )}
-                                                onClick={() => toggleMilestone(index, milestone)}
                                               >
-                                                <AnimatedCheckbox 
-                                                  checked={isCompleted} 
-                                                  onChange={() => toggleMilestone(index, milestone)} 
-                                                />
-                                                <span className={cn(isCompleted && "line-through")}>{milestone}</span>
+                                                <div className="flex-1 flex items-start gap-2 cursor-pointer" onClick={() => toggleMilestone(index, milestone)}>
+                                                  <AnimatedCheckbox 
+                                                    checked={isCompleted} 
+                                                    onChange={() => toggleMilestone(index, milestone)} 
+                                                  />
+                                                  <span className={cn(isCompleted && "line-through")}>{milestone}</span>
+                                                </div>
+                                                <DropdownMenu>
+                                                  <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                      <MoreHorizontal className="w-3 h-3" />
+                                                    </Button>
+                                                  </DropdownMenuTrigger>
+                                                  <DropdownMenuContent align="end" className="w-36">
+                                                    <DropdownMenuItem onClick={() => startEditMilestone(index, milestone)}>
+                                                      <Pencil className="w-3 h-3 mr-2" />
+                                                      Edit
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => regenerateMilestone(index, milestone)}>
+                                                      <RefreshCw className="w-3 h-3 mr-2" />
+                                                      Regenerate
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => deleteMilestone(index, milestone)} className="text-red-600">
+                                                      <Trash2 className="w-3 h-3 mr-2" />
+                                                      Delete
+                                                    </DropdownMenuItem>
+                                                  </DropdownMenuContent>
+                                                </DropdownMenu>
                                               </li>
                                             );
                                           })}
@@ -1100,21 +1256,70 @@ export default function CareerPage() {
                                       {phase.milestones.map((milestone, mIndex) => {
                                         const isCompleted = isMilestoneCompleted(index, milestone);
                                         const isNext = mIndex === firstIncompleteIndex;
+                                        const milestoneTasks = getMilestoneTasks(index);
+                                        const task = milestoneTasks.find(t => t.title === milestone);
+                                        const isEditing = task && editingMilestoneId === task.id;
+
+                                        if (isEditing) {
+                                          return (
+                                            <li key={mIndex} className="flex items-center gap-2 p-1.5">
+                                              <Input
+                                                value={editingMilestoneText}
+                                                onChange={(e) => setEditingMilestoneText(e.target.value)}
+                                                className="h-7 text-xs flex-1"
+                                                autoFocus
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') saveMilestoneEdit();
+                                                  if (e.key === 'Escape') cancelMilestoneEdit();
+                                                }}
+                                              />
+                                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveMilestoneEdit}>
+                                                <Check className="w-3 h-3 text-teal-500" />
+                                              </Button>
+                                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelMilestoneEdit}>
+                                                <X className="w-3 h-3 text-muted-foreground" />
+                                              </Button>
+                                            </li>
+                                          );
+                                        }
+
                                         return (
                                           <li 
                                             key={mIndex} 
                                             className={cn(
-                                              "text-xs flex items-start gap-2 p-1.5 rounded-lg transition-all cursor-pointer",
+                                              "text-xs flex items-start gap-2 p-1.5 rounded-lg transition-all group",
                                               isCompleted && "text-muted-foreground",
                                               isNext && "border-l-2 border-teal-500 bg-teal-50/50 dark:bg-teal-900/10 pl-2"
                                             )}
-                                            onClick={() => toggleMilestone(index, milestone)}
                                           >
-                                            <AnimatedCheckbox 
-                                              checked={isCompleted} 
-                                              onChange={() => toggleMilestone(index, milestone)} 
-                                            />
-                                            <span className={cn(isCompleted && "line-through")}>{milestone}</span>
+                                            <div className="flex-1 flex items-start gap-2 cursor-pointer" onClick={() => toggleMilestone(index, milestone)}>
+                                              <AnimatedCheckbox 
+                                                checked={isCompleted} 
+                                                onChange={() => toggleMilestone(index, milestone)} 
+                                              />
+                                              <span className={cn(isCompleted && "line-through")}>{milestone}</span>
+                                            </div>
+                                            <DropdownMenu>
+                                              <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="sm" className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                  <MoreHorizontal className="w-3 h-3" />
+                                                </Button>
+                                              </DropdownMenuTrigger>
+                                              <DropdownMenuContent align="end" className="w-36">
+                                                <DropdownMenuItem onClick={() => startEditMilestone(index, milestone)}>
+                                                  <Pencil className="w-3 h-3 mr-2" />
+                                                  Edit
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => regenerateMilestone(index, milestone)}>
+                                                  <RefreshCw className="w-3 h-3 mr-2" />
+                                                  Regenerate
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => deleteMilestone(index, milestone)} className="text-red-600">
+                                                  <Trash2 className="w-3 h-3 mr-2" />
+                                                  Delete
+                                                </DropdownMenuItem>
+                                              </DropdownMenuContent>
+                                            </DropdownMenu>
                                           </li>
                                         );
                                       })}
@@ -1159,94 +1364,136 @@ export default function CareerPage() {
 
                   <div className="lg:col-span-2">
                     <div className="lg:sticky lg:top-4 space-y-3">
-                      {coachData.immediateActions && coachData.immediateActions.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className={cn(glassCard, "p-4")}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-amber-500" />
+                            <h4 className="font-medium text-foreground text-sm">Active Sprint</h4>
+                          </div>
+                          <Select value={String(activePhaseIndex)} onValueChange={(v) => setActivePhaseOverride(Number(v))}>
+                            <SelectTrigger className="h-7 w-[140px] text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {coachData?.roadmap?.map((phase, idx) => (
+                                <SelectItem key={idx} value={String(idx)}>
+                                  Phase {idx + 1}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {activePhase && (
+                          <>
+                            <div className="mb-3">
+                              <p className="text-sm font-medium text-foreground">{activePhase.phase}</p>
+                              <p className="text-xs text-muted-foreground">{activePhase.timeframe}</p>
+                            </div>
+                            
+                            <div className="p-2.5 rounded-lg bg-gradient-to-r from-teal-500/10 to-cyan-500/10 border border-teal-500/20 mb-3">
+                              <div className="flex items-center justify-between text-xs mb-1.5">
+                                <span className="text-muted-foreground">Phase Progress</span>
+                                <span className="font-medium text-teal-600 dark:text-teal-400">
+                                  {getPhaseCompletedCount(activePhaseIndex)}/{activePhase.milestones?.length || 0} done
+                                </span>
+                              </div>
+                              <div className="h-2 w-full bg-slate-200/60 dark:bg-slate-700/60 rounded-full overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${getPhaseProgressPercent(activePhaseIndex)}%` }}
+                                  className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full"
+                                />
+                              </div>
+                              <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-2">
+                                <span>Overall: {getTotalCompletedMilestones()}/{getTotalMilestones()} milestones</span>
+                                <span>{Math.round((getTotalCompletedMilestones() / Math.max(getTotalMilestones(), 1)) * 100)}%</span>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-1.5">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase">Up Next</p>
+                              {activePhase.milestones?.filter(m => !isMilestoneCompleted(activePhaseIndex, m)).slice(0, 4).map((milestone, mIdx) => (
+                                <div
+                                  key={mIdx}
+                                  className="flex items-start gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                                  onClick={() => toggleMilestone(activePhaseIndex, milestone)}
+                                >
+                                  <AnimatedCheckbox
+                                    checked={false}
+                                    onChange={() => toggleMilestone(activePhaseIndex, milestone)}
+                                  />
+                                  <span className="text-xs text-foreground">{milestone}</span>
+                                </div>
+                              ))}
+                              {activePhase.milestones?.filter(m => !isMilestoneCompleted(activePhaseIndex, m)).length === 0 && (
+                                <div className="p-3 text-center rounded-lg bg-teal-50 dark:bg-teal-900/20 border border-teal-200/60 dark:border-teal-700/40">
+                                  <Check className="w-5 h-5 text-teal-500 mx-auto mb-1" />
+                                  <p className="text-xs font-medium text-teal-600 dark:text-teal-400">Phase Complete!</p>
+                                  <p className="text-[10px] text-muted-foreground mt-0.5">Move to next phase or regenerate roadmap</p>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="pt-3 border-t border-slate-200/60 dark:border-slate-700/60">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase mb-2">Quick Actions</p>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 h-8 text-xs"
+                                  onClick={() => window.location.href = '/orbit'}
+                                >
+                                  <MessageCircle className="w-3 h-3 mr-1.5" />
+                                  Chat
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 h-8 text-xs"
+                                  onClick={() => setIsLogWinDialogOpen(true)}
+                                >
+                                  <Trophy className="w-3 h-3 mr-1.5" />
+                                  Log Win
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 h-8 text-xs text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-700 hover:bg-violet-50 dark:hover:bg-violet-900/20"
+                                  onClick={fetchCoach}
+                                  disabled={coachLoading}
+                                >
+                                  <RefreshCw className={cn("w-3 h-3 mr-1.5", coachLoading && "animate-spin")} />
+                                  Refresh
+                                </Button>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </motion.div>
+                      
+                      {coachData?.coachingNote && (
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.2 }}
-                          className={cn(glassCard, "p-4")}
+                          transition={{ delay: 0.3 }}
+                          className="p-3 rounded-xl border-l-4 border-teal-500 bg-teal-50/50 dark:bg-teal-900/10"
                         >
-                          <div className="flex items-center gap-2 mb-3">
-                            <Zap className="w-4 h-4 text-amber-500" />
-                            <h4 className="font-medium text-foreground text-sm">This Week's Focus</h4>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Lightbulb className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                            <span className="text-[10px] font-semibold text-teal-600 dark:text-teal-400 uppercase">Coach's Note</span>
                           </div>
-                          <div className="space-y-2">
-                            {coachData.immediateActions.map((action, index) => {
-                              const isCompleted = isCoachActionCompleted(action.title);
-                              return (
-                                <motion.div
-                                  key={index}
-                                  initial={{ opacity: 0, x: 10 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: 0.2 + index * 0.05 }}
-                                  className="group"
-                                >
-                                  <div 
-                                    className={cn(
-                                      "p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-slate-700/50",
-                                      isCompleted && "opacity-60"
-                                    )}
-                                    onClick={() => toggleCoachTask(action.title)}
-                                  >
-                                    <div className="flex items-start gap-2">
-                                      <AnimatedCheckbox 
-                                        checked={isCompleted} 
-                                        onChange={() => toggleCoachTask(action.title)} 
-                                      />
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1.5">
-                                          <div className={cn(
-                                            "w-1.5 h-1.5 rounded-full shrink-0",
-                                            action.priority === "high" && "bg-red-500",
-                                            action.priority === "medium" && "bg-amber-500",
-                                            action.priority === "low" && "bg-slate-400"
-                                          )} />
-                                          <p className={cn(
-                                            "text-sm font-medium text-foreground",
-                                            isCompleted && "line-through text-muted-foreground"
-                                          )}>{action.title}</p>
-                                        </div>
-                                        <div className="flex items-center gap-2 mt-1">
-                                          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                                            <Clock className="w-2.5 h-2.5" />
-                                            {action.timeEstimate}
-                                          </span>
-                                        </div>
-                                        <Collapsible>
-                                          <CollapsibleTrigger className="text-[10px] text-violet-600 dark:text-violet-400 hover:underline mt-1">
-                                            Why this matters
-                                          </CollapsibleTrigger>
-                                          <CollapsibleContent>
-                                            <p className="text-[10px] text-muted-foreground mt-1 pl-0.5">{action.why}</p>
-                                          </CollapsibleContent>
-                                        </Collapsible>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              );
-                            })}
-                          </div>
+                          <p className="text-xs text-teal-700 dark:text-teal-300 line-clamp-2">{coachData.coachingNote}</p>
                         </motion.div>
                       )}
                     </div>
                   </div>
                 </div>
-
-                {coachData.coachingNote && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="p-3 rounded-xl border-l-4 border-teal-500 bg-teal-50/50 dark:bg-teal-900/10"
-                  >
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Lightbulb className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-                      <span className="text-[10px] font-semibold text-teal-600 dark:text-teal-400 uppercase">Coach's Note</span>
-                    </div>
-                    <p className="text-xs text-teal-700 dark:text-teal-300 line-clamp-2">{coachData.coachingNote}</p>
-                  </motion.div>
-                )}
               </div>
             )}
           </TabsContent>
@@ -1724,6 +1971,44 @@ export default function CareerPage() {
               </>
               );
             })()}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isLogWinDialogOpen} onOpenChange={setIsLogWinDialogOpen}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-500" />
+                Log a Win
+              </DialogTitle>
+              <DialogDescription>
+                Celebrate your progress! What did you accomplish?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Textarea
+                value={logWinText}
+                onChange={(e) => setLogWinText(e.target.value)}
+                placeholder="e.g., Completed my first teaching observation, got positive feedback from the coordinator..."
+                className="min-h-[100px]"
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsLogWinDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  toast.success("Win logged! Keep up the great work!");
+                  setLogWinText("");
+                  setIsLogWinDialogOpen(false);
+                }}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0"
+              >
+                <Trophy className="w-4 h-4 mr-2" />
+                Save Win
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
