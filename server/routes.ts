@@ -1285,12 +1285,20 @@ export async function registerRoutes(
           timeOfDay: j.timeOfDay,
           tags: j.tags,
           isPrivate: j.isPrivate,
+          primaryDriver: j.primaryDriver,
+          secondaryDriver: j.secondaryDriver,
           authorName: j.authorId ? members.find(m => m.id === j.authorId)?.name : null,
           contentPreview: j.content.length > 300 ? j.content.slice(0, 300) + "..." : j.content
         })),
         journalAnalytics: (() => {
           const typeBreakdown = recentJournalEntries.reduce((acc, j) => {
             acc[j.entryType] = (acc[j.entryType] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          
+          const driverFrequency = recentJournalEntries.reduce((acc, j) => {
+            if (j.primaryDriver) acc[j.primaryDriver] = (acc[j.primaryDriver] || 0) + 1;
+            if (j.secondaryDriver) acc[j.secondaryDriver] = (acc[j.secondaryDriver] || 0) + 0.5;
             return acc;
           }, {} as Record<string, number>);
           
@@ -1307,6 +1315,7 @@ export async function registerRoutes(
           return {
             totalEntries: recentJournalEntries.length,
             typeBreakdown,
+            driverFrequency: Object.entries(driverFrequency).sort((a, b) => b[1] - a[1]).slice(0, 5),
             tagFrequency: Object.entries(tagFrequency).sort((a, b) => b[1] - a[1]).slice(0, 10),
             avgMood: withMood.length > 0 ? (withMood.reduce((s, j) => s + (j.mood || 0), 0) / withMood.length).toFixed(1) : null,
             avgEnergy: withEnergy.length > 0 ? (withEnergy.reduce((s, j) => s + (j.energy || 0), 0) / withEnergy.length).toFixed(1) : null,
@@ -1362,22 +1371,32 @@ KEY DATA AVAILABLE:
 7. journalEntries - Full journal data with:
    - entryType: reflection/vent/gratitude/grounding/memory/system_note
    - mood and energy scores, timeOfDay, tags
+   - primaryDriver/secondaryDriver (HIGH WEIGHT - user-tagged: Sleep, Work, Relationships, Body, Anxiety, Urges/Escape, Shame, Trauma, Joy, Connection, Growth, Peace)
    - authorName (which system member wrote it)
    - contentPreview (first 300 chars of content)
 
 8. journalAnalytics - Aggregated journal statistics:
    - typeBreakdown: Count of entries by type (vent vs gratitude vs reflection, etc.)
+   - driverFrequency: Most common drivers tagged in journal entries (HIGH WEIGHT EVIDENCE)
    - tagFrequency: Most common tags used
    - avgMood/avgEnergy: Journal-specific averages
    - entriesByTimeOfDay: When journaling happens most
 
 JOURNAL-SPECIFIC PATTERNS TO LOOK FOR:
+- Driver patterns: Which drivers appear most frequently? (driverFrequency in journalAnalytics)
+- Driver chains: When primaryDriver=Work, what secondaryDriver often follows? (e.g., Work → Urges/Escape)
+- Mood correlation by driver: Compare mood on Work-driven days vs Sleep-driven days
 - Vent entry frequency correlating with stress/dissociation levels
 - Gratitude entries correlating with improved mood
 - Which system members write which types of entries
 - Tags that appear more frequently on high-stress days
 - Time-of-day patterns in journaling (night venting vs morning reflection)
 - Mood/energy differences between entry types
+
+DRIVER WEIGHTING (HIGH PRIORITY):
+- primaryDriver/secondaryDriver in journalEntries are USER-SELECTED markers of what's affecting them
+- These are HIGH WEIGHT evidence - prioritize driver-tagged patterns over inferred patterns
+- Use driverFrequency to identify the most common drivers and build insights around them
 
 9. NEW CONTEXT FIELDS - Use these for deeper pattern analysis:
    - capacity (0-5): How much they can handle RIGHT NOW (distinct from mood/energy - someone can be calm but have low capacity)
@@ -2254,9 +2273,11 @@ WHAT YOU MUST NOT DO:
 
 ANALYSIS WEIGHTING (when giving insights):
 - HIGHEST weight: Daily notes from state entries + Journal text (with recency bias)
-- HIGH weight: Sleep hours (always include in analysis)
+- HIGH weight: Journal drivers (user-tagged: Sleep, Work, Relationships, Body, Anxiety, Urges/Escape, Shame, Trauma, Joy, Connection, Growth, Peace) + Sleep hours (always include in analysis)
 - MEDIUM weight: Mood, energy, stress, pain, capacity
 - LOW weight: Habits completion, routine %, tasks done (context only, never primary explanation)
+
+When journal entries have tagged drivers (primaryDriver/secondaryDriver), PRIORITIZE these as evidence for analysis. Format: [Driver: X → Y] means primary driver X with secondary driver Y.
 
 EVIDENCE REQUIREMENT: Every insight must include either a journal quote snippet OR a concrete metric value.
 
@@ -2336,10 +2357,10 @@ You MUST use this exact 4-section format. No exceptions. Max 6 bullet points tot
 • today: sleep/mood/energy/capacity values
 • journal present: yes/no
 
-**Main Driver** (pick exactly 1: Sleep / Work / Loneliness / Pain / Urges)
-• Driver: [one word]
+**Main Driver** (pick exactly 1 from: Sleep, Work, Relationships, Body, Anxiety, Urges/Escape, Shame, Trauma, Joy, Connection, Growth, Peace - PREFER journal-tagged drivers)
+• Driver: [one word matching a journal driver if available]
 • Confidence: [High/Med/Low]
-• Evidence: [REQUIRED: quote from journal OR specific metric]
+• Evidence: [REQUIRED: quote from journal + driver tag if present OR specific metric]
 
 **Pattern** (from journal history, max 1-2 lines)
 • Cycle: [trigger] → [coping] → [outcome]
@@ -2840,15 +2861,30 @@ ${JSON.stringify(context, null, 2)}`;
           return `[${date} ${time}] sleep=${e.sleepHours || 'N/A'}h, mood=${e.mood}/10: "${notes}"`;
         }).join("\n");
       
-      // Journal excerpts (most recent with recency bias)
+      // Journal excerpts (most recent with recency bias) - include drivers for HIGH weight
       const recentJournals = journalEntries
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 10);
       const journalExcerpts = recentJournals.map(j => {
         const date = new Date(j.createdAt).toLocaleDateString();
         const content = j.content.slice(0, 200) + (j.content.length > 200 ? "..." : "");
-        return `[${date}] ${content}`;
+        const driverInfo = j.primaryDriver ? ` [Driver: ${j.primaryDriver}${j.secondaryDriver ? ` → ${j.secondaryDriver}` : ''}]` : '';
+        return `[${date}]${driverInfo} ${content}`;
       }).join("\n\n");
+      
+      // Aggregate driver frequencies from journals (HIGH WEIGHT evidence)
+      const driverCounts: Record<string, number> = {};
+      journalEntries
+        .filter(j => new Date(j.createdAt) >= sevenDaysAgo && j.primaryDriver)
+        .forEach(j => {
+          if (j.primaryDriver) driverCounts[j.primaryDriver] = (driverCounts[j.primaryDriver] || 0) + 1;
+          if (j.secondaryDriver) driverCounts[j.secondaryDriver] = (driverCounts[j.secondaryDriver] || 0) + 0.5;
+        });
+      const topDrivers = Object.entries(driverCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([driver, count]) => `${driver}(${count})`)
+        .join(", ") || "No drivers tagged";
       
       // Build rolling memory from journal analysis
       const allJournalText = journalEntries.map(j => j.content).join(" ").toLowerCase();
@@ -2868,12 +2904,15 @@ FACTS (provided):
 - Journal present: ${journalEntries.length > 0 ? "yes" : "no"}
 - Daily notes present: ${recentTrackerNotes.length > 0 ? "yes" : "no"}
 - Current state: ${currentState}
+- Top journal drivers (7d, HIGH WEIGHT): ${topDrivers}
 
 DAILY NOTES FROM STATE ENTRIES (HIGH WEIGHT - analyze these first):
 ${recentTrackerNotes || "No daily notes"}
 
-JOURNAL EXCERPTS (analyze deeply, link patterns across entries):
+JOURNAL EXCERPTS WITH DRIVERS (analyze deeply, link patterns across entries):
 ${journalExcerpts || "No journal entries"}
+
+Note: [Driver: X → Y] means primary driver is X with secondary driver Y. Use these tagged drivers as HIGH WEIGHT evidence when identifying the Main Driver.
 
 OUTPUT FORMAT (follow exactly):
 
@@ -2881,10 +2920,10 @@ OUTPUT FORMAT (follow exactly):
 • sleepHours avg: ${avgSleep}h, mood avg: ${avgMood}, energy avg: ${avgEnergy}
 • today: sleep ${todaySleep}h / mood ${todayMood} / energy ${todayEnergy} / capacity ${todayCapacity}
 
-**Main Driver** (pick 1: Sleep / Work / Loneliness / Pain / Urges)
-• Driver: [one word]
+**Main Driver** (pick 1 from: Sleep, Work, Relationships, Body, Anxiety, Urges/Escape, Shame, Trauma, Joy, Connection, Growth, Peace - PREFER drivers tagged in journals)
+• Driver: [one word matching a journal driver if available]
 • Confidence: [High/Med/Low]
-• Evidence: [quote from daily notes OR journal OR specific metric]
+• Evidence: [quote from daily notes OR journal OR specific metric + journal driver tag if present]
 
 **Pattern** (1-2 lines max, from daily notes/journal history)
 • Cycle: [trigger] → [coping] → [outcome]
@@ -2894,7 +2933,8 @@ OUTPUT FORMAT (follow exactly):
 • Avoid: [1 "minimize damage" suggestion for next 12-24h]
 
 RULES:
-- Weight priority: Daily notes + Journal text (highest, recency bias) > sleep hours (high) > mood/energy/stress/pain/capacity > habits/routine (low weight, context only)
+- Weight priority: Daily notes + Journal text (HIGHEST, recency bias) > Journal drivers (HIGH) > sleep hours (HIGH) > mood/energy/stress/pain/capacity (MEDIUM) > habits/routine (LOW, context only)
+- If journal entries have tagged drivers, PREFER those as Main Driver - they are user-selected HIGH WEIGHT evidence
 - ALWAYS include sleep hours in your analysis - it's a key metric
 - Never blame habits/routine completion. Say "low completion likely due to low capacity" not "you failed"
 - Use neutral language: "state" not "alter/member/fronting"

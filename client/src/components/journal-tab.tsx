@@ -139,7 +139,6 @@ export function JournalTab() {
   const [entryDate, setEntryDate] = useState<Date>(new Date());
   const [primaryDriver, setPrimaryDriver] = useState<string | null>(null);
   const [secondaryDriver, setSecondaryDriver] = useState<string | null>(null);
-  const [showDrivers, setShowDrivers] = useState(false);
 
   const insertFormatting = useCallback((prefix: string, suffix: string = prefix) => {
     const textarea = textareaRef.current;
@@ -180,7 +179,6 @@ export function JournalTab() {
     setEntryDate(new Date());
     setPrimaryDriver(null);
     setSecondaryDriver(null);
-    setShowDrivers(false);
   };
 
   const handleSubmit = () => {
@@ -539,6 +537,84 @@ export function JournalTab() {
               })}
             </div>
 
+            {/* Drivers Section - always visible at top */}
+            <div className="bg-white rounded-xl border border-slate-200 p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="w-4 h-4 text-amber-500" />
+                <span className="text-xs font-medium text-slate-600">What's driving this entry?</span>
+                {primaryDriver && (
+                  <span className="text-xs text-indigo-500 ml-auto">
+                    {allDrivers.find(d => d.value === primaryDriver)?.emoji} {allDrivers.find(d => d.value === primaryDriver)?.label}
+                    {secondaryDriver && ` → ${allDrivers.find(d => d.value === secondaryDriver)?.emoji}`}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {challengingDrivers.map((driver) => (
+                  <button
+                    key={driver.value}
+                    type="button"
+                    onClick={() => setPrimaryDriver(primaryDriver === driver.value ? null : driver.value)}
+                    className={cn(
+                      "px-2 py-1 rounded-lg text-[11px] font-medium transition-all flex items-center gap-1",
+                      primaryDriver === driver.value
+                        ? "text-white shadow-sm"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    )}
+                    style={primaryDriver === driver.value ? { backgroundColor: driver.color } : {}}
+                    data-testid={`driver-primary-${driver.value}`}
+                  >
+                    <span>{driver.emoji}</span>
+                    <span>{driver.label}</span>
+                  </button>
+                ))}
+                <div className="w-px h-5 bg-slate-200 mx-1 self-center" />
+                {positiveDrivers.map((driver) => (
+                  <button
+                    key={driver.value}
+                    type="button"
+                    onClick={() => setPrimaryDriver(primaryDriver === driver.value ? null : driver.value)}
+                    className={cn(
+                      "px-2 py-1 rounded-lg text-[11px] font-medium transition-all flex items-center gap-1",
+                      primaryDriver === driver.value
+                        ? "text-white shadow-sm"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    )}
+                    style={primaryDriver === driver.value ? { backgroundColor: driver.color } : {}}
+                    data-testid={`driver-primary-${driver.value}`}
+                  >
+                    <span>{driver.emoji}</span>
+                    <span>{driver.label}</span>
+                  </button>
+                ))}
+              </div>
+              {primaryDriver && !["none", "joy", "connection", "growth", "peace"].includes(primaryDriver) && (
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-[10px] text-slate-400 mb-2">Secondary driver? (e.g., Work → Urges)</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[...challengingDrivers.filter(d => d.value !== primaryDriver), ...positiveDrivers.filter(d => d.value !== "none")].map((driver) => (
+                      <button
+                        key={driver.value}
+                        type="button"
+                        onClick={() => setSecondaryDriver(secondaryDriver === driver.value ? null : driver.value)}
+                        className={cn(
+                          "px-2 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1",
+                          secondaryDriver === driver.value
+                            ? "text-white shadow-sm"
+                            : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                        )}
+                        style={secondaryDriver === driver.value ? { backgroundColor: driver.color } : {}}
+                        data-testid={`driver-secondary-${driver.value}`}
+                      >
+                        <span>{driver.emoji}</span>
+                        <span>{driver.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <TooltipProvider>
                 <div className="flex items-center gap-1 px-3 py-2 border-b border-slate-100 bg-slate-50/50">
@@ -816,103 +892,6 @@ export function JournalTab() {
                         data-testid="slider-energy"
                       />
                     </div>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-
-              <Collapsible open={showDrivers} onOpenChange={setShowDrivers}>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full p-3 bg-white rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors" data-testid="trigger-drivers">
-                  <Zap className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm font-medium text-slate-600 flex-1 text-left">Drivers</span>
-                  {primaryDriver && (
-                    <span className="text-xs text-indigo-500 mr-2">
-                      {allDrivers.find(d => d.value === primaryDriver)?.emoji} {allDrivers.find(d => d.value === primaryDriver)?.label}
-                      {secondaryDriver && ` → ${allDrivers.find(d => d.value === secondaryDriver)?.emoji}`}
-                    </span>
-                  )}
-                  <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", showDrivers && "rotate-180")} />
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="mt-2 p-4 bg-white rounded-xl border border-slate-200 space-y-4">
-                    <div>
-                      <label className="text-xs font-medium text-slate-500 mb-2 block">Primary Driver</label>
-                      <p className="text-[10px] text-slate-400 mb-3">What's the main thing influencing this entry?</p>
-                      
-                      <div className="mb-3">
-                        <p className="text-[10px] text-slate-500 mb-2 uppercase tracking-wider">Challenging</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {challengingDrivers.map((driver) => (
-                            <button
-                              key={driver.value}
-                              type="button"
-                              onClick={() => setPrimaryDriver(primaryDriver === driver.value ? null : driver.value)}
-                              className={cn(
-                                "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5",
-                                primaryDriver === driver.value
-                                  ? "text-white shadow-md"
-                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                              )}
-                              style={primaryDriver === driver.value ? { backgroundColor: driver.color } : {}}
-                              data-testid={`driver-primary-${driver.value}`}
-                            >
-                              <span>{driver.emoji}</span>
-                              <span>{driver.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <p className="text-[10px] text-slate-500 mb-2 uppercase tracking-wider">Positive / Neutral</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {positiveDrivers.map((driver) => (
-                            <button
-                              key={driver.value}
-                              type="button"
-                              onClick={() => setPrimaryDriver(primaryDriver === driver.value ? null : driver.value)}
-                              className={cn(
-                                "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5",
-                                primaryDriver === driver.value
-                                  ? "text-white shadow-md"
-                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                              )}
-                              style={primaryDriver === driver.value ? { backgroundColor: driver.color } : {}}
-                              data-testid={`driver-primary-${driver.value}`}
-                            >
-                              <span>{driver.emoji}</span>
-                              <span>{driver.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {primaryDriver && !["none", "joy", "connection", "growth", "peace"].includes(primaryDriver) && (
-                      <div className="pt-3 border-t border-slate-100">
-                        <label className="text-xs font-medium text-slate-500 mb-2 block">Secondary Driver (Optional)</label>
-                        <p className="text-[10px] text-slate-400 mb-3">Often: Trigger → Secondary response (e.g., Work → Urges/Escape)</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {[...challengingDrivers.filter(d => d.value !== primaryDriver), ...positiveDrivers.filter(d => d.value !== "none")].map((driver) => (
-                            <button
-                              key={driver.value}
-                              type="button"
-                              onClick={() => setSecondaryDriver(secondaryDriver === driver.value ? null : driver.value)}
-                              className={cn(
-                                "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5",
-                                secondaryDriver === driver.value
-                                  ? "text-white shadow-md"
-                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                              )}
-                              style={secondaryDriver === driver.value ? { backgroundColor: driver.color } : {}}
-                              data-testid={`driver-secondary-${driver.value}`}
-                            >
-                              <span>{driver.emoji}</span>
-                              <span>{driver.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </CollapsibleContent>
               </Collapsible>
