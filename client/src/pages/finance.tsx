@@ -522,7 +522,7 @@ export default function FinancePage() {
         return {
           type: t.type,
           name: t.name,
-          amount: t.amount,
+          amount: Math.round(t.amount),
           category: t.category,
           date: txDate,
           month: monthName,

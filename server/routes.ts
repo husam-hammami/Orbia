@@ -2481,7 +2481,7 @@ MERCHANT FIELD:
         return {
           type: t.type,
           name: t.name,
-          amount: Math.abs(Number(t.amount)),
+          amount: Math.round(Math.abs(Number(t.amount))),
           category: t.category || "other",
           date: txDate.toISOString(),
           month: monthName,
