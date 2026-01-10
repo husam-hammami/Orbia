@@ -1,9 +1,10 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, BarChart2, Settings, Menu, Briefcase, BrainCircuit, Sparkles, Wallet, ClipboardList, Orbit } from "lucide-react";
+import { LayoutDashboard, BarChart2, Settings, Menu, Briefcase, BrainCircuit, Sparkles, Wallet, ClipboardList, Orbit, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { WorkTimer } from "@/components/work-timer";
 
 interface SidebarProps {
   className?: string;
@@ -152,6 +153,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </SheetContent>
           </Sheet>
         </header>
+
+        {/* Global Focus Timer - accessible from any page */}
+        <div className="fixed top-4 right-4 z-50">
+          <WorkTimer />
+        </div>
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className="w-full px-4 md:px-6 lg:px-8 xl:px-10 py-4 md:py-6 lg:py-8 space-y-6">
