@@ -125,7 +125,10 @@ Evidence-Based 4-Section Format (mandatory for all analytical responses):
 4. **Action**: Do (1 tiny action ≤10 min) | Avoid (1 suggestion for next 12-24h)
 
 Weighting Priority:
-- Journal text (highest, recency bias) > sleepHours > mood/energy/stress/pain/capacity > habits/routine/tasks (context only)
+- HIGHEST: Daily notes from State entries + Journal text (recency bias applies to both)
+- HIGH: Sleep hours (always included in analysis as key metric)
+- MEDIUM: Mood, energy, stress, pain, capacity
+- LOW: Habits/routine/tasks completion (context only, never blamed)
 
 Evidence Requirement:
 - Every claim MUST include a journal quote snippet OR concrete metric value

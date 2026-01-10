@@ -2253,7 +2253,8 @@ WHAT YOU MUST NOT DO:
 - Blame habits/routine/tasks for bad days (say "low completion likely due to low capacity" not "you failed")
 
 ANALYSIS WEIGHTING (when giving insights):
-- HIGH weight: Journal text (with recency bias), sleep hours
+- HIGHEST weight: Daily notes from state entries + Journal text (with recency bias)
+- HIGH weight: Sleep hours (always include in analysis)
 - MEDIUM weight: Mood, energy, stress, pain, capacity
 - LOW weight: Habits completion, routine %, tasks done (context only, never primary explanation)
 
@@ -2828,6 +2829,17 @@ ${JSON.stringify(context, null, 2)}`;
       const todayEnergy = todayEntries.length > 0 ? todayEntries[0].energy : "N/A";
       const todayCapacity = todayEntries.find(e => e.capacity != null)?.capacity ?? "N/A";
       
+      // Tracker entry notes (daily notes from State input - HIGH WEIGHT)
+      const recentTrackerNotes = recentEntries
+        .filter(e => e.notes && e.notes.trim().length > 0)
+        .slice(0, 15)
+        .map(e => {
+          const date = new Date(e.timestamp).toLocaleDateString();
+          const time = new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const notes = e.notes?.slice(0, 150) + (e.notes && e.notes.length > 150 ? "..." : "");
+          return `[${date} ${time}] sleep=${e.sleepHours || 'N/A'}h, mood=${e.mood}/10: "${notes}"`;
+        }).join("\n");
+      
       // Journal excerpts (most recent with recency bias)
       const recentJournals = journalEntries
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -2854,7 +2866,11 @@ FACTS (provided):
 - Sleep avg (7d): ${avgSleep}h | Mood avg: ${avgMood}/10 | Energy avg: ${avgEnergy}/10
 - Today: sleep=${todaySleep}h, mood=${todayMood}/10, energy=${todayEnergy}/10, capacity=${todayCapacity}/5
 - Journal present: ${journalEntries.length > 0 ? "yes" : "no"}
+- Daily notes present: ${recentTrackerNotes.length > 0 ? "yes" : "no"}
 - Current state: ${currentState}
+
+DAILY NOTES FROM STATE ENTRIES (HIGH WEIGHT - analyze these first):
+${recentTrackerNotes || "No daily notes"}
 
 JOURNAL EXCERPTS (analyze deeply, link patterns across entries):
 ${journalExcerpts || "No journal entries"}
@@ -2868,9 +2884,9 @@ OUTPUT FORMAT (follow exactly):
 **Main Driver** (pick 1: Sleep / Work / Loneliness / Pain / Urges)
 • Driver: [one word]
 • Confidence: [High/Med/Low]
-• Evidence: [quote from journal OR specific metric]
+• Evidence: [quote from daily notes OR journal OR specific metric]
 
-**Pattern** (1-2 lines max, from journal history)
+**Pattern** (1-2 lines max, from daily notes/journal history)
 • Cycle: [trigger] → [coping] → [outcome]
 
 **Action**
@@ -2878,7 +2894,8 @@ OUTPUT FORMAT (follow exactly):
 • Avoid: [1 "minimize damage" suggestion for next 12-24h]
 
 RULES:
-- Weight priority: journal text > sleep hours > mood/energy/stress > habits/routine (low weight, context only)
+- Weight priority: Daily notes + Journal text (highest, recency bias) > sleep hours (high) > mood/energy/stress/pain/capacity > habits/routine (low weight, context only)
+- ALWAYS include sleep hours in your analysis - it's a key metric
 - Never blame habits/routine completion. Say "low completion likely due to low capacity" not "you failed"
 - Use neutral language: "state" not "alter/member/fronting"
 - Every insight needs evidence (quote or metric)
