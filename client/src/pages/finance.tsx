@@ -43,7 +43,8 @@ import {
   Upload,
   Sparkles,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Check
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -255,6 +256,25 @@ export default function FinancePage() {
   const handleDeleteIncomeStream = (id: string) => {
     deleteIncomeStream.mutate(id, {
       onSuccess: () => toast.success("Income stream removed")
+    });
+  };
+
+  const handleLogIncomePayment = (stream: { id: string; name: string; amount: number; category?: string }) => {
+    const now = new Date();
+    createTransaction.mutate({
+      type: "income",
+      name: stream.name,
+      amount: stream.amount,
+      category: stream.category || "salary",
+      date: now,
+      month: currentMonth,
+      isRecurring: 0,
+      incomeStreamId: stream.id,
+      notes: null
+    }, {
+      onSuccess: () => {
+        toast.success(`Logged ${stream.name} payment`);
+      }
     });
   };
 
@@ -594,6 +614,15 @@ export default function FinancePage() {
                         <span className="font-mono text-sm text-emerald-600">
                           {formatCurrency(Number(stream.amount), currency)}
                         </span>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-6 text-xs px-2 opacity-0 group-hover:opacity-100"
+                          onClick={() => handleLogIncomePayment(stream)}
+                          data-testid={`log-payment-${stream.id}`}
+                        >
+                          <Check className="w-3 h-3 mr-1" /> Log
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
