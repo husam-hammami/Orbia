@@ -314,7 +314,7 @@ export const insertCareerTaskSchema = createInsertSchema(careerTasks).omit({
 export type CareerTask = typeof careerTasks.$inferSelect;
 export type InsertCareerTask = z.infer<typeof insertCareerTaskSchema>;
 
-// Finance Expenses
+// Finance Expenses (legacy - kept for backwards compatibility)
 export const expenses = pgTable("expenses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -334,6 +334,51 @@ export const insertExpenseSchema = createInsertSchema(expenses).omit({
 
 export type Expense = typeof expenses.$inferSelect;
 export type InsertExpense = z.infer<typeof insertExpenseSchema>;
+
+// Income Streams (salary, freelance, benefits, etc.)
+export const incomeStreams = pgTable("income_streams", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(), // "Monthly Salary", "Freelance", "Rental Income"
+  amount: integer("amount").notNull(), // amount per occurrence
+  frequency: text("frequency").notNull().default("monthly"), // "monthly" | "biweekly" | "weekly" | "one_time"
+  dayOfMonth: integer("day_of_month"), // 1-31 for monthly, null for others
+  isActive: integer("is_active").notNull().default(1), // 0 = false, 1 = true
+  category: text("category").notNull().default("salary"), // "salary" | "freelance" | "benefits" | "investment" | "other"
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertIncomeStreamSchema = createInsertSchema(incomeStreams).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type IncomeStream = typeof incomeStreams.$inferSelect;
+export type InsertIncomeStream = z.infer<typeof insertIncomeStreamSchema>;
+
+// Financial Transactions (unified income and expenses)
+export const transactions = pgTable("transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: text("type").notNull(), // "income" | "expense"
+  name: text("name").notNull(),
+  amount: integer("amount").notNull(), // always positive, type determines direction
+  category: text("category").notNull(), // "salary" | "food" | "transport" | "utilities" | "entertainment" | "healthcare" | "shopping" | "debt_payment" | "savings" | "other"
+  date: timestamp("date").notNull(), // actual transaction date
+  month: text("month").notNull(), // "January 2026" for easy filtering
+  isRecurring: integer("is_recurring").notNull().default(0), // 0 = false, 1 = true
+  incomeStreamId: varchar("income_stream_id").references(() => incomeStreams.id), // if linked to income stream
+  notes: text("notes"),
+  importSource: text("import_source"), // "manual" | "ai_import" | "bank_statement"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertTransactionSchema = createInsertSchema(transactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Transaction = typeof transactions.$inferSelect;
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 
 // Career Vision
 export const careerVision = pgTable("career_vision", {
@@ -360,6 +405,8 @@ export const financeSettings = pgTable("finance_settings", {
   debtTotal: integer("debt_total").notNull().default(0),
   debtPaid: integer("debt_paid").notNull().default(0),
   debtMonthlyPayment: integer("debt_monthly_payment").notNull().default(0),
+  currency: text("currency").notNull().default("AED"), // "AED" | "USD" | "EUR" | "GBP" etc.
+  savingsGoal: integer("savings_goal").notNull().default(0), // monthly savings target
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
