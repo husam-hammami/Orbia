@@ -48,7 +48,7 @@ export const trackerEntries = pgTable("tracker_entries", {
 });
 
 export const insertTrackerEntrySchema = createInsertSchema(trackerEntries, {
-  timestamp: z.coerce.date(),
+  timestamp: z.coerce.date().optional(),
 }).omit({
   id: true,
   createdAt: true,
