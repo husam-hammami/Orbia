@@ -97,7 +97,7 @@ export function MoodTracker() {
   ];
 
   const tags = [
-    "Therapy", "Pain Spike", "Insomnia", "Triggered", "Switchy", "Productive", 
+    "Therapy", "Pain Spike", "Insomnia", "Triggered", "Shifting", "Productive", 
     "Socializing", "Medication", "Grounding", "Flashback", "Rest"
   ];
 
@@ -126,7 +126,9 @@ export function MoodTracker() {
       energy: motivation[0],
       stress: stress[0] * 10,
       dissociation: dissociation[0] * 10,
+      sleepHours: sleep[0] > 0 ? sleep[0] : null,
       capacity: capacity[0],
+      pain: null,
       triggerTag: triggerTag,
       workLoad: workLoad[0] > 0 ? workLoad[0] : null,
       workTag: workTag,
@@ -338,9 +340,9 @@ export function MoodTracker() {
                        <Slider value={systemComm} onValueChange={setSystemComm} max={10} step={1} className="h-4 [&_.bg-primary]:bg-indigo-500" />
                     </div>
                     
-                    {/* Who is fronting? */}
+                    {/* Active State */}
                     <div>
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Who is fronting?</label>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Active State</label>
                         {membersLoading ? (
                           <div className="flex items-center gap-2 text-muted-foreground text-sm">
                             <Loader2 className="w-4 h-4 animate-spin" /> Loading...
@@ -377,7 +379,7 @@ export function MoodTracker() {
                               ))}
                           </div>
                         ) : (
-                          <p className="text-sm text-muted-foreground">No members yet. Add members in System Insight.</p>
+                          <p className="text-sm text-muted-foreground">No states yet. Add states in Deep Mind.</p>
                         )}
                     </div>
 

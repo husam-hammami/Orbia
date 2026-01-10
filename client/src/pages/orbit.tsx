@@ -63,7 +63,11 @@ import {
   useCreateJournalEntry,
   useUpdateJournalEntry,
   useDeleteJournalEntry,
-  useDashboardInsights
+  useDashboardInsights,
+  useCareerVision,
+  useCreateVisionItem,
+  useUpdateVisionItem,
+  useDeleteVisionItem
 } from "@/lib/api-hooks";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
@@ -230,6 +234,10 @@ export default function OrbitPage() {
   const createJournalEntry = useCreateJournalEntry();
   const updateJournalEntry = useUpdateJournalEntry();
   const deleteJournalEntry = useDeleteJournalEntry();
+  const { data: visionItems } = useCareerVision();
+  const createVisionItem = useCreateVisionItem();
+  const updateVisionItem = useUpdateVisionItem();
+  const deleteVisionItem = useDeleteVisionItem();
   
   const logMealMutation = useMutation({
     mutationFn: async (data: { date: string; breakfast?: string; lunch?: string; dinner?: string }) => {
@@ -704,6 +712,31 @@ export default function OrbitPage() {
           return { success: true, message: `Deleted meal option: "${option?.name || option_id}"` };
         }
         
+        // VISION ACTIONS
+        case "create_vision": {
+          const { title, timeframe, color } = action.args;
+          await createVisionItem.mutateAsync({
+            title,
+            timeframe: timeframe || "1 year",
+            color: color || "text-blue-500"
+          });
+          return { success: true, message: `Created vision: "${title}"` };
+        }
+        
+        case "update_vision": {
+          const { vision_id, ...updates } = action.args;
+          await updateVisionItem.mutateAsync({ id: vision_id, ...updates });
+          const vision = visionItems?.find(v => v.id === vision_id);
+          return { success: true, message: `Updated vision: "${vision?.title || vision_id}"` };
+        }
+        
+        case "delete_vision": {
+          const { vision_id } = action.args;
+          const vision = visionItems?.find(v => v.id === vision_id);
+          await deleteVisionItem.mutateAsync(vision_id);
+          return { success: true, message: `Deleted vision: "${vision?.title || vision_id}"` };
+        }
+        
         default:
           return { success: false, message: `Unknown action: ${action.name}` };
       }
@@ -843,7 +876,7 @@ export default function OrbitPage() {
     setDismissedNudges(prev => {
       const newSet = new Set(prev);
       newSet.add(nudgeId);
-      sessionStorage.setItem("orbit_dismissed_nudges", JSON.stringify([...newSet]));
+      sessionStorage.setItem("orbit_dismissed_nudges", JSON.stringify(Array.from(newSet)));
       return newSet;
     });
   };
@@ -944,7 +977,7 @@ export default function OrbitPage() {
                   <div className="w-px h-4 bg-border" />
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-teal-600" />
-                    <span className="text-muted-foreground">Front:</span>
+                    <span className="text-muted-foreground">Active:</span>
                     <span className="font-medium">{latestFronter}</span>
                   </div>
                 </>

@@ -799,6 +799,49 @@ export function useUpdateCareerVision() {
   });
 }
 
+export function useCreateVisionItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { title: string; timeframe: string; color: string }) =>
+      fetchAPI("/api/vision/item", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["careerVision"] });
+    },
+  });
+}
+
+export function useUpdateVisionItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; title?: string; timeframe?: string; color?: string }) =>
+      fetchAPI(`/api/vision/item/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["careerVision"] });
+    },
+  });
+}
+
+export function useDeleteVisionItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchAPI(`/api/vision/item/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["careerVision"] });
+    },
+  });
+}
+
 // Finance Settings Hooks
 interface FinanceSettingsData {
   id?: string;

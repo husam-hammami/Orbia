@@ -413,7 +413,7 @@ export function HeadspaceMap() {
         </div>
         <div className="text-center space-y-1">
           <p className="text-sm font-medium text-foreground/70">No presence data yet</p>
-          <p className="text-xs text-muted-foreground">Log entries with fronting member to visualize system activity</p>
+          <p className="text-xs text-muted-foreground">Log entries with active state to visualize activity</p>
         </div>
       </div>
     );
@@ -429,7 +429,7 @@ export function HeadspaceMap() {
                 <Users className="w-5 h-5 text-violet-600 dark:text-violet-400" />
               </div>
               <div>
-                <p className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">Top Fronter</p>
+                <p className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">Top State</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">{summaryStats.topMember?.name || "—"}</p>
               </div>
             </div>
@@ -443,7 +443,7 @@ export function HeadspaceMap() {
                 <Zap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <p className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">Avg Switches/Day</p>
+                <p className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">Avg State Shifts/Day</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">{summaryStats.avgTransitionsPerDay || 0}</p>
               </div>
             </div>
@@ -685,7 +685,7 @@ export function HeadspaceMap() {
                     <div className="relative px-6 pb-6">
                       <div className="flex items-center gap-2 mb-3">
                         <Layers className="w-4 h-4 text-fuchsia-400" />
-                        <span className="text-xs font-semibold text-fuchsia-300 uppercase tracking-wider">Alter Currents</span>
+                        <span className="text-xs font-semibold text-fuchsia-300 uppercase tracking-wider">State Currents</span>
                       </div>
                       
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -812,7 +812,7 @@ export function HeadspaceMap() {
                     <Calendar className="w-4 h-4 text-emerald-500" /> 
                     Monthly Presence
                   </CardTitle>
-                  <CardDescription className="text-xs text-slate-500">Each day colored by dominant fronter</CardDescription>
+                  <CardDescription className="text-xs text-slate-500">Each day colored by dominant state</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonthOffset(m => m - 1)} data-testid="month-prev">
@@ -922,7 +922,7 @@ export function HeadspaceMap() {
                 <TrendingUp className="w-4 h-4 text-fuchsia-500" /> 
                 30-Day Trends
               </CardTitle>
-              <CardDescription className="text-xs text-slate-500">Fronting hours per day over the last month</CardDescription>
+              <CardDescription className="text-xs text-slate-500">Active hours per day over the last month</CardDescription>
             </CardHeader>
             <CardContent className="pt-4">
               <div className="h-[280px] rounded-xl bg-slate-950 p-4">

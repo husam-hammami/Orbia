@@ -131,31 +131,31 @@ export default function Settings() {
                     <CardContent className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="grid gap-2">
-                                <Label>Member Term</Label>
-                                <Select defaultValue="alters">
+                                <Label>State Term</Label>
+                                <Select defaultValue="states">
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select term" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="alters">Alters</SelectItem>
+                                        <SelectItem value="states">States</SelectItem>
                                         <SelectItem value="parts">Parts</SelectItem>
-                                        <SelectItem value="headmates">Headmates</SelectItem>
-                                        <SelectItem value="members">System Members</SelectItem>
+                                        <SelectItem value="modes">Modes</SelectItem>
+                                        <SelectItem value="aspects">Aspects</SelectItem>
                                         <SelectItem value="others">Others</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="grid gap-2">
                                 <Label>Active State Term</Label>
-                                <Select defaultValue="fronting">
+                                <Select defaultValue="active">
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select term" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="fronting">Fronting</SelectItem>
-                                        <SelectItem value="out">Out</SelectItem>
                                         <SelectItem value="active">Active</SelectItem>
-                                        <SelectItem value="driving">Driving</SelectItem>
+                                        <SelectItem value="current">Current</SelectItem>
+                                        <SelectItem value="present">Present</SelectItem>
+                                        <SelectItem value="engaged">Engaged</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -234,7 +234,7 @@ export default function Settings() {
                             <div className="space-y-0.5">
                                 <Label className="text-base">Discreet Mode</Label>
                                 <p className="text-sm text-muted-foreground">
-                                    Hide sensitive terms (like "Alter", "System") when in public.
+                                    Use neutral terminology and hide sensitive labels when in public.
                                 </p>
                             </div>
                             <Switch checked={privacyMode} onCheckedChange={setPrivacyMode} />

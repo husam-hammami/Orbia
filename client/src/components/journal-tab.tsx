@@ -70,7 +70,7 @@ const timeOfDayOptions = [
 
 const tagOptions = [
   "anxiety", "calm", "dissociation", "grounded", "triggered", "safe", 
-  "switching", "co-conscious", "pain", "tired", "hopeful", "overwhelmed",
+  "state shift", "co-conscious", "pain", "tired", "hopeful", "overwhelmed",
   "productive", "creative", "lonely", "connected", "numb", "present"
 ];
 

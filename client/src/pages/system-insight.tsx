@@ -166,29 +166,30 @@ export default function SystemInsight() {
     }
     
     const traits = traitsInput.split(",").map(t => t.trim()).filter(Boolean);
-    const payload: InsertSystemMember = {
+    const locationValue: string | null = formData.location?.trim() || null;
+    const memberData = {
       name: formData.name.trim(),
       role: formData.role.trim(),
       description: formData.description.trim(),
       color: formData.color,
       avatar: formData.avatar,
-      location: formData.location.trim() || null,
+      location: locationValue as string | null,
       traits,
     };
     
     try {
       if (editingMember) {
-        await updateMember.mutateAsync({ id: editingMember.id, data: payload });
-        toast.success(`Updated ${payload.name}`);
+        await updateMember.mutateAsync({ id: editingMember.id, data: memberData as any });
+        toast.success(`Updated ${memberData.name}`);
       } else {
-        await createMember.mutateAsync(payload);
-        toast.success(`Added ${payload.name}`);
+        await createMember.mutateAsync(memberData as any);
+        toast.success(`Added ${memberData.name}`);
       }
       setIsDialogOpen(false);
       resetForm();
       refetchOverview();
     } catch (error) {
-      toast.error("Failed to save member");
+      toast.error("Failed to save state");
     }
   };
   
@@ -201,7 +202,7 @@ export default function SystemInsight() {
       setMemberToDelete(null);
       refetchOverview();
     } catch (error) {
-      toast.error("Failed to delete member");
+      toast.error("Failed to delete state");
     }
   };
   
@@ -345,7 +346,7 @@ export default function SystemInsight() {
               <Card className="border-border/50">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-muted-foreground">Switches/Day</span>
+                    <span className="text-sm font-medium text-muted-foreground">State Shifts/Day</span>
                     <Users className="w-4 h-4 text-indigo-500" />
                   </div>
                   <div className="text-3xl font-bold">{metrics?.avgSwitchesPerDay || 0}</div>
@@ -367,7 +368,7 @@ export default function SystemInsight() {
                     <Users className="w-6 h-6" style={{ color: overview.currentFronter.color }} />
                   </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">Currently Fronting</div>
+                    <div className="text-sm text-muted-foreground">Active State</div>
                     <div className="text-xl font-bold" style={{ color: overview.currentFronter.color }}>
                       {overview.currentFronter.name}
                     </div>
@@ -457,12 +458,12 @@ export default function SystemInsight() {
                       <div>
                         <CardTitle className="text-lg flex items-center gap-2">
                           <Users className="w-5 h-5 text-muted-foreground" />
-                          System Members ({members.length})
+                          States ({members.length})
                         </CardTitle>
-                        <CardDescription>Manage your system directory</CardDescription>
+                        <CardDescription>Manage your state directory</CardDescription>
                       </div>
                       <Button onClick={openAddDialog} className="bg-teal-700 hover:bg-teal-600 text-white" data-testid="button-add-member">
-                        <Plus className="w-4 h-4 mr-2" /> Add Member
+                        <Plus className="w-4 h-4 mr-2" /> Add State
                       </Button>
                     </div>
                   </CardHeader>
@@ -470,7 +471,7 @@ export default function SystemInsight() {
                     {members.length === 0 ? (
                       <div className="text-center py-12 text-muted-foreground">
                         <Users className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                        <p>No members yet. Add your first system member to get started.</p>
+                        <p>No states yet. Add your first state to get started.</p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -527,13 +528,13 @@ export default function SystemInsight() {
         )}
       </div>
       
-      {/* Add/Edit Member Dialog */}
+      {/* Add/Edit State Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForm(); }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>{editingMember ? "Edit Member" : "Add New Member"}</DialogTitle>
+            <DialogTitle>{editingMember ? "Edit State" : "Add New State"}</DialogTitle>
             <DialogDescription>
-              {editingMember ? "Update this system member's information." : "Add a new member to your system directory."}
+              {editingMember ? "Update this state's information." : "Add a new state to your directory."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -544,7 +545,7 @@ export default function SystemInsight() {
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Member name"
+                  placeholder="State name"
                   data-testid="input-member-name"
                 />
               </div>
@@ -639,7 +640,7 @@ export default function SystemInsight() {
             </Button>
             <Button onClick={handleSave} disabled={createMember.isPending || updateMember.isPending} className="bg-teal-700 hover:bg-teal-600 text-white" data-testid="button-save-member">
               {(createMember.isPending || updateMember.isPending) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {editingMember ? "Save Changes" : "Add Member"}
+              {editingMember ? "Save Changes" : "Add State"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -651,7 +652,7 @@ export default function SystemInsight() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {memberToDelete?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove this member from your system directory. This action cannot be undone.
+              This will permanently remove this state from your directory. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

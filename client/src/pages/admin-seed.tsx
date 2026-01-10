@@ -57,7 +57,7 @@ export default function AdminSeed() {
               Admin: Seed Database
             </CardTitle>
             <CardDescription>
-              Populate the database with initial data (habits, routines, system members, career projects).
+              Populate the database with initial data (habits, routines, states, career projects).
               This is a one-time operation for new deployments.
             </CardDescription>
           </CardHeader>

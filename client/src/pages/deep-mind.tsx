@@ -217,7 +217,7 @@ export default function DeepMind() {
 
   const handleCommitLog = () => {
     if (!selectedMember) {
-      toast.error("Please select who is fronting");
+      toast.error("Please select active state");
       return;
     }
 
@@ -230,7 +230,9 @@ export default function DeepMind() {
       energy: Math.round(communication[0] / 20),
       stress: stress[0],
       dissociation: dissociation[0],
+      sleepHours: null,
       capacity: null,
+      pain: null,
       triggerTag: null,
       workLoad: null,
       workTag: null,
@@ -796,7 +798,7 @@ export default function DeepMind() {
                       <div className="p-3 bg-purple-500/5 border border-purple-500/20 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <Fingerprint className="w-4 h-4 text-purple-500" />
-                          <span className="text-sm font-medium">System Member Activity</span>
+                          <span className="text-sm font-medium">State Activity</span>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {frontingPatterns.map((pattern, i) => (
@@ -952,9 +954,9 @@ export default function DeepMind() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Users className="w-5 h-5 text-purple-500" />
-                                    System Member Patterns
+                                    State Patterns
                                 </CardTitle>
-                                <CardDescription>Mood and stress patterns for each system member</CardDescription>
+                                <CardDescription>Mood and stress patterns for each state</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {insights?.rawCorrelations?.frontingPatterns && insights.rawCorrelations.frontingPatterns.length > 0 ? (
@@ -983,7 +985,7 @@ export default function DeepMind() {
                                             {insights.rawCorrelations.frontingPatterns.map((f: any, i: number) => (
                                                 <div key={i} className="p-2 bg-muted/30 rounded-lg text-center">
                                                     <div className="text-lg font-bold" style={{ color: members?.find(m => m.name === f.name)?.color }}>{f.percentageOfEntries}%</div>
-                                                    <div className="text-[10px] text-muted-foreground">{f.name} fronting</div>
+                                                    <div className="text-[10px] text-muted-foreground">{f.name} active</div>
                                                 </div>
                                             ))}
                                         </div>
@@ -991,7 +993,7 @@ export default function DeepMind() {
                                 ) : (
                                     <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                                         <Users className="w-10 h-10 mb-3 opacity-30" />
-                                        <p className="text-sm">Log which member is fronting to see patterns</p>
+                                        <p className="text-sm">Log active state to see patterns</p>
                                     </div>
                                 )}
                             </CardContent>

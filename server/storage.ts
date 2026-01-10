@@ -596,6 +596,23 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async createVisionItem(data: InsertCareerVision): Promise<CareerVision> {
+    const maxOrder = await db.select().from(careerVision).orderBy(desc(careerVision.order)).limit(1);
+    const nextOrder = maxOrder.length > 0 ? (maxOrder[0].order + 1) : 0;
+    const result = await db.insert(careerVision).values({ ...data, order: nextOrder }).returning();
+    return result[0];
+  }
+
+  async updateVisionItem(id: string, data: Partial<InsertCareerVision>): Promise<CareerVision | undefined> {
+    const result = await db.update(careerVision).set(data).where(eq(careerVision.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteVisionItem(id: string): Promise<boolean> {
+    const result = await db.delete(careerVision).where(eq(careerVision.id, id)).returning();
+    return result.length > 0;
+  }
+
   // Finance Settings
   async getFinanceSettings(): Promise<FinanceSettings | undefined> {
     const result = await db.select().from(financeSettings);
