@@ -737,6 +737,19 @@ export default function OrbitPage() {
           return { success: true, message: `Deleted vision: "${vision?.title || vision_id}"` };
         }
         
+        // ROADMAP ACTION
+        case "refresh_roadmap": {
+          const response = await fetch("/api/career/coach", { method: "POST" });
+          if (!response.ok) {
+            throw new Error("Failed to regenerate roadmap");
+          }
+          const data = await response.json();
+          if (data.error) {
+            return { success: false, message: data.message || "Failed to regenerate roadmap" };
+          }
+          return { success: true, message: "Roadmap regenerated with your updated vision! Check Career & Vision page." };
+        }
+        
         default:
           return { success: false, message: `Unknown action: ${action.name}` };
       }

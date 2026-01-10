@@ -2710,10 +2710,11 @@ CAREER TASKS:
 - update_career_task: {"task_id": "...", "title": "...", "priority": "...", "completed": 0/1}
 - delete_career_task: {"task_id": "..."} - ALWAYS set confirm:true
 
-VISION:
+VISION & ROADMAP:
 - create_vision: {"title": "...", "timeframe": "6 months/1 year/3 years/5 years", "color": "text-blue-500/text-purple-500/text-amber-500/etc"}
 - update_vision: {"vision_id": "...", "title": "...", "timeframe": "...", "color": "..."}
 - delete_vision: {"vision_id": "..."} - ALWAYS set confirm:true
+- refresh_roadmap: {} - Regenerates the AI roadmap based on current vision. Use after updating vision!
 
 EXPENSES:
 - create_expense: {"name": "...", "amount": number, "budget": number, "category": "Fixed/Variable/Savings/Debt", "status": "paid/pending/variable", "date": "Jan 1", "month": "January"}
