@@ -35,6 +35,10 @@ import {
   type InsertFinanceSettings,
   type JournalEntry,
   type InsertJournalEntry,
+  type IncomeStream,
+  type InsertIncomeStream,
+  type Transaction,
+  type InsertTransaction,
   systemMembers,
   trackerEntries,
   systemMessages,
@@ -58,6 +62,8 @@ import {
   type InsertFoodOption,
   careerCoachSnapshots,
   type CareerCoachSnapshot,
+  incomeStreams,
+  transactions,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, asc } from "drizzle-orm";
@@ -165,6 +171,22 @@ export interface IStorage {
   // Finance Settings
   getFinanceSettings(): Promise<FinanceSettings | undefined>;
   updateFinanceSettings(settings: Partial<InsertFinanceSettings>): Promise<FinanceSettings>;
+
+  // Income Streams
+  getAllIncomeStreams(): Promise<IncomeStream[]>;
+  getIncomeStream(id: string): Promise<IncomeStream | undefined>;
+  createIncomeStream(stream: InsertIncomeStream): Promise<IncomeStream>;
+  updateIncomeStream(id: string, stream: Partial<InsertIncomeStream>): Promise<IncomeStream | undefined>;
+  deleteIncomeStream(id: string): Promise<boolean>;
+
+  // Transactions
+  getAllTransactions(): Promise<Transaction[]>;
+  getTransactionsByMonth(month: string): Promise<Transaction[]>;
+  getTransaction(id: string): Promise<Transaction | undefined>;
+  createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  createManyTransactions(transactionsList: InsertTransaction[]): Promise<Transaction[]>;
+  updateTransaction(id: string, transaction: Partial<InsertTransaction>): Promise<Transaction | undefined>;
+  deleteTransaction(id: string): Promise<boolean>;
 
   // Journal Entries
   getAllJournalEntries(): Promise<JournalEntry[]>;
@@ -701,6 +723,66 @@ export class DatabaseStorage implements IStorage {
       }).returning();
       return snapshot;
     }
+  }
+
+  // Income Streams
+  async getAllIncomeStreams(): Promise<IncomeStream[]> {
+    return await db.select().from(incomeStreams).orderBy(desc(incomeStreams.createdAt));
+  }
+
+  async getIncomeStream(id: string): Promise<IncomeStream | undefined> {
+    const result = await db.select().from(incomeStreams).where(eq(incomeStreams.id, id));
+    return result[0];
+  }
+
+  async createIncomeStream(stream: InsertIncomeStream): Promise<IncomeStream> {
+    const result = await db.insert(incomeStreams).values(stream).returning();
+    return result[0];
+  }
+
+  async updateIncomeStream(id: string, stream: Partial<InsertIncomeStream>): Promise<IncomeStream | undefined> {
+    const result = await db.update(incomeStreams).set(stream).where(eq(incomeStreams.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteIncomeStream(id: string): Promise<boolean> {
+    const result = await db.delete(incomeStreams).where(eq(incomeStreams.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Transactions
+  async getAllTransactions(): Promise<Transaction[]> {
+    return await db.select().from(transactions).orderBy(desc(transactions.date));
+  }
+
+  async getTransactionsByMonth(month: string): Promise<Transaction[]> {
+    return await db.select().from(transactions).where(eq(transactions.month, month)).orderBy(desc(transactions.date));
+  }
+
+  async getTransaction(id: string): Promise<Transaction | undefined> {
+    const result = await db.select().from(transactions).where(eq(transactions.id, id));
+    return result[0];
+  }
+
+  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
+    const result = await db.insert(transactions).values(transaction).returning();
+    return result[0];
+  }
+
+  async createManyTransactions(transactionsList: InsertTransaction[]): Promise<Transaction[]> {
+    if (transactionsList.length === 0) return [];
+    const result = await db.insert(transactions).values(transactionsList).returning();
+    return result;
+  }
+
+  async updateTransaction(id: string, transaction: Partial<InsertTransaction>): Promise<Transaction | undefined> {
+    const result = await db.update(transactions).set(transaction).where(eq(transactions.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteTransaction(id: string): Promise<boolean> {
+    const result = await db.delete(transactions).where(eq(transactions.id, id)).returning();
+    return result.length > 0;
   }
 }
 

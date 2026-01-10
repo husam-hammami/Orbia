@@ -19,7 +19,9 @@ import {
   insertExpenseSchema,
   insertCareerVisionSchema,
   insertJournalEntrySchema,
-  insertFoodOptionSchema
+  insertFoodOptionSchema,
+  insertIncomeStreamSchema,
+  insertTransactionSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { registerChatRoutes } from "./replit_integrations/chat";
@@ -2211,7 +2213,7 @@ Generate a different, equally specific milestone that serves the same purpose bu
   app.get("/api/finance-settings", async (req, res) => {
     try {
       const settings = await storage.getFinanceSettings();
-      res.json(settings || { monthlyBudget: 15000, debtTotal: 0, debtPaid: 0, debtMonthlyPayment: 0 });
+      res.json(settings || { monthlyBudget: 15000, debtTotal: 0, debtPaid: 0, debtMonthlyPayment: 0, currency: "AED", savingsGoal: 0 });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch finance settings" });
     }
@@ -2223,6 +2225,193 @@ Generate a different, equally specific milestone that serves the same purpose bu
       res.json(settings);
     } catch (error) {
       res.status(500).json({ error: "Failed to update finance settings" });
+    }
+  });
+
+  // Income Streams Routes
+  app.get("/api/income-streams", async (req, res) => {
+    try {
+      const streams = await storage.getAllIncomeStreams();
+      res.json(streams);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch income streams" });
+    }
+  });
+
+  app.post("/api/income-streams", async (req, res) => {
+    try {
+      const validatedData = insertIncomeStreamSchema.parse(req.body);
+      const stream = await storage.createIncomeStream(validatedData);
+      res.status(201).json(stream);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.patch("/api/income-streams/:id", async (req, res) => {
+    try {
+      const validatedData = insertIncomeStreamSchema.partial().parse(req.body);
+      const stream = await storage.updateIncomeStream(req.params.id, validatedData);
+      if (!stream) {
+        return res.status(404).json({ error: "Income stream not found" });
+      }
+      res.json(stream);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/income-streams/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteIncomeStream(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Income stream not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete income stream" });
+    }
+  });
+
+  // Transactions Routes
+  app.get("/api/transactions", async (req, res) => {
+    try {
+      const month = req.query.month as string | undefined;
+      const txns = month
+        ? await storage.getTransactionsByMonth(month)
+        : await storage.getAllTransactions();
+      res.json(txns);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch transactions" });
+    }
+  });
+
+  app.post("/api/transactions", async (req, res) => {
+    try {
+      const validatedData = insertTransactionSchema.parse(req.body);
+      const txn = await storage.createTransaction(validatedData);
+      res.status(201).json(txn);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.post("/api/transactions/bulk", async (req, res) => {
+    try {
+      const validatedData = z.array(insertTransactionSchema).parse(req.body);
+      const txns = await storage.createManyTransactions(validatedData);
+      res.status(201).json(txns);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.patch("/api/transactions/:id", async (req, res) => {
+    try {
+      const validatedData = insertTransactionSchema.partial().parse(req.body);
+      const txn = await storage.updateTransaction(req.params.id, validatedData);
+      if (!txn) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
+      res.json(txn);
+    } catch (error) {
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  app.delete("/api/transactions/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteTransaction(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete transaction" });
+    }
+  });
+
+  // AI-powered document import for bank statements
+  app.post("/api/transactions/import", async (req, res) => {
+    try {
+      const { documentText, documentType } = req.body;
+      
+      if (!documentText) {
+        return res.status(400).json({ error: "Document text is required" });
+      }
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5.1",
+        messages: [
+          {
+            role: "system",
+            content: `You are a financial document parser. Extract transactions from bank statements, receipts, or purchase histories.
+
+Return a JSON array of transactions with this exact format:
+[{
+  "type": "income" or "expense",
+  "name": "Description of transaction",
+  "amount": number (always positive),
+  "category": one of ["salary", "food", "transport", "utilities", "entertainment", "healthcare", "shopping", "debt_payment", "savings", "investment", "freelance", "benefits", "other"],
+  "date": "YYYY-MM-DD",
+  "notes": "optional additional details"
+}]
+
+Guidelines:
+- Deposits, credits, salary, refunds = "income"
+- Withdrawals, debits, purchases, fees = "expense"
+- Amount is always positive; type indicates direction
+- Infer the best category from the description
+- Use ISO date format (YYYY-MM-DD)
+- If date not clear, use today's date
+- Extract ALL transactions you can find`
+          },
+          {
+            role: "user",
+            content: `Document type: ${documentType || "bank statement"}\n\nDocument content:\n${documentText}`
+          }
+        ],
+        response_format: { type: "json_object" },
+        max_completion_tokens: 4000,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        return res.status(500).json({ error: "Failed to parse document" });
+      }
+
+      const parsed = JSON.parse(content);
+      const extractedTransactions = parsed.transactions || parsed || [];
+      
+      const now = new Date();
+      const formattedTransactions = extractedTransactions.map((t: any) => {
+        const txDate = new Date(t.date || now);
+        const monthName = txDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+        return {
+          type: t.type,
+          name: t.name,
+          amount: Math.abs(Number(t.amount)),
+          category: t.category || "other",
+          date: txDate,
+          month: monthName,
+          isRecurring: 0,
+          notes: t.notes || null,
+          importSource: "ai_import"
+        };
+      });
+
+      res.json({ 
+        transactions: formattedTransactions,
+        count: formattedTransactions.length 
+      });
+    } catch (error) {
+      console.error("Document import error:", error);
+      res.status(500).json({ error: "Failed to parse document" });
     }
   });
 
