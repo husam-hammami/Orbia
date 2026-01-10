@@ -51,6 +51,7 @@ Key data models:
 - `trackerEntries`: Daily mood, dissociation, stress, and energy tracking
   - New fields: `capacity` (0-5 scale), `triggerTag` (work/loneliness/pain/noise/sleep/body/unknown), `timeOfDay` (auto-set: morning/afternoon/evening/night)
   - Work context: `workLoad` (0-10 hostility/draining scale), `workTag` (deadlines/conflict/firefighting/unclear/blame/chaos)
+  - Health fields: `sleepHours` (0-24), `pain` (0-10 scale)
 - `systemMessages`: Internal sticky notes for system communication
 - `headspaceRooms`: Virtual rooms representing internal spaces
 - `systemSettings`: User preferences and configuration
@@ -115,11 +116,25 @@ When activated, shows 3 core actions (grounding, stretching, leaving house/walki
 **Data Context**:
 Orbit has access to habits, routine blocks/activities/logs, todos, tracker entries, and system members to provide grounded responses.
 
-The AI insights system:
-- Parses tracker notes to extract normalized metrics (sleep, pain, comfort, communication, urges)
-- Links habits with routine activities for cross-correlation
-- Provides trauma-informed, DID-aware analysis
-- Includes data quality summary for context awareness
+**AI Analysis Guidelines** (Critical - enforced in both Deep Mind and Orbit):
+
+Evidence-Based 4-Section Format (mandatory for all analytical responses):
+1. **Facts**: 7-day + today metrics (sleepHours avg, mood avg, energy avg, today's values, journal presence)
+2. **Main Driver**: Pick exactly 1 of (Sleep/Work/Loneliness/Pain/Urges) + confidence (High/Med/Low) + evidence (journal quote OR metric)
+3. **Pattern**: 1-2 lines max describing trigger → coping → outcome cycle
+4. **Action**: Do (1 tiny action ≤10 min) | Avoid (1 suggestion for next 12-24h)
+
+Weighting Priority:
+- Journal text (highest, recency bias) > sleepHours > mood/energy/stress/pain/capacity > habits/routine/tasks (context only)
+
+Evidence Requirement:
+- Every claim MUST include a journal quote snippet OR concrete metric value
+- No unsupported statements allowed
+- Never blame habits/routine/tasks - say "low completion likely due to low capacity"
+
+Language:
+- All UI uses "state/state shifts" instead of "member/fronting/alter/switching"
+- Database fields unchanged for compatibility
 
 High-Confidence Multi-Factor Correlation Engine:
 - **routineMoodCorrelation**: Compares mood on high routine completion days (60%+) vs low completion days (30%-)
