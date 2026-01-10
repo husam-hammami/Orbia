@@ -10,7 +10,12 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -118,6 +123,22 @@ const CATEGORY_COLORS: Record<TransactionCategory, string> = {
   freelance: "bg-green-500",
   benefits: "bg-cyan-500",
   other: "bg-gray-500"
+};
+
+const CATEGORY_HEX_COLORS: Record<TransactionCategory, string> = {
+  salary: "#10b981",
+  food: "#f59e0b",
+  transport: "#3b82f6",
+  utilities: "#64748b",
+  entertainment: "#a855f7",
+  healthcare: "#f43f5e",
+  shopping: "#ec4899",
+  debt_payment: "#dc2626",
+  savings: "#14b8a6",
+  investment: "#6366f1",
+  freelance: "#22c55e",
+  benefits: "#06b6d4",
+  other: "#6b7280"
 };
 
 const formatCurrency = (amount: number, currency = "AED") => 
@@ -260,6 +281,49 @@ export default function FinancePage() {
     
     return months;
   }, [allTransactions]);
+
+  const chartData12Months = useMemo(() => {
+    const now = new Date();
+    const months: { month: string; income: number; expenses: number; netFlow: number }[] = [];
+    
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthLabel = `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+      const shortMonth = MONTHS[date.getMonth()].slice(0, 3);
+      
+      const monthTransactions = allTransactions.filter(t => t.month === monthLabel);
+      const income = monthTransactions
+        .filter(t => t.type === "income")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      const expenses = monthTransactions
+        .filter(t => t.type === "expense")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      
+      months.push({
+        month: shortMonth,
+        income,
+        expenses,
+        netFlow: income - expenses
+      });
+    }
+    
+    return months;
+  }, [allTransactions]);
+
+  const categoryChartData = useMemo(() => {
+    const map: Record<string, number> = {};
+    transactions.filter(t => t.type === "expense").forEach(t => {
+      const cat = t.category || "other";
+      map[cat] = (map[cat] || 0) + Number(t.amount);
+    });
+    return Object.entries(map)
+      .sort((a, b) => b[1] - a[1])
+      .map(([cat, value]) => ({
+        name: CATEGORY_LABELS[cat as TransactionCategory] || cat,
+        value,
+        color: CATEGORY_HEX_COLORS[cat as TransactionCategory] || "#6b7280"
+      }));
+  }, [transactions]);
 
   const handleMonthChange = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
@@ -508,8 +572,15 @@ export default function FinancePage() {
           </div>
         </div>
 
-        {/* Cash Flow Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Tabs defaultValue="summary" className="space-y-6">
+          <TabsList className="grid w-full max-w-[400px] grid-cols-2">
+            <TabsTrigger value="summary" data-testid="tab-summary">Summary</TabsTrigger>
+            <TabsTrigger value="insights" data-testid="tab-insights">Insights</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="summary" className="space-y-6">
+            {/* Cash Flow Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="border-border/50 shadow-sm bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/30 dark:to-background">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -583,85 +654,11 @@ export default function FinancePage() {
               )}
             </CardContent>
           </Card>
-        </div>
+            </div>
 
-        {/* Cash Flow Chart */}
-        <Card className="border-border/50 shadow-sm" data-testid="card-cash-flow-chart">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-indigo-500" />
-              Cash Flow Overview
-            </CardTitle>
-            <CardDescription>Income, expenses, and net flow for the last 6 months</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                <XAxis 
-                  dataKey="month" 
-                  tick={{ fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={{ stroke: '#e5e7eb' }}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={{ stroke: '#e5e7eb' }}
-                  tickFormatter={(value) => {
-                    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-                    if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
-                    return value.toString();
-                  }}
-                />
-                <Tooltip 
-                  formatter={(value: number, name: string) => [
-                    formatCurrency(value, currency),
-                    name
-                  ]}
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--background))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                  }}
-                  labelStyle={{ fontWeight: 600 }}
-                />
-                <Legend 
-                  wrapperStyle={{ paddingTop: 10 }}
-                  iconType="rect"
-                />
-                <Bar 
-                  dataKey="income" 
-                  fill="#10b981" 
-                  name="Income" 
-                  radius={[4, 4, 0, 0]}
-                  opacity={0.9}
-                />
-                <Bar 
-                  dataKey="expenses" 
-                  fill="#f43f5e" 
-                  name="Expenses" 
-                  radius={[4, 4, 0, 0]}
-                  opacity={0.9}
-                />
-                <Line 
-                  type="monotone"
-                  dataKey="netFlow" 
-                  stroke="#6366f1" 
-                  strokeWidth={2} 
-                  name="Net Flow"
-                  dot={{ r: 4, fill: '#6366f1' }}
-                  activeDot={{ r: 6 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content - Transactions */}
-          <div className="lg:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Main Content - Transactions */}
+              <div className="lg:col-span-2 space-y-6">
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
@@ -958,7 +955,207 @@ export default function FinancePage() {
               </CardContent>
             </Card>
           </div>
-        </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="insights" className="space-y-6">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold text-foreground tracking-tight">Financial Insights</h2>
+              <p className="text-muted-foreground">Analyze your spending patterns and cash flow trends</p>
+            </div>
+
+            <Card className="border-border/50 shadow-sm" data-testid="card-cash-flow-chart">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-indigo-500" />
+                  Cash Flow Overview
+                </CardTitle>
+                <CardDescription>Income, expenses, and net flow for the last 12 months</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={320}>
+                  <ComposedChart data={chartData12Months} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis 
+                      dataKey="month" 
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickFormatter={(value) => {
+                        if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                        if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                        return value.toString();
+                      }}
+                    />
+                    <Tooltip 
+                      formatter={(value: number, name: string) => [
+                        formatCurrency(value, currency),
+                        name
+                      ]}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--background))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                      }}
+                      labelStyle={{ fontWeight: 600 }}
+                    />
+                    <Legend 
+                      wrapperStyle={{ paddingTop: 10 }}
+                      iconType="rect"
+                    />
+                    <Bar 
+                      dataKey="income" 
+                      fill="#10b981" 
+                      name="Income" 
+                      radius={[4, 4, 0, 0]}
+                      opacity={0.9}
+                    />
+                    <Bar 
+                      dataKey="expenses" 
+                      fill="#f43f5e" 
+                      name="Expenses" 
+                      radius={[4, 4, 0, 0]}
+                      opacity={0.9}
+                    />
+                    <Line 
+                      type="monotone"
+                      dataKey="netFlow" 
+                      stroke="#6366f1" 
+                      strokeWidth={2} 
+                      name="Net Flow"
+                      dot={{ r: 4, fill: '#6366f1' }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <Card className="border-border/50 shadow-sm" data-testid="card-net-flow-trend">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-indigo-500" />
+                    Net Flow Trend
+                  </CardTitle>
+                  <CardDescription>Your financial trajectory over 12 months</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <AreaChart data={chartData12Months} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                      <defs>
+                        <linearGradient id="netFlowGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                      <XAxis 
+                        dataKey="month" 
+                        tick={{ fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                        tickFormatter={(value) => {
+                          if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                          if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                          return value.toString();
+                        }}
+                      />
+                      <Tooltip 
+                        formatter={(value: number) => [formatCurrency(value, currency), "Net Flow"]}
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--background))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        }}
+                        labelStyle={{ fontWeight: 600 }}
+                      />
+                      <Area 
+                        type="monotone"
+                        dataKey="netFlow"
+                        stroke="#6366f1"
+                        strokeWidth={2}
+                        fill="url(#netFlowGradient)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50 shadow-sm" data-testid="card-spending-breakdown">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2">
+                    <Wallet className="w-5 h-5 text-rose-500" />
+                    Spending Breakdown
+                  </CardTitle>
+                  <CardDescription>Expenses by category this month</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {categoryChartData.length === 0 ? (
+                    <div className="text-center py-12 flex flex-col items-center text-muted-foreground">
+                      <Wallet className="w-10 h-10 mb-3 opacity-50" />
+                      <p className="font-medium">No expenses recorded</p>
+                      <p className="text-sm mt-1">Start tracking to see your spending patterns</p>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <ResponsiveContainer width="100%" height={280}>
+                        <PieChart>
+                          <Pie
+                            data={categoryChartData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={70}
+                            outerRadius={110}
+                            paddingAngle={2}
+                            dataKey="value"
+                          >
+                            {categoryChartData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number, name: string) => [formatCurrency(value, currency), name]}
+                            contentStyle={{
+                              backgroundColor: 'hsl(var(--background))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            }}
+                          />
+                          <Legend 
+                            layout="horizontal"
+                            verticalAlign="bottom"
+                            align="center"
+                            wrapperStyle={{ paddingTop: 20 }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ marginBottom: 40 }}>
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground">Total</p>
+                          <p className="text-xl font-bold text-rose-600">{formatCurrency(monthlyExpenses, currency)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Add Transaction Dialog */}
         <Dialog open={isTransactionDialogOpen} onOpenChange={setIsTransactionDialogOpen}>
