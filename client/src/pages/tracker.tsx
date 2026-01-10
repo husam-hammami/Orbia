@@ -172,7 +172,7 @@ export default function TrackerPage() {
               data-testid="tab-mood"
             >
               <Activity className="w-4 h-4" />
-              <span>Mood</span>
+              <span>State</span>
             </TabsTrigger>
             <TabsTrigger 
               value="routine" 

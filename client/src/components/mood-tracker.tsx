@@ -37,7 +37,8 @@ export function MoodTracker() {
   const [dissociation, setDissociation] = useState([2]); 
   const [urges, setUrges] = useState([1]); 
   const [stress, setStress] = useState([3]);
-  const [sleep, setSleep] = useState([7.5]); 
+  const [sleep, setSleep] = useState([7.5]);
+  const [sleepQuality, setSleepQuality] = useState([6]); 
   const [systemComm, setSystemComm] = useState([5]); 
   const [capacity, setCapacity] = useState([3]); // 0-5 capacity scale
   const [triggerTag, setTriggerTag] = useState<string | null>(null); // optional context tag
@@ -396,13 +397,24 @@ export function MoodTracker() {
                 <div className="space-y-4">
                     <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Body Vitals</h4>
                     
-                    {/* Pain */}
-                    <div>
-                       <div className="flex justify-between text-xs mb-1.5">
-                          <span className="text-muted-foreground">Pain Level</span>
-                          <span className="font-mono">{comfort[0]}/10</span>
+                    {/* Pain Level */}
+                    <div 
+                      className="bg-rose-50/50 dark:bg-rose-900/10 p-3 rounded-lg border border-rose-100 dark:border-rose-900/30 transition-all duration-300 hover:border-rose-300 dark:hover:border-rose-700"
+                      style={{ 
+                        boxShadow: comfort[0] >= 6 ? '0 0 25px -8px rgba(244,63,94,0.35)' : undefined,
+                        background: comfort[0] >= 6 ? 'linear-gradient(135deg, rgba(244,63,94,0.08) 0%, transparent 100%)' : undefined
+                      }}
+                    >
+                       <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-1.5 text-rose-600">
+                             <HeartPulse className="w-3.5 h-3.5" style={{ filter: comfort[0] >= 6 ? 'drop-shadow(0 0 4px rgba(244,63,94,0.5))' : undefined }} />
+                             <span className="text-xs font-semibold">Pain Level</span>
+                          </div>
+                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-rose-600">
+                             {comfort[0] === 0 ? "None" : comfort[0] <= 3 ? "Mild" : comfort[0] <= 6 ? "Moderate" : "Severe"}
+                          </span>
                        </div>
-                       <Slider value={comfort} onValueChange={setComfort} max={10} step={1} />
+                       <Slider value={comfort} onValueChange={setComfort} max={10} step={1} className="h-4 [&_.bg-primary]:bg-rose-500" />
                     </div>
 
                     {/* Sleep Hours */}
@@ -425,22 +437,64 @@ export function MoodTracker() {
                        <Slider value={sleep} onValueChange={setSleep} max={12} step={0.5} className="h-4 [&_.bg-primary]:bg-indigo-500" />
                     </div>
 
-                    {/* Energy */}
-                    <div>
-                       <div className="flex justify-between text-xs mb-1.5">
-                          <span className="text-muted-foreground">Energy</span>
-                          <span className="font-mono">{motivation[0]}/10</span>
+                    {/* Sleep Quality */}
+                    <div 
+                      className="bg-violet-50/50 dark:bg-violet-900/10 p-3 rounded-lg border border-violet-100 dark:border-violet-900/30 transition-all duration-300 hover:border-violet-300 dark:hover:border-violet-700"
+                      style={{ 
+                        boxShadow: sleepQuality[0] >= 7 ? '0 0 25px -8px rgba(139,92,246,0.35)' : undefined,
+                        background: sleepQuality[0] >= 7 ? 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, transparent 100%)' : undefined
+                      }}
+                    >
+                       <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-1.5 text-violet-600">
+                             <BedDouble className="w-3.5 h-3.5" style={{ filter: sleepQuality[0] >= 7 ? 'drop-shadow(0 0 4px rgba(139,92,246,0.5))' : undefined }} />
+                             <span className="text-xs font-semibold">Sleep Quality</span>
+                          </div>
+                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-violet-600">
+                             {sleepQuality[0] <= 3 ? "Poor" : sleepQuality[0] <= 5 ? "Fair" : sleepQuality[0] <= 7 ? "Good" : "Excellent"}
+                          </span>
                        </div>
-                       <Slider value={motivation} onValueChange={setMotivation} max={10} step={1} />
+                       <Slider value={sleepQuality} onValueChange={setSleepQuality} max={10} step={1} className="h-4 [&_.bg-primary]:bg-violet-500" />
                     </div>
 
-                    {/* Stress */}
-                    <div>
-                       <div className="flex justify-between text-xs mb-1.5">
-                          <span className="text-muted-foreground">Stress Level</span>
-                          <span className="font-mono">{stress[0]}/10</span>
+                    {/* Energy */}
+                    <div 
+                      className="bg-yellow-50/50 dark:bg-yellow-900/10 p-3 rounded-lg border border-yellow-100 dark:border-yellow-900/30 transition-all duration-300 hover:border-yellow-300 dark:hover:border-yellow-700"
+                      style={{ 
+                        boxShadow: motivation[0] >= 7 ? '0 0 25px -8px rgba(234,179,8,0.35)' : undefined,
+                        background: motivation[0] >= 7 ? 'linear-gradient(135deg, rgba(234,179,8,0.08) 0%, transparent 100%)' : undefined
+                      }}
+                    >
+                       <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-1.5 text-yellow-600">
+                             <Zap className="w-3.5 h-3.5" style={{ filter: motivation[0] >= 7 ? 'drop-shadow(0 0 4px rgba(234,179,8,0.5))' : undefined }} />
+                             <span className="text-xs font-semibold">Energy</span>
+                          </div>
+                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-yellow-600">
+                             {motivation[0] <= 3 ? "Drained" : motivation[0] <= 5 ? "Low" : motivation[0] <= 7 ? "Moderate" : "High"}
+                          </span>
                        </div>
-                       <Slider value={stress} onValueChange={setStress} max={10} step={1} />
+                       <Slider value={motivation} onValueChange={setMotivation} max={10} step={1} className="h-4 [&_.bg-primary]:bg-yellow-500" />
+                    </div>
+
+                    {/* Stress Level */}
+                    <div 
+                      className="bg-orange-50/50 dark:bg-orange-900/10 p-3 rounded-lg border border-orange-100 dark:border-orange-900/30 transition-all duration-300 hover:border-orange-300 dark:hover:border-orange-700"
+                      style={{ 
+                        boxShadow: stress[0] >= 7 ? '0 0 25px -8px rgba(249,115,22,0.35)' : undefined,
+                        background: stress[0] >= 7 ? 'linear-gradient(135deg, rgba(249,115,22,0.08) 0%, transparent 100%)' : undefined
+                      }}
+                    >
+                       <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-1.5 text-orange-600">
+                             <Activity className="w-3.5 h-3.5" style={{ filter: stress[0] >= 7 ? 'drop-shadow(0 0 4px rgba(249,115,22,0.5))' : undefined }} />
+                             <span className="text-xs font-semibold">Stress Level</span>
+                          </div>
+                          <span className="text-[10px] font-medium bg-background px-1.5 py-0.5 rounded border text-orange-600">
+                             {stress[0] <= 3 ? "Calm" : stress[0] <= 5 ? "Mild" : stress[0] <= 7 ? "Elevated" : "High"}
+                          </span>
+                       </div>
+                       <Slider value={stress} onValueChange={setStress} max={10} step={1} className="h-4 [&_.bg-primary]:bg-orange-500" />
                     </div>
 
                     {/* Work Environment Load */}
