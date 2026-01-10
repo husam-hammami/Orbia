@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo, DailySummary, CareerProject, CareerTask, Expense, JournalEntry, InsertJournalEntry } from "@shared/schema";
+import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo, DailySummary, CareerProject, CareerTask, Expense, JournalEntry, InsertJournalEntry, IncomeStream, Transaction, InsertIncomeStream, InsertTransaction } from "@shared/schema";
 import type { DashboardInsights } from "../../../server/lib/dashboard-analytics";
 
 // Helper to handle API calls
@@ -1040,5 +1040,152 @@ export function useDeepMindVisualizations() {
     queryKey: ["deepMindVisualizations"],
     queryFn: () => fetchAPI("/api/deep-mind/visualizations"),
     staleTime: 60000,
+  });
+}
+
+// Income Streams Hooks
+export function useIncomeStreams() {
+  return useQuery<IncomeStream[]>({
+    queryKey: ["incomeStreams"],
+    queryFn: () => fetchAPI("/api/income-streams"),
+  });
+}
+
+export function useCreateIncomeStream() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Omit<InsertIncomeStream, "id">) =>
+      fetchAPI("/api/income-streams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["incomeStreams"] });
+    },
+  });
+}
+
+export function useUpdateIncomeStream() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<InsertIncomeStream> }) =>
+      fetchAPI(`/api/income-streams/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["incomeStreams"] });
+    },
+  });
+}
+
+export function useDeleteIncomeStream() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchAPI(`/api/income-streams/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["incomeStreams"] });
+    },
+  });
+}
+
+// Transactions Hooks
+export function useTransactions(month?: string) {
+  return useQuery<Transaction[]>({
+    queryKey: ["transactions", month],
+    queryFn: () => fetchAPI(`/api/transactions${month ? `?month=${encodeURIComponent(month)}` : ""}`),
+  });
+}
+
+export function useCreateTransaction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Omit<InsertTransaction, "id">) =>
+      fetchAPI("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+}
+
+export function useCreateManyTransactions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Omit<InsertTransaction, "id">[]) =>
+      fetchAPI("/api/transactions/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+}
+
+export function useUpdateTransaction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<InsertTransaction> }) =>
+      fetchAPI(`/api/transactions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+}
+
+export function useDeleteTransaction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchAPI(`/api/transactions/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+}
+
+export interface ParsedTransactionResult {
+  transactions: Array<{
+    type: "income" | "expense";
+    name: string;
+    amount: number;
+    category: string;
+    date: string;
+    month: string;
+    isRecurring: number;
+    notes: string | null;
+    importSource: string;
+  }>;
+  count: number;
+}
+
+export function useImportTransactions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { documentText: string; documentType?: string }) =>
+      fetchAPI("/api/transactions/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }) as Promise<ParsedTransactionResult>,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
   });
 }
