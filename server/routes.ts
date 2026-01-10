@@ -2796,6 +2796,444 @@ ${JSON.stringify(context, null, 2)}`;
       res.status(500).json({ error: "Failed to compute deep mind overview" });
     }
   });
+
+  // Deep Mind NOW API - Current snapshot for reworked Deep Mind page
+  app.get("/api/deep-mind/now", async (req, res) => {
+    try {
+      const [entries, journalEntries, members] = await Promise.all([
+        storage.getRecentTrackerEntries(50),
+        storage.getAllJournalEntries(),
+        storage.getAllMembers(),
+      ]);
+
+      const sampleSize = entries.length;
+      
+      // Helper to determine confidence level
+      const getConfidence = (n: number): "Low" | "Medium" | "High" => {
+        if (n < 5) return "Low";
+        if (n < 15) return "Medium";
+        return "High";
+      };
+
+      // Get the most recent entry for current state analysis
+      const mostRecent = entries[0];
+      
+      // Determine main driver from most recent entry
+      let driver = "Unknown";
+      if (mostRecent) {
+        if (mostRecent.sleepHours !== null && mostRecent.sleepHours < 5) {
+          driver = "Sleep";
+        } else if (mostRecent.triggerTag) {
+          const tagMap: Record<string, string> = {
+            work: "Work",
+            loneliness: "Loneliness",
+            pain: "Pain",
+            noise: "Stress",
+            sleep: "Sleep",
+            body: "Pain",
+            unknown: "Unknown"
+          };
+          driver = tagMap[mostRecent.triggerTag] || mostRecent.triggerTag;
+        } else if (mostRecent.workLoad !== null && mostRecent.workLoad >= 7) {
+          driver = "Work";
+        }
+      }
+      
+      // Also check recent journal drivers
+      const recentJournals = journalEntries
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5);
+      
+      if (driver === "Unknown" && recentJournals.length > 0) {
+        const driverCounts: Record<string, number> = {};
+        recentJournals.forEach(j => {
+          if (j.primaryDriver) {
+            driverCounts[j.primaryDriver] = (driverCounts[j.primaryDriver] || 0) + 1;
+          }
+        });
+        const topDriver = Object.entries(driverCounts).sort((a, b) => b[1] - a[1])[0];
+        if (topDriver) {
+          driver = topDriver[0];
+        }
+      }
+
+      // Current state from frontingMemberId
+      let state = "Unknown";
+      if (mostRecent?.frontingMemberId) {
+        const member = members.find(m => m.id === mostRecent.frontingMemberId);
+        state = member?.name || "Unknown";
+      }
+
+      // State intensity based on dissociation and stress
+      let stateIntensity: "Low" | "Medium" | "High" = "Low";
+      if (mostRecent) {
+        const avgIntensity = (mostRecent.dissociation + mostRecent.stress) / 2;
+        if (avgIntensity >= 60) stateIntensity = "High";
+        else if (avgIntensity >= 35) stateIntensity = "Medium";
+      }
+
+      // External load percentage (from workLoad, stress)
+      let load = 0;
+      if (mostRecent) {
+        const workLoadPct = (mostRecent.workLoad ?? 5) * 10; // 0-10 scale to 0-100
+        load = Math.round((workLoadPct + mostRecent.stress) / 2);
+      }
+
+      // Internal stability (inverse of dissociation + mood variance)
+      let stability = 50;
+      if (entries.length > 0) {
+        const recentFive = entries.slice(0, 5);
+        const avgMood = recentFive.reduce((s, e) => s + e.mood, 0) / recentFive.length;
+        const moodVariance = recentFive.length > 1
+          ? recentFive.reduce((s, e) => s + Math.pow(e.mood - avgMood, 2), 0) / recentFive.length
+          : 0;
+        const avgDissociation = recentFive.reduce((s, e) => s + e.dissociation, 0) / recentFive.length;
+        stability = Math.max(0, Math.min(100, Math.round(100 - avgDissociation - (moodVariance * 5))));
+      }
+
+      // Risk flag: High risk if sleep < 5h AND (stress > 70 OR dissociation > 60)
+      let riskFlag: string | undefined;
+      if (mostRecent) {
+        const lowSleep = (mostRecent.sleepHours ?? 8) < 5;
+        const highStress = mostRecent.stress > 70;
+        const highDissociation = mostRecent.dissociation > 60;
+        if (lowSleep && (highStress || highDissociation)) {
+          riskFlag = "High risk of crash in next 12h";
+        }
+      }
+
+      // Suggestion based on current state
+      const suggestions: Record<string, { do: string; avoid: string }> = {
+        Sleep: { do: "10-min power nap or dim lights", avoid: "Coffee after 2pm" },
+        Work: { do: "5-min walk or stretch", avoid: "Starting new big tasks" },
+        Loneliness: { do: "Text one person", avoid: "Doom scrolling alone" },
+        Pain: { do: "Gentle stretch or heat pad", avoid: "Pushing through it" },
+        Stress: { do: "Box breathing 4-4-4-4", avoid: "Checking work messages" },
+        Unknown: { do: "5-min grounding exercise", avoid: "Making big decisions" },
+      };
+      const suggestion = suggestions[driver] || suggestions.Unknown;
+
+      res.json({
+        driver,
+        driverConfidence: getConfidence(sampleSize),
+        state,
+        stateIntensity,
+        load,
+        stability,
+        riskFlag,
+        suggestion,
+        sampleSize,
+      });
+    } catch (error) {
+      console.error("Deep mind now error:", error);
+      res.status(500).json({ error: "Failed to compute deep mind now snapshot" });
+    }
+  });
+
+  // Deep Mind LOOPS API - Pattern data for last 30-90 days
+  app.get("/api/deep-mind/loops", async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 60;
+      const [entries, journalEntries, members] = await Promise.all([
+        storage.getRecentTrackerEntries(500),
+        storage.getAllJournalEntries(),
+        storage.getAllMembers(),
+      ]);
+
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      const now = new Date();
+      
+      const recentEntries = entries.filter(e => new Date(e.timestamp) >= cutoffDate);
+      const recentJournals = journalEntries.filter(j => new Date(j.createdAt) >= cutoffDate);
+
+      // Count unique days with data
+      const uniqueDays = new Set(recentEntries.map(e => 
+        new Date(e.timestamp).toISOString().split('T')[0]
+      ));
+      const sampleSize = uniqueDays.size;
+
+      const getConfidence = (n: number): "Low" | "Medium" | "High" => {
+        if (n < 5) return "Low";
+        if (n < 15) return "Medium";
+        return "High";
+      };
+
+      // Triggers analysis from triggerTag and journal primaryDriver
+      const triggerCounts: Record<string, { count: number; lastSeen: Date }> = {};
+      
+      recentEntries.forEach(e => {
+        if (e.triggerTag && e.triggerTag !== "unknown") {
+          const key = e.triggerTag;
+          if (!triggerCounts[key]) {
+            triggerCounts[key] = { count: 0, lastSeen: new Date(e.timestamp) };
+          }
+          triggerCounts[key].count++;
+          if (new Date(e.timestamp) > triggerCounts[key].lastSeen) {
+            triggerCounts[key].lastSeen = new Date(e.timestamp);
+          }
+        }
+      });
+
+      recentJournals.forEach(j => {
+        if (j.primaryDriver) {
+          const key = j.primaryDriver.toLowerCase();
+          if (!triggerCounts[key]) {
+            triggerCounts[key] = { count: 0, lastSeen: new Date(j.createdAt) };
+          }
+          triggerCounts[key].count++;
+          if (new Date(j.createdAt) > triggerCounts[key].lastSeen) {
+            triggerCounts[key].lastSeen = new Date(j.createdAt);
+          }
+        }
+      });
+
+      const triggers = Object.entries(triggerCounts)
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, 3)
+        .map(([name, data]) => ({
+          name: name.charAt(0).toUpperCase() + name.slice(1),
+          count: data.count,
+          recency: Math.round((now.getTime() - data.lastSeen.getTime()) / (1000 * 60 * 60 * 24)),
+        }));
+
+      // Stabilizers from journal content and notes
+      const stabilizerKeywords = [
+        { keyword: "walk", name: "Walking" },
+        { keyword: "sleep", name: "Rest/Sleep" },
+        { keyword: "friend", name: "Social connection" },
+        { keyword: "breath", name: "Breathing exercises" },
+        { keyword: "music", name: "Music" },
+        { keyword: "outside", name: "Going outside" },
+        { keyword: "shower", name: "Shower/Bath" },
+        { keyword: "food", name: "Eating well" },
+        { keyword: "water", name: "Hydration" },
+        { keyword: "stretch", name: "Stretching" },
+      ];
+
+      const stabilizerCounts: Record<string, { count: number; effect: string }> = {};
+      
+      const allText = [
+        ...recentJournals.map(j => j.content.toLowerCase()),
+        ...recentEntries.filter(e => e.notes).map(e => e.notes!.toLowerCase()),
+      ].join(" ");
+
+      stabilizerKeywords.forEach(({ keyword, name }) => {
+        const matches = (allText.match(new RegExp(keyword, "gi")) || []).length;
+        if (matches > 0) {
+          stabilizerCounts[name] = { 
+            count: matches, 
+            effect: matches >= 5 ? "Strong" : matches >= 2 ? "Moderate" : "Mild" 
+          };
+        }
+      });
+
+      const stabilizers = Object.entries(stabilizerCounts)
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, 3)
+        .map(([name, data]) => ({
+          name,
+          count: data.count,
+          effect: data.effect,
+        }));
+
+      // Crash loops detection - look for high stress/dissociation patterns
+      const crashPatterns: Record<string, { count: number; lastSeen: Date; trigger: string; state: string; outcome: string }> = {};
+      
+      // Find entries with high stress or dissociation
+      const crashEntries = recentEntries.filter(e => e.stress > 60 || e.dissociation > 50);
+      
+      crashEntries.forEach(e => {
+        const trigger = e.triggerTag || "stress";
+        const stateMember = e.frontingMemberId ? members.find(m => m.id === e.frontingMemberId)?.name || "Unknown" : "Unknown";
+        const outcome = e.dissociation > 60 ? "dissociation" : e.stress > 70 ? "overwhelm" : "dysregulation";
+        const patternKey = `${trigger}→${stateMember}→${outcome}`;
+        
+        if (!crashPatterns[patternKey]) {
+          crashPatterns[patternKey] = { 
+            count: 0, 
+            lastSeen: new Date(e.timestamp),
+            trigger,
+            state: stateMember,
+            outcome
+          };
+        }
+        crashPatterns[patternKey].count++;
+        if (new Date(e.timestamp) > crashPatterns[patternKey].lastSeen) {
+          crashPatterns[patternKey].lastSeen = new Date(e.timestamp);
+        }
+      });
+
+      const interruptSuggestions: Record<string, string> = {
+        work: "5-min walk away from desk",
+        loneliness: "Text one person right now",
+        pain: "Gentle stretch + heat",
+        sleep: "10-min power nap",
+        stress: "Box breathing 3 rounds",
+        noise: "Noise-canceling headphones",
+        body: "Splash cold water on face",
+        unknown: "Grounding: 5 things you can see",
+      };
+
+      const crashLoops = Object.entries(crashPatterns)
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, 3)
+        .map(([pattern, data]) => ({
+          pattern: `${data.trigger} → ${data.state} → ${data.outcome}`,
+          count: data.count,
+          recency: Math.round((now.getTime() - data.lastSeen.getTime()) / (1000 * 60 * 60 * 24)),
+          interrupt: interruptSuggestions[data.trigger.toLowerCase()] || interruptSuggestions.unknown,
+        }));
+
+      res.json({
+        triggers,
+        stabilizers,
+        crashLoops,
+        sampleSize,
+        confidence: getConfidence(sampleSize),
+      });
+    } catch (error) {
+      console.error("Deep mind loops error:", error);
+      res.status(500).json({ error: "Failed to compute deep mind loops" });
+    }
+  });
+
+  // Deep Mind Visualizations endpoint - Sleep impact and driver frequency charts
+  app.get("/api/deep-mind/visualizations", async (req, res) => {
+    try {
+      const [entries, journalEntries] = await Promise.all([
+        storage.getAllTrackerEntries(),
+        storage.getAllJournalEntries(),
+      ]);
+
+      const now = new Date();
+      const eightWeeksAgo = new Date(now.getTime() - 56 * 24 * 60 * 60 * 1000);
+
+      // Filter entries with sleep data for Chart A
+      const entriesWithSleep = entries.filter(e => e.sleepHours != null && e.sleepHours > 0);
+      
+      // Group entries by sleep hour buckets and calculate averages
+      const sleepBuckets: Record<string, { mood: number[]; dissociation: number[]; urges: number[] }> = {};
+      
+      entriesWithSleep.forEach(e => {
+        const sleepHours = Math.round(e.sleepHours!); // Round to nearest hour
+        const bucket = sleepHours <= 4 ? "≤4h" : 
+                       sleepHours === 5 ? "5h" :
+                       sleepHours === 6 ? "6h" :
+                       sleepHours === 7 ? "7h" :
+                       sleepHours === 8 ? "8h" :
+                       sleepHours >= 9 ? "9h+" : "7h";
+        
+        if (!sleepBuckets[bucket]) {
+          sleepBuckets[bucket] = { mood: [], dissociation: [], urges: [] };
+        }
+        
+        sleepBuckets[bucket].mood.push(e.mood);
+        sleepBuckets[bucket].dissociation.push(e.dissociation);
+        // Use stress as proxy for urges if no urge field exists
+        sleepBuckets[bucket].urges.push(e.stress);
+      });
+
+      const orderedBuckets = ["≤4h", "5h", "6h", "7h", "8h", "9h+"];
+      const sleepImpactData = orderedBuckets
+        .filter(bucket => sleepBuckets[bucket])
+        .map(bucket => {
+          const data = sleepBuckets[bucket];
+          return {
+            sleepHours: bucket,
+            mood: data.mood.length > 0 ? Number((data.mood.reduce((a, b) => a + b, 0) / data.mood.length).toFixed(1)) : 0,
+            dissociation: data.dissociation.length > 0 ? Number((data.dissociation.reduce((a, b) => a + b, 0) / data.dissociation.length).toFixed(1)) : 0,
+            urges: data.urges.length > 0 ? Number((data.urges.reduce((a, b) => a + b, 0) / data.urges.length).toFixed(1)) : 0,
+            count: data.mood.length,
+          };
+        });
+
+      // Chart B: Driver frequency by week
+      const driverWeeks: Record<string, Record<string, number>> = {};
+      const validDrivers = ["sleep", "work", "loneliness", "pain", "urges", "body", "anxiety", "relationships", "trauma"];
+      
+      // Get week start (Monday) helper
+      const getWeekStart = (date: Date) => {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        d.setDate(diff);
+        d.setHours(0, 0, 0, 0);
+        return d.toISOString().split('T')[0];
+      };
+
+      // Count drivers from journal entries (primaryDriver)
+      journalEntries
+        .filter(j => new Date(j.createdAt) >= eightWeeksAgo && j.primaryDriver)
+        .forEach(j => {
+          const week = getWeekStart(new Date(j.createdAt));
+          if (!driverWeeks[week]) driverWeeks[week] = {};
+          
+          const driver = j.primaryDriver!.toLowerCase();
+          if (validDrivers.includes(driver)) {
+            driverWeeks[week][driver] = (driverWeeks[week][driver] || 0) + 1;
+          }
+        });
+
+      // Count drivers from tracker entries (triggerTag)
+      entries
+        .filter(e => new Date(e.timestamp) >= eightWeeksAgo && e.triggerTag)
+        .forEach(e => {
+          const week = getWeekStart(new Date(e.timestamp));
+          if (!driverWeeks[week]) driverWeeks[week] = {};
+          
+          const driver = e.triggerTag!.toLowerCase();
+          if (validDrivers.includes(driver)) {
+            driverWeeks[week][driver] = (driverWeeks[week][driver] || 0) + 1;
+          }
+        });
+
+      // Format driver frequency data sorted by week
+      const driverFrequencyData = Object.entries(driverWeeks)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .slice(-8) // Last 8 weeks
+        .map(([week, drivers]) => {
+          const weekDate = new Date(week);
+          const weekLabel = `${weekDate.getMonth() + 1}/${weekDate.getDate()}`;
+          return {
+            week: weekLabel,
+            sleep: drivers["sleep"] || 0,
+            work: drivers["work"] || 0,
+            loneliness: drivers["loneliness"] || 0,
+            pain: drivers["pain"] || 0,
+            urges: drivers["urges"] || 0,
+            body: drivers["body"] || 0,
+            anxiety: drivers["anxiety"] || 0,
+          };
+        });
+
+      const sleepSampleSize = entriesWithSleep.length;
+      const driverSampleSize = Object.values(driverWeeks).reduce((sum, week) => 
+        sum + Object.values(week).reduce((a, b) => a + b, 0), 0);
+
+      const getConfidence = (n: number): "Low" | "Medium" | "High" => {
+        if (n >= 30) return "High";
+        if (n >= 14) return "Medium";
+        return "Low";
+      };
+
+      res.json({
+        sleepImpact: {
+          data: sleepImpactData,
+          sampleSize: sleepSampleSize,
+          confidence: getConfidence(sleepSampleSize),
+        },
+        driverFrequency: {
+          data: driverFrequencyData,
+          sampleSize: driverSampleSize,
+          confidence: getConfidence(driverSampleSize),
+        },
+      });
+    } catch (error) {
+      console.error("Deep mind visualizations error:", error);
+      res.status(500).json({ error: "Failed to compute visualizations" });
+    }
+  });
   
   // Deep Mind AI Insights endpoint - Evidence-based analysis
   app.post("/api/deep-mind/insights", async (req, res) => {

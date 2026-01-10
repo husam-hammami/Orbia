@@ -970,3 +970,75 @@ export function useDeepMindOverview(days = 30) {
     staleTime: 30000,
   });
 }
+
+export interface DeepMindNowData {
+  driver: string;
+  driverConfidence: "Low" | "Medium" | "High";
+  state: string;
+  stateIntensity: "Low" | "Medium" | "High";
+  load: number;
+  stability: number;
+  riskFlag?: string;
+  suggestion: { do: string; avoid: string };
+  sampleSize: number;
+}
+
+export function useDeepMindNow() {
+  return useQuery<DeepMindNowData>({
+    queryKey: ["deepMindNow"],
+    queryFn: () => fetchAPI("/api/deep-mind/now"),
+    staleTime: 30000,
+  });
+}
+
+export interface DeepMindLoopsData {
+  triggers: Array<{ name: string; count: number; recency: number }>;
+  stabilizers: Array<{ name: string; count: number; effect: string }>;
+  crashLoops: Array<{ pattern: string; count: number; recency: number; interrupt: string }>;
+  sampleSize: number;
+  confidence: "Low" | "Medium" | "High";
+}
+
+export function useDeepMindLoops(days = 60) {
+  return useQuery<DeepMindLoopsData>({
+    queryKey: ["deepMindLoops", days],
+    queryFn: () => fetchAPI(`/api/deep-mind/loops?days=${days}`),
+    staleTime: 60000,
+  });
+}
+
+export interface DeepMindVisualizationsData {
+  sleepImpact: {
+    data: Array<{
+      sleepHours: string;
+      mood: number;
+      dissociation: number;
+      urges: number;
+      count: number;
+    }>;
+    sampleSize: number;
+    confidence: "Low" | "Medium" | "High";
+  };
+  driverFrequency: {
+    data: Array<{
+      week: string;
+      sleep: number;
+      work: number;
+      loneliness: number;
+      pain: number;
+      urges: number;
+      body: number;
+      anxiety: number;
+    }>;
+    sampleSize: number;
+    confidence: "Low" | "Medium" | "High";
+  };
+}
+
+export function useDeepMindVisualizations() {
+  return useQuery<DeepMindVisualizationsData>({
+    queryKey: ["deepMindVisualizations"],
+    queryFn: () => fetchAPI("/api/deep-mind/visualizations"),
+    staleTime: 60000,
+  });
+}

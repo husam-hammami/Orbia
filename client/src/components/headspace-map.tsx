@@ -665,7 +665,7 @@ export function HeadspaceMap() {
                                     {isSwitch && (
                                       <div className="flex items-center gap-1 mt-2 pt-2 border-t border-slate-700/50">
                                         <Zap className="w-3 h-3 text-amber-400" />
-                                        <span className="text-[10px] text-amber-300 font-medium">Switch point</span>
+                                        <span className="text-[10px] text-amber-300 font-medium">State shift</span>
                                       </div>
                                     )}
                                   </TooltipContent>
@@ -685,7 +685,7 @@ export function HeadspaceMap() {
                     <div className="relative px-6 pb-6">
                       <div className="flex items-center gap-2 mb-3">
                         <Layers className="w-4 h-4 text-fuchsia-400" />
-                        <span className="text-xs font-semibold text-fuchsia-300 uppercase tracking-wider">State Currents</span>
+                        <span className="text-xs font-semibold text-fuchsia-300 uppercase tracking-wider">State Distribution</span>
                       </div>
                       
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -887,7 +887,7 @@ export function HeadspaceMap() {
                                     Dominant: <span className="font-semibold" style={{ color: day.dominantMember.color }}>{day.dominantMember.name}</span>
                                   </p>
                                 )}
-                                <p className="text-slate-500">{day.entryCount} entries, {day.transitionCount} switches</p>
+                                <p className="text-slate-500">{day.entryCount} entries, {day.transitionCount} state shifts</p>
                               </div>
                             ) : (
                               <p className="text-xs text-slate-500">No data</p>
