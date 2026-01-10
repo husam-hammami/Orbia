@@ -78,17 +78,17 @@ const staggerItem = {
 function ConfidenceBadge({ confidence, sampleSize }: { confidence: "Low" | "Medium" | "High"; sampleSize: number }) {
   const config = {
     Low: { 
-      className: "bg-amber-500/20 text-amber-400 border-amber-500/30", 
+      className: "bg-amber-100 text-amber-700 border-amber-200", 
       icon: <Sparkles className="w-3 h-3" />,
       label: "early signal" 
     },
     Medium: { 
-      className: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30", 
+      className: "bg-cyan-100 text-cyan-700 border-cyan-200", 
       icon: <TrendingUp className="w-3 h-3" />,
       label: "building" 
     },
     High: { 
-      className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", 
+      className: "bg-emerald-100 text-emerald-700 border-emerald-200", 
       icon: <CheckCircle className="w-3 h-3" />,
       label: "validated" 
     },
@@ -106,9 +106,9 @@ function ConfidenceBadge({ confidence, sampleSize }: { confidence: "Low" | "Medi
 
 function IntensityBadge({ intensity }: { intensity: "Low" | "Medium" | "High" }) {
   const config = {
-    Low: { bg: "bg-emerald-500/20", text: "text-emerald-400", border: "border-emerald-500/30", glow: "shadow-emerald-500/20" },
-    Medium: { bg: "bg-amber-500/20", text: "text-amber-400", border: "border-amber-500/30", glow: "shadow-amber-500/20" },
-    High: { bg: "bg-rose-500/20", text: "text-rose-400", border: "border-rose-500/30", glow: "shadow-rose-500/20" },
+    Low: { bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-200", glow: "shadow-emerald-100" },
+    Medium: { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-200", glow: "shadow-amber-100" },
+    High: { bg: "bg-rose-100", text: "text-rose-700", border: "border-rose-200", glow: "shadow-rose-100" },
   };
   
   const style = config[intensity];
@@ -156,7 +156,7 @@ function RingGauge({ value, max = 100, label, size = 80 }: { value: number; max?
             r="35"
             fill="none"
             strokeWidth="4"
-            className="stroke-slate-800"
+            className="stroke-slate-200"
           />
           <motion.circle
             cx="40"
@@ -174,10 +174,10 @@ function RingGauge({ value, max = 100, label, size = 80 }: { value: number; max?
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-mono font-bold text-slate-100">{value}%</span>
+          <span className="text-xl font-mono font-bold text-slate-900">{value}%</span>
         </div>
       </div>
-      <span className="text-[10px] uppercase text-slate-500 font-bold tracking-wider mt-2">{label}</span>
+      <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider mt-2">{label}</span>
     </div>
   );
 }
@@ -188,18 +188,9 @@ function GlassCard({ children, className, glow = false, glowColor = "cyan" }: {
   glow?: boolean;
   glowColor?: "cyan" | "rose" | "emerald" | "amber" | "violet";
 }) {
-  const glowStyles = {
-    cyan: "shadow-[0_0_30px_rgba(6,182,212,0.15)]",
-    rose: "shadow-[0_0_30px_rgba(244,63,94,0.15)]",
-    emerald: "shadow-[0_0_30px_rgba(16,185,129,0.15)]",
-    amber: "shadow-[0_0_30px_rgba(245,158,11,0.15)]",
-    violet: "shadow-[0_0_30px_rgba(139,92,246,0.15)]",
-  };
-  
   return (
     <div className={cn(
-      "bg-slate-900/80 backdrop-blur-md border border-cyan-500/20 rounded-2xl",
-      glow && glowStyles[glowColor],
+      "bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-lg",
       className
     )}>
       {children}
@@ -211,17 +202,17 @@ function SkeletonCard() {
   return (
     <GlassCard className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <Skeleton className="h-5 w-24 bg-slate-800" />
-        <Skeleton className="h-5 w-20 bg-slate-800" />
+        <Skeleton className="h-5 w-24 bg-slate-200" />
+        <Skeleton className="h-5 w-20 bg-slate-200" />
       </div>
       <div className="space-y-3">
-        <Skeleton className="h-4 w-full bg-slate-800" />
-        <Skeleton className="h-4 w-3/4 bg-slate-800" />
-        <Skeleton className="h-4 w-1/2 bg-slate-800" />
+        <Skeleton className="h-4 w-full bg-slate-200" />
+        <Skeleton className="h-4 w-3/4 bg-slate-200" />
+        <Skeleton className="h-4 w-1/2 bg-slate-200" />
       </div>
       <div className="flex gap-4">
-        <Skeleton className="h-20 w-20 rounded-full bg-slate-800" />
-        <Skeleton className="h-20 w-20 rounded-full bg-slate-800" />
+        <Skeleton className="h-20 w-20 rounded-full bg-slate-200" />
+        <Skeleton className="h-20 w-20 rounded-full bg-slate-200" />
       </div>
     </GlassCard>
   );
@@ -230,11 +221,11 @@ function SkeletonCard() {
 function EmptyState({ icon: Icon, title, description }: { icon: any; title: string; description: string }) {
   return (
     <div className="py-16 text-center">
-      <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800/50 flex items-center justify-center">
-        <Icon className="w-8 h-8 text-slate-600" />
+      <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center">
+        <Icon className="w-8 h-8 text-slate-400" />
       </div>
-      <p className="text-slate-400 font-medium">{title}</p>
-      <p className="text-slate-600 text-sm mt-1 max-w-xs mx-auto">{description}</p>
+      <p className="text-slate-700 font-medium">{title}</p>
+      <p className="text-muted-foreground text-sm mt-1 max-w-xs mx-auto">{description}</p>
     </div>
   );
 }
@@ -364,49 +355,49 @@ export default function DeepMind() {
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-cyan-500/10 pb-6"
+          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-6"
         >
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-teal-500/20 flex items-center justify-center border border-cyan-500/20">
-                <Brain className="w-5 h-5 text-cyan-400" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center border border-teal-200">
+                <Brain className="w-5 h-5 text-teal-600" />
               </div>
               <div>
-                <h1 className="text-3xl font-display font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-display font-bold tracking-tight bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
                   Deep Mind
                 </h1>
-                <p className="text-slate-500 text-sm">AI-powered pattern recognition & insights</p>
+                <p className="text-muted-foreground text-sm">AI-powered pattern recognition & insights</p>
               </div>
             </div>
           </div>
         </motion.div>
 
         <Tabs defaultValue="now" value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="bg-slate-900/80 backdrop-blur-md border border-cyan-500/20 p-1.5 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.1)]">
+          <TabsList className="bg-white/90 backdrop-blur-xl border border-slate-200/60 p-1.5 rounded-xl shadow-sm">
             <TabsTrigger 
               value="now" 
-              className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-teal-500/20 data-[state=active]:text-cyan-400 data-[state=active]:border-cyan-500/30 rounded-lg px-4 py-2 transition-all" 
+              className="gap-2 data-[state=active]:bg-slate-100 data-[state=active]:text-teal-600 data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all" 
               data-testid="tab-now"
             >
               <Zap className="w-4 h-4" /> Now
             </TabsTrigger>
             <TabsTrigger 
               value="loops" 
-              className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-teal-500/20 data-[state=active]:text-cyan-400 data-[state=active]:border-cyan-500/30 rounded-lg px-4 py-2 transition-all" 
+              className="gap-2 data-[state=active]:bg-slate-100 data-[state=active]:text-teal-600 data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all" 
               data-testid="tab-loops"
             >
               <RefreshCw className="w-4 h-4" /> Your 3 Loops
             </TabsTrigger>
             <TabsTrigger 
               value="visuals" 
-              className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-teal-500/20 data-[state=active]:text-cyan-400 data-[state=active]:border-cyan-500/30 rounded-lg px-4 py-2 transition-all" 
+              className="gap-2 data-[state=active]:bg-slate-100 data-[state=active]:text-teal-600 data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all" 
               data-testid="tab-visuals"
             >
               <BarChart2 className="w-4 h-4" /> Visualizations
             </TabsTrigger>
             <TabsTrigger 
               value="timeline" 
-              className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-teal-500/20 data-[state=active]:text-cyan-400 data-[state=active]:border-cyan-500/30 rounded-lg px-4 py-2 transition-all" 
+              className="gap-2 data-[state=active]:bg-slate-100 data-[state=active]:text-teal-600 data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all" 
               data-testid="tab-timeline"
             >
               <Clock className="w-4 h-4" /> State Timeline
@@ -440,26 +431,26 @@ export default function DeepMind() {
                           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/30 to-teal-500/30 flex items-center justify-center border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
                             <Activity className="w-5 h-5 text-cyan-400" />
                           </div>
-                          <CardTitle className="text-lg font-semibold text-slate-100">NOW</CardTitle>
+                          <CardTitle className="text-lg font-semibold text-foreground">NOW</CardTitle>
                         </div>
                         <ConfidenceBadge confidence={nowData.driverConfidence} sampleSize={nowData.sampleSize} />
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-5 relative">
-                      <div className="flex items-center justify-between py-3 px-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
-                        <span className="text-sm text-slate-400">Current Driver</span>
+                      <div className="flex items-center justify-between py-3 px-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <span className="text-sm text-muted-foreground">Current Driver</span>
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500/30 to-purple-500/30 flex items-center justify-center">
-                            <Target className="w-3.5 h-3.5 text-violet-400" />
+                          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center">
+                            <Target className="w-3.5 h-3.5 text-violet-600" />
                           </div>
-                          <span className="text-sm font-bold text-slate-100">{nowData.driver}</span>
+                          <span className="text-sm font-bold text-foreground">{nowData.driver}</span>
                         </div>
                       </div>
                       
-                      <div className="flex items-center justify-between py-3 px-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
-                        <span className="text-sm text-slate-400">Active State</span>
+                      <div className="flex items-center justify-between py-3 px-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <span className="text-sm text-muted-foreground">Active State</span>
                         <div className="flex items-center gap-3">
-                          <span className="text-sm font-bold text-slate-100">{nowData.state}</span>
+                          <span className="text-sm font-bold text-foreground">{nowData.state}</span>
                           <IntensityBadge intensity={nowData.stateIntensity} />
                         </div>
                       </div>
@@ -496,7 +487,7 @@ export default function DeepMind() {
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/30 to-teal-500/30 flex items-center justify-center border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                           <Brain className="w-5 h-5 text-emerald-400" />
                         </div>
-                        <CardTitle className="text-lg font-semibold text-slate-100">Smart Suggestion</CardTitle>
+                        <CardTitle className="text-lg font-semibold text-foreground">Smart Suggestion</CardTitle>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4 relative">
@@ -507,7 +498,7 @@ export default function DeepMind() {
                           </div>
                           <div className="flex-1">
                             <span className="text-xs uppercase font-bold text-emerald-400 tracking-wider">Do This</span>
-                            <p className="text-sm text-slate-200 mt-1.5 leading-relaxed">{nowData.suggestion.do}</p>
+                            <p className="text-sm text-slate-700 mt-1.5 leading-relaxed">{nowData.suggestion.do}</p>
                           </div>
                         </div>
                       </div>
@@ -519,7 +510,7 @@ export default function DeepMind() {
                           </div>
                           <div className="flex-1">
                             <span className="text-xs uppercase font-bold text-amber-400 tracking-wider">Avoid (Next 12-24h)</span>
-                            <p className="text-sm text-slate-200 mt-1.5 leading-relaxed">{nowData.suggestion.avoid}</p>
+                            <p className="text-sm text-slate-700 mt-1.5 leading-relaxed">{nowData.suggestion.avoid}</p>
                           </div>
                         </div>
                       </div>
@@ -572,8 +563,8 @@ export default function DeepMind() {
                               <AlertTriangle className="w-4 h-4 text-rose-400" />
                             </div>
                             <div>
-                              <CardTitle className="text-base text-slate-100">Top 3 Triggers</CardTitle>
-                              <CardDescription className="text-xs text-slate-500">What destabilizes you</CardDescription>
+                              <CardTitle className="text-base text-foreground">Top 3 Triggers</CardTitle>
+                              <CardDescription className="text-xs text-muted-foreground">What destabilizes you</CardDescription>
                             </div>
                           </div>
                         </div>
@@ -582,16 +573,16 @@ export default function DeepMind() {
                         {loopsData.triggers.length > 0 ? (
                           <ul className="space-y-3">
                             {loopsData.triggers.map((trigger, i) => (
-                              <li key={i} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                              <li key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
                                 <div className="flex items-center gap-3">
-                                  <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-rose-500/30 to-orange-500/30 flex items-center justify-center text-[11px] font-bold text-rose-400 border border-rose-500/20">
+                                  <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-rose-100 to-orange-100 flex items-center justify-center text-[11px] font-bold text-rose-600 border border-rose-200">
                                     {i + 1}
                                   </span>
-                                  <span className="text-sm font-medium text-slate-200">{trigger.name}</span>
+                                  <span className="text-sm font-medium text-slate-700">{trigger.name}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-xs text-slate-500 font-mono">{trigger.count}×</span>
-                                  <Badge variant="outline" className="text-[9px] bg-slate-800 text-slate-400 border-slate-600 px-1.5">
+                                  <span className="text-xs text-muted-foreground font-mono">{trigger.count}×</span>
+                                  <Badge variant="outline" className="text-[9px] bg-slate-100 text-slate-600 border-slate-300 px-1.5">
                                     {trigger.recency === 0 ? "today" : `${trigger.recency}d`}
                                   </Badge>
                                 </div>
@@ -619,8 +610,8 @@ export default function DeepMind() {
                               <Shield className="w-4 h-4 text-emerald-400" />
                             </div>
                             <div>
-                              <CardTitle className="text-base text-slate-100">Top 3 Stabilizers</CardTitle>
-                              <CardDescription className="text-xs text-slate-500">What helps you recover</CardDescription>
+                              <CardTitle className="text-base text-foreground">Top 3 Stabilizers</CardTitle>
+                              <CardDescription className="text-xs text-muted-foreground">What helps you recover</CardDescription>
                             </div>
                           </div>
                         </div>
@@ -629,24 +620,24 @@ export default function DeepMind() {
                         {loopsData.stabilizers.length > 0 ? (
                           <ul className="space-y-3">
                             {loopsData.stabilizers.map((stabilizer, i) => (
-                              <li key={i} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                              <li key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
                                 <div className="flex items-center gap-3">
-                                  <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-500/30 to-teal-500/30 flex items-center justify-center text-[11px] font-bold text-emerald-400 border border-emerald-500/20">
+                                  <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center text-[11px] font-bold text-emerald-600 border border-emerald-200">
                                     {i + 1}
                                   </span>
-                                  <span className="text-sm font-medium text-slate-200">{stabilizer.name}</span>
+                                  <span className="text-sm font-medium text-slate-700">{stabilizer.name}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-xs text-slate-500 font-mono">{stabilizer.count}×</span>
+                                  <span className="text-xs text-muted-foreground font-mono">{stabilizer.count}×</span>
                                   <Badge 
                                     variant="outline" 
                                     className={cn(
                                       "text-[9px] px-1.5",
                                       stabilizer.effect === "Strong" 
-                                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
+                                        ? "bg-emerald-100 text-emerald-700 border-emerald-200" 
                                         : stabilizer.effect === "Moderate"
-                                        ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
-                                        : "bg-slate-700 text-slate-400 border-slate-600"
+                                        ? "bg-cyan-100 text-cyan-700 border-cyan-200"
+                                        : "bg-slate-100 text-slate-600 border-slate-300"
                                     )}
                                   >
                                     {stabilizer.effect}
@@ -676,8 +667,8 @@ export default function DeepMind() {
                               <RefreshCw className="w-4 h-4 text-amber-400" />
                             </div>
                             <div>
-                              <CardTitle className="text-base text-slate-100">Top 3 Crash Loops</CardTitle>
-                              <CardDescription className="text-xs text-slate-500">Repeating negative patterns</CardDescription>
+                              <CardTitle className="text-base text-foreground">Top 3 Crash Loops</CardTitle>
+                              <CardDescription className="text-xs text-muted-foreground">Repeating negative patterns</CardDescription>
                             </div>
                           </div>
                         </div>
@@ -686,20 +677,20 @@ export default function DeepMind() {
                         {loopsData.crashLoops.length > 0 ? (
                           <ul className="space-y-4">
                             {loopsData.crashLoops.map((loop, i) => (
-                              <li key={i} className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50 space-y-2">
+                              <li key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                                 <div className="flex items-start gap-3">
-                                  <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-amber-500/30 to-yellow-500/30 flex items-center justify-center text-[11px] font-bold text-amber-400 border border-amber-500/20 shrink-0">
+                                  <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-amber-100 to-yellow-100 flex items-center justify-center text-[11px] font-bold text-amber-600 border border-amber-200 shrink-0">
                                     {i + 1}
                                   </span>
-                                  <span className="text-sm font-mono text-slate-200">{loop.pattern}</span>
+                                  <span className="text-sm font-mono text-slate-700">{loop.pattern}</span>
                                 </div>
                                 <div className="flex items-center justify-between pl-9">
-                                  <span className="text-xs text-slate-500">
+                                  <span className="text-xs text-muted-foreground">
                                     {loop.count}× • {loop.recency === 0 ? "today" : `${loop.recency}d ago`}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 pl-9">
-                                  <Badge className="bg-teal-500/20 text-teal-400 border-teal-500/30 text-[10px] px-2 py-0.5 gap-1">
+                                  <Badge className="bg-teal-100 text-teal-700 border-teal-200 text-[10px] px-2 py-0.5 gap-1">
                                     <Sparkles className="w-3 h-3" />
                                     {loop.interrupt}
                                   </Badge>
@@ -757,13 +748,13 @@ export default function DeepMind() {
                             <Moon className="w-5 h-5 text-indigo-400" />
                           </div>
                           <div>
-                            <CardTitle className="text-base text-slate-100">Sleep Impact Analysis</CardTitle>
-                            <CardDescription className="text-xs text-slate-500">Sleep is your highest-leverage variable</CardDescription>
+                            <CardTitle className="text-base text-foreground">Sleep Impact Analysis</CardTitle>
+                            <CardDescription className="text-xs text-muted-foreground">Sleep is your highest-leverage variable</CardDescription>
                           </div>
                         </div>
                         <ConfidenceBadge confidence={visualsData.sleepImpact.confidence} sampleSize={visualsData.sleepImpact.sampleSize} />
                       </div>
-                      <div className="flex gap-1 mt-4 p-1 bg-slate-800/50 rounded-xl border border-slate-700/50 w-fit">
+                      <div className="flex gap-1 mt-4 p-1 bg-slate-100 rounded-xl border border-slate-200 w-fit">
                         {(["mood", "dissociation", "urges"] as const).map((metric) => (
                           <button
                             key={metric}
@@ -771,8 +762,8 @@ export default function DeepMind() {
                             className={cn(
                               "px-4 py-2 text-xs font-medium rounded-lg transition-all",
                               sleepMetric === metric
-                                ? "bg-gradient-to-r from-cyan-500/30 to-teal-500/30 text-cyan-400 border border-cyan-500/30 shadow-[0_0_10px_rgba(6,182,212,0.2)]"
-                                : "text-slate-400 hover:text-slate-300 hover:bg-slate-700/50"
+                                ? "bg-white text-teal-600 border border-slate-200 shadow-sm"
+                                : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
                             )}
                             data-testid={`toggle-${metric}`}
                           >
@@ -799,34 +790,34 @@ export default function DeepMind() {
                                 <stop offset="100%" stopColor="#ef4444" stopOpacity={0.6}/>
                               </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                             <XAxis 
                               dataKey="sleepHours" 
-                              tick={{ fill: '#94a3b8', fontSize: 12 }} 
-                              axisLine={{ stroke: '#475569' }}
-                              tickLine={{ stroke: '#475569' }}
+                              tick={{ fill: '#64748b', fontSize: 12 }} 
+                              axisLine={{ stroke: '#cbd5e1' }}
+                              tickLine={{ stroke: '#cbd5e1' }}
                               label={{ value: 'Hours of Sleep', position: 'bottom', fill: '#64748b', fontSize: 11, offset: -5 }}
                             />
                             <YAxis 
-                              tick={{ fill: '#94a3b8', fontSize: 12 }} 
-                              axisLine={{ stroke: '#475569' }}
-                              tickLine={{ stroke: '#475569' }}
+                              tick={{ fill: '#64748b', fontSize: 12 }} 
+                              axisLine={{ stroke: '#cbd5e1' }}
+                              tickLine={{ stroke: '#cbd5e1' }}
                               domain={sleepMetric === "mood" ? [0, 10] : [0, 100]}
                             />
                             <Tooltip 
                               contentStyle={{ 
-                                backgroundColor: 'rgba(15, 23, 42, 0.95)', 
-                                border: '1px solid rgba(6, 182, 212, 0.3)', 
+                                backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                                border: '1px solid #e2e8f0', 
                                 borderRadius: '12px',
-                                boxShadow: '0 0 20px rgba(6, 182, 212, 0.1)'
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                               }}
-                              labelStyle={{ color: '#f1f5f9', fontWeight: 600, marginBottom: '4px' }}
-                              itemStyle={{ color: '#94a3b8' }}
+                              labelStyle={{ color: '#1e293b', fontWeight: 600, marginBottom: '4px' }}
+                              itemStyle={{ color: '#64748b' }}
                               formatter={(value: number) => [
                                 `${value}${sleepMetric === "mood" ? "/10" : "%"}`,
                                 sleepMetric === "mood" ? "Avg Mood" : sleepMetric === "dissociation" ? "Avg Dissociation" : "Avg Stress"
                               ]}
-                              cursor={{ fill: 'rgba(6, 182, 212, 0.1)' }}
+                              cursor={{ fill: 'rgba(20, 184, 166, 0.1)' }}
                             />
                             <Bar 
                               dataKey={sleepMetric} 
@@ -855,8 +846,8 @@ export default function DeepMind() {
                             <TrendingUp className="w-5 h-5 text-amber-400" />
                           </div>
                           <div>
-                            <CardTitle className="text-base text-slate-100">Driver Frequency Over Time</CardTitle>
-                            <CardDescription className="text-xs text-slate-500">What's been running your life lately</CardDescription>
+                            <CardTitle className="text-base text-foreground">Driver Frequency Over Time</CardTitle>
+                            <CardDescription className="text-xs text-muted-foreground">What's been running your life lately</CardDescription>
                           </div>
                         </div>
                         <ConfidenceBadge confidence={visualsData.driverFrequency.confidence} sampleSize={visualsData.driverFrequency.sampleSize} />
@@ -867,31 +858,31 @@ export default function DeepMind() {
                         <>
                           <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={visualsData.driverFrequency.data} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                               <XAxis 
                                 dataKey="week" 
-                                tick={{ fill: '#94a3b8', fontSize: 11 }} 
-                                axisLine={{ stroke: '#475569' }}
-                                tickLine={{ stroke: '#475569' }}
+                                tick={{ fill: '#64748b', fontSize: 11 }} 
+                                axisLine={{ stroke: '#cbd5e1' }}
+                                tickLine={{ stroke: '#cbd5e1' }}
                               />
                               <YAxis 
-                                tick={{ fill: '#94a3b8', fontSize: 12 }} 
-                                axisLine={{ stroke: '#475569' }}
-                                tickLine={{ stroke: '#475569' }}
+                                tick={{ fill: '#64748b', fontSize: 12 }} 
+                                axisLine={{ stroke: '#cbd5e1' }}
+                                tickLine={{ stroke: '#cbd5e1' }}
                               />
                               <Tooltip 
                                 contentStyle={{ 
-                                  backgroundColor: 'rgba(15, 23, 42, 0.95)', 
-                                  border: '1px solid rgba(6, 182, 212, 0.3)', 
+                                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                                  border: '1px solid #e2e8f0', 
                                   borderRadius: '12px',
-                                  boxShadow: '0 0 20px rgba(6, 182, 212, 0.1)'
+                                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                                 }}
-                                labelStyle={{ color: '#f1f5f9', fontWeight: 600, marginBottom: '4px' }}
-                                cursor={{ fill: 'rgba(6, 182, 212, 0.1)' }}
+                                labelStyle={{ color: '#1e293b', fontWeight: 600, marginBottom: '4px' }}
+                                cursor={{ fill: 'rgba(20, 184, 166, 0.1)' }}
                               />
                               <Legend 
                                 wrapperStyle={{ paddingTop: '20px' }}
-                                formatter={(value) => <span className="text-slate-400 text-xs">{value}</span>}
+                                formatter={(value) => <span className="text-slate-600 text-xs">{value}</span>}
                               />
                               <Bar dataKey="sleep" stackId="a" fill="#6366f1" name="Sleep" radius={[0, 0, 0, 0]} />
                               <Bar dataKey="work" stackId="a" fill="#f59e0b" name="Work" />
@@ -901,7 +892,7 @@ export default function DeepMind() {
                               <Bar dataKey="anxiety" stackId="a" fill="#14b8a6" name="Anxiety" radius={[4, 4, 0, 0]} />
                             </BarChart>
                           </ResponsiveContainer>
-                          <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-800">
+                          <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-200">
                             {[
                               { color: "#6366f1", label: "Sleep" },
                               { color: "#f59e0b", label: "Work" },
@@ -912,7 +903,7 @@ export default function DeepMind() {
                             ].map(({ color, label }) => (
                               <div key={label} className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-                                <span className="text-xs text-slate-400">{label}</span>
+                                <span className="text-xs text-slate-600">{label}</span>
                               </div>
                             ))}
                           </div>
@@ -951,8 +942,8 @@ export default function DeepMind() {
                   {[0, 1, 2, 3].map(i => (
                     <motion.div key={i} variants={staggerItem}>
                       <GlassCard className="p-4">
-                        <Skeleton className="h-4 w-20 bg-slate-800 mb-2" />
-                        <Skeleton className="h-6 w-16 bg-slate-800" />
+                        <Skeleton className="h-4 w-20 bg-slate-200 mb-2" />
+                        <Skeleton className="h-6 w-16 bg-slate-200" />
                       </GlassCard>
                     </motion.div>
                   ))}
@@ -972,8 +963,8 @@ export default function DeepMind() {
                       <Clock className="w-5 h-5 text-violet-400" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-semibold text-slate-100">State Timeline</h2>
-                      <p className="text-xs text-slate-500">State distribution and patterns over time</p>
+                      <h2 className="text-lg font-semibold text-foreground">State Timeline</h2>
+                      <p className="text-xs text-muted-foreground">State distribution and patterns over time</p>
                     </div>
                   </div>
                   <ConfidenceBadge 
@@ -991,36 +982,36 @@ export default function DeepMind() {
                       />
                       <div className="flex items-center gap-2 mb-2">
                         <Users className="w-4 h-4 text-violet-400" />
-                        <span className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Most Common</span>
+                        <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Most Common</span>
                       </div>
-                      <div className="text-lg font-semibold text-slate-100">{timelineStats.mostCommonState}</div>
+                      <div className="text-lg font-semibold text-foreground">{timelineStats.mostCommonState}</div>
                     </GlassCard>
                     
                     <GlassCard className="p-4 overflow-hidden relative">
                       <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-amber-500" />
                       <div className="flex items-center gap-2 mb-2">
                         <RefreshCw className="w-4 h-4 text-amber-400" />
-                        <span className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Shifts/Day</span>
+                        <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Shifts/Day</span>
                       </div>
-                      <div className="text-lg font-semibold text-slate-100">{timelineStats.avgShiftsPerDay}</div>
+                      <div className="text-lg font-semibold text-foreground">{timelineStats.avgShiftsPerDay}</div>
                     </GlassCard>
                     
                     <GlassCard className="p-4 overflow-hidden relative">
                       <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-cyan-500" />
                       <div className="flex items-center gap-2 mb-2">
                         <Hash className="w-4 h-4 text-cyan-400" />
-                        <span className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Total Entries</span>
+                        <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Total Entries</span>
                       </div>
-                      <div className="text-lg font-semibold text-slate-100">{timelineStats.totalEntries}</div>
+                      <div className="text-lg font-semibold text-foreground">{timelineStats.totalEntries}</div>
                     </GlassCard>
                     
                     <GlassCard className="p-4 overflow-hidden relative">
                       <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-emerald-500" />
                       <div className="flex items-center gap-2 mb-2">
                         <Calendar className="w-4 h-4 text-emerald-400" />
-                        <span className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Days Tracked</span>
+                        <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Days Tracked</span>
                       </div>
-                      <div className="text-lg font-semibold text-slate-100">{timelineStats.daysTracked}</div>
+                      <div className="text-lg font-semibold text-foreground">{timelineStats.daysTracked}</div>
                     </GlassCard>
                   </motion.div>
                 )}
@@ -1033,8 +1024,8 @@ export default function DeepMind() {
                           <Layers className="w-5 h-5 text-violet-400" />
                         </div>
                         <div>
-                          <CardTitle className="text-base text-slate-100">State Distribution</CardTitle>
-                          <CardDescription className="text-xs text-slate-500">State patterns and transitions over time</CardDescription>
+                          <CardTitle className="text-base text-foreground">State Distribution</CardTitle>
+                          <CardDescription className="text-xs text-muted-foreground">State patterns and transitions over time</CardDescription>
                         </div>
                       </div>
                     </CardHeader>
@@ -1053,8 +1044,8 @@ export default function DeepMind() {
                             <ArrowRight className="w-5 h-5 text-amber-400" />
                           </div>
                           <div>
-                            <CardTitle className="text-base text-slate-100">State → Driver Association</CardTitle>
-                            <CardDescription className="text-xs text-slate-500">Which drivers tend to precede which states</CardDescription>
+                            <CardTitle className="text-base text-foreground">State → Driver Association</CardTitle>
+                            <CardDescription className="text-xs text-muted-foreground">Which drivers tend to precede which states</CardDescription>
                           </div>
                         </div>
                         <ConfidenceBadge 
@@ -1069,7 +1060,7 @@ export default function DeepMind() {
                           {stateDriverAssociations.associations.slice(0, 5).map((assoc) => (
                             <motion.div 
                               key={assoc.memberId} 
-                              className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 overflow-hidden relative"
+                              className="p-4 rounded-xl bg-slate-50 border border-slate-200 overflow-hidden relative"
                               data-testid={`state-driver-${assoc.memberId}`}
                               whileHover={{ scale: 1.01 }}
                               transition={{ duration: 0.2 }}
@@ -1089,8 +1080,8 @@ export default function DeepMind() {
                                   {assoc.memberName.substring(0, 2).toUpperCase()}
                                 </div>
                                 <div>
-                                  <span className="font-semibold text-slate-100">{assoc.memberName}</span>
-                                  <span className="text-slate-500 text-sm"> state most often follows:</span>
+                                  <span className="font-semibold text-foreground">{assoc.memberName}</span>
+                                  <span className="text-muted-foreground text-sm"> state most often follows:</span>
                                 </div>
                               </div>
                               <div className="flex flex-wrap gap-2 pl-2">
@@ -1101,11 +1092,11 @@ export default function DeepMind() {
                                     className={cn(
                                       "text-xs px-3 py-1",
                                       i === 0 
-                                        ? "bg-amber-500/20 text-amber-400 border-amber-500/30" 
-                                        : "bg-slate-700/50 text-slate-300 border-slate-600"
+                                        ? "bg-amber-100 text-amber-700 border-amber-200" 
+                                        : "bg-slate-100 text-slate-600 border-slate-300"
                                     )}
                                   >
-                                    {driver} <span className="text-slate-500 ml-1">({count}×)</span>
+                                    {driver} <span className="text-muted-foreground ml-1">({count}×)</span>
                                   </Badge>
                                 ))}
                               </div>
