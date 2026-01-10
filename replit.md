@@ -150,58 +150,47 @@ High-Confidence Multi-Factor Correlation Engine:
 
 ### Deep Mind (System Intelligence Dashboard)
 
-A redesigned system health and intelligence page that transforms the static member directory into an actionable insights hub:
+Redesigned system health and intelligence page answering: "What's driving me, what loop am I in, what do I do next?"
 
-**System Pulse** (Top metrics):
-- Stability Index: Calculated from mood variance and dissociation levels (0-100%)
-- Average Mood, Energy: Aggregated from tracker entries over selectable time range
-- Switches/Day: Average number of fronting transitions per day
+**Four Tabs**:
+1. **Now**: Current snapshot + smart suggestion
+2. **Your 3 Loops**: Top triggers, stabilizers, and crash loops (bullet lists, no charts)
+3. **Visualizations**: Two focused charts (Sleep vs Mood, Driver frequency)
+4. **State Timeline**: State distribution with state→driver associations
 
-**Current Fronter Banner**: Shows who's currently fronting with member color
+**Now Tab**:
+- NOW card showing: Driver (main factor like Sleep/Work/Loneliness/Pain), State + intensity (Low/Medium/High), Load % (external pressure), Stability % (internal balance), optional Risk flag
+- Smart Suggestion: Do (tiny stabilizer ≤10 min) + Avoid (one thing for next 12-24h)
+- Sample size (N) and confidence badge (Low/Medium/High)
 
-**Three Tabs**:
-1. **Intelligence**: Member insights grid + AI analysis
-2. **Headspace Map**: Visual fronting timeline (see below)
-3. **Directory**: Member CRUD management
+**Your 3 Loops Tab**:
+- Top 3 Triggers: Bullet list with trigger name, count (×), recency (days ago)
+- Top 3 Stabilizers: Bullet list with stabilizer name, count, effect (Strong/Moderate/Mild)
+- Top 3 Crash Loops: Bullet list with pattern description, count, recency, recommended interrupt action
+- Confidence badge based on sample size
 
-**Member Intelligence Grid**:
-- Per-member cards showing fronting %, mood, stress, energy averages
-- Mood trend arrows (improving/stable/declining) comparing older vs newer data
-- Last fronting timestamp
-- Color-coded by member
+**Visualizations Tab**:
+- Chart A: Sleep Hours vs Mood/Dissociation/Urges (toggle between metrics) - shows sleep as highest-leverage variable
+- Chart B: Driver Frequency Over Time - stacked bar chart showing weekly driver counts (Sleep/Work/Loneliness/Pain/Urges/Anxiety)
+- Both charts show N (sample size) and confidence badge
 
-**AI System Analysis**:
-- Streaming insights powered by GPT-4o-mini
-- Three focus modes: Overview, Patterns, Suggestions
-- Grounded in actual tracker data to avoid hallucination
+**State Timeline Tab** (uses "state" terminology):
+- State distribution visualization (horizontal timeline, weekly views, monthly calendar)
+- State → Driver associations (which drivers tend to precede which states)
+- Most Common State, Avg State Shifts/Day, Days Tracked, Total Entries
+- Confidence badge for state → driver analysis
 
 **API Endpoints**:
-- `GET /api/deep-mind/overview?days=30`: Returns system metrics, member stats, current fronter
-- `POST /api/deep-mind/insights`: Streaming AI analysis with focus parameter
+- `GET /api/deep-mind/now`: Current snapshot (driver, state, load, stability, risk, suggestion)
+- `GET /api/deep-mind/loops?days=90`: Pattern analysis (triggers, stabilizers, crash loops)
+- `GET /api/deep-mind/visualizations?days=30`: Sleep impact and driver frequency data
+- `GET /api/deep-mind/overview?days=30`: System metrics, member stats, current state
+- `POST /api/deep-mind/insights`: Streaming AI analysis
 
-### Headspace Map (Enhanced)
-
-Multi-scale presence dashboard for understanding alter fronting patterns over time:
-
-**Views**:
-- **Weekly Balance**: Stacked bar chart showing daily fronting hours by member with week navigation
-- **Monthly Calendar**: Heatmap colored by dominant alter per day with transition indicators (⚡)
-- **30-Day Trends**: Area chart showing fronting time trends with per-member stat cards
-- **24h View**: Original timeline with hourly presence flow and transition markers
-
-**Summary Stats Panel**:
-- Top Fronter (most active in last 30 days)
-- Avg Switches/Day (transition frequency)
-- Days Tracked (data coverage)
-- Total Entries (log count)
-
-**Per-Member Statistics**:
-- Total hours, average hours per day, days active, percentage share
-
-**Data Aggregation**:
-- `computeDailyPresence()`: Aggregates fronting duration per alter per day
-- Handles gaps, transitions, and dominant alter detection
-- Fetches up to 2000 tracker entries for comprehensive historical analysis
+**Confidence System**:
+- N < 5: Low ("early signal")
+- N 5-14: Medium ("building")
+- N ≥ 15: High ("validated")
 
 ### Build and Development
 
