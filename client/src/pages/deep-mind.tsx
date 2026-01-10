@@ -251,31 +251,31 @@ function AIInsightDisplay({ content }: { content: string }) {
     const t = title.toLowerCase();
     if (t.includes("facts")) return { 
       icon: Activity, 
-      bg: "bg-slate-50/60",
-      border: "border-slate-200/60",
-      iconBg: "bg-slate-100",
-      iconColor: "text-slate-500"
+      bg: "bg-sky-50/40",
+      border: "border-sky-100/60",
+      iconBg: "bg-sky-100/80",
+      iconColor: "text-sky-600"
     };
     if (t.includes("driver")) return { 
       icon: Target, 
-      bg: "bg-slate-50/60",
-      border: "border-slate-200/60",
-      iconBg: "bg-slate-100",
-      iconColor: "text-slate-500"
+      bg: "bg-violet-50/40",
+      border: "border-violet-100/60",
+      iconBg: "bg-violet-100/80",
+      iconColor: "text-violet-600"
     };
     if (t.includes("pattern")) return { 
       icon: Network, 
-      bg: "bg-slate-50/60",
-      border: "border-slate-200/60",
-      iconBg: "bg-slate-100",
-      iconColor: "text-slate-500"
+      bg: "bg-amber-50/40",
+      border: "border-amber-100/60",
+      iconBg: "bg-amber-100/80",
+      iconColor: "text-amber-600"
     };
     if (t.includes("action")) return { 
       icon: CheckCircle, 
-      bg: "bg-slate-50/60",
-      border: "border-slate-200/60",
-      iconBg: "bg-slate-100",
-      iconColor: "text-slate-500"
+      bg: "bg-teal-50/40",
+      border: "border-teal-100/60",
+      iconBg: "bg-teal-100/80",
+      iconColor: "text-teal-600"
     };
     return { 
       icon: Brain, 
@@ -298,9 +298,9 @@ function AIInsightDisplay({ content }: { content: string }) {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.15 }}
-                className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-sm"
+                className="px-3 py-1.5 rounded-lg bg-white border border-amber-200/60 shadow-sm"
               >
-                <span className="text-sm font-medium text-slate-600">{step.replace(/[\[\]]/g, '')}</span>
+                <span className="text-sm font-medium text-slate-700">{step.replace(/[\[\]]/g, '')}</span>
               </motion.div>
               {i < steps.length - 1 && (
                 <motion.div
@@ -308,7 +308,7 @@ function AIInsightDisplay({ content }: { content: string }) {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.15 + 0.1 }}
                 >
-                  <ArrowRight className="w-4 h-4 text-slate-400" />
+                  <ArrowRight className="w-4 h-4 text-amber-400" />
                 </motion.div>
               )}
             </div>
@@ -334,13 +334,13 @@ function AIInsightDisplay({ content }: { content: string }) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200"
+            className="flex items-start gap-3 p-3 rounded-xl bg-teal-50/50 border border-teal-100/60"
           >
-            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <CheckCircle className="w-3.5 h-3.5 text-slate-600" />
+            <div className="w-6 h-6 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <CheckCircle className="w-3.5 h-3.5 text-teal-600" />
             </div>
             <div>
-              <span className="text-xs font-semibold text-slate-500 uppercase">Do</span>
+              <span className="text-xs font-semibold text-teal-600 uppercase">Do</span>
               <p className="text-sm text-slate-700 mt-0.5">{item.replace(/^[•\-]\s*Do:\s*/i, '')}</p>
             </div>
           </motion.div>
@@ -351,13 +351,13 @@ function AIInsightDisplay({ content }: { content: string }) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: (doItems.length + i) * 0.1 }}
-            className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200"
+            className="flex items-start gap-3 p-3 rounded-xl bg-rose-50/50 border border-rose-100/60"
           >
-            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <XCircle className="w-3.5 h-3.5 text-slate-600" />
+            <div className="w-6 h-6 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <XCircle className="w-3.5 h-3.5 text-rose-500" />
             </div>
             <div>
-              <span className="text-xs font-semibold text-slate-500 uppercase">Avoid</span>
+              <span className="text-xs font-semibold text-rose-500 uppercase">Avoid</span>
               <p className="text-sm text-slate-700 mt-0.5">{item.replace(/^[•\-]\s*Avoid:\s*/i, '')}</p>
             </div>
           </motion.div>
@@ -405,10 +405,11 @@ function AIInsightDisplay({ content }: { content: string }) {
                   
                   if (trimmed.toLowerCase().includes('confidence:')) {
                     const conf = trimmed.includes('High') ? 'High' : trimmed.includes('Medium') ? 'Medium' : 'Low';
+                    const confColor = conf === 'High' ? 'bg-teal-50 text-teal-600 border-teal-100' : conf === 'Medium' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-slate-100 text-slate-600 border-slate-200';
                     return (
                       <div key={i} className="flex items-center gap-2">
                         <span className="text-sm text-slate-600">Confidence:</span>
-                        <Badge className="text-xs bg-slate-100 text-slate-600 border-slate-200">{conf}</Badge>
+                        <Badge className={cn("text-xs", confColor)}>{conf}</Badge>
                       </div>
                     );
                   }
