@@ -383,6 +383,8 @@ export const journalEntries = pgTable("journal_entries", {
   tags: jsonb("tags").$type<string[]>().default(sql`'[]'::jsonb`),
   isPrivate: integer("is_private").notNull().default(0), // 0 = false, 1 = true
   entryDate: timestamp("entry_date").defaultNow().notNull(), // user-selected date for when entry is about
+  primaryDriver: text("primary_driver"), // "sleep" | "work" | "relationships" | "body" | "anxiety" | "urges" | "shame" | "trauma" | "joy" | "connection" | "growth" | "peace" | "none"
+  secondaryDriver: text("secondary_driver"), // optional secondary driver (often: trigger → secondary like urges/shame)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
