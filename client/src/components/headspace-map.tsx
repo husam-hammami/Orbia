@@ -420,69 +420,7 @@ export function HeadspaceMap() {
   }
 
   return (
-    <div className="space-y-6 py-2" data-testid="headspace-timeline">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <Card className="bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-lg rounded-2xl overflow-hidden relative">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-violet-500" />
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-violet-100 border border-violet-200 flex items-center justify-center">
-                <Users className="w-5 h-5 text-violet-600" />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Top State</p>
-                <p className="text-sm font-semibold text-slate-900">{summaryStats.topMember?.name || "—"}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-lg rounded-2xl overflow-hidden relative">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Avg State Shifts/Day</p>
-                <p className="text-sm font-semibold text-slate-900">{summaryStats.avgTransitionsPerDay || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-lg rounded-2xl overflow-hidden relative">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Days Tracked</p>
-                <p className="text-sm font-semibold text-slate-900">{summaryStats.daysWithData} / 30</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-lg rounded-2xl overflow-hidden relative">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500" />
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-cyan-100 border border-cyan-200 flex items-center justify-center">
-                <Activity className="w-5 h-5 text-cyan-600" />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Total Entries</p>
-                <p className="text-sm font-semibold text-slate-900">{summaryStats.totalEntries}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+    <div className="space-y-4 py-2" data-testid="headspace-timeline">
       <Tabs value={activeView} onValueChange={setActiveView} className="space-y-4">
         <TabsList className="bg-white/90 border border-slate-200 shadow-sm p-1 rounded-xl">
           <TabsTrigger 
@@ -665,31 +603,31 @@ export function HeadspaceMap() {
                                       </motion.div>
                                     </motion.div>
                                   </TooltipTrigger>
-                                  <TooltipContent className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 p-4 shadow-2xl rounded-xl">
+                                  <TooltipContent className="bg-white backdrop-blur-xl border border-slate-200 p-4 shadow-xl rounded-xl">
                                     <div className="flex items-center gap-2 mb-2">
                                       <div 
                                         className="w-3 h-3 rounded-full shadow-lg"
                                         style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}` }}
                                       />
-                                      <span className="font-bold text-white">{member?.name || 'Unknown'}</span>
+                                      <span className="font-bold text-slate-900">{member?.name || 'Unknown'}</span>
                                     </div>
-                                    <p className="text-xs text-slate-400 mb-2">
+                                    <p className="text-xs text-slate-500 mb-2">
                                       {format(typeof entry.timestamp === 'string' ? parseISO(entry.timestamp) : entry.timestamp, "EEEE, MMM d 'at' h:mm a")}
                                     </p>
                                     <div className="grid grid-cols-2 gap-3 text-xs">
                                       <div className="flex items-center gap-1.5">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                        <span className="text-slate-300">Mood: <span className="font-semibold text-white">{entry.mood}/10</span></span>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                        <span className="text-slate-600">Mood: <span className="font-semibold text-slate-900">{entry.mood}/10</span></span>
                                       </div>
                                       <div className="flex items-center gap-1.5">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                                        <span className="text-slate-300">Stress: <span className="font-semibold text-white">{entry.stress}%</span></span>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                        <span className="text-slate-600">Stress: <span className="font-semibold text-slate-900">{entry.stress}%</span></span>
                                       </div>
                                     </div>
                                     {isSwitch && (
-                                      <div className="flex items-center gap-1 mt-2 pt-2 border-t border-slate-700/50">
-                                        <Zap className="w-3 h-3 text-amber-400" />
-                                        <span className="text-[10px] text-amber-300 font-medium">State shift</span>
+                                      <div className="flex items-center gap-1 mt-2 pt-2 border-t border-slate-200">
+                                        <Zap className="w-3 h-3 text-amber-500" />
+                                        <span className="text-[10px] text-amber-600 font-medium">State shift</span>
                                       </div>
                                     )}
                                   </TooltipContent>
@@ -708,8 +646,8 @@ export function HeadspaceMap() {
 
                     <div className="relative px-6 pb-6">
                       <div className="flex items-center gap-2 mb-3">
-                        <Layers className="w-4 h-4 text-fuchsia-400" />
-                        <span className="text-xs font-semibold text-fuchsia-300 uppercase tracking-wider">State Distribution</span>
+                        <Layers className="w-4 h-4 text-fuchsia-500" />
+                        <span className="text-xs font-semibold text-fuchsia-600 uppercase tracking-wider">State Distribution</span>
                       </div>
                       
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -742,16 +680,16 @@ export function HeadspaceMap() {
                                   >
                                     {m.name.substring(0, 2).toUpperCase()}
                                   </motion.div>
-                                  <span className="text-sm font-semibold text-white truncate">{m.name}</span>
+                                  <span className="text-sm font-semibold text-slate-900 truncate">{m.name}</span>
                                 </div>
                                 <div className="flex items-baseline justify-between">
-                                  <span className="text-2xl font-bold text-white">{pct}%</span>
+                                  <span className="text-2xl font-bold text-slate-900">{pct}%</span>
                                   <div className="text-right">
-                                    <p className="text-[10px] text-slate-400">{count} entries</p>
+                                    <p className="text-[10px] text-slate-500">{count} entries</p>
                                     <p className="text-[10px] text-slate-500">avg mood {avgMood.toFixed(1)}</p>
                                   </div>
                                 </div>
-                                <div className="mt-2 h-1 rounded-full bg-slate-800 overflow-hidden">
+                                <div className="mt-2 h-1 rounded-full bg-slate-200 overflow-hidden">
                                   <motion.div
                                     className="h-full rounded-full"
                                     style={{ backgroundColor: m.color }}
@@ -769,7 +707,7 @@ export function HeadspaceMap() {
 
                     {entries.length > 120 && (
                       <div className="px-6 pb-4">
-                        <div className="text-center text-xs text-slate-500 py-2 rounded-lg bg-slate-800/30 border border-slate-700/30">
+                        <div className="text-center text-xs text-slate-500 py-2 rounded-lg bg-slate-100 border border-slate-200">
                           Displaying last 120 of {entries.length} entries for optimal visualization
                         </div>
                       </div>
@@ -806,15 +744,15 @@ export function HeadspaceMap() {
               </div>
             </CardHeader>
             <CardContent className="pt-4">
-              <div className="h-[260px] rounded-xl bg-slate-950 p-4">
+              <div className="h-[260px] rounded-xl bg-slate-100 border border-slate-200 p-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={weeklyChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
-                    <XAxis dataKey="day" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={{ stroke: '#475569' }} />
-                    <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={{ stroke: '#475569' }} label={{ value: 'Hours', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.8} />
+                    <XAxis dataKey="day" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={{ stroke: '#cbd5e1' }} />
+                    <YAxis tick={{ fill: '#64748b', fontSize: 10 }} axisLine={{ stroke: '#cbd5e1' }} label={{ value: 'Hours', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
                     <RechartsTooltip 
-                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                      labelStyle={{ color: '#e2e8f0' }}
+                      contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                      labelStyle={{ color: '#334155' }}
                     />
                     <Legend wrapperStyle={{ fontSize: '11px' }} />
                     {members.map(m => (
@@ -852,10 +790,10 @@ export function HeadspaceMap() {
               </div>
             </CardHeader>
             <CardContent className="pt-4">
-              <div className="rounded-xl bg-slate-950 p-4">
+              <div className="rounded-xl bg-slate-100 border border-slate-200 p-4">
                 <div className="grid grid-cols-7 gap-1 mb-2">
                   {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
-                    <div key={d} className="text-center text-[10px] font-bold text-slate-400 uppercase">{d}</div>
+                    <div key={d} className="text-center text-[10px] font-bold text-slate-500 uppercase">{d}</div>
                   ))}
                 </div>
                 
@@ -949,15 +887,15 @@ export function HeadspaceMap() {
               <CardDescription className="text-xs text-slate-500">Active hours per day over the last month</CardDescription>
             </CardHeader>
             <CardContent className="pt-4">
-              <div className="h-[280px] rounded-xl bg-slate-950 p-4">
+              <div className="h-[280px] rounded-xl bg-slate-100 border border-slate-200 p-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={trendChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
-                    <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={{ stroke: '#475569' }} interval="preserveStartEnd" />
-                    <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={{ stroke: '#475569' }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.8} />
+                    <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 9 }} axisLine={{ stroke: '#cbd5e1' }} interval="preserveStartEnd" />
+                    <YAxis tick={{ fill: '#64748b', fontSize: 10 }} axisLine={{ stroke: '#cbd5e1' }} />
                     <RechartsTooltip 
-                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                      labelStyle={{ color: '#e2e8f0' }}
+                      contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                      labelStyle={{ color: '#334155' }}
                     />
                     <Legend wrapperStyle={{ fontSize: '11px' }} />
                     {members.map(m => (
@@ -1049,8 +987,8 @@ export function HeadspaceMap() {
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-violet-500/5 to-fuchsia-500/5 rounded-2xl blur-xl" />
             
-            <div className="relative rounded-2xl border border-slate-200/60 bg-slate-950 backdrop-blur-sm p-4 overflow-hidden shadow-lg">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-500/10 via-transparent to-transparent pointer-events-none" />
+            <div className="relative rounded-2xl border border-slate-200/60 bg-slate-100 backdrop-blur-sm p-4 overflow-hidden shadow-lg">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-500/5 via-transparent to-transparent pointer-events-none" />
               
               <div className="flex h-20 w-full gap-0.5 items-stretch relative z-10">
                 <TooltipProvider delayDuration={0}>
@@ -1078,8 +1016,8 @@ export function HeadspaceMap() {
                               transition={{ delay: i * 0.012, type: "spring", stiffness: 200 }}
                               className={cn(
                                 "w-full h-full rounded-sm relative overflow-hidden transition-all duration-200",
-                                "group-hover/slot:scale-y-110 group-hover/slot:brightness-125",
-                                slot.member ? "" : "bg-slate-800/40"
+                                "group-hover/slot:scale-y-110 group-hover/slot:brightness-110",
+                                slot.member ? "" : "bg-slate-300/50"
                               )}
                               style={slot.member ? {
                                 background: `linear-gradient(180deg, ${slot.member.normalizedColor}dd 0%, ${slot.member.normalizedColor}99 50%, ${slot.member.normalizedColor}66 100%)`,
@@ -1101,19 +1039,19 @@ export function HeadspaceMap() {
                         
                         <TooltipContent 
                           side="top" 
-                          className="p-0 overflow-hidden border-0 shadow-2xl shadow-black/50"
+                          className="p-0 overflow-hidden border-0 shadow-xl"
                         >
-                          <div className="bg-gradient-to-b from-slate-800 to-slate-900 backdrop-blur-xl border border-slate-700/50 rounded-lg overflow-hidden min-w-[200px]">
+                          <div className="bg-white backdrop-blur-xl border border-slate-200 rounded-lg overflow-hidden min-w-[200px]">
                             <div 
                               className="px-4 py-2 flex items-center justify-between gap-4"
                               style={slot.member ? {
                                 background: `linear-gradient(90deg, ${slot.member.normalizedColor}30 0%, transparent 100%)`
                               } : undefined}
                             >
-                              <span className="text-sm font-mono font-bold text-white">{slot.label}</span>
+                              <span className="text-sm font-mono font-bold text-slate-700">{slot.label}</span>
                               {slot.member && (
                                 <div 
-                                  className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow-lg"
+                                  className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow"
                                   style={{ 
                                     backgroundColor: slot.member.normalizedColor,
                                     boxShadow: `0 0 8px ${slot.member.normalizedColor}60`
@@ -1124,22 +1062,22 @@ export function HeadspaceMap() {
                               )}
                             </div>
                             
-                            <div className="px-4 py-3 space-y-2 border-t border-slate-700/30">
+                            <div className="px-4 py-3 space-y-2 border-t border-slate-200">
                               {slot.entry ? (
                                 <>
                                   {slot.entry.notes && (
-                                    <p className="text-xs text-slate-400 italic line-clamp-2">
+                                    <p className="text-xs text-slate-600 italic line-clamp-2">
                                       "{slot.entry.notes}"
                                     </p>
                                   )}
                                   <div className="flex gap-4 pt-1">
                                     <div className="flex items-center gap-1.5">
-                                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                      <span className="text-[11px] font-medium text-slate-300">Mood {slot.entry.mood}/10</span>
+                                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                      <span className="text-[11px] font-medium text-slate-600">Mood {slot.entry.mood}/10</span>
                                     </div>
                                     <div className="flex items-center gap-1.5">
-                                      <div className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                                      <span className="text-[11px] font-medium text-slate-300">Stress {slot.entry.stress}%</span>
+                                      <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                      <span className="text-[11px] font-medium text-slate-600">Stress {slot.entry.stress}%</span>
                                     </div>
                                   </div>
                                 </>
@@ -1184,10 +1122,9 @@ export function HeadspaceMap() {
                   />
                   
                   <div 
-                    className="relative flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-900/80 backdrop-blur-sm border transition-all duration-200 group-hover:scale-105"
+                    className="relative flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/80 backdrop-blur-sm border transition-all duration-200 group-hover:scale-105 shadow-sm"
                     style={{ 
                       borderColor: `${normalizedColor}40`,
-                      boxShadow: `inset 0 1px 0 ${normalizedColor}20`
                     }}
                   >
                     <div 
@@ -1203,7 +1140,7 @@ export function HeadspaceMap() {
                     </div>
                     
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-slate-200 leading-tight">{member.name}</span>
+                      <span className="text-sm font-semibold text-slate-900 leading-tight">{member.name}</span>
                       <span className="text-[10px] font-mono text-slate-500">{hours}h presence</span>
                     </div>
                   </div>

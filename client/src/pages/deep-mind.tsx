@@ -973,49 +973,6 @@ export default function DeepMind() {
                   />
                 </motion.div>
 
-                {timelineStats && (
-                  <motion.div variants={staggerItem} className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <GlassCard className="p-4 overflow-hidden relative">
-                      <div 
-                        className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl"
-                        style={{ backgroundColor: timelineStats.mostCommonColor }}
-                      />
-                      <div className="flex items-center gap-2 mb-2">
-                        <Users className="w-4 h-4 text-violet-400" />
-                        <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Most Common</span>
-                      </div>
-                      <div className="text-lg font-semibold text-foreground">{timelineStats.mostCommonState}</div>
-                    </GlassCard>
-                    
-                    <GlassCard className="p-4 overflow-hidden relative">
-                      <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-amber-500" />
-                      <div className="flex items-center gap-2 mb-2">
-                        <RefreshCw className="w-4 h-4 text-amber-400" />
-                        <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Shifts/Day</span>
-                      </div>
-                      <div className="text-lg font-semibold text-foreground">{timelineStats.avgShiftsPerDay}</div>
-                    </GlassCard>
-                    
-                    <GlassCard className="p-4 overflow-hidden relative">
-                      <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-cyan-500" />
-                      <div className="flex items-center gap-2 mb-2">
-                        <Hash className="w-4 h-4 text-cyan-400" />
-                        <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Total Entries</span>
-                      </div>
-                      <div className="text-lg font-semibold text-foreground">{timelineStats.totalEntries}</div>
-                    </GlassCard>
-                    
-                    <GlassCard className="p-4 overflow-hidden relative">
-                      <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-emerald-500" />
-                      <div className="flex items-center gap-2 mb-2">
-                        <Calendar className="w-4 h-4 text-emerald-400" />
-                        <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Days Tracked</span>
-                      </div>
-                      <div className="text-lg font-semibold text-foreground">{timelineStats.daysTracked}</div>
-                    </GlassCard>
-                  </motion.div>
-                )}
-
                 <motion.div variants={staggerItem}>
                   <GlassCard glow glowColor="violet" className="overflow-hidden">
                     <CardHeader className="pb-4">
