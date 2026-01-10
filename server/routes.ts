@@ -2427,10 +2427,11 @@ Guidelines:
       }
 
       // Fetch comprehensive data like Deep Mind does
-      const [entries, journalEntries, members] = await Promise.all([
+      const [entries, journalEntries, members, visionItems] = await Promise.all([
         storage.getRecentTrackerEntries(200),
         storage.getAllJournalEntries(),
         storage.getAllMembers(),
+        storage.getVision(),
       ]);
       
       // Calculate facts for last 7 days
@@ -2736,13 +2737,17 @@ CONFIRMATION RULES:
 - ALWAYS set confirm:true and confirm_text for all delete actions
 - confirm_text should briefly describe what will happen
 
-=== KEY RULES ===
+=== CRITICAL ACTION RULES ===
+- When user asks to ADD, CREATE, EDIT, UPDATE, CHANGE, DELETE, MARK, or TOGGLE something, you MUST output the action JSON. DO NOT give instructions to do it manually.
+- If you have the ID needed for an update/delete, use it. If you don't have the ID, ask which one they mean.
+- NEVER tell the user to "paste this" or "go to the page and..." - USE THE ACTION to do it for them.
 - Every analytical claim MUST include a journal quote or specific metric value
 - Never blame habits/routine. Say "low completion likely due to low capacity"
-- If unsure about user intent, ask ONE clarifying question
-- Keep responses brief and data-grounded
 
 ${analyticsContext}
+
+NORTH STAR VISION ITEMS (use these IDs for vision actions):
+${visionItems.length > 0 ? visionItems.map(v => `- ID: "${v.id}" | Title: "${v.title}" | Timeframe: ${v.timeframe}`).join('\n') : 'No vision items yet'}
 
 ADDITIONAL OPERATIONAL CONTEXT:
 ${JSON.stringify(context, null, 2)}`;
