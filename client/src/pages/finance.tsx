@@ -1,6 +1,17 @@
 import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -55,7 +66,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { 
-  useTransactions, 
+  useTransactions,
+  useAllTransactions,
   useCreateTransaction, 
   useDeleteTransaction,
   useIncomeStreams,
@@ -130,6 +142,7 @@ export default function FinancePage() {
   const [isImporting, setIsImporting] = useState(false);
 
   const { data: transactions = [], isLoading: transactionsLoading } = useTransactions(currentMonth);
+  const { data: allTransactions = [] } = useAllTransactions();
   const { data: incomeStreams = [], isLoading: incomeLoading } = useIncomeStreams();
   const { data: financeSettings } = useFinanceSettings();
   const { data: loans = [], isLoading: loansLoading } = useLoans();
@@ -219,6 +232,34 @@ export default function FinancePage() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
   }, [transactions]);
+
+  const chartData = useMemo(() => {
+    const now = new Date();
+    const months: { month: string; income: number; expenses: number; netFlow: number }[] = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthLabel = `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+      const shortMonth = MONTHS[date.getMonth()].slice(0, 3);
+      
+      const monthTransactions = allTransactions.filter(t => t.month === monthLabel);
+      const income = monthTransactions
+        .filter(t => t.type === "income")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      const expenses = monthTransactions
+        .filter(t => t.type === "expense")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      
+      months.push({
+        month: shortMonth,
+        income,
+        expenses,
+        netFlow: income - expenses
+      });
+    }
+    
+    return months;
+  }, [allTransactions]);
 
   const handleMonthChange = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
@@ -543,6 +584,80 @@ export default function FinancePage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Cash Flow Chart */}
+        <Card className="border-border/50 shadow-sm" data-testid="card-cash-flow-chart">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-indigo-500" />
+              Cash Flow Overview
+            </CardTitle>
+            <CardDescription>Income, expenses, and net flow for the last 6 months</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={280}>
+              <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis 
+                  dataKey="month" 
+                  tick={{ fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#e5e7eb' }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#e5e7eb' }}
+                  tickFormatter={(value) => {
+                    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                    if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                    return value.toString();
+                  }}
+                />
+                <Tooltip 
+                  formatter={(value: number, name: string) => [
+                    formatCurrency(value, currency),
+                    name
+                  ]}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--background))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}
+                  labelStyle={{ fontWeight: 600 }}
+                />
+                <Legend 
+                  wrapperStyle={{ paddingTop: 10 }}
+                  iconType="rect"
+                />
+                <Bar 
+                  dataKey="income" 
+                  fill="#10b981" 
+                  name="Income" 
+                  radius={[4, 4, 0, 0]}
+                  opacity={0.9}
+                />
+                <Bar 
+                  dataKey="expenses" 
+                  fill="#f43f5e" 
+                  name="Expenses" 
+                  radius={[4, 4, 0, 0]}
+                  opacity={0.9}
+                />
+                <Line 
+                  type="monotone"
+                  dataKey="netFlow" 
+                  stroke="#6366f1" 
+                  strokeWidth={2} 
+                  name="Net Flow"
+                  dot={{ r: 4, fill: '#6366f1' }}
+                  activeDot={{ r: 6 }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content - Transactions */}

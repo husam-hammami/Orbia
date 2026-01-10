@@ -1104,6 +1104,13 @@ export function useTransactions(month?: string) {
   });
 }
 
+export function useAllTransactions() {
+  return useQuery<Transaction[]>({
+    queryKey: ["transactions", "all"],
+    queryFn: () => fetchAPI("/api/transactions"),
+  });
+}
+
 export function useCreateTransaction() {
   const queryClient = useQueryClient();
   return useMutation({
