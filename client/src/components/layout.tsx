@@ -73,11 +73,13 @@ function Sidebar({ className }: SidebarProps) {
       "bg-white/70 backdrop-blur-xl border-r border-slate-200/60",
       className
     )}>
-      <div className="mb-4 -mx-3 px-2 py-3 bg-gradient-to-b from-slate-900 via-slate-800 to-transparent rounded-b-2xl">
+      <div className="mb-4 -mx-3 px-2 py-4 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-cyan-100/40 via-purple-100/30 to-transparent rounded-b-2xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-gradient-to-br from-cyan-400/20 to-purple-400/20 rounded-full blur-2xl" />
         <img 
           src={logoUrl} 
           alt="Orbia Logo" 
-          className="w-[120%] max-w-none h-auto object-contain -ml-[10%] drop-shadow-lg" 
+          className="w-[120%] max-w-none h-auto object-contain -ml-[10%] relative z-10" 
           style={{ imageRendering: 'crisp-edges' }}
         />
       </div>
@@ -93,7 +95,7 @@ function Sidebar({ className }: SidebarProps) {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
                 isActive
-                  ? "bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 text-white shadow-lg shadow-purple-600/25"
+                  ? "bg-white/90 text-purple-700 shadow-md border border-purple-200/60 ring-1 ring-cyan-400/30"
                   : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
               )}
             >
