@@ -1000,96 +1000,67 @@ export default function DeepMind() {
                           <CardDescription className="text-xs text-muted-foreground">AI-powered insights based on your tracking data</CardDescription>
                         </div>
                       </div>
-                      <div className="flex gap-2 flex-wrap">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => fetchAIInsight("patterns")}
-                          disabled={isLoadingInsight}
-                          data-testid="button-patterns-insight"
-                        >
-                          Patterns
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => fetchAIInsight("recommendations")}
-                          disabled={isLoadingInsight}
-                          data-testid="button-recommendations-insight"
-                        >
-                          Suggestions
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          className="bg-teal-600 hover:bg-teal-500 text-white"
-                          onClick={() => fetchAIInsight("system")}
-                          disabled={isLoadingInsight}
-                          data-testid="button-overview-insight"
-                        >
-                          {isLoadingInsight ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <>
-                              <RefreshCw className="w-4 h-4 mr-1" />
-                              Analyze
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                      <Button 
+                        size="sm" 
+                        className="bg-teal-600 hover:bg-teal-500 text-white"
+                        onClick={() => fetchAIInsight("system")}
+                        disabled={isLoadingInsight}
+                        data-testid="button-overview-insight"
+                      >
+                        {isLoadingInsight ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-1.5" />
+                            Analyze
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
                     {aiInsight ? (
-                      <div className="space-y-4">
+                      <div className="space-y-6">
                         {aiInsight.split(/\*\*([^*]+)\*\*/).map((section, idx) => {
                           if (idx % 2 === 1) {
                             const sectionName = section.toLowerCase();
-                            let bgColor = "bg-slate-100";
-                            let borderColor = "border-slate-200";
-                            let iconColor = "text-slate-500";
+                            let accentColor = "bg-slate-300";
                             
                             if (sectionName.includes("facts")) {
-                              bgColor = "bg-blue-50";
-                              borderColor = "border-blue-200";
-                              iconColor = "text-blue-600";
+                              accentColor = "bg-blue-400";
                             } else if (sectionName.includes("driver")) {
-                              bgColor = "bg-violet-50";
-                              borderColor = "border-violet-200";
-                              iconColor = "text-violet-600";
+                              accentColor = "bg-violet-400";
                             } else if (sectionName.includes("pattern")) {
-                              bgColor = "bg-amber-50";
-                              borderColor = "border-amber-200";
-                              iconColor = "text-amber-600";
+                              accentColor = "bg-amber-400";
                             } else if (sectionName.includes("action")) {
-                              bgColor = "bg-emerald-50";
-                              borderColor = "border-emerald-200";
-                              iconColor = "text-emerald-600";
+                              accentColor = "bg-emerald-400";
                             }
                             
                             return (
-                              <div key={idx} className={`rounded-xl p-4 ${bgColor} border ${borderColor}`}>
-                                <h3 className={`text-sm font-bold ${iconColor} uppercase tracking-wide mb-2`}>
+                              <div key={idx} className="flex items-center gap-2 pt-2">
+                                <div className={`w-1 h-4 rounded-full ${accentColor}`} />
+                                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                                   {section}
                                 </h3>
                               </div>
                             );
                           } else if (section.trim()) {
                             return (
-                              <div key={idx} className="pl-4 -mt-2 mb-4">
+                              <div key={idx} className="space-y-1.5 -mt-1">
                                 {section.split('\n').map((line, lineIdx) => {
                                   const trimmedLine = line.trim();
                                   if (!trimmedLine) return null;
                                   
                                   if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
                                     return (
-                                      <div key={lineIdx} className="flex items-start gap-2 py-1">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0" />
+                                      <div key={lineIdx} className="flex items-start gap-2 pl-3">
+                                        <div className="w-1 h-1 rounded-full bg-slate-400 mt-2 flex-shrink-0" />
                                         <span className="text-sm text-slate-700 leading-relaxed">{trimmedLine.replace(/^[•\-]\s*/, '')}</span>
                                       </div>
                                     );
                                   }
                                   return (
-                                    <p key={lineIdx} className="text-sm text-slate-700 leading-relaxed py-0.5">{trimmedLine}</p>
+                                    <p key={lineIdx} className="text-sm text-slate-700 leading-relaxed pl-3">{trimmedLine}</p>
                                   );
                                 })}
                               </div>
@@ -1100,8 +1071,8 @@ export default function DeepMind() {
                       </div>
                     ) : (
                       <div className="text-center py-12">
-                        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center">
-                          <Brain className="w-8 h-8 text-teal-500" />
+                        <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-slate-100 flex items-center justify-center">
+                          <Brain className="w-7 h-7 text-slate-400" />
                         </div>
                         <p className="text-sm text-slate-600 font-medium">Ready to analyze your patterns</p>
                         <p className="text-xs text-muted-foreground mt-1">Click "Analyze" to get AI-powered insights</p>
