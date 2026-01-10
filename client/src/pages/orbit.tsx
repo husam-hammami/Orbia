@@ -1064,7 +1064,7 @@ export default function OrbitPage() {
                         </div>
                       )}
                       
-                      <p className="text-xs text-muted-foreground mt-1.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1.5">
                         {format(message.timestamp, "h:mm a")}
                       </p>
                     </div>
