@@ -72,26 +72,55 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
        {/* The "Plant" Orb */}
        <motion.button
           onClick={onToggle}
-          whileHover={{ scale: 1.05 }}
+          whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.95 }}
+          data-testid={`button-habit-garden-${habit.id}`}
           className={cn(
              "relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-500",
-             isCompleted ? "shadow-[0_0_40px_-10px_var(--shadow-color)]" : "bg-muted/10 border-2 border-dashed border-muted"
+             isCompleted 
+               ? "shadow-[0_0_25px_-3px_var(--shadow-color),0_0_50px_-8px_hsl(var(--primary)/0.4),0_0_80px_-15px_hsl(var(--accent)/0.3)]" 
+               : "bg-muted/10 border-2 border-dashed border-muted hover:border-primary/40"
           )}
           style={{ 
              "--shadow-color": habit.color,
              borderColor: isCompleted ? "transparent" : undefined
           } as any}
        >
-          {/* Background Glow when completed */}
+          {/* Outer Glow Ring - Animated */}
+          <AnimatePresence>
+            {isCompleted && (
+               <motion.div
+                 initial={{ opacity: 0, scale: 0.6 }}
+                 animate={{ 
+                   opacity: [0.3, 0.6, 0.3], 
+                   scale: [1, 1.15, 1],
+                 }}
+                 exit={{ opacity: 0, scale: 0.5 }}
+                 transition={{ 
+                   duration: 2.5, 
+                   repeat: Infinity, 
+                   ease: "easeInOut" 
+                 }}
+                 className="absolute -inset-2 rounded-full"
+                 style={{ 
+                   background: `radial-gradient(circle, ${habit.color}40 0%, transparent 70%)`,
+                 }}
+               />
+            )}
+          </AnimatePresence>
+          
+          {/* Inner Glow when completed */}
           <AnimatePresence>
             {isCompleted && (
                <motion.div
                  initial={{ opacity: 0, scale: 0.5 }}
                  animate={{ opacity: 1, scale: 1 }}
                  exit={{ opacity: 0, scale: 0.5 }}
-                 className="absolute inset-0 rounded-full blur-xl opacity-40"
-                 style={{ backgroundColor: habit.color }}
+                 className="absolute inset-0 rounded-full"
+                 style={{ 
+                   background: `radial-gradient(circle at 30% 30%, ${habit.color}30 0%, ${habit.color}10 50%, transparent 70%)`,
+                   boxShadow: `inset 0 0 20px ${habit.color}20`
+                 }}
                />
             )}
           </AnimatePresence>
@@ -100,19 +129,44 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
           <div 
              className={cn(
                 "relative z-10 w-14 h-14 rounded-full flex items-center justify-center overflow-hidden transition-all duration-500",
-                isCompleted ? "bg-card" : "bg-muted/20"
+                isCompleted 
+                  ? "bg-gradient-to-br from-card via-card to-card border-2" 
+                  : "bg-muted/20"
              )}
+             style={isCompleted ? { borderColor: `${habit.color}40` } : undefined}
           >
-              {/* Liquid Fill Effect */}
+              {/* Colorful Background Fill Effect */}
               {isCompleted && (
                  <motion.div 
                     layoutId={`liquid-${habit.id}`}
                     className="absolute inset-0 z-0"
-                    initial={{ y: "100%" }}
-                    animate={{ y: "0%" }}
+                    initial={{ y: "100%", opacity: 0 }}
+                    animate={{ y: "0%", opacity: 1 }}
                     transition={{ type: "spring", stiffness: 50, damping: 15 }}
-                    style={{ backgroundColor: `${habit.color}20` }}
+                    style={{ 
+                      background: `linear-gradient(135deg, ${habit.color}25 0%, ${habit.color}15 50%, ${habit.color}25 100%)`
+                    }}
                  />
+              )}
+              
+              {/* Shimmer Effect */}
+              {isCompleted && (
+                <motion.div
+                  className="absolute inset-0 z-0"
+                  animate={{
+                    background: [
+                      `linear-gradient(90deg, transparent 0%, ${habit.color}10 50%, transparent 100%)`,
+                      `linear-gradient(90deg, transparent 100%, ${habit.color}10 150%, transparent 200%)`,
+                    ],
+                    x: ["-100%", "100%"],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    repeatDelay: 1,
+                    ease: "easeInOut",
+                  }}
+                />
               )}
 
               {/* Icon / Abstract Shape */}
@@ -121,11 +175,14 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
                     <motion.div
                        initial={{ scale: 0.5, rotate: -45 }}
                        animate={{ scale: 1, rotate: 0 }}
-                       className="text-foreground"
+                       className="relative"
                     >
                        <HabitIcon 
-                          className="mx-auto w-6 h-6"
-                          style={{ color: habit.color }}
+                          className="mx-auto w-6 h-6 drop-shadow-[0_0_8px_var(--icon-glow)]"
+                          style={{ 
+                            color: habit.color,
+                            "--icon-glow": `${habit.color}80`
+                          } as any}
                        />
                     </motion.div>
                  ) : (
