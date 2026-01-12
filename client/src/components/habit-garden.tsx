@@ -69,165 +69,56 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
           <LucideIcons.Trash2 className="w-4 h-4" />
        </button>
 
-       {/* The "Plant" Orb */}
+       {/* The "Plant" Orb - Clean solid glow effect matching original */}
        <motion.button
           onClick={onToggle}
-          whileHover={{ scale: 1.08 }}
+          whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           data-testid={`button-habit-garden-${habit.id}`}
-          className={cn(
-             "relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-500",
-             isCompleted 
-               ? "shadow-[0_0_25px_-3px_var(--shadow-color),0_0_50px_-8px_hsl(var(--primary)/0.4),0_0_80px_-15px_hsl(var(--accent)/0.3)]" 
-               : "bg-muted/10 border-2 border-dashed border-muted hover:border-primary/40"
-          )}
-          style={{ 
-             "--shadow-color": habit.color,
-             borderColor: isCompleted ? "transparent" : undefined
-          } as any}
+          className="relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300"
        >
-          {/* Outer Glow Ring - Animated */}
-          <AnimatePresence>
-            {isCompleted && (
-               <motion.div
-                 initial={{ opacity: 0, scale: 0.6 }}
-                 animate={{ 
-                   opacity: [0.3, 0.6, 0.3], 
-                   scale: [1, 1.15, 1],
-                 }}
-                 exit={{ opacity: 0, scale: 0.5 }}
-                 transition={{ 
-                   duration: 2.5, 
-                   repeat: Infinity, 
-                   ease: "easeInOut" 
-                 }}
-                 className="absolute -inset-2 rounded-full"
-                 style={{ 
-                   background: `radial-gradient(circle, ${habit.color}40 0%, transparent 70%)`,
-                 }}
-               />
-            )}
-          </AnimatePresence>
-          
-          {/* Inner Glow when completed */}
-          <AnimatePresence>
-            {isCompleted && (
-               <motion.div
-                 initial={{ opacity: 0, scale: 0.5 }}
-                 animate={{ opacity: 1, scale: 1 }}
-                 exit={{ opacity: 0, scale: 0.5 }}
-                 className="absolute inset-0 rounded-full"
-                 style={{ 
-                   background: `radial-gradient(circle at 30% 30%, ${habit.color}30 0%, ${habit.color}10 50%, transparent 70%)`,
-                   boxShadow: `inset 0 0 20px ${habit.color}20`
-                 }}
-               />
+          {/* Main Circle */}
+          <AnimatePresence mode="wait">
+            {isCompleted ? (
+              <motion.div
+                key="completed"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="absolute inset-0 rounded-full"
+                style={{ 
+                  backgroundColor: habit.color,
+                  boxShadow: `0 0 20px ${habit.color}60, 0 0 40px ${habit.color}30`
+                }}
+              />
+            ) : (
+              <motion.div
+                key="uncompleted"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 rounded-full border-2 border-dashed border-muted bg-muted/5 group-hover:border-muted-foreground/30 transition-colors"
+              />
             )}
           </AnimatePresence>
 
-          {/* Central Core */}
-          <div 
-             className={cn(
-                "relative z-10 w-14 h-14 rounded-full flex items-center justify-center overflow-hidden transition-all duration-500",
-                isCompleted 
-                  ? "bg-gradient-to-br from-card via-card to-card border-2" 
-                  : "bg-muted/20"
-             )}
-             style={isCompleted ? { borderColor: `${habit.color}40` } : undefined}
-          >
-              {/* Colorful Background Fill Effect */}
-              {isCompleted && (
-                 <motion.div 
-                    layoutId={`liquid-${habit.id}`}
-                    className="absolute inset-0 z-0"
-                    initial={{ y: "100%", opacity: 0 }}
-                    animate={{ y: "0%", opacity: 1 }}
-                    transition={{ type: "spring", stiffness: 50, damping: 15 }}
-                    style={{ 
-                      background: `linear-gradient(135deg, ${habit.color}25 0%, ${habit.color}15 50%, ${habit.color}25 100%)`
-                    }}
-                 />
-              )}
-              
-              {/* Shimmer Effect */}
-              {isCompleted && (
-                <motion.div
-                  className="absolute inset-0 z-0"
-                  animate={{
-                    background: [
-                      `linear-gradient(90deg, transparent 0%, ${habit.color}10 50%, transparent 100%)`,
-                      `linear-gradient(90deg, transparent 100%, ${habit.color}10 150%, transparent 200%)`,
-                    ],
-                    x: ["-100%", "100%"],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    repeatDelay: 1,
-                    ease: "easeInOut",
-                  }}
-                />
-              )}
-
-              {/* Icon / Abstract Shape */}
-              <div className="z-10 text-center">
-                 {isCompleted ? (
-                    <motion.div
-                       initial={{ scale: 0.5, rotate: -45 }}
-                       animate={{ scale: 1, rotate: 0 }}
-                       className="relative"
-                    >
-                       <HabitIcon 
-                          className="mx-auto w-6 h-6 drop-shadow-[0_0_8px_var(--icon-glow)]"
-                          style={{ 
-                            color: habit.color,
-                            "--icon-glow": `${habit.color}80`
-                          } as any}
-                       />
-                    </motion.div>
-                 ) : (
-                    <div className="text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">
-                       <HabitIcon 
-                          className={cn(
-                            "mx-auto grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500", 
-                            stage === "seed" || stage === "sprout" ? "w-8 h-8" : "w-10 h-10",
-                            stage === "thrive" || stage === "master" ? "w-12 h-12" : ""
-                          )}
-                          style={{ color: 'currentColor' }} 
-                       />
-                    </div>
-                 )}
-              </div>
+          {/* Icon */}
+          <div className="relative z-10">
+            {isCompleted ? (
+              <motion.div
+                initial={{ scale: 0.5 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 400, damping: 15 }}
+              >
+                <HabitIcon className="w-7 h-7 text-white" />
+              </motion.div>
+            ) : (
+              <HabitIcon 
+                className="w-7 h-7 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors"
+              />
+            )}
           </div>
-
-          {/* Orbiting Streak Rings (Only if streak > 0) */}
-          {habit.streak > 0 && (
-             <svg className="absolute inset-0 w-full h-full pointer-events-none rotate-90">
-                <circle
-                   cx="50%"
-                   cy="50%"
-                   r="48%"
-                   fill="none"
-                   stroke={habit.color}
-                   strokeWidth="2"
-                   strokeLinecap="round"
-                   strokeDasharray="280"
-                   strokeDashoffset={280 - (Math.min(habit.streak, 30) / 30) * 280} // Max streak visual is 30
-                   className="opacity-50 transition-all duration-1000 ease-out"
-                />
-             </svg>
-          )}
-          
-          {/* Floating Particles for high streaks */}
-          {habit.streak > 10 && isCompleted && (
-             <>
-               <motion.div 
-                 animate={{ rotate: 360 }}
-                 transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                 className="absolute -inset-4 border border-dashed border-primary/20 rounded-full"
-               />
-             </>
-          )}
        </motion.button>
 
        {/* Label */}
