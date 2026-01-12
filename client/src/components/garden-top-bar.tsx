@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/hooks/useTheme";
 import { themePresets } from "@/lib/themePresets";
-import { Sun, Moon, ChevronDown, Check, Sparkles } from "lucide-react";
+import { Sun, Moon, ChevronDown, Check, Sparkles, Lock, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useLock } from "@/App";
+import { SetPasswordDialog } from "@/components/lock-screen";
 
 // Cute animated sun with rays
 function AnimatedSun() {
@@ -903,8 +905,14 @@ export function GardenTopBar() {
   const { themeId, setTheme, isDark, toggleDarkMode } = useTheme();
   const currentTheme = themePresets.find(t => t.id === themeId) || themePresets[0];
   const [isOpen, setIsOpen] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
+  
+  let lockContext: ReturnType<typeof useLock> | null = null;
+  try {
+    lockContext = useLock();
+  } catch (e) {}
 
   useEffect(() => {
     const updateWidth = () => {
@@ -1064,8 +1072,52 @@ export function GardenTopBar() {
         <WalkingCat containerWidth={containerWidth} />
       </svg>
       
-      {/* Theme picker */}
+      {/* Theme picker and lock button */}
       <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 z-10">
+        {/* Lock Button */}
+        {lockContext && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              if (lockContext?.hasPassword) {
+                lockContext.lock();
+              } else {
+                setShowPasswordDialog(true);
+              }
+            }}
+            data-testid="button-lock-app"
+            className={cn(
+              "p-2 rounded-full",
+              "bg-background/70 backdrop-blur-xl border border-border/40",
+              "shadow-lg hover:shadow-xl transition-all duration-300",
+              lockContext.hasPassword ? "text-primary" : "text-muted-foreground"
+            )}
+            title={lockContext.hasPassword ? "Lock app" : "Set password"}
+          >
+            <Lock className="w-4 h-4" />
+          </motion.button>
+        )}
+        
+        {/* Settings for password */}
+        {lockContext?.hasPassword && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowPasswordDialog(true)}
+            data-testid="button-password-settings"
+            className={cn(
+              "p-2 rounded-full",
+              "bg-background/70 backdrop-blur-xl border border-border/40",
+              "shadow-lg hover:shadow-xl transition-all duration-300",
+              "text-muted-foreground hover:text-foreground"
+            )}
+            title="Password settings"
+          >
+            <Settings className="w-4 h-4" />
+          </motion.button>
+        )}
+        
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <motion.button
@@ -1127,6 +1179,17 @@ export function GardenTopBar() {
           </PopoverContent>
         </Popover>
       </div>
+      
+      {/* Password Dialog */}
+      {lockContext && (
+        <SetPasswordDialog
+          isOpen={showPasswordDialog}
+          onClose={() => setShowPasswordDialog(false)}
+          onSetPassword={lockContext.setPassword}
+          hasExistingPassword={lockContext.hasPassword}
+          onRemovePassword={lockContext.removePassword}
+        />
+      )}
     </div>
   );
 }
