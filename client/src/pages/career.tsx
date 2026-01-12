@@ -806,14 +806,14 @@ export default function CareerPage() {
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-700 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
             >
               <Rocket className="w-4 h-4 mr-2" />
-              Projects
+              Goals
             </TabsTrigger>
             <TabsTrigger 
               value="coach" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-700 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
             >
               <Compass className="w-4 h-4 mr-2" />
-              Career Coach
+              Coach
             </TabsTrigger>
           </TabsList>
 
@@ -822,14 +822,14 @@ export default function CareerPage() {
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                   <Rocket className="w-5 h-5 text-teal-700 dark:text-teal-400" />
-                  Active Projects
+                  Active Goals
                 </h2>
                 <Button 
                   onClick={() => openProjectDialog(null)}
                   className="bg-teal-700 hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-500 text-white border-0"
                   size="sm"
                 >
-                  <Plus className="w-4 h-4 mr-2" /> New Project
+                  <Plus className="w-4 h-4 mr-2" /> New Goal
                 </Button>
               </div>
 
@@ -1043,7 +1043,7 @@ export default function CareerPage() {
                   <div className="flex items-center gap-3 flex-wrap">
                     <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                       <Compass className="w-5 h-5 text-teal-700 dark:text-teal-400" />
-                      Career Coach
+                      Coach
                     </h3>
                     {coachData.weeklyTheme && (
                       <Badge variant="secondary" className="text-xs">
@@ -1639,9 +1639,9 @@ export default function CareerPage() {
         }}>
           <DialogContent className="sm:max-w-[550px] max-h-[85vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle>{selectedProject?.id ? "Edit Project" : "New Project"}</DialogTitle>
+              <DialogTitle>{selectedProject?.id ? "Edit Goal" : "New Goal"}</DialogTitle>
               <DialogDescription>
-                {selectedProject?.id ? "Update your project details and tasks." : "Create a new professional initiative."}
+                {selectedProject?.id ? "Update your goal details and tasks." : "Create a new goal to work towards."}
               </DialogDescription>
             </DialogHeader>
             <ScrollArea className="flex-1 pr-4">
@@ -1965,7 +1965,7 @@ export default function CareerPage() {
                       openProjectDialog(selectedProject);
                     }}
                   >
-                    <Pencil className="w-4 h-4 mr-2" /> Edit Project
+                    <Pencil className="w-4 h-4 mr-2" /> Edit Goal
                   </Button>
                 </DialogFooter>
               </>
