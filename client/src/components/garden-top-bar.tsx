@@ -10,16 +10,224 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+// Cute animated sun with rays
+function AnimatedSun() {
+  return (
+    <motion.g
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 1 }}
+    >
+      {/* Sun rays */}
+      {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((angle, i) => (
+        <motion.line
+          key={angle}
+          x1={35 + Math.cos(angle * Math.PI / 180) * 14}
+          y1={22 + Math.sin(angle * Math.PI / 180) * 14}
+          x2={35 + Math.cos(angle * Math.PI / 180) * 20}
+          y2={22 + Math.sin(angle * Math.PI / 180) * 20}
+          className="stroke-warning"
+          strokeWidth="2"
+          strokeLinecap="round"
+          animate={{ 
+            opacity: [0.4, 1, 0.4],
+            strokeWidth: [1.5, 2.5, 1.5]
+          }}
+          transition={{ 
+            duration: 2, 
+            repeat: Infinity, 
+            delay: i * 0.1 
+          }}
+        />
+      ))}
+      {/* Main sun circle */}
+      <motion.circle
+        cx="35"
+        cy="22"
+        r="12"
+        className="fill-warning"
+        animate={{ scale: [1, 1.05, 1] }}
+        transition={{ duration: 3, repeat: Infinity }}
+        style={{ transformOrigin: "35px 22px" }}
+      />
+      {/* Sun face */}
+      <circle cx="31" cy="20" r="1.5" className="fill-warning/60" />
+      <circle cx="39" cy="20" r="1.5" className="fill-warning/60" />
+      <motion.path
+        d="M30 25 Q35 29 40 25"
+        className="stroke-warning/60"
+        strokeWidth="1.5"
+        fill="none"
+        strokeLinecap="round"
+        animate={{ d: ["M30 25 Q35 29 40 25", "M30 26 Q35 30 40 26", "M30 25 Q35 29 40 25"] }}
+        transition={{ duration: 2, repeat: Infinity }}
+      />
+      {/* Rosy cheeks */}
+      <circle cx="28" cy="24" r="2" className="fill-destructive/30" />
+      <circle cx="42" cy="24" r="2" className="fill-destructive/30" />
+    </motion.g>
+  );
+}
+
+// Fluffy animated clouds
+function Cloud({ x, y, size = 1, delay = 0 }: { x: number; y: number; size?: number; delay?: number }) {
+  return (
+    <motion.g
+      initial={{ x: x - 20, opacity: 0 }}
+      animate={{ 
+        x: [x, x + 15, x],
+        opacity: 1
+      }}
+      transition={{ 
+        x: { duration: 20 + delay * 5, repeat: Infinity, ease: "easeInOut" },
+        opacity: { duration: 1, delay: delay * 0.3 }
+      }}
+    >
+      <g transform={`translate(0, ${y}) scale(${size})`}>
+        <ellipse cx="0" cy="0" rx="12" ry="7" className="fill-background/80" />
+        <ellipse cx="-8" cy="2" rx="8" ry="5" className="fill-background/80" />
+        <ellipse cx="10" cy="2" rx="10" ry="6" className="fill-background/80" />
+        <ellipse cx="5" cy="-3" rx="7" ry="5" className="fill-background/90" />
+        <ellipse cx="-3" cy="-2" rx="6" ry="4" className="fill-background/90" />
+      </g>
+    </motion.g>
+  );
+}
+
+// Cozy small cottage
+function Cottage({ x }: { x: number }) {
+  return (
+    <motion.g
+      transform={`translate(${x}, 0)`}
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.8, type: "spring" }}
+    >
+      {/* Main house body */}
+      <rect x="-18" y="28" width="36" height="26" rx="2" className="fill-accent/80" />
+      {/* Roof */}
+      <path d="M-22 30 L0 10 L22 30 Z" className="fill-primary" />
+      <path d="M-18 28 L0 14 L18 28 Z" className="fill-primary/80" />
+      {/* Chimney */}
+      <rect x="8" y="12" width="6" height="12" className="fill-destructive/60" />
+      <motion.ellipse
+        cx="11"
+        cy="10"
+        rx="4"
+        ry="2"
+        className="fill-muted/50"
+        animate={{ 
+          cy: [10, 4, 10],
+          opacity: [0.5, 0.2, 0.5],
+          rx: [4, 6, 4]
+        }}
+        transition={{ duration: 4, repeat: Infinity }}
+      />
+      {/* Door */}
+      <rect x="-5" y="38" width="10" height="16" rx="1" className="fill-primary/60" />
+      <circle cx="3" cy="46" r="1" className="fill-warning" />
+      {/* Windows */}
+      <rect x="-15" y="32" width="7" height="7" rx="1" className="fill-background/90" />
+      <line x1="-11.5" y1="32" x2="-11.5" y2="39" className="stroke-primary/40" strokeWidth="0.5" />
+      <line x1="-15" y1="35.5" x2="-8" y2="35.5" className="stroke-primary/40" strokeWidth="0.5" />
+      <rect x="8" y="32" width="7" height="7" rx="1" className="fill-background/90" />
+      <line x1="11.5" y1="32" x2="11.5" y2="39" className="stroke-primary/40" strokeWidth="0.5" />
+      <line x1="8" y1="35.5" x2="15" y2="35.5" className="stroke-primary/40" strokeWidth="0.5" />
+      {/* Window glow */}
+      <motion.rect
+        x="-14"
+        y="33"
+        width="5"
+        height="5"
+        className="fill-warning/30"
+        animate={{ opacity: [0.3, 0.6, 0.3] }}
+        transition={{ duration: 3, repeat: Infinity }}
+      />
+      {/* Heart on door */}
+      <path d="M0 42 C-2 40 -3 42 0 44 C3 42 2 40 0 42" className="fill-destructive/60" />
+      {/* Flowers by door */}
+      <circle cx="-8" cy="52" r="2" className="fill-primary/70" />
+      <circle cx="8" cy="52" r="2" className="fill-accent/70" />
+    </motion.g>
+  );
+}
+
+// Cute tree
+function Tree({ x, type = 'round' }: { x: number; type?: 'round' | 'pine' | 'cherry' }) {
+  return (
+    <motion.g
+      transform={`translate(${x}, 0)`}
+      initial={{ scale: 0, y: 10 }}
+      animate={{ scale: 1, y: 0 }}
+      transition={{ duration: 0.6, type: "spring" }}
+    >
+      {/* Trunk */}
+      <rect x="-3" y="40" width="6" height="14" rx="1" className="fill-amber-700" />
+      
+      {type === 'round' && (
+        <motion.g
+          animate={{ rotate: [-1, 1, -1] }}
+          transition={{ duration: 4, repeat: Infinity }}
+          style={{ transformOrigin: "0px 35px" }}
+        >
+          <ellipse cx="0" cy="30" rx="14" ry="16" className="fill-success/80" />
+          <ellipse cx="-6" cy="26" rx="8" ry="10" className="fill-success/90" />
+          <ellipse cx="6" cy="28" rx="7" ry="9" className="fill-success/70" />
+          {/* Apples/fruits */}
+          <circle cx="-4" cy="34" r="2" className="fill-destructive/80" />
+          <circle cx="5" cy="30" r="2" className="fill-destructive/80" />
+        </motion.g>
+      )}
+      
+      {type === 'pine' && (
+        <motion.g
+          animate={{ rotate: [-0.5, 0.5, -0.5] }}
+          transition={{ duration: 3, repeat: Infinity }}
+          style={{ transformOrigin: "0px 40px" }}
+        >
+          <path d="M0 12 L-12 40 L12 40 Z" className="fill-success/80" />
+          <path d="M0 18 L-10 38 L10 38 Z" className="fill-success/90" />
+          <path d="M0 24 L-8 36 L8 36 Z" className="fill-success" />
+        </motion.g>
+      )}
+      
+      {type === 'cherry' && (
+        <motion.g
+          animate={{ rotate: [-1, 1, -1] }}
+          transition={{ duration: 3.5, repeat: Infinity }}
+          style={{ transformOrigin: "0px 35px" }}
+        >
+          <ellipse cx="0" cy="28" rx="16" ry="14" className="fill-primary/50" />
+          <ellipse cx="-5" cy="24" rx="10" ry="8" className="fill-primary/60" />
+          <ellipse cx="7" cy="26" rx="8" ry="7" className="fill-primary/40" />
+          {/* Cherry blossoms */}
+          {[-8, -3, 2, 8, -5, 5].map((bx, i) => (
+            <motion.circle
+              key={i}
+              cx={bx}
+              cy={22 + (i % 2) * 8}
+              r="2"
+              className="fill-background"
+              animate={{ scale: [1, 1.2, 1], opacity: [0.8, 1, 0.8] }}
+              transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
+            />
+          ))}
+        </motion.g>
+      )}
+    </motion.g>
+  );
+}
+
 function Butterfly({ delay, startX, color }: { delay: number; startX: number; color: string }) {
   return (
     <motion.g
       initial={{ x: startX, y: 20 }}
       animate={{
-        x: [startX, startX + 30, startX - 20, startX + 10, startX],
-        y: [20, 10, 25, 8, 20],
+        x: [startX, startX + 40, startX - 30, startX + 20, startX],
+        y: [20, 8, 28, 5, 20],
       }}
       transition={{
-        duration: 8 + Math.random() * 4,
+        duration: 10 + Math.random() * 4,
         delay,
         repeat: Infinity,
         ease: "easeInOut",
@@ -29,60 +237,65 @@ function Butterfly({ delay, startX, color }: { delay: number; startX: number; co
         d="M0 0 Q-8 -6 -6 -12 Q-2 -8 0 0"
         fill={color}
         animate={{ rotate: [-20, 20, -20] }}
-        transition={{ duration: 0.3, repeat: Infinity }}
+        transition={{ duration: 0.25, repeat: Infinity }}
         style={{ transformOrigin: "0px 0px" }}
       />
       <motion.path
         d="M0 0 Q8 -6 6 -12 Q2 -8 0 0"
         fill={color}
         animate={{ rotate: [20, -20, 20] }}
-        transition={{ duration: 0.3, repeat: Infinity }}
+        transition={{ duration: 0.25, repeat: Infinity }}
         style={{ transformOrigin: "0px 0px" }}
       />
       <motion.path
-        d="M0 0 Q-6 4 -4 8 Q-1 5 0 0"
+        d="M0 0 Q-5 3 -3 7 Q-1 4 0 0"
         fill={color}
         opacity={0.8}
-        animate={{ rotate: [-15, 15, -15] }}
-        transition={{ duration: 0.3, repeat: Infinity }}
+        animate={{ rotate: [-12, 12, -12] }}
+        transition={{ duration: 0.25, repeat: Infinity }}
         style={{ transformOrigin: "0px 0px" }}
       />
       <motion.path
-        d="M0 0 Q6 4 4 8 Q1 5 0 0"
+        d="M0 0 Q5 3 3 7 Q1 4 0 0"
         fill={color}
         opacity={0.8}
-        animate={{ rotate: [15, -15, 15] }}
-        transition={{ duration: 0.3, repeat: Infinity }}
+        animate={{ rotate: [12, -12, 12] }}
+        transition={{ duration: 0.25, repeat: Infinity }}
         style={{ transformOrigin: "0px 0px" }}
       />
-      <ellipse cx="0" cy="0" rx="1" ry="4" fill="hsl(var(--foreground))" opacity={0.5} />
-      <circle cx="-1" cy="-3" r="0.8" fill="white" opacity={0.6} />
-      <circle cx="1" cy="-3" r="0.8" fill="white" opacity={0.6} />
+      <ellipse cx="0" cy="0" rx="0.8" ry="3" fill="hsl(var(--foreground))" opacity={0.4} />
     </motion.g>
   );
 }
 
-function Flower({ x, type, delay }: { x: number; type: 'tulip' | 'daisy' | 'rose'; delay: number }) {
+// Enhanced flowers with more variety
+function Flower({ x, type, delay, size = 1 }: { x: number; type: 'tulip' | 'daisy' | 'rose' | 'lavender' | 'sunflower'; delay: number; size?: number }) {
   const [isHovered, setIsHovered] = useState(false);
   
   return (
     <motion.g
-      transform={`translate(${x}, 0)`}
+      transform={`translate(${x}, 0) scale(${size})`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{ cursor: 'pointer' }}
+      data-testid={`flower-${type}-${x}`}
     >
+      {/* Stem */}
       <motion.path
-        d={`M0 48 Q${type === 'rose' ? 2 : -2} 38 0 28`}
+        d={`M0 54 Q${type === 'rose' ? 2 : -2} 44 0 ${type === 'sunflower' ? 30 : 34}`}
         className="stroke-success"
-        strokeWidth="2"
+        strokeWidth={size > 0.8 ? 2 : 1.5}
         fill="none"
         animate={{ 
           d: isHovered 
-            ? `M0 48 Q${type === 'rose' ? 4 : -4} 38 0 26`
-            : `M0 48 Q${type === 'rose' ? 2 : -2} 38 0 28`
+            ? `M0 54 Q${type === 'rose' ? 4 : -4} 44 0 ${type === 'sunflower' ? 28 : 32}`
+            : `M0 54 Q${type === 'rose' ? 2 : -2} 44 0 ${type === 'sunflower' ? 30 : 34}`
         }}
       />
+      
+      {/* Leaf */}
+      <path d="M-2 44 Q-6 42 -7 38" className="stroke-success/80" strokeWidth="1.5" fill="none" />
+      <ellipse cx="-7" cy="40" rx="3" ry="1.5" className="fill-success/70" transform="rotate(-30, -7, 40)" />
       
       {type === 'tulip' && (
         <motion.g
@@ -96,10 +309,10 @@ function Flower({ x, type, delay }: { x: number; type: 'tulip' | 'daisy' | 'rose
             scale: { duration: 0.3 },
             rotate: { duration: 3, repeat: Infinity, delay }
           }}
-          style={{ transformOrigin: "0px 28px" }}
+          style={{ transformOrigin: "0px 34px" }}
         >
-          <path d="M0 28 Q-5 22 -3 16 Q0 12 0 16 Q0 12 3 16 Q5 22 0 28" className="fill-primary" />
-          <path d="M-1 24 Q-2 20 0 18" className="stroke-primary/50" strokeWidth="0.5" fill="none" />
+          <path d="M0 34 Q-6 26 -4 18 Q0 14 0 18 Q0 14 4 18 Q6 26 0 34" className="fill-primary" />
+          <path d="M-1 30 Q-2 24 0 20" className="stroke-primary/50" strokeWidth="0.5" fill="none" />
         </motion.g>
       )}
       
@@ -115,20 +328,20 @@ function Flower({ x, type, delay }: { x: number; type: 'tulip' | 'daisy' | 'rose
             scale: { duration: 0.3 },
             rotate: { duration: 4, repeat: Infinity, delay }
           }}
-          style={{ transformOrigin: "0px 28px" }}
+          style={{ transformOrigin: "0px 34px" }}
         >
           {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
             <ellipse
               key={angle}
               cx={Math.cos(angle * Math.PI / 180) * 5}
-              cy={24 + Math.sin(angle * Math.PI / 180) * 5}
-              rx="3"
-              ry="1.5"
+              cy={30 + Math.sin(angle * Math.PI / 180) * 5}
+              rx="3.5"
+              ry="1.8"
               className="fill-background"
-              transform={`rotate(${angle}, ${Math.cos(angle * Math.PI / 180) * 5}, ${24 + Math.sin(angle * Math.PI / 180) * 5})`}
+              transform={`rotate(${angle}, ${Math.cos(angle * Math.PI / 180) * 5}, ${30 + Math.sin(angle * Math.PI / 180) * 5})`}
             />
           ))}
-          <circle cx="0" cy="24" r="3" className="fill-warning" />
+          <circle cx="0" cy="30" r="3" className="fill-warning" />
         </motion.g>
       )}
       
@@ -144,17 +357,73 @@ function Flower({ x, type, delay }: { x: number; type: 'tulip' | 'daisy' | 'rose
             scale: { duration: 0.3 },
             rotate: { duration: 3.5, repeat: Infinity, delay }
           }}
-          style={{ transformOrigin: "0px 26px" }}
+          style={{ transformOrigin: "0px 32px" }}
         >
-          <circle cx="0" cy="22" r="6" className="fill-destructive/80" />
-          <path d="M-2 22 Q0 18 2 22 Q0 20 -2 22" className="fill-destructive" />
-          <path d="M-4 24 Q-2 20 0 24" className="fill-destructive/60" />
-          <path d="M4 24 Q2 20 0 24" className="fill-destructive/60" />
+          <circle cx="0" cy="28" r="7" className="fill-destructive/80" />
+          <path d="M-3 28 Q0 22 3 28 Q0 24 -3 28" className="fill-destructive" />
+          <path d="M-5 30 Q-2 24 0 30" className="fill-destructive/60" />
+          <path d="M5 30 Q2 24 0 30" className="fill-destructive/60" />
+          <circle cx="0" cy="26" r="2" className="fill-destructive/90" />
         </motion.g>
       )}
       
-      <path d="M-3 36 Q-5 34 -6 30" className="stroke-success/80" strokeWidth="1.5" fill="none" />
-      <ellipse cx="-6" cy="32" rx="3" ry="1.5" className="fill-success/70" transform="rotate(-30, -6, 32)" />
+      {type === 'lavender' && (
+        <motion.g
+          animate={{ 
+            y: isHovered ? -3 : 0,
+            scale: isHovered ? 1.15 : 1,
+            rotate: [0, 2, -2, 0]
+          }}
+          transition={{ 
+            y: { duration: 0.3 },
+            scale: { duration: 0.3 },
+            rotate: { duration: 3, repeat: Infinity, delay }
+          }}
+          style={{ transformOrigin: "0px 34px" }}
+        >
+          {[0, 3, 6, 9, 12, 15].map((dy, i) => (
+            <ellipse
+              key={i}
+              cx={i % 2 === 0 ? -1 : 1}
+              cy={20 + dy}
+              rx="2.5"
+              ry="2"
+              className="fill-accent"
+            />
+          ))}
+        </motion.g>
+      )}
+      
+      {type === 'sunflower' && (
+        <motion.g
+          animate={{ 
+            y: isHovered ? -4 : 0,
+            scale: isHovered ? 1.15 : 1,
+            rotate: [0, 2, -2, 0]
+          }}
+          transition={{ 
+            y: { duration: 0.3 },
+            scale: { duration: 0.3 },
+            rotate: { duration: 4, repeat: Infinity, delay }
+          }}
+          style={{ transformOrigin: "0px 30px" }}
+        >
+          {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((angle) => (
+            <ellipse
+              key={angle}
+              cx={Math.cos(angle * Math.PI / 180) * 7}
+              cy={24 + Math.sin(angle * Math.PI / 180) * 7}
+              rx="4"
+              ry="2"
+              className="fill-warning"
+              transform={`rotate(${angle}, ${Math.cos(angle * Math.PI / 180) * 7}, ${24 + Math.sin(angle * Math.PI / 180) * 7})`}
+            />
+          ))}
+          <circle cx="0" cy="24" r="5" className="fill-amber-800" />
+          <circle cx="-1" cy="23" r="0.8" className="fill-warning/40" />
+          <circle cx="1" cy="25" r="0.8" className="fill-warning/40" />
+        </motion.g>
+      )}
     </motion.g>
   );
 }
@@ -169,16 +438,37 @@ function FloatingPetal({ delay, startX }: { delay: number; startX: number }) {
       className="fill-primary/40"
       initial={{ y: -10, opacity: 0, rotate: 0 }}
       animate={{
-        y: [0, 60],
+        y: [0, 70],
         x: [0, Math.random() * 20 - 10, Math.random() * 30 - 15],
         opacity: [0, 0.7, 0.7, 0],
         rotate: [0, 180, 360],
       }}
       transition={{
-        duration: 6 + Math.random() * 3,
+        duration: 8 + Math.random() * 4,
         delay,
         repeat: Infinity,
-        ease: "linear",
+        ease: "easeInOut",
+      }}
+    />
+  );
+}
+
+function FloatingHeart({ delay, startX }: { delay: number; startX: number }) {
+  return (
+    <motion.path
+      d={`M${startX} 0 C${startX - 3} -3 ${startX - 5} 0 ${startX} 4 C${startX + 5} 0 ${startX + 3} -3 ${startX} 0`}
+      className="fill-destructive/30"
+      initial={{ y: 60, opacity: 0, scale: 0.5 }}
+      animate={{
+        y: [-10, -20],
+        opacity: [0, 0.6, 0],
+        scale: [0.5, 1, 0.8],
+      }}
+      transition={{
+        duration: 6,
+        delay,
+        repeat: Infinity,
+        ease: "easeOut",
       }}
     />
   );
@@ -186,19 +476,21 @@ function FloatingPetal({ delay, startX }: { delay: number; startX: number }) {
 
 function Sparkle({ x, y, delay, size = 1 }: { x: number; y: number; delay: number; size?: number }) {
   return (
-    <motion.g transform={`translate(${x}, ${y})`}>
+    <motion.g transform={`translate(${x}, ${y}) scale(${size})`}>
       <motion.path
-        d={`M0 ${-3 * size} L${size} 0 L0 ${3 * size} L${-size} 0 Z`}
-        className="fill-warning/60"
+        d="M0 -4 L1 -1 L4 0 L1 1 L0 4 L-1 1 L-4 0 L-1 -1 Z"
+        className="fill-warning"
         initial={{ scale: 0, opacity: 0 }}
         animate={{
-          scale: [0, 1, 0.5, 1, 0],
-          opacity: [0, 1, 0.5, 1, 0],
+          scale: [0, 1, 0],
+          opacity: [0, 1, 0],
+          rotate: [0, 180],
         }}
         transition={{
-          duration: 2 + Math.random(),
+          duration: 2,
           delay,
           repeat: Infinity,
+          ease: "easeInOut",
         }}
       />
     </motion.g>
@@ -212,56 +504,67 @@ function Firefly({ startX, startY, delay }: { startX: number; startY: number; de
       cy={startY}
       r="2"
       className="fill-warning"
+      filter="url(#glow)"
       initial={{ opacity: 0 }}
       animate={{
-        x: [0, 15, -10, 20, 0],
+        x: [0, 15, -10, 5, 0],
         y: [0, -8, 5, -12, 0],
-        opacity: [0, 0.8, 0.3, 0.9, 0],
+        opacity: [0, 1, 0.3, 1, 0],
       }}
       transition={{
-        duration: 5 + Math.random() * 2,
+        duration: 6,
         delay,
         repeat: Infinity,
         ease: "easeInOut",
       }}
-      filter="url(#glow)"
     />
   );
 }
 
-function FloatingHeart({ delay, startX }: { delay: number; startX: number }) {
+// Small bird
+function Bird({ startX, delay }: { startX: number; delay: number }) {
   return (
-    <motion.path
-      d={`M${startX} 5 C${startX - 2} 2 ${startX - 4} 5 ${startX} 9 C${startX + 4} 5 ${startX + 2} 2 ${startX} 5`}
-      className="fill-destructive/30"
-      initial={{ y: 50, opacity: 0, scale: 0.5 }}
+    <motion.g
+      initial={{ x: startX, y: 15 }}
       animate={{
-        y: [-10],
-        opacity: [0, 0.6, 0.6, 0],
-        scale: [0.5, 1, 0.8],
+        x: [startX, startX + 100, startX + 200],
+        y: [15, 10, 18, 8, 15],
       }}
       transition={{
-        duration: 5 + Math.random() * 2,
+        duration: 12,
         delay,
         repeat: Infinity,
-        ease: "easeOut",
+        ease: "easeInOut",
       }}
-    />
+    >
+      <motion.path
+        d="M0 0 Q-4 -3 -8 0 M0 0 Q4 -3 8 0"
+        className="stroke-foreground/40"
+        strokeWidth="1.5"
+        fill="none"
+        strokeLinecap="round"
+        animate={{ d: ["M0 0 Q-4 -3 -8 0 M0 0 Q4 -3 8 0", "M0 0 Q-4 0 -8 2 M0 0 Q4 0 8 2", "M0 0 Q-4 -3 -8 0 M0 0 Q4 -3 8 0"] }}
+        transition={{ duration: 0.4, repeat: Infinity }}
+      />
+    </motion.g>
   );
 }
 
+// Walking cat with cute behaviors
 function WalkingCat({ containerWidth }: { containerWidth: number }) {
-  const [position, setPosition] = useState(50);
+  const [position, setPosition] = useState(80);
   const [direction, setDirection] = useState<'left' | 'right'>('right');
-  const [isResting, setIsResting] = useState(false);
-  const [isSitting, setIsSitting] = useState(false);
   const [frame, setFrame] = useState(0);
+  const [isSitting, setIsSitting] = useState(false);
+  const [isResting, setIsResting] = useState(false);
   const [blinkFrame, setBlinkFrame] = useState(0);
   const restTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     return () => {
-      if (restTimeoutRef.current) clearTimeout(restTimeoutRef.current);
+      if (restTimeoutRef.current) {
+        clearTimeout(restTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -284,12 +587,12 @@ function WalkingCat({ containerWidth }: { containerWidth: number }) {
         const step = direction === 'right' ? 1.2 : -1.2;
         const newPos = p + step;
         
-        if (newPos > containerWidth - 80) {
+        if (newPos > containerWidth - 100) {
           setDirection('left');
-          return containerWidth - 80;
-        } else if (newPos < 30) {
+          return containerWidth - 100;
+        } else if (newPos < 80) {
           setDirection('right');
-          return 30;
+          return 80;
         }
         
         const rand = Math.random();
@@ -318,79 +621,89 @@ function WalkingCat({ containerWidth }: { containerWidth: number }) {
       animate={{ x: position }}
       transition={{ type: "tween", duration: 0.09 }}
     >
-      <g transform={`translate(0, ${isSitting ? 8 : bodyBob}) ${direction === 'left' ? 'scale(-1,1) translate(-50,0)' : ''}`}>
+      <g transform={`translate(0, ${isSitting ? 8 : bodyBob}) ${direction === 'left' ? 'scale(-1,1) translate(-40,0)' : ''}`}>
+        {/* Tail */}
         <motion.path
-          d={isSitting ? "M8 28 Q2 22 4 16 Q6 10 10 8" : "M8 26 Q4 22 3 16 Q2 10 6 6"}
+          d={isSitting ? "M6 32 Q0 26 2 20 Q4 14 8 12" : "M6 30 Q2 26 1 20 Q0 14 4 10"}
           className="stroke-primary"
-          strokeWidth="3"
+          strokeWidth="2.5"
           strokeLinecap="round"
           fill="none"
           animate={{ rotate: isSitting ? [0, 8, 0, -8, 0] : tailPhase }}
           transition={isSitting ? { duration: 2, repeat: Infinity } : { duration: 0.15 }}
-          style={{ transformOrigin: "8px 28px" }}
+          style={{ transformOrigin: "6px 32px" }}
         />
         
+        {/* Legs */}
         {!isSitting && (
           <>
-            <motion.path d="M14 30 Q12 34 13 38" className="stroke-primary" strokeWidth="4" strokeLinecap="round" fill="none"
-              animate={{ rotate: legPhase * 3 }} style={{ transformOrigin: "14px 30px" }} />
-            <motion.path d="M20 30 Q18 34 19 38" className="stroke-primary" strokeWidth="4" strokeLinecap="round" fill="none"
-              animate={{ rotate: -legPhase * 3 }} style={{ transformOrigin: "20px 30px" }} />
-            <motion.path d="M30 28 Q28 33 29 38" className="stroke-primary" strokeWidth="4" strokeLinecap="round" fill="none"
-              animate={{ rotate: -legPhase * 4 }} style={{ transformOrigin: "30px 28px" }} />
-            <motion.path d="M34 26 Q32 32 33 38" className="stroke-primary" strokeWidth="4" strokeLinecap="round" fill="none"
-              animate={{ rotate: legPhase * 4 }} style={{ transformOrigin: "34px 26px" }} />
+            <motion.path d="M12 34 Q10 38 11 42" className="stroke-primary" strokeWidth="3" strokeLinecap="round" fill="none"
+              animate={{ rotate: legPhase * 3 }} style={{ transformOrigin: "12px 34px" }} />
+            <motion.path d="M16 34 Q14 38 15 42" className="stroke-primary" strokeWidth="3" strokeLinecap="round" fill="none"
+              animate={{ rotate: -legPhase * 3 }} style={{ transformOrigin: "16px 34px" }} />
+            <motion.path d="M26 32 Q24 37 25 42" className="stroke-primary" strokeWidth="3" strokeLinecap="round" fill="none"
+              animate={{ rotate: -legPhase * 4 }} style={{ transformOrigin: "26px 32px" }} />
+            <motion.path d="M30 30 Q28 36 29 42" className="stroke-primary" strokeWidth="3" strokeLinecap="round" fill="none"
+              animate={{ rotate: legPhase * 4 }} style={{ transformOrigin: "30px 30px" }} />
           </>
         )}
         
-        <ellipse cx={isSitting ? "22" : "22"} cy={isSitting ? "26" : "24"} rx={isSitting ? "11" : "13"} ry={isSitting ? "9" : "8"} className="fill-primary" />
-        <ellipse cx="22" cy={isSitting ? "28" : "26"} rx="5" ry="3" className="fill-accent/40" />
+        {/* Body */}
+        <ellipse cx={isSitting ? "18" : "18"} cy={isSitting ? "30" : "28"} rx={isSitting ? "10" : "11"} ry={isSitting ? "8" : "7"} className="fill-primary" />
+        <ellipse cx="18" cy={isSitting ? "32" : "30"} rx="4" ry="2.5" className="fill-accent/40" />
         
+        {/* Sitting paws */}
         {isSitting && (
           <>
-            <ellipse cx="14" cy="32" rx="4" ry="3" className="fill-primary" />
-            <ellipse cx="30" cy="32" rx="4" ry="3" className="fill-primary" />
+            <ellipse cx="12" cy="36" rx="3.5" ry="2.5" className="fill-primary" />
+            <ellipse cx="26" cy="36" rx="3.5" ry="2.5" className="fill-primary" />
           </>
         )}
         
-        <ellipse cx="36" cy="20" rx="5" ry="7" className="fill-primary" />
+        {/* Neck/chest */}
+        <ellipse cx="30" cy="24" rx="4" ry="6" className="fill-primary" />
         
-        <circle cx="42" cy="14" r="9" className="fill-primary" />
-        <ellipse cx="36" cy="15" rx="2.5" ry="3" className="fill-primary/60" />
-        <ellipse cx="48" cy="15" rx="2.5" ry="3" className="fill-primary/60" />
+        {/* Head */}
+        <circle cx="36" cy="18" r="8" className="fill-primary" />
+        <ellipse cx="31" cy="19" rx="2" ry="2.5" className="fill-primary/60" />
+        <ellipse cx="41" cy="19" rx="2" ry="2.5" className="fill-primary/60" />
         
-        <path d="M34 10 L36 3 L40 8 Z" className="fill-primary" />
-        <path d="M35.5 9 L36.5 5 L38.5 8 Z" className="fill-accent/50" />
-        <path d="M46 8 L50 3 L52 10 Z" className="fill-primary" />
-        <path d="M47.5 8 L49.5 5 L50.5 9 Z" className="fill-accent/50" />
+        {/* Ears */}
+        <path d="M30 14 L31 7 L35 12 Z" className="fill-primary" />
+        <path d="M31 13 L31.5 9 L34 12 Z" className="fill-accent/50" />
+        <path d="M40 12 L44 7 L46 14 Z" className="fill-primary" />
+        <path d="M41 12 L43.5 9 L44.5 13 Z" className="fill-accent/50" />
         
+        {/* Eyes */}
         {blinkFrame === 1 ? (
           <>
-            <path d="M37 12 Q39 11 41 12" className="stroke-foreground" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-            <path d="M45 12 Q47 11 49 12" className="stroke-foreground" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+            <path d="M32 16 Q34 15 36 16" className="stroke-foreground" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+            <path d="M39 16 Q41 15 43 16" className="stroke-foreground" strokeWidth="1.5" strokeLinecap="round" fill="none" />
           </>
         ) : (
           <>
-            <ellipse cx="39" cy="12" rx="2.5" ry="3" className="fill-background" />
-            <ellipse cx="39.5" cy="12" rx="1.5" ry="2" className="fill-foreground" />
-            <circle cx="40.2" cy="11.2" r="0.6" className="fill-background" />
-            <ellipse cx="47" cy="12" rx="2.5" ry="3" className="fill-background" />
-            <ellipse cx="47.5" cy="12" rx="1.5" ry="2" className="fill-foreground" />
-            <circle cx="48.2" cy="11.2" r="0.6" className="fill-background" />
+            <ellipse cx="34" cy="16" rx="2" ry="2.5" className="fill-background" />
+            <ellipse cx="34.3" cy="16" rx="1.2" ry="1.6" className="fill-foreground" />
+            <circle cx="34.8" cy="15.4" r="0.5" className="fill-background" />
+            <ellipse cx="41" cy="16" rx="2" ry="2.5" className="fill-background" />
+            <ellipse cx="41.3" cy="16" rx="1.2" ry="1.6" className="fill-foreground" />
+            <circle cx="41.8" cy="15.4" r="0.5" className="fill-background" />
           </>
         )}
         
-        <path d="M43 15 L44.5 17 L41.5 17 Z" className="fill-destructive/60" />
-        <path d="M43 17 L43 18.5" className="stroke-foreground/40" strokeWidth="0.6" />
-        <path d="M41 18 Q43 20 45 18" className="stroke-foreground/30" strokeWidth="0.6" fill="none" />
+        {/* Nose */}
+        <path d="M37 19 L38.5 21 L35.5 21 Z" className="fill-destructive/60" />
+        <path d="M37 21 L37 22.5" className="stroke-foreground/40" strokeWidth="0.5" />
+        <path d="M35 22 Q37 24 39 22" className="stroke-foreground/30" strokeWidth="0.5" fill="none" />
         
+        {/* Whiskers */}
         <g className="stroke-foreground/30" strokeWidth="0.4">
-          <line x1="50" y1="14" x2="56" y2="12" />
-          <line x1="50" y1="16" x2="56" y2="16" />
-          <line x1="50" y1="18" x2="56" y2="20" />
-          <line x1="36" y1="14" x2="30" y2="12" />
-          <line x1="36" y1="16" x2="30" y2="16" />
-          <line x1="36" y1="18" x2="30" y2="20" />
+          <line x1="44" y1="18" x2="49" y2="16" />
+          <line x1="44" y1="20" x2="49" y2="20" />
+          <line x1="44" y1="22" x2="49" y2="24" />
+          <line x1="30" y1="18" x2="25" y2="16" />
+          <line x1="30" y1="20" x2="25" y2="20" />
+          <line x1="30" y1="22" x2="25" y2="24" />
         </g>
       </g>
     </motion.g>
@@ -423,7 +736,8 @@ function ThemeSwatch({ themeId, isSelected, onClick, isDark }: { themeId: string
 }
 
 export function GardenTopBar() {
-  const { themeId, isDark, setTheme, toggleDarkMode, currentTheme } = useTheme();
+  const { themeId, setTheme, isDark, toggleDarkMode } = useTheme();
+  const currentTheme = themePresets.find(t => t.id === themeId) || themePresets[0];
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
@@ -440,50 +754,65 @@ export function GardenTopBar() {
   }, []);
 
   const flowers = useMemo(() => [
-    { x: 40, type: 'tulip' as const, delay: 0 },
-    { x: 90, type: 'daisy' as const, delay: 0.5 },
-    { x: 150, type: 'rose' as const, delay: 1 },
-    { x: containerWidth - 180, type: 'tulip' as const, delay: 0.3 },
-    { x: containerWidth - 120, type: 'daisy' as const, delay: 0.8 },
-    { x: containerWidth - 60, type: 'rose' as const, delay: 0.2 },
+    { x: 70, type: 'tulip' as const, delay: 0, size: 0.8 },
+    { x: 95, type: 'rose' as const, delay: 0.3, size: 0.9 },
+    { x: 120, type: 'daisy' as const, delay: 0.5, size: 0.75 },
+    { x: 145, type: 'lavender' as const, delay: 0.2, size: 0.85 },
+    { x: 170, type: 'rose' as const, delay: 0.7, size: 0.8 },
+    { x: 195, type: 'tulip' as const, delay: 0.4, size: 0.7 },
+    { x: containerWidth - 220, type: 'sunflower' as const, delay: 0.1, size: 0.85 },
+    { x: containerWidth - 195, type: 'rose' as const, delay: 0.6, size: 0.8 },
+    { x: containerWidth - 170, type: 'tulip' as const, delay: 0.3, size: 0.75 },
+    { x: containerWidth - 145, type: 'lavender' as const, delay: 0.8, size: 0.9 },
+    { x: containerWidth - 120, type: 'daisy' as const, delay: 0.2, size: 0.8 },
+    { x: containerWidth - 95, type: 'rose' as const, delay: 0.5, size: 0.85 },
   ], [containerWidth]);
 
   const butterflies = useMemo(() => [
-    { delay: 0, startX: 100, color: 'hsl(var(--primary))' },
-    { delay: 2, startX: containerWidth - 150, color: 'hsl(var(--accent))' },
+    { delay: 0, startX: 180, color: 'hsl(var(--primary))' },
+    { delay: 2, startX: containerWidth - 200, color: 'hsl(var(--accent))' },
     { delay: 4, startX: containerWidth / 2, color: 'hsl(var(--destructive))' },
+    { delay: 6, startX: containerWidth / 3, color: 'hsl(var(--warning))' },
   ], [containerWidth]);
 
   const petals = useMemo(() => 
-    Array.from({ length: 6 }, (_, i) => ({
-      delay: i * 1.5,
-      startX: 50 + (containerWidth - 100) * (i / 5),
+    Array.from({ length: 8 }, (_, i) => ({
+      delay: i * 1.2,
+      startX: 80 + (containerWidth - 160) * (i / 7),
     })), [containerWidth]);
 
   const sparkles = useMemo(() => [
-    { x: 60, y: 15, delay: 0, size: 1 },
-    { x: 130, y: 25, delay: 1.5, size: 0.8 },
-    { x: containerWidth - 100, y: 18, delay: 0.8, size: 1.2 },
-    { x: containerWidth - 40, y: 28, delay: 2, size: 0.7 },
-    { x: containerWidth / 2 - 20, y: 12, delay: 0.5, size: 1 },
+    { x: 100, y: 12, delay: 0, size: 0.8 },
+    { x: 160, y: 22, delay: 1.5, size: 0.7 },
+    { x: containerWidth - 150, y: 15, delay: 0.8, size: 0.9 },
+    { x: containerWidth - 100, y: 25, delay: 2, size: 0.6 },
+    { x: containerWidth / 2 - 30, y: 10, delay: 0.5, size: 0.8 },
+    { x: containerWidth / 2 + 50, y: 18, delay: 1.2, size: 0.7 },
   ], [containerWidth]);
 
   const fireflies = useMemo(() => [
-    { startX: 80, startY: 20, delay: 0 },
-    { startX: containerWidth - 90, startY: 25, delay: 1.5 },
-    { startX: containerWidth / 2 + 50, startY: 15, delay: 3 },
+    { startX: 130, startY: 18, delay: 0 },
+    { startX: containerWidth - 140, startY: 22, delay: 1.5 },
+    { startX: containerWidth / 2 + 60, startY: 12, delay: 3 },
   ], [containerWidth]);
 
   const hearts = useMemo(() => [
-    { delay: 0, startX: 70 },
-    { delay: 3, startX: containerWidth - 80 },
-    { delay: 6, startX: containerWidth / 2 },
+    { delay: 0, startX: 110 },
+    { delay: 3, startX: containerWidth - 130 },
+    { delay: 6, startX: containerWidth / 2 + 20 },
+  ], [containerWidth]);
+
+  const clouds = useMemo(() => [
+    { x: 90, y: 12, size: 0.6, delay: 0 },
+    { x: containerWidth - 130, y: 8, size: 0.5, delay: 1 },
+    { x: containerWidth / 2 + 80, y: 14, size: 0.45, delay: 2 },
   ], [containerWidth]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-14 overflow-hidden rounded-b-2xl">
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-accent/10 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-accent/10" />
+    <div ref={containerRef} className="relative w-full h-16 overflow-hidden rounded-b-2xl">
+      {/* Sky gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-accent/20 via-primary/10 to-success/20" />
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5" />
       
       <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMax slice">
         <defs>
@@ -495,20 +824,46 @@ export function GardenTopBar() {
             </feMerge>
           </filter>
           <linearGradient id="grassGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" className="[stop-color:hsl(var(--success))]" stopOpacity="0.6" />
-            <stop offset="100%" className="[stop-color:hsl(var(--success))]" stopOpacity="0.3" />
+            <stop offset="0%" className="[stop-color:hsl(var(--success))]" stopOpacity="0.7" />
+            <stop offset="100%" className="[stop-color:hsl(var(--success))]" stopOpacity="0.4" />
+          </linearGradient>
+          <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" className="[stop-color:hsl(var(--accent))]" stopOpacity="0.2" />
+            <stop offset="100%" className="[stop-color:hsl(var(--primary))]" stopOpacity="0.1" />
           </linearGradient>
         </defs>
         
+        {/* Sun */}
+        <AnimatedSun />
+        
+        {/* Clouds */}
+        {clouds.map((cloud, i) => (
+          <Cloud key={i} {...cloud} />
+        ))}
+        
+        {/* Birds */}
+        <Bird startX={containerWidth / 2 - 50} delay={0} />
+        <Bird startX={containerWidth / 2 + 30} delay={4} />
+        
+        {/* Trees */}
+        <Tree x={containerWidth / 2 - 60} type="cherry" />
+        <Tree x={containerWidth / 2 + 80} type="round" />
+        
+        {/* Cottage */}
+        <Cottage x={containerWidth / 2 + 10} />
+        
+        {/* Ground/grass */}
         <path 
-          d={`M0 50 Q${containerWidth * 0.25} 44 ${containerWidth * 0.5} 48 Q${containerWidth * 0.75} 52 ${containerWidth} 46 L${containerWidth} 60 L0 60 Z`}
+          d={`M0 54 Q${containerWidth * 0.25} 48 ${containerWidth * 0.5} 52 Q${containerWidth * 0.75} 56 ${containerWidth} 50 L${containerWidth} 70 L0 70 Z`}
           fill="url(#grassGradient)"
         />
         
+        {/* Flowers */}
         {flowers.map((flower, i) => (
           <Flower key={i} {...flower} />
         ))}
         
+        {/* Floating elements */}
         {petals.map((petal, i) => (
           <FloatingPetal key={i} {...petal} />
         ))}
@@ -532,6 +887,7 @@ export function GardenTopBar() {
         <WalkingCat containerWidth={containerWidth} />
       </svg>
       
+      {/* Theme picker */}
       <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 z-10">
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
