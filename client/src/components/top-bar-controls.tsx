@@ -14,8 +14,12 @@ function AnimatedKitty() {
   const [position, setPosition] = useState(0);
   const [direction, setDirection] = useState<'left' | 'right'>('right');
   const [isResting, setIsResting] = useState(false);
+  const [isSitting, setIsSitting] = useState(false);
+  const [isStretching, setIsStretching] = useState(false);
   const [frame, setFrame] = useState(0);
+  const [blinkFrame, setBlinkFrame] = useState(0);
   const restTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const containerWidth = 200;
 
   useEffect(() => {
     return () => {
@@ -26,145 +30,319 @@ function AnimatedKitty() {
   }, []);
 
   useEffect(() => {
-    if (isResting) return;
+    const blinkInterval = setInterval(() => {
+      if (Math.random() < 0.1) {
+        setBlinkFrame(1);
+        setTimeout(() => setBlinkFrame(0), 150);
+      }
+    }, 1000);
+    return () => clearInterval(blinkInterval);
+  }, []);
+
+  useEffect(() => {
+    if (isResting || isSitting || isStretching) return;
 
     const walkInterval = setInterval(() => {
-      setFrame((f) => (f + 1) % 4);
+      setFrame((f) => (f + 1) % 8);
       setPosition((p) => {
-        const step = direction === 'right' ? 2 : -2;
+        const step = direction === 'right' ? 1.5 : -1.5;
         const newPos = p + step;
         
-        if (newPos > 120) {
+        if (newPos > containerWidth - 60) {
           setDirection('left');
-          return 120;
+          return containerWidth - 60;
         } else if (newPos < 0) {
           setDirection('right');
           return 0;
         }
         
-        if (Math.random() < 0.01) {
+        const rand = Math.random();
+        if (rand < 0.005) {
+          setIsSitting(true);
+          restTimeoutRef.current = setTimeout(() => setIsSitting(false), 3000 + Math.random() * 2000);
+        } else if (rand < 0.008) {
+          setIsStretching(true);
+          restTimeoutRef.current = setTimeout(() => setIsStretching(false), 1500);
+        } else if (rand < 0.012) {
           setIsResting(true);
-          restTimeoutRef.current = setTimeout(() => setIsResting(false), 2000 + Math.random() * 3000);
+          restTimeoutRef.current = setTimeout(() => setIsResting(false), 2000 + Math.random() * 2000);
         }
         
         return newPos;
       });
-    }, 120);
+    }, 80);
 
     return () => clearInterval(walkInterval);
-  }, [direction, isResting]);
+  }, [direction, isResting, isSitting, isStretching]);
 
-  const tailWag = frame % 2 === 0 ? -15 : 15;
-  const legOffset = frame % 2 === 0;
-  const earTwitch = frame === 0;
+  const walkCycle = [0, 1, 2, 3, 2, 1, 0, -1];
+  const legPhase = walkCycle[frame];
+  const bodyBob = Math.sin(frame * Math.PI / 4) * 0.5;
+  const tailPhase = Math.sin(frame * Math.PI / 2) * 12;
+  const earTwitch = frame === 0 || frame === 4;
 
   return (
-    <div className="relative w-40 h-8 overflow-hidden">
+    <div className="relative h-12 overflow-hidden" style={{ width: containerWidth }}>
       <motion.div
-        className="absolute bottom-0"
-        style={{ left: position }}
-        animate={{ x: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="absolute bottom-1"
+        animate={{ left: position }}
+        transition={{ type: "tween", duration: 0.08 }}
       >
         <svg
-          width="24"
-          height="20"
-          viewBox="0 0 24 20"
+          width="60"
+          height="44"
+          viewBox="0 0 60 44"
           fill="none"
-          className={cn("transition-transform", direction === 'left' && "scale-x-[-1]")}
+          className={cn("drop-shadow-md", direction === 'left' && "scale-x-[-1]")}
         >
-          {/* Body */}
-          <ellipse cx="12" cy="14" rx="7" ry="5" className="fill-primary/80" />
+          <defs>
+            <linearGradient id="furGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" className="[stop-color:hsl(var(--primary))]" stopOpacity="1" />
+              <stop offset="100%" className="[stop-color:hsl(var(--primary))]" stopOpacity="0.7" />
+            </linearGradient>
+            <linearGradient id="bellyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" className="[stop-color:hsl(var(--primary))]" stopOpacity="0.3" />
+              <stop offset="100%" className="[stop-color:hsl(var(--accent))]" stopOpacity="0.5" />
+            </linearGradient>
+            <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="1" stdDeviation="1" floodOpacity="0.2"/>
+            </filter>
+          </defs>
           
-          {/* Head */}
-          <circle cx="18" cy="10" r="4" className="fill-primary/80" />
-          
-          {/* Ears */}
-          <motion.path
-            d="M15 6 L16 2 L18 5 Z"
-            className="fill-primary"
-            animate={{ rotate: earTwitch ? -5 : 0 }}
-            style={{ originX: "16px", originY: "5px" }}
-          />
-          <motion.path
-            d="M19 5 L21 1 L22 4 Z"
-            className="fill-primary"
-            animate={{ rotate: earTwitch ? 5 : 0 }}
-            style={{ originX: "21px", originY: "4px" }}
-          />
-          
-          {/* Inner ears */}
-          <path d="M15.5 5.5 L16.3 3 L17.5 5 Z" className="fill-primary/40" />
-          <path d="M19.5 4.5 L20.8 2 L21.5 4 Z" className="fill-primary/40" />
-          
-          {/* Eyes */}
-          {isResting ? (
-            <>
-              <path d="M16 9 Q17 8.5 18 9" stroke="currentColor" strokeWidth="0.5" className="stroke-background" />
-              <path d="M19 9 Q20 8.5 21 9" stroke="currentColor" strokeWidth="0.5" className="stroke-background" />
-            </>
-          ) : (
-            <>
-              <circle cx="17" cy="9" r="1" className="fill-background" />
-              <circle cx="20" cy="9" r="1" className="fill-background" />
-              <circle cx="17.3" cy="9" r="0.4" className="fill-foreground" />
-              <circle cx="20.3" cy="9" r="0.4" className="fill-foreground" />
-            </>
-          )}
-          
-          {/* Nose */}
-          <path d="M21 10 L22 11 L21 11 Z" className="fill-destructive/60" />
-          
-          {/* Whiskers */}
-          <line x1="21" y1="10.5" x2="24" y2="9.5" stroke="currentColor" strokeWidth="0.3" className="stroke-foreground/30" />
-          <line x1="21" y1="11" x2="24" y2="11" stroke="currentColor" strokeWidth="0.3" className="stroke-foreground/30" />
-          <line x1="21" y1="11.5" x2="24" y2="12.5" stroke="currentColor" strokeWidth="0.3" className="stroke-foreground/30" />
-          
-          {/* Legs */}
-          <motion.rect
-            x="7"
-            y="17"
-            width="2"
-            height="3"
-            rx="1"
-            className="fill-primary/70"
-            animate={{ y: legOffset ? 17 : 16 }}
-          />
-          <motion.rect
-            x="11"
-            y="17"
-            width="2"
-            height="3"
-            rx="1"
-            className="fill-primary/70"
-            animate={{ y: !legOffset ? 17 : 16 }}
-          />
-          <motion.rect
-            x="14"
-            y="15"
-            width="2"
-            height="4"
-            rx="1"
-            className="fill-primary/70"
-            animate={{ y: legOffset ? 15 : 14 }}
-          />
-          
-          {/* Tail */}
-          <motion.path
-            d="M5 14 Q2 10 3 6"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-            className="stroke-primary/80"
-            animate={{ rotate: isResting ? tailWag * 2 : tailWag }}
-            style={{ originX: "5px", originY: "14px" }}
-          />
+          <g transform={`translate(0, ${isSitting ? 4 : isStretching ? -2 : bodyBob})`}>
+            {/* Tail - behind body */}
+            <motion.path
+              d={isSitting 
+                ? "M8 28 Q2 22 4 16 Q6 10 10 8"
+                : isStretching
+                ? "M6 26 Q0 24 -2 18 Q-3 12 0 8"
+                : "M8 26 Q4 22 3 16 Q2 10 6 6"
+              }
+              stroke="url(#furGradient)"
+              strokeWidth="4"
+              strokeLinecap="round"
+              fill="none"
+              filter="url(#softShadow)"
+              animate={{ 
+                rotate: isSitting ? [0, 8, 0, -8, 0] : tailPhase,
+                d: isSitting 
+                  ? "M8 28 Q2 22 4 16 Q6 10 10 8"
+                  : isStretching
+                  ? "M6 26 Q0 24 -2 18 Q-3 12 0 8"
+                  : undefined
+              }}
+              transition={isSitting ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : { duration: 0.15 }}
+              style={{ transformOrigin: "8px 28px" }}
+            />
+            
+            {/* Tail fur detail */}
+            <motion.path
+              d={isSitting ? "M6 20 Q8 18 6 16" : "M5 18 Q7 16 5 14"}
+              className="stroke-primary/30"
+              strokeWidth="1"
+              fill="none"
+              animate={{ rotate: isSitting ? [0, 8, 0, -8, 0] : tailPhase }}
+              transition={isSitting ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : { duration: 0.15 }}
+              style={{ transformOrigin: "8px 28px" }}
+            />
+            
+            {/* Back legs */}
+            {!isSitting && (
+              <>
+                <motion.path
+                  d="M14 32 Q12 36 13 40 Q14 42 16 42"
+                  stroke="url(#furGradient)"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  fill="none"
+                  animate={{ rotate: isStretching ? -15 : legPhase * 3 }}
+                  style={{ transformOrigin: "14px 32px" }}
+                />
+                <motion.path
+                  d="M20 32 Q18 36 19 40 Q20 42 22 42"
+                  stroke="url(#furGradient)"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  fill="none"
+                  animate={{ rotate: isStretching ? -10 : -legPhase * 3 }}
+                  style={{ transformOrigin: "20px 32px" }}
+                />
+              </>
+            )}
+            
+            {/* Body */}
+            <motion.ellipse
+              cx={isSitting ? "22" : isStretching ? "24" : "22"}
+              cy={isSitting ? "28" : "26"}
+              rx={isSitting ? "12" : isStretching ? "16" : "14"}
+              ry={isSitting ? "10" : isStretching ? "8" : "9"}
+              fill="url(#furGradient)"
+              filter="url(#softShadow)"
+            />
+            
+            {/* Belly fur pattern */}
+            <ellipse
+              cx={isSitting ? "22" : "22"}
+              cy={isSitting ? "30" : "28"}
+              rx="6"
+              ry={isSitting ? "5" : "4"}
+              fill="url(#bellyGradient)"
+            />
+            
+            {/* Front legs */}
+            {!isSitting && (
+              <>
+                <motion.path
+                  d="M30 30 Q28 35 29 40 Q30 42 32 42"
+                  stroke="url(#furGradient)"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  fill="none"
+                  animate={{ rotate: isStretching ? 25 : -legPhase * 4 }}
+                  style={{ transformOrigin: "30px 30px" }}
+                />
+                <motion.path
+                  d="M34 28 Q32 34 33 40 Q34 42 36 42"
+                  stroke="url(#furGradient)"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  fill="none"
+                  animate={{ rotate: isStretching ? 30 : legPhase * 4 }}
+                  style={{ transformOrigin: "34px 28px" }}
+                />
+              </>
+            )}
+            
+            {/* Sitting legs */}
+            {isSitting && (
+              <>
+                <ellipse cx="14" cy="34" rx="5" ry="4" fill="url(#furGradient)" />
+                <ellipse cx="30" cy="34" rx="5" ry="4" fill="url(#furGradient)" />
+                <path d="M28 36 Q30 38 32 36" className="stroke-primary/40" strokeWidth="1" fill="none" />
+                <path d="M12 36 Q14 38 16 36" className="stroke-primary/40" strokeWidth="1" fill="none" />
+              </>
+            )}
+            
+            {/* Paw details */}
+            {!isSitting && !isStretching && (
+              <>
+                <circle cx="16" cy="42" r="2" className="fill-accent/60" />
+                <circle cx="22" cy="42" r="2" className="fill-accent/60" />
+                <circle cx="32" cy="42" r="2" className="fill-accent/60" />
+                <circle cx="36" cy="42" r="2" className="fill-accent/60" />
+              </>
+            )}
+            
+            {/* Neck */}
+            <ellipse cx="36" cy="22" rx="6" ry="8" fill="url(#furGradient)" />
+            
+            {/* Head */}
+            <motion.g
+              animate={{ 
+                y: isSitting ? -2 : isStretching ? -6 : 0,
+                rotate: isStretching ? 5 : 0 
+              }}
+              style={{ transformOrigin: "42px 16px" }}
+            >
+              <circle cx="42" cy="14" r="10" fill="url(#furGradient)" filter="url(#softShadow)" />
+              
+              {/* Cheek fluff */}
+              <ellipse cx="36" cy="16" rx="3" ry="4" className="fill-primary/50" />
+              <ellipse cx="48" cy="16" rx="3" ry="4" className="fill-primary/50" />
+              
+              {/* Ears */}
+              <motion.g animate={{ rotate: earTwitch ? -3 : 0 }} style={{ transformOrigin: "38px 8px" }}>
+                <path d="M34 10 L36 2 L40 8 Z" fill="url(#furGradient)" />
+                <path d="M35.5 9 L36.5 4 L38.5 8 Z" className="fill-accent/60" />
+              </motion.g>
+              <motion.g animate={{ rotate: earTwitch ? 3 : 0 }} style={{ transformOrigin: "48px 8px" }}>
+                <path d="M46 8 L50 2 L52 10 Z" fill="url(#furGradient)" />
+                <path d="M47.5 8 L49.5 4 L50.5 9 Z" className="fill-accent/60" />
+              </motion.g>
+              
+              {/* Face details */}
+              {/* Eyes */}
+              <g>
+                {(blinkFrame === 1 || (isSitting && Math.random() < 0.01)) ? (
+                  <>
+                    <path d="M37 12 Q39 11 41 12" className="stroke-foreground" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                    <path d="M45 12 Q47 11 49 12" className="stroke-foreground" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                  </>
+                ) : (
+                  <>
+                    {/* Left eye */}
+                    <ellipse cx="39" cy="12" rx="3" ry="3.5" className="fill-background" />
+                    <ellipse cx="39.5" cy="12" rx="2" ry="2.5" className="fill-foreground" />
+                    <circle cx="40.5" cy="11" r="0.8" className="fill-background" />
+                    <circle cx="38.5" cy="13" r="0.4" className="fill-background/60" />
+                    
+                    {/* Right eye */}
+                    <ellipse cx="47" cy="12" rx="3" ry="3.5" className="fill-background" />
+                    <ellipse cx="47.5" cy="12" rx="2" ry="2.5" className="fill-foreground" />
+                    <circle cx="48.5" cy="11" r="0.8" className="fill-background" />
+                    <circle cx="46.5" cy="13" r="0.4" className="fill-background/60" />
+                  </>
+                )}
+              </g>
+              
+              {/* Nose */}
+              <path d="M43 16 L44.5 18 L41.5 18 Z" className="fill-destructive/70" />
+              
+              {/* Mouth */}
+              <path d="M43 18 L43 19.5" className="stroke-foreground/40" strokeWidth="0.8" />
+              <path d="M41 19 Q43 21 45 19" className="stroke-foreground/30" strokeWidth="0.8" fill="none" />
+              
+              {/* Whiskers */}
+              <g className="stroke-foreground/40" strokeWidth="0.5">
+                <motion.line 
+                  x1="50" y1="15" x2="58" y2="13"
+                  animate={{ rotate: [-2, 2, -2] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  style={{ transformOrigin: "50px 15px" }}
+                />
+                <motion.line 
+                  x1="50" y1="17" x2="58" y2="17"
+                  animate={{ rotate: [-1, 1, -1] }}
+                  transition={{ duration: 2.5, repeat: Infinity }}
+                  style={{ transformOrigin: "50px 17px" }}
+                />
+                <motion.line 
+                  x1="50" y1="19" x2="58" y2="21"
+                  animate={{ rotate: [2, -2, 2] }}
+                  transition={{ duration: 2.2, repeat: Infinity }}
+                  style={{ transformOrigin: "50px 19px" }}
+                />
+                <line x1="36" y1="15" x2="28" y2="13" />
+                <line x1="36" y1="17" x2="28" y2="17" />
+                <line x1="36" y1="19" x2="28" y2="21" />
+              </g>
+              
+              {/* Forehead fur tuft */}
+              <path d="M41 6 Q43 4 45 6 Q43 5 41 6" className="fill-primary/60" />
+            </motion.g>
+          </g>
         </svg>
       </motion.div>
       
-      {/* Floor line */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+      {/* Decorative floor with sparkles */}
+      <div className="absolute bottom-0 left-0 right-0">
+        <div className="h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        <motion.div 
+          className="absolute bottom-0 left-1/4 w-1 h-1 rounded-full bg-primary/40"
+          animate={{ opacity: [0.2, 0.6, 0.2], scale: [0.8, 1.2, 0.8] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+        <motion.div 
+          className="absolute bottom-0 left-1/2 w-1 h-1 rounded-full bg-accent/40"
+          animate={{ opacity: [0.3, 0.7, 0.3], scale: [1, 1.3, 1] }}
+          transition={{ duration: 2.5, repeat: Infinity, delay: 0.5 }}
+        />
+        <motion.div 
+          className="absolute bottom-0 left-3/4 w-1 h-1 rounded-full bg-primary/40"
+          animate={{ opacity: [0.2, 0.5, 0.2], scale: [0.9, 1.1, 0.9] }}
+          transition={{ duration: 1.8, repeat: Infinity, delay: 1 }}
+        />
+      </div>
     </div>
   );
 }
