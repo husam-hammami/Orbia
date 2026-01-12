@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/hooks/useTheme";
 import { themePresets } from "@/lib/themePresets";
@@ -15,6 +15,15 @@ function AnimatedKitty() {
   const [direction, setDirection] = useState<'left' | 'right'>('right');
   const [isResting, setIsResting] = useState(false);
   const [frame, setFrame] = useState(0);
+  const restTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (restTimeoutRef.current) {
+        clearTimeout(restTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (isResting) return;
@@ -35,7 +44,7 @@ function AnimatedKitty() {
         
         if (Math.random() < 0.01) {
           setIsResting(true);
-          setTimeout(() => setIsResting(false), 2000 + Math.random() * 3000);
+          restTimeoutRef.current = setTimeout(() => setIsResting(false), 2000 + Math.random() * 3000);
         }
         
         return newPos;
@@ -160,9 +169,10 @@ function AnimatedKitty() {
   );
 }
 
-function ThemeSwatch({ themeId, isSelected, onClick }: { themeId: string; isSelected: boolean; onClick: () => void }) {
+function ThemeSwatch({ themeId, isSelected, onClick, isDark }: { themeId: string; isSelected: boolean; onClick: () => void; isDark: boolean }) {
   const theme = themePresets.find(t => t.id === themeId);
   if (!theme) return null;
+  const palette = isDark ? theme.dark : theme.light;
 
   return (
     <button
@@ -174,7 +184,7 @@ function ThemeSwatch({ themeId, isSelected, onClick }: { themeId: string; isSele
           : "border-transparent hover:scale-105"
       )}
       style={{ 
-        background: `linear-gradient(135deg, hsl(${theme.light['--primary']}), hsl(${theme.light['--accent']}))` 
+        background: `linear-gradient(135deg, hsl(${palette['--primary']}), hsl(${palette['--accent']}))` 
       }}
       title={theme.name}
     >
@@ -218,7 +228,7 @@ export function TopBarControls() {
             <div 
               className="w-5 h-5 rounded-full border border-white/20"
               style={{ 
-                background: `linear-gradient(135deg, hsl(${currentTheme.light['--primary']}), hsl(${currentTheme.light['--accent']}))` 
+                background: `linear-gradient(135deg, hsl(${(isDark ? currentTheme.dark : currentTheme.light)['--primary']}), hsl(${(isDark ? currentTheme.dark : currentTheme.light)['--accent']}))` 
               }}
             />
             <span className="hidden sm:inline">{currentTheme.name}</span>
@@ -276,6 +286,7 @@ export function TopBarControls() {
                   themeId={theme.id}
                   isSelected={themeId === theme.id}
                   onClick={() => setTheme(theme.id)}
+                  isDark={isDark}
                 />
               ))}
             </div>
