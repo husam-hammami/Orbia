@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Layout } from "@/components/layout";
 import { useSearch } from "wouter";
+import { LockContext } from "@/App";
 import { MoodTracker } from "@/components/mood-tracker";
 import { RoutineTimeline } from "@/components/routine-timeline";
 import { RoutineEditor } from "@/components/routine-editor";
@@ -141,9 +142,10 @@ export default function TrackerPage() {
   };
 
   const isLoading = habitsLoading || (habitIds.length > 0 && completionsLoading);
+  const lockContext = useContext(LockContext);
 
   return (
-    <Layout>
+    <Layout lockContext={lockContext}>
       <div className="space-y-4 md:space-y-6 animate-in fade-in duration-500">
         <div className="flex flex-col items-center gap-1 md:gap-2 mb-1 md:mb-2">
           <p className="text-xs md:text-sm text-muted-foreground font-medium">{format(new Date(), "EEEE, MMMM do")}</p>

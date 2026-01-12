@@ -1,11 +1,9 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Settings, Menu, Briefcase, Wallet, ClipboardList, Orbit, Plus, Sparkles, Lock, Sun, Moon, X } from "lucide-react";
+import { LayoutDashboard, Settings, Briefcase, Wallet, ClipboardList, Orbit, Lock, Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { GardenTopBar } from "@/components/garden-top-bar";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useTheme } from "@/hooks/useTheme";
 import { themePresets } from "@/lib/themePresets";
 import { SetPasswordDialog } from "@/components/lock-screen";
