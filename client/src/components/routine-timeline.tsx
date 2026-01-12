@@ -131,12 +131,12 @@ export function RoutineTimeline() {
 
   if (blocksLoading || activitiesLoading) {
     return (
-      <div className="bg-gradient-to-br from-slate-50 to-indigo-50/30 rounded-2xl border border-slate-200/50 backdrop-blur-sm p-6">
+      <div className="bg-gradient-to-br from-card to-muted/30 rounded-2xl border border-border/50 backdrop-blur-sm p-6">
         <div className="animate-pulse space-y-4">
           <div className="flex gap-4">
-            <div className="h-16 bg-slate-100 rounded-xl flex-1"></div>
-            <div className="h-16 bg-slate-100 rounded-xl flex-1"></div>
-            <div className="h-16 bg-slate-100 rounded-xl flex-1"></div>
+            <div className="h-16 bg-muted rounded-xl flex-1"></div>
+            <div className="h-16 bg-muted rounded-xl flex-1"></div>
+            <div className="h-16 bg-muted rounded-xl flex-1"></div>
           </div>
         </div>
       </div>
@@ -145,12 +145,12 @@ export function RoutineTimeline() {
 
   if (!blocks || blocks.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-slate-50 to-indigo-50/30 rounded-2xl border border-slate-200/50 backdrop-blur-sm p-8 text-center">
-        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-          <Clock className="w-8 h-8 text-slate-300" />
+      <div className="bg-gradient-to-br from-card to-muted/30 rounded-2xl border border-border/50 backdrop-blur-sm p-8 text-center">
+        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+          <Clock className="w-8 h-8 text-muted-foreground" />
         </div>
-        <p className="text-slate-500 font-medium">No routine configured</p>
-        <p className="text-slate-400 text-sm mt-1">Create time blocks to structure your day</p>
+        <p className="text-muted-foreground font-medium">No routine configured</p>
+        <p className="text-muted-foreground/70 text-sm mt-1">Create time blocks to structure your day</p>
       </div>
     );
   }
@@ -159,10 +159,10 @@ export function RoutineTimeline() {
     <div className="space-y-4">
       {/* Summary Strip - Futuristic */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2 bg-gradient-to-r from-slate-50 to-indigo-50 border border-slate-200/60 rounded-full px-4 py-2 backdrop-blur-sm">
+        <div className="flex items-center gap-2 bg-gradient-to-r from-card to-muted/50 border border-border/60 rounded-full px-4 py-2 backdrop-blur-sm">
           <div className="relative w-8 h-8">
             <svg className="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
-              <circle cx="16" cy="16" r="14" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+              <circle cx="16" cy="16" r="14" fill="none" className="stroke-muted" strokeWidth="3" />
               <motion.circle 
                 cx="16" cy="16" r="14" 
                 fill="none" 
@@ -176,45 +176,45 @@ export function RoutineTimeline() {
               />
               <defs>
                 <linearGradient id="futuristicGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#0891b2" />
-                  <stop offset="100%" stopColor="#6366f1" />
+                  <stop offset="0%" className="[stop-color:hsl(var(--primary))]" />
+                  <stop offset="100%" className="[stop-color:hsl(var(--accent))]" />
                 </linearGradient>
               </defs>
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-slate-600" data-testid="routine-progress-percent">
+            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-foreground" data-testid="routine-progress-percent">
               {totalProgress}%
             </span>
           </div>
           <div className="text-sm">
-            <span className="font-semibold text-slate-700">{completedCount}</span>
-            <span className="text-slate-500">/{totalCount} done</span>
+            <span className="font-semibold text-foreground">{completedCount}</span>
+            <span className="text-muted-foreground">/{totalCount} done</span>
           </div>
         </div>
 
         {currentBlock && (
-          <div className="flex items-center gap-2 bg-white/80 border border-cyan-200/60 rounded-full px-3 py-1.5 backdrop-blur-sm shadow-sm">
+          <div className="flex items-center gap-2 bg-card/80 border border-primary/30 rounded-full px-3 py-1.5 backdrop-blur-sm shadow-sm">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
             </span>
-            <span className="text-sm text-slate-600">
-              Now: <span className="font-medium text-slate-800">{currentBlock.name}</span>
+            <span className="text-sm text-muted-foreground">
+              Now: <span className="font-medium text-foreground">{currentBlock.name}</span>
             </span>
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 text-xs text-slate-400 ml-auto font-mono">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground ml-auto font-mono">
           <Clock className="w-3.5 h-3.5" />
           <span>{format(new Date(), "HH:mm")}</span>
         </div>
       </div>
 
       {/* Timeline Ribbon - Futuristic Glassmorphic */}
-      <div className="relative bg-gradient-to-br from-white/80 to-slate-50/80 rounded-xl border border-slate-200/60 p-4 backdrop-blur-sm">
+      <div className="relative bg-gradient-to-br from-card/80 to-muted/30 rounded-xl border border-border/60 p-4 backdrop-blur-sm overflow-x-auto">
         {/* Orbit Thread Line - Gradient */}
-        <div className="absolute top-1/2 left-8 right-8 h-0.5 bg-gradient-to-r from-cyan-300/50 via-indigo-300/50 to-violet-300/50 rounded-full -translate-y-1/2 z-0" />
+        <div className="absolute top-1/2 left-8 right-8 h-0.5 bg-gradient-to-r from-primary/30 via-accent/30 to-primary/30 rounded-full -translate-y-1/2 z-0 hidden md:block" />
         
-        <div className="grid gap-2 relative z-10" style={{ gridTemplateColumns: `repeat(${blocks.length}, 1fr)` }}>
+        <div className="flex md:grid gap-3 md:gap-2 relative z-10 pb-2 md:pb-0" style={{ gridTemplateColumns: `repeat(${blocks.length}, 1fr)` }}>
           {blocks.map((block, idx) => {
             const progress = blockProgress[block.id] || { completed: 0, total: 0 };
             const isCurrent = currentBlock?.id === block.id;
@@ -231,14 +231,14 @@ export function RoutineTimeline() {
                 onClick={() => setExpandedBlock(isExpanded ? null : block.id)}
                 className={cn(
                   "relative flex flex-col items-center p-3 rounded-xl transition-all duration-200",
-                  "border backdrop-blur-sm",
+                  "border backdrop-blur-sm min-w-[100px] md:min-w-0 flex-shrink-0 md:flex-shrink",
                   isCurrent 
                     ? `bg-gradient-to-br ${theme.bgGradient} ${theme.borderColor} shadow-[0_0_30px_-8px_rgba(99,102,241,0.4)] ring-2 ring-opacity-50`
                     : isComplete 
                       ? `bg-gradient-to-br ${theme.bgGradient} ${theme.borderColor} shadow-[0_0_25px_-5px_rgba(6,182,212,0.5)]`
                       : isExpanded
                         ? `bg-gradient-to-br ${theme.bgGradient} ${theme.borderColor} shadow-md`
-                        : `bg-white/80 border-slate-200 hover:${theme.borderColor} hover:shadow-md`
+                        : `bg-card/80 border-border hover:${theme.borderColor} hover:shadow-md`
                 )}
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}
@@ -285,7 +285,7 @@ export function RoutineTimeline() {
 
                 <span className={cn(
                   "text-xs font-semibold text-center leading-tight",
-                  isComplete || isCurrent ? theme.iconColor : "text-slate-700"
+                  isComplete || isCurrent ? theme.iconColor : "text-foreground"
                 )}>
                   {block.name}
                 </span>
@@ -299,8 +299,8 @@ export function RoutineTimeline() {
                   )}>
                     {block.startTime.slice(0, 5)}
                   </span>
-                  <span className="text-[10px] text-slate-400">→</span>
-                  <span className="text-[10px] font-mono font-medium text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] text-muted-foreground">→</span>
+                  <span className="text-[10px] font-mono font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
                     {block.endTime.slice(0, 5)}
                   </span>
                 </div>
@@ -308,7 +308,7 @@ export function RoutineTimeline() {
                 {progress.total > 0 && (
                   <span className={cn(
                     "text-[10px] font-semibold mt-1.5 px-2 py-0.5 rounded-full",
-                    isComplete ? `${theme.iconBg} ${theme.iconColor}` : "bg-slate-100 text-slate-500"
+                    isComplete ? `${theme.iconBg} ${theme.iconColor}` : "bg-muted text-muted-foreground"
                   )}>
                     {progress.completed}/{progress.total}
                   </span>
@@ -363,7 +363,7 @@ export function RoutineTimeline() {
               )}>
                 {/* Block Header */}
                 <div className={cn(
-                  "flex items-center justify-between px-4 py-3 border-b border-slate-100",
+                  "flex items-center justify-between px-4 py-3 border-b border-border/30",
                   `bg-gradient-to-r ${theme.bgGradient}`
                 )}>
                   <div className="flex items-center gap-3">
@@ -374,8 +374,8 @@ export function RoutineTimeline() {
                       <BlockIcon className={cn("w-4 h-4", theme.iconColor)} />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-800">{block.name}</h3>
-                      <p className="text-xs text-slate-500 font-mono">
+                      <h3 className="font-semibold text-foreground">{block.name}</h3>
+                      <p className="text-xs text-muted-foreground font-mono">
                         {block.startTime} — {block.endTime}
                         {block.purpose && <span className="mx-1.5 font-sans">•</span>}
                         {block.purpose && <span className="italic font-sans">{block.purpose}</span>}
@@ -386,14 +386,14 @@ export function RoutineTimeline() {
                     "text-sm font-semibold px-2.5 py-0.5 rounded-full",
                     progress.completed === progress.total 
                       ? `${theme.iconBg} ${theme.iconColor}` 
-                      : "bg-slate-100 text-slate-600"
+                      : "bg-muted text-muted-foreground"
                   )}>
                     {progress.completed}/{progress.total}
                   </span>
                 </div>
 
                 {/* Activities - Vertical Timeline */}
-                <div className="p-4 bg-white/90">
+                <div className="p-4 bg-card/90">
                   <div className="relative">
                     {sortedActivities.map((activity, idx) => {
                       const isActivityComplete = completedActivityIds.has(activity.id);
@@ -419,7 +419,7 @@ export function RoutineTimeline() {
                           <div className="w-14 shrink-0 pt-1 text-right">
                             <span className={cn(
                               "text-sm font-mono font-bold",
-                              isActivityComplete ? theme.iconColor : "text-slate-500"
+                              isActivityComplete ? theme.iconColor : "text-muted-foreground"
                             )}>
                               {activity.time || "—"}
                             </span>
@@ -433,8 +433,8 @@ export function RoutineTimeline() {
                                 className={cn(
                                   "relative z-10 w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 shrink-0",
                                   isActivityComplete 
-                                    ? `${theme.nodeBg} border-white text-white shadow-sm` 
-                                    : "bg-white border-slate-300 group-hover:border-slate-400 group-hover:shadow-md"
+                                    ? `${theme.nodeBg} border-card text-white shadow-sm` 
+                                    : "bg-card border-border group-hover:border-muted-foreground group-hover:shadow-md"
                                 )}
                                 animate={isActivityComplete ? {
                                   scale: [1, 1.2, 1],
@@ -465,7 +465,7 @@ export function RoutineTimeline() {
                                 "w-0.5 flex-1 min-h-[24px]",
                                 isActivityComplete 
                                   ? `${theme.nodeBg}` 
-                                  : "bg-gradient-to-b from-slate-200 to-slate-100"
+                                  : "bg-gradient-to-b from-border to-muted"
                               )} />
                             )}
                           </div>
@@ -479,7 +479,7 @@ export function RoutineTimeline() {
                                 "relative p-3 rounded-xl border-l-4 border transition-all",
                                 isActivityComplete 
                                   ? `${theme.completedBg} ${theme.completedBorder} shadow-sm` 
-                                  : "bg-white border-slate-200 group-hover:border-slate-300 group-hover:shadow-sm",
+                                  : "bg-card border-border group-hover:border-muted-foreground group-hover:shadow-sm",
                                 isActivityComplete ? theme.borderColor : theme.borderColor
                               )}
                               style={{ borderLeftColor: theme.accentColor }}
@@ -489,11 +489,11 @@ export function RoutineTimeline() {
                                     <div className="flex items-center gap-1.5">
                                       <ActivityIcon className={cn(
                                         "w-3.5 h-3.5 shrink-0",
-                                        isActivityComplete ? theme.iconColor : "text-slate-400"
+                                        isActivityComplete ? theme.iconColor : "text-muted-foreground"
                                       )} />
                                       <span className={cn(
                                         "text-sm font-semibold",
-                                        isActivityComplete ? `${theme.iconColor} line-through` : "text-slate-800"
+                                        isActivityComplete ? `${theme.iconColor} line-through` : "text-foreground"
                                       )}>
                                         {activity.name}
                                       </span>
@@ -508,7 +508,7 @@ export function RoutineTimeline() {
                                     </div>
                               
                                     {activity.description && (
-                                      <p className="text-xs text-slate-400 italic mt-1">
+                                      <p className="text-xs text-muted-foreground italic mt-1">
                                         {activity.description}
                                       </p>
                                     )}
@@ -518,7 +518,7 @@ export function RoutineTimeline() {
                                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                       onClick={(e) => { e.stopPropagation(); }}
-                                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
+                                      className="p-1.5 rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
                                       data-testid={`activity-edit-${activity.id}`}
                                       aria-label="Edit activity"
                                       title="Edit"
@@ -527,7 +527,7 @@ export function RoutineTimeline() {
                                     </button>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); }}
-                                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
+                                      className="p-1.5 rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
                                       data-testid={`activity-skip-${activity.id}`}
                                       aria-label="Skip activity"
                                       title="Skip"
