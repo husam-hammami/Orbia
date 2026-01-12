@@ -237,32 +237,32 @@ export function FoodTracker() {
   if (optionsLoading || summaryLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/80 p-5 shadow-sm">
+      <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/80 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <Utensils className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
+              <Utensils className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h2 className="font-semibold text-slate-900">Today's Meals</h2>
-              <p className="text-sm text-slate-500">{format(new Date(), "EEEE, MMMM do")}</p>
+              <h2 className="font-semibold text-foreground">Today's Meals</h2>
+              <p className="text-sm text-muted-foreground">{format(new Date(), "EEEE, MMMM do")}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-sm">
-              <Check className="w-4 h-4 text-emerald-500" />
-              <span className="text-slate-600">{completedMeals}/3</span>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-sm">
+              <Check className="w-4 h-4 text-primary" />
+              <span className="text-muted-foreground">{completedMeals}/3</span>
             </div>
             <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="gap-1.5 bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-600 hover:to-indigo-600 text-white shadow-lg shadow-indigo-500/20" data-testid="button-add-option">
+                <Button size="sm" className="gap-1.5 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground shadow-lg shadow-primary/20" data-testid="button-add-option">
                   <Plus className="w-4 h-4" />
                   Add Meal
                 </Button>
@@ -291,13 +291,13 @@ export function FoodTracker() {
                               "p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5",
                               newOption.mealType === type
                                 ? `${config.selectedBorder} ${config.selectedBg}`
-                                : "border-slate-200 hover:border-slate-300"
+                                : "border-border hover:border-muted-foreground"
                             )}
                           >
                             <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", config.iconBg)}>
                               <Icon className={cn("w-4 h-4", config.iconColor)} />
                             </div>
-                            <span className={cn("text-sm font-medium", newOption.mealType === type ? config.accentColor : "text-slate-600")}>
+                            <span className={cn("text-sm font-medium", newOption.mealType === type ? config.accentColor : "text-foreground")}>
                               {config.label}
                             </span>
                           </button>
@@ -376,24 +376,24 @@ export function FoodTracker() {
         </div>
 
         {saveMutation.isPending && (
-          <div className="flex items-center justify-center gap-2 pt-4 text-sm text-slate-500">
+          <div className="flex items-center justify-center gap-2 pt-4 text-sm text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin" />
             Saving...
           </div>
         )}
       </div>
 
-      <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-slate-200/80 overflow-hidden">
+      <div className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/80 overflow-hidden">
         <button
           onClick={() => setShowHistory(!showHistory)}
-          className="w-full px-5 py-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors"
+          className="w-full px-5 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-slate-600" />
+            <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-foreground" />
             </div>
-            <span className="font-medium text-slate-700">Meal History</span>
-            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-xs text-slate-600">
+            <span className="font-medium text-foreground">Meal History</span>
+            <span className="px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground">
               {recentMealLogs.length} days
             </span>
           </div>
@@ -401,7 +401,7 @@ export function FoodTracker() {
             animate={{ rotate: showHistory ? 180 : 0 }}
             transition={{ duration: 0.2 }}
           >
-            <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </motion.div>
@@ -419,10 +419,10 @@ export function FoodTracker() {
               <div className="px-5 pb-5 space-y-3">
                 {historySummariesLoading ? (
                   <div className="flex justify-center py-6">
-                    <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                   </div>
                 ) : recentMealLogs.length === 0 ? (
-                  <div className="text-center py-6 text-slate-500">
+                  <div className="text-center py-6 text-muted-foreground">
                     <Clock className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     <p className="text-sm">No meal entries yet</p>
                   </div>
@@ -439,15 +439,15 @@ export function FoodTracker() {
                         className={cn(
                           "p-4 rounded-xl border",
                           isToday 
-                            ? "bg-gradient-to-r from-cyan-50/50 to-indigo-50/50 border-indigo-200" 
-                            : "bg-slate-50/50 border-slate-200"
+                            ? "bg-gradient-to-r from-primary/10 to-accent/10 border-primary/30" 
+                            : "bg-muted/50 border-border"
                         )}
                         data-testid={`meal-log-${log.date}`}
                       >
                         <div className="flex items-center gap-2 mb-3">
                           <span className={cn(
                             "text-sm font-medium",
-                            isToday ? "text-indigo-600" : "text-slate-700"
+                            isToday ? "text-primary" : "text-foreground"
                           )}>
                             {dateLabel}
                           </span>
@@ -461,11 +461,11 @@ export function FoodTracker() {
                               <div key={mealType} className="space-y-1">
                                 <div className="flex items-center gap-1.5">
                                   <Icon className={cn("w-3.5 h-3.5", config.iconColor)} />
-                                  <span className="text-xs text-slate-500">{config.label}</span>
+                                  <span className="text-xs text-muted-foreground">{config.label}</span>
                                 </div>
                                 <p className={cn(
                                   "text-sm font-medium truncate",
-                                  meal ? "text-slate-700" : "text-slate-400 italic"
+                                  meal ? "text-foreground" : "text-muted-foreground italic"
                                 )} title={meal || undefined}>
                                   {meal || "—"}
                                 </p>
@@ -526,16 +526,16 @@ export function FoodTracker() {
             ) : (
               <>
                 {selectedRecipe?.description ? (
-                  <div className="bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-200 rounded-xl p-4">
-                    <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed text-slate-700">
+                  <div className="bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/30 rounded-xl p-4">
+                    <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed text-foreground">
                       {selectedRecipe.description}
                     </pre>
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-slate-500">
+                  <div className="text-center py-8 text-muted-foreground">
                     <ChefHat className="w-12 h-12 mx-auto mb-3 opacity-30" />
                     <p className="font-medium">No recipe added yet</p>
-                    <p className="text-sm text-slate-400">Add cooking steps to reference later</p>
+                    <p className="text-sm text-muted-foreground/70">Add cooking steps to reference later</p>
                   </div>
                 )}
                 <Button 
@@ -585,14 +585,14 @@ function MealSection({
         </div>
         <span className={cn("font-medium", config.accentColor)}>{config.label}</span>
         {mealType === "dinner" && (
-          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600">
+          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
             <ChefHat className="w-3 h-3" /> recipes
           </span>
         )}
       </div>
 
       {options.length === 0 ? (
-        <p className="text-sm text-slate-500 italic pl-10">No options yet — add one above!</p>
+        <p className="text-sm text-muted-foreground italic pl-10">No options yet — add one above!</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           <AnimatePresence mode="popLayout">
@@ -611,7 +611,7 @@ function MealSection({
                     "flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all text-sm font-medium",
                     selected === opt.name
                       ? `${config.selectedBg} ${config.selectedBorder} ${config.accentColor}`
-                      : "bg-white/80 border-slate-200 text-slate-700 hover:border-slate-300"
+                      : "bg-card/80 border-border text-foreground hover:border-muted-foreground"
                   )}
                   data-testid={`option-${mealType}-${opt.id}`}
                 >
@@ -619,7 +619,7 @@ function MealSection({
                     "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
                     selected === opt.name 
                       ? `${config.selectedBorder} ${config.selectedBg}` 
-                      : "border-slate-300"
+                      : "border-border"
                   )}>
                     {selected === opt.name && <Check className="w-3 h-3" />}
                   </div>
@@ -631,8 +631,8 @@ function MealSection({
                     className={cn(
                       "p-1.5 rounded-lg transition-all",
                       opt.description 
-                        ? "bg-indigo-100 text-indigo-600 hover:bg-indigo-200" 
-                        : "bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600"
+                        ? "bg-primary/10 text-primary hover:bg-primary/20" 
+                        : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                     )}
                     title={opt.description ? "View recipe" : "Add recipe"}
                     data-testid={`recipe-${opt.id}`}
