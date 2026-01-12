@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useCallback } from "react";
 import { Layout } from "@/components/layout";
 import { useSearch } from "wouter";
 import { LockContext } from "@/App";
@@ -16,12 +16,17 @@ import { FoodTracker } from "@/components/food-tracker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Activity, Calendar, Sparkles, LayoutGrid, List, Flower2, Loader2, ListTodo, BookOpen, Utensils } from "lucide-react";
+import { Activity, Calendar, Sparkles, LayoutGrid, List, Flower2, Loader2, ListTodo, BookOpen, Utensils, ChevronLeft, ChevronRight } from "lucide-react";
 import { CurrentTimeDisplay } from "@/components/current-time-display";
 import { Habit } from "@/lib/types";
 import { toast } from "sonner";
 import { useHabits, useCreateHabit, useDeleteHabit, useUpdateHabit, useAddHabitCompletion, useRemoveHabitCompletion } from "@/lib/api-hooks";
 import { useQuery } from "@tanstack/react-query";
+import { useSwipeable } from "react-swipeable";
+import { motion, AnimatePresence } from "framer-motion";
+
+const TAB_ORDER = ["habits", "mood", "routine", "food", "todos", "journal"] as const;
+type TabType = typeof TAB_ORDER[number];
 
 async function fetchAllCompletions(habitIds: string[]): Promise<Record<string, string[]>> {
   const results: Record<string, string[]> = {};
@@ -48,13 +53,41 @@ export default function TrackerPage() {
   const urlParams = new URLSearchParams(searchString);
   const tabFromUrl = urlParams.get("tab");
   
-  const [activeTab, setActiveTab] = useState(tabFromUrl || "habits");
+  const [activeTab, setActiveTab] = useState<TabType>(tabFromUrl as TabType || "habits");
+  const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null);
   
   useEffect(() => {
-    if (tabFromUrl && ["habits", "mood", "routine", "todos", "journal", "food"].includes(tabFromUrl)) {
-      setActiveTab(tabFromUrl);
+    if (tabFromUrl && TAB_ORDER.includes(tabFromUrl as TabType)) {
+      setActiveTab(tabFromUrl as TabType);
     }
   }, [tabFromUrl]);
+
+  const goToNextTab = useCallback(() => {
+    const currentIndex = TAB_ORDER.indexOf(activeTab as TabType);
+    if (currentIndex < TAB_ORDER.length - 1) {
+      setSwipeDirection("left");
+      setActiveTab(TAB_ORDER[currentIndex + 1]);
+    }
+  }, [activeTab]);
+
+  const goToPrevTab = useCallback(() => {
+    const currentIndex = TAB_ORDER.indexOf(activeTab as TabType);
+    if (currentIndex > 0) {
+      setSwipeDirection("right");
+      setActiveTab(TAB_ORDER[currentIndex - 1]);
+    }
+  }, [activeTab]);
+
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: goToNextTab,
+    onSwipedRight: goToPrevTab,
+    trackMouse: false,
+    trackTouch: true,
+    delta: 50,
+    preventScrollOnSwipe: false,
+  });
+
+  const currentTabIndex = TAB_ORDER.indexOf(activeTab as TabType);
   
   const { data: dbHabits, isLoading: habitsLoading } = useHabits();
   const [viewMode, setViewMode] = useState<"grid" | "list" | "garden">("garden");
@@ -157,7 +190,7 @@ export default function TrackerPage() {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="w-full">
           <div className="sticky top-0 z-30 -mx-3 px-3 py-2 bg-background/80 backdrop-blur-xl md:static md:mx-0 md:px-0 md:py-0 md:bg-transparent md:backdrop-blur-none">
             <TabsList className="w-full flex h-10 md:h-12 items-center gap-1 rounded-full md:rounded-xl bg-muted/50 md:bg-muted/60 p-1 md:p-1.5 border border-border/30 md:border-border/50 shadow-sm overflow-x-auto scrollbar-hide md:justify-center">
               <TabsTrigger 
@@ -209,9 +242,32 @@ export default function TrackerPage() {
                 <span>Journal</span>
               </TabsTrigger>
             </TabsList>
+            
+            <div className="flex items-center justify-center gap-1.5 mt-2 md:hidden">
+              {TAB_ORDER.map((tab, idx) => (
+                <motion.div
+                  key={tab}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    idx === currentTabIndex 
+                      ? 'w-6 bg-primary' 
+                      : 'w-1.5 bg-muted-foreground/30'
+                  }`}
+                  layoutId={idx === currentTabIndex ? "tab-indicator" : undefined}
+                />
+              ))}
+            </div>
           </div>
           
-          <TabsContent value="habits" className="mt-4" data-testid="content-habits">
+          <div {...swipeHandlers} className="touch-pan-y">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, x: swipeDirection === "left" ? 50 : swipeDirection === "right" ? -50 : 0 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: swipeDirection === "left" ? -50 : 50 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
+          <TabsContent value="habits" className="mt-4" data-testid="content-habits" forceMount={activeTab === "habits" ? true : undefined}>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -310,6 +366,9 @@ export default function TrackerPage() {
           <TabsContent value="journal" className="mt-4" data-testid="content-journal">
             <JournalTab />
           </TabsContent>
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </Tabs>
       </div>
     </Layout>
