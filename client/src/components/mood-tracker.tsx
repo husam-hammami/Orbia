@@ -1,22 +1,18 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Smile, Frown, Meh, Zap, BatteryFull, Activity, UserCircle2, CloudFog, AlertCircle, Flame, MessageSquare, ChevronDown, ChevronUp, Clock, Loader2, TrendingUp, Calendar, HeartPulse, BedDouble, Moon, Pencil, Trash2 } from "lucide-react";
+import { Smile, Frown, Meh, Zap, Sun, Cloud, Heart, Sparkles, ChevronDown, ChevronUp, Clock, Loader2, Moon, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useMembers, useTrackerEntries, useCreateTrackerEntry, useUpdateTrackerEntry, useDeleteTrackerEntry } from "@/lib/api-hooks";
+import { useTrackerEntries, useCreateTrackerEntry, useUpdateTrackerEntry, useDeleteTrackerEntry } from "@/lib/api-hooks";
 import { toast } from "sonner";
-import { format, subDays } from "date-fns";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { parseTrackerNotes } from "@/lib/parse-notes";
+import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { TrackerEntry } from "@shared/schema";
 
 export function MoodTracker() {
-  const { data: members, isLoading: membersLoading } = useMembers();
   const { data: trackerEntries, isLoading: entriesLoading } = useTrackerEntries(30);
   const createEntryMutation = useCreateTrackerEntry();
   const updateEntryMutation = useUpdateTrackerEntry();
@@ -27,29 +23,13 @@ export function MoodTracker() {
   const [deletingEntryId, setDeletingEntryId] = useState<string | null>(null);
   const [editMood, setEditMood] = useState([5]);
   const [editEnergy, setEditEnergy] = useState([5]);
-  const [editStress, setEditStress] = useState([3]);
-  const [editDissociation, setEditDissociation] = useState([2]);
-  const [editCapacity, setEditCapacity] = useState([3]);
   const [editNotes, setEditNotes] = useState("");
   const [mood, setMood] = useState<string | null>(null);
-  const [motivation, setMotivation] = useState([5]);
-  const [comfort, setComfort] = useState([5]); 
-  const [dissociation, setDissociation] = useState([2]); 
-  const [urges, setUrges] = useState([1]); 
-  const [stress, setStress] = useState([3]);
+  const [energy, setEnergy] = useState([5]);
   const [sleep, setSleep] = useState([7.5]);
-  const [sleepQuality, setSleepQuality] = useState([6]); 
-  const [systemComm, setSystemComm] = useState([5]); 
-  const [capacity, setCapacity] = useState([3]); // 0-5 capacity scale
-  const [triggerTag, setTriggerTag] = useState<string | null>(null); // optional context tag
-  const [workLoad, setWorkLoad] = useState([0]); // 0-10: How hostile/draining was work today?
-  const [workTag, setWorkTag] = useState<string | null>(null); // optional work-specific context
-  const [selectedFronterId, setSelectedFronterId] = useState<string | null>(null);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [note, setNote] = useState("");
   const [entryTime, setEntryTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
 
-  // Auto-calculate time of day based on current hour
   const getTimeOfDay = (): string => {
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) return "morning";
@@ -58,49 +38,29 @@ export function MoodTracker() {
     return "night";
   };
 
-  const triggerTags = [
-    { value: "work", label: "Work", icon: "💼" },
-    { value: "loneliness", label: "Loneliness", icon: "🫂" },
-    { value: "pain", label: "Pain", icon: "🔥" },
-    { value: "noise", label: "Noise/Env", icon: "🔊" },
-    { value: "sleep", label: "Sleep", icon: "😴" },
-    { value: "body", label: "Body/Health", icon: "🩺" },
-    { value: "unknown", label: "Unknown", icon: "❓" },
-  ];
-
-  const workTags = [
-    { value: "deadlines", label: "Deadlines" },
-    { value: "conflict", label: "Conflict" },
-    { value: "firefighting", label: "Firefighting" },
-    { value: "unclear", label: "Unclear requirements" },
-    { value: "blame", label: "Blame / criticism" },
-    { value: "chaos", label: "Organizational chaos" },
-  ];
-
-  const selectedFronter = members?.find(m => m.id === selectedFronterId) || members?.[0];
-
   const entriesToday = (trackerEntries || []).filter(entry => {
     const entryDate = format(new Date(entry.timestamp), "yyyy-MM-dd");
     const today = format(new Date(), "yyyy-MM-dd");
     return entryDate === today;
   }).map(entry => ({
     time: format(new Date(entry.timestamp), "HH:mm"),
-    mood: entry.mood <= 2 ? "bad" : entry.mood <= 3 ? "neutral" : "good"
+    mood: entry.mood <= 3 ? "rough" : entry.mood <= 5 ? "okay" : entry.mood <= 7 ? "good" : "great"
   }));
 
-
   const emotionalStates = [
-    { value: "terrible", icon: Frown, color: "text-red-500", bg: "bg-red-100", label: "Distressed" },
-    { value: "bad", icon: Meh, color: "text-orange-500", bg: "bg-orange-100", label: "Struggling" },
-    { value: "neutral", icon: Meh, color: "text-yellow-500", bg: "bg-yellow-100", label: "Neutral" },
-    { value: "good", icon: Smile, color: "text-green-500", bg: "bg-green-100", label: "Stable" },
-    { value: "excellent", icon: Zap, color: "text-blue-500", bg: "bg-blue-100", label: "Thriving" },
+    { value: "rough", icon: Cloud, color: "text-slate-500", bg: "bg-slate-100", label: "Rough Day", emoji: "😔" },
+    { value: "meh", icon: Meh, color: "text-amber-500", bg: "bg-amber-100", label: "Just Meh", emoji: "😐" },
+    { value: "okay", icon: Sun, color: "text-yellow-500", bg: "bg-yellow-100", label: "Doing Okay", emoji: "🙂" },
+    { value: "good", icon: Smile, color: "text-green-500", bg: "bg-green-100", label: "Good!", emoji: "😊" },
+    { value: "great", icon: Sparkles, color: "text-pink-500", bg: "bg-pink-100", label: "Wonderful!", emoji: "✨" },
   ];
 
-  const tags = [
-    "Therapy", "Pain Spike", "Insomnia", "Triggered", "Shifting", "Productive", 
-    "Socializing", "Medication", "Grounding", "Flashback", "Rest"
+  const quickTags = [
+    "Productive", "Tired", "Excited", "Relaxed", "Anxious", "Motivated", 
+    "Creative", "Social", "Cozy", "Focused"
   ];
+
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const toggleTag = (tag: string) => {
     if (selectedTags.includes(tag)) {
@@ -111,42 +71,37 @@ export function MoodTracker() {
   };
 
   const handleAddEntry = () => {
-    const moodValue = mood === "terrible" ? 1 : mood === "bad" ? 3 : mood === "neutral" ? 5 : mood === "good" ? 7 : mood === "excellent" ? 10 : 5;
+    const moodValue = mood === "rough" ? 2 : mood === "meh" ? 4 : mood === "okay" ? 5 : mood === "good" ? 7 : mood === "great" ? 9 : 5;
     
     const noteParts = [];
     if (note) noteParts.push(note);
-    if (selectedTags.length > 0) noteParts.push(`Tags: ${selectedTags.join(", ")}`);
-    noteParts.push(`Comfort: ${comfort[0]}/10`);
-    noteParts.push(`System Comm: ${systemComm[0]}/10`);
-    noteParts.push(`Sleep: ${sleep[0]}h`);
-    noteParts.push(`Urges: ${urges[0]}/10`);
+    if (selectedTags.length > 0) noteParts.push(`Feeling: ${selectedTags.join(", ")}`);
+    if (sleep[0] > 0) noteParts.push(`Sleep: ${sleep[0]}h`);
 
     createEntryMutation.mutate({
-      frontingMemberId: selectedFronter?.id || null,
+      frontingMemberId: null,
       mood: moodValue,
-      energy: motivation[0],
-      stress: stress[0] * 10,
-      dissociation: dissociation[0] * 10,
+      energy: energy[0],
+      stress: 0,
+      dissociation: 0,
       sleepHours: sleep[0] > 0 ? sleep[0] : null,
-      sleepQuality: sleepQuality[0],
-      capacity: capacity[0],
-      pain: comfort[0],
-      triggerTag: triggerTag,
-      workLoad: workLoad[0] > 0 ? workLoad[0] : null,
-      workTag: workTag,
+      sleepQuality: null,
+      capacity: null,
+      pain: null,
+      triggerTag: null,
+      workLoad: null,
+      workTag: null,
       timeOfDay: getTimeOfDay(),
       notes: noteParts.join(" | "),
       timestamp: new Date(),
     }, {
       onSuccess: () => {
-        toast.success("Entry logged successfully!");
+        toast.success("How you're feeling has been logged!");
         setNote("");
         setSelectedTags([]);
-        setTriggerTag(null);
-        setWorkLoad([0]);
-        setWorkTag(null);
+        setMood(null);
       },
-      onError: () => toast.error("Failed to log entry"),
+      onError: () => toast.error("Oops! Something went wrong"),
     });
   };
 
@@ -154,28 +109,18 @@ export function MoodTracker() {
     setEditingEntry(entry);
     setEditMood([entry.mood]);
     setEditEnergy([entry.energy]);
-    setEditStress([Math.round(entry.stress / 10)]);
-    setEditDissociation([Math.round(entry.dissociation / 10)]);
-    setEditCapacity([entry.capacity ?? 3]);
-    const parsed = parseTrackerNotes(entry.notes);
-    setEditNotes(parsed.text || "");
+    setEditNotes(entry.notes || "");
   };
 
   const handleUpdateEntry = () => {
     if (!editingEntry) return;
-    
-    const noteParts = [];
-    if (editNotes) noteParts.push(editNotes);
     
     updateEntryMutation.mutate({
       id: editingEntry.id,
       data: {
         mood: editMood[0],
         energy: editEnergy[0],
-        stress: editStress[0] * 10,
-        dissociation: editDissociation[0] * 10,
-        capacity: editCapacity[0],
-        notes: noteParts.length > 0 ? noteParts.join(" | ") : editingEntry.notes,
+        notes: editNotes,
       }
     }, {
       onSuccess: () => {
@@ -200,65 +145,38 @@ export function MoodTracker() {
   return (
     <>
     <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden transition-all duration-300">
-      {/* Compact Header - Always Visible */}
       <div className="p-4 flex items-center justify-between gap-4">
          <div className="flex items-center gap-4 flex-1">
             <div>
-                <h3 className="font-display font-semibold text-lg hidden sm:block">Input Metrics</h3>
+                <h3 className="font-display font-semibold text-lg hidden sm:block">How are you feeling?</h3>
                 <p className="text-[10px] text-muted-foreground hidden sm:block">
-                    {entriesToday.length} entries today{entriesToday.length > 0 ? ` • Last at ${entriesToday[entriesToday.length-1]?.time}` : ''}
+                    {entriesToday.length} check-ins today{entriesToday.length > 0 ? ` • Last at ${entriesToday[entriesToday.length-1]?.time}` : ''}
                 </p>
             </div>
             
-            {/* Emotional State Select */}
-            <div className="flex gap-1 bg-muted/30 p-1 rounded-full">
+            <div className="flex gap-1.5 bg-muted/30 p-1.5 rounded-full">
                 {emotionalStates.map((m) => {
                   const Icon = m.icon;
                   const isSelected = mood === m.value;
-                  const glowColor = m.value === "terrible" ? "rgba(239,68,68,0.4)" : 
-                                    m.value === "bad" ? "rgba(249,115,22,0.4)" : 
-                                    m.value === "neutral" ? "rgba(234,179,8,0.4)" : 
-                                    m.value === "good" ? "rgba(34,197,94,0.4)" : 
-                                    "rgba(59,130,246,0.4)";
                   return (
                     <motion.button
                       key={m.value}
                       onClick={(e) => { e.stopPropagation(); setMood(m.value); }}
                       title={m.label}
-                      whileHover={{ scale: 1.1 }}
+                      whileHover={{ scale: 1.15 }}
                       whileTap={{ scale: 0.95 }}
                       className={cn(
-                        "p-2 rounded-full transition-all duration-300 relative",
+                        "p-2.5 rounded-full transition-all duration-300 relative",
                         isSelected 
-                          ? `${m.bg} ${m.color}` 
+                          ? `${m.bg} ${m.color} ring-2 ring-offset-1` 
                           : "text-muted-foreground hover:bg-muted"
                       )}
-                      style={isSelected ? { 
-                        boxShadow: `0 0 20px -5px ${glowColor}`,
-                      } : undefined}
+                      data-testid={`button-mood-${m.value}`}
                     >
-                      {isSelected && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.5 }}
-                          animate={{ opacity: 0.3, scale: 1 }}
-                          className="absolute inset-0 rounded-full blur-md"
-                          style={{ backgroundColor: glowColor }}
-                        />
-                      )}
-                      <Icon className={cn("w-5 h-5 relative z-10", isSelected && "scale-110")} />
+                      <span className="text-lg">{m.emoji}</span>
                     </motion.button>
                   );
                 })}
-            </div>
-
-            {/* Quick Fronting Input */}
-            <div className="hidden md:flex items-center gap-2 flex-1 max-w-[200px] justify-end">
-                {selectedFronter && (
-                  <div className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-full border border-border/50">
-                      <UserCircle2 className="w-3.5 h-3.5 text-indigo-500" />
-                      <span className="text-xs font-medium" style={{ color: selectedFronter.color }}>{selectedFronter.name}</span>
-                  </div>
-                )}
             </div>
          </div>
 
@@ -280,12 +198,11 @@ export function MoodTracker() {
             onClick={() => setIsExpanded(!isExpanded)}
             className="shrink-0"
          >
-            {isExpanded ? "Close Entry" : "Log Metrics"}
+            {isExpanded ? "Close" : "Check In"}
             {isExpanded ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
          </Button>
       </div>
 
-      {/* Expanded Content */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div 
@@ -296,640 +213,205 @@ export function MoodTracker() {
             className="border-t border-border"
           >
             <div className="p-4 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
-                {/* LEFT COLUMN: State & System */}
-                <div className="space-y-3">
-                  {/* State Snapshot Capsule - Hero summary */}
-                  <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/30 dark:to-violet-950/30 p-3 rounded-xl border border-indigo-100/50 dark:border-indigo-900/30">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">State Snapshot</span>
-                      <span className="text-[10px] text-muted-foreground">{entriesToday.length} today</span>
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 p-4 rounded-xl border border-purple-100/50 dark:border-purple-900/30">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Zap className="w-4 h-4 text-amber-500" />
+                      <span className="text-sm font-medium">Energy Level</span>
+                      <span className="ml-auto text-sm font-mono text-amber-600">
+                        {energy[0] <= 3 ? "Low" : energy[0] <= 6 ? "Medium" : "High"}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      {/* Emotional State Display */}
-                      {mood && (() => {
-                        const currentMood = emotionalStates.find(m => m.value === mood);
-                        const Icon = currentMood?.icon || Meh;
-                        return (
-                          <div className={cn("p-2 rounded-lg", currentMood?.bg)}>
-                            <Icon className={cn("w-5 h-5", currentMood?.color)} />
-                          </div>
-                        );
-                      })()}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">
-                          {emotionalStates.find(m => m.value === mood)?.label || "Select state"}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          {selectedFronter && (
-                            <span className="flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: selectedFronter.color }} />
-                              {selectedFronter.name}
-                            </span>
-                          )}
-                          <span>{entryTime}</span>
-                        </div>
-                      </div>
+                    <Slider 
+                      value={energy} 
+                      onValueChange={setEnergy} 
+                      max={10} 
+                      step={1} 
+                      className="h-3"
+                      data-testid="slider-energy"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <span>Running on empty</span>
+                      <span>Full of energy!</span>
                     </div>
                   </div>
 
-                  {/* Active State Selector - Compact */}
-                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide block mb-1.5">Who's here?</span>
-                    {membersLoading ? (
-                      <div className="flex items-center gap-2 text-muted-foreground text-xs">
-                        <Loader2 className="w-3 h-3 animate-spin" /> Loading...
-                      </div>
-                    ) : members && members.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {members.map(member => (
-                          <button
-                            key={member.id}
-                            onClick={() => setSelectedFronterId(member.id)}
-                            data-testid={`button-fronter-${member.id}`}
-                            className={cn(
-                              "text-[11px] px-2 py-0.5 rounded-full transition-all flex items-center gap-1",
-                              selectedFronter?.id === member.id 
-                                ? "bg-white dark:bg-slate-800 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700" 
-                                : "hover:bg-slate-100 dark:hover:bg-slate-800"
-                            )}
-                            style={{ color: selectedFronter?.id === member.id ? member.color : undefined }}
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: member.color }} />
-                            {member.name}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">No states yet.</p>
-                    )}
-                  </div>
-
-                  {/* Internal Panel: Dissociation + Communication */}
-                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <CloudFog className="w-4 h-4 text-purple-500" />
-                      <span className="text-sm font-medium">Internal</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">Dissociation</span>
-                          <span className="font-mono text-purple-600">{dissociation[0]}/10</span>
-                        </div>
-                        <Slider value={dissociation} onValueChange={setDissociation} max={10} step={1} className="h-2" />
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">Communication</span>
-                          <span className="font-mono text-indigo-600">{systemComm[0]}/10</span>
-                        </div>
-                        <Slider value={systemComm} onValueChange={setSystemComm} max={10} step={1} className="h-2" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Daily Note */}
-                  <Textarea 
-                    placeholder="Daily note..."
-                    className="bg-slate-50 dark:bg-slate-900/50 border-slate-200/50 dark:border-slate-800/50 resize-none h-20 text-xs"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                  />
-                </div>
-
-                {/* MIDDLE COLUMN: Wellbeing */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 pb-1 border-b border-border/50">
-                    <HeartPulse className="w-4 h-4 text-rose-500" />
-                    <span className="text-sm font-semibold">Wellbeing</span>
-                  </div>
-
-                  {/* Sleep Panel: Hours + Quality */}
-                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50 space-y-3">
-                    <div className="flex items-center gap-2">
+                  <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 p-4 rounded-xl border border-indigo-100/50 dark:border-indigo-900/30">
+                    <div className="flex items-center gap-2 mb-3">
                       <Moon className="w-4 h-4 text-indigo-500" />
-                      <span className="text-sm font-medium">Sleep</span>
+                      <span className="text-sm font-medium">Sleep Last Night</span>
+                      <span className="ml-auto text-sm font-mono text-indigo-600">{sleep[0]}h</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">Hours</span>
-                          <span className="font-mono text-indigo-600">{sleep[0]}h</span>
-                        </div>
-                        <Slider value={sleep} onValueChange={setSleep} max={12} step={0.5} className="h-2" />
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">Quality</span>
-                          <span className="font-mono text-violet-600">
-                            {sleepQuality[0] <= 3 ? "Poor" : sleepQuality[0] <= 5 ? "Fair" : sleepQuality[0] <= 7 ? "Good" : "Great"}
-                          </span>
-                        </div>
-                        <Slider value={sleepQuality} onValueChange={setSleepQuality} max={10} step={1} className="h-2" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Vitals Panel: Pain + Energy + Stress */}
-                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-orange-500" />
-                      <span className="text-sm font-medium">Vitals</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">Pain</span>
-                          <span className="font-mono text-rose-600">
-                            {comfort[0] === 0 ? "None" : comfort[0] <= 3 ? "Mild" : comfort[0] <= 6 ? "Mod" : "High"}
-                          </span>
-                        </div>
-                        <Slider value={comfort} onValueChange={setComfort} max={10} step={1} className="h-2" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">Energy</span>
-                            <span className="font-mono text-yellow-600">{motivation[0]}/10</span>
-                          </div>
-                          <Slider value={motivation} onValueChange={setMotivation} max={10} step={1} className="h-2" />
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">Stress</span>
-                            <span className="font-mono text-orange-600">{stress[0]}/10</span>
-                          </div>
-                          <Slider value={stress} onValueChange={setStress} max={10} step={1} className="h-2" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Work Load Panel */}
-                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">💼</span>
-                        <span className="text-sm font-medium">Work Load</span>
-                      </div>
-                      <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-slate-200/50 dark:bg-slate-700/50 text-amber-600">
-                        {workLoad[0] === 0 ? "Off" : workLoad[0] <= 3 ? "Light" : workLoad[0] <= 6 ? "Hard" : "Toxic"}
-                      </span>
-                    </div>
-                    <Slider value={workLoad} onValueChange={setWorkLoad} max={10} step={1} className="h-2" />
-                    {workLoad[0] > 0 && (
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        {workTags.map(tag => (
-                          <button
-                            key={tag.value}
-                            onClick={() => setWorkTag(workTag === tag.value ? null : tag.value)}
-                            data-testid={`button-work-${tag.value}`}
-                            className={cn(
-                              "text-[10px] px-1.5 py-0.5 rounded transition-all",
-                              workTag === tag.value
-                                ? "bg-amber-500 text-white"
-                                : "bg-slate-200/50 dark:bg-slate-700/50 text-muted-foreground hover:bg-slate-300/50"
-                            )}
-                          >
-                            {tag.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                    <Slider 
+                      value={sleep} 
+                      onValueChange={setSleep} 
+                      max={12} 
+                      step={0.5} 
+                      className="h-3"
+                      data-testid="slider-sleep"
+                    />
                   </div>
                 </div>
 
-                {/* RIGHT COLUMN: Context */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 pb-1 border-b border-border/50">
-                    <AlertCircle className="w-4 h-4 text-violet-500" />
-                    <span className="text-sm font-semibold">Context</span>
-                  </div>
-
-                  {/* Capacity Slider */}
-                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <BatteryFull className="w-4 h-4 text-emerald-500" />
-                        <span className="text-sm font-medium">Capacity</span>
-                      </div>
-                      <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-slate-200/50 dark:bg-slate-700/50 text-emerald-600">
-                        {capacity[0] === 0 ? "Empty" : capacity[0] <= 2 ? "Low" : capacity[0] <= 4 ? "Mod" : "Full"}
-                      </span>
-                    </div>
-                    <Slider value={capacity} onValueChange={setCapacity} max={5} step={1} className="h-2" />
-                    <p className="text-[10px] text-muted-foreground">How much can you handle right now?</p>
-                  </div>
-
-                  {/* Trigger Tags */}
-                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">What influenced this?</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {triggerTags.map(tag => (
+                <div className="space-y-4">
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200/50 dark:border-slate-800/50">
+                    <span className="text-sm font-medium block mb-3">Quick Tags</span>
+                    <div className="flex flex-wrap gap-2">
+                      {quickTags.map(tag => (
                         <button
-                          key={tag.value}
-                          onClick={() => setTriggerTag(triggerTag === tag.value ? null : tag.value)}
-                          data-testid={`button-trigger-${tag.value}`}
+                          key={tag}
+                          onClick={() => toggleTag(tag)}
+                          data-testid={`button-tag-${tag.toLowerCase()}`}
                           className={cn(
-                            "text-[10px] px-2 py-1 rounded-full border transition-all flex items-center gap-1",
-                            triggerTag === tag.value
-                              ? "bg-violet-500 text-white border-violet-500"
-                              : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-muted-foreground hover:border-violet-300"
+                            "text-xs px-3 py-1.5 rounded-full transition-all",
+                            selectedTags.includes(tag)
+                              ? "bg-teal-100 text-teal-700 ring-1 ring-teal-300 dark:bg-teal-900/50 dark:text-teal-300"
+                              : "bg-muted hover:bg-muted/80 text-muted-foreground"
                           )}
                         >
-                          <span>{tag.icon}</span>
-                          {tag.label}
+                          {tag}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Urges Slider */}
-                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200/50 dark:border-slate-800/50 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Flame className="w-4 h-4 text-orange-500" />
-                        <span className="text-sm font-medium">Urges</span>
-                      </div>
-                      <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-slate-200/50 dark:bg-slate-700/50 text-orange-600">
-                        {urges[0] < 3 ? "Quiet" : urges[0] < 7 ? "Present" : "Intense"}
-                      </span>
-                    </div>
-                    <Slider value={urges} onValueChange={setUrges} max={10} step={1} className="h-2" />
-                  </div>
+                  <Textarea 
+                    placeholder="What's on your mind? (optional)"
+                    className="bg-white dark:bg-slate-900 border-slate-200/50 dark:border-slate-800/50 resize-none h-24 text-sm"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    data-testid="textarea-note"
+                  />
                 </div>
               </div>
 
-              {/* Tags Footer */}
-              <div className="pt-4 border-t border-border flex flex-col sm:flex-row justify-between gap-4">
-                 <div className="flex flex-wrap gap-2 flex-1">
-                    {tags.map(tag => (
-                        <motion.button
-                        key={tag}
-                        onClick={() => toggleTag(tag)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className={cn(
-                            "text-[10px] px-2.5 py-1 rounded-full border transition-all duration-300",
-                            selectedTags.includes(tag)
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-background border-border hover:border-primary/50 text-muted-foreground"
-                        )}
-                        style={selectedTags.includes(tag) ? {
-                          boxShadow: '0 0 15px -3px rgba(6,182,212,0.4)'
-                        } : undefined}
-                        >
-                        {tag}
-                        </motion.button>
-                    ))}
-                    <button className="text-[10px] px-2.5 py-1 rounded-full border border-dashed border-muted-foreground/30 text-muted-foreground hover:text-foreground transition-colors">
-                        + Add
-                    </button>
-                 </div>
-                 
-                 <Button 
-                    size="sm" 
-                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 transition-all duration-300 hover:shadow-[0_0_25px_-5px_rgba(99,102,241,0.5)]"
-                    style={{ boxShadow: '0 0 20px -8px rgba(99,102,241,0.4)' }}
-                    onClick={handleAddEntry}
-                    disabled={createEntryMutation.isPending}
-                    data-testid="button-add-entry"
-                 >
-                    {createEntryMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : null}
-                    Add Entry at {entryTime}
-                 </Button>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  onClick={handleAddEntry}
+                  disabled={!mood || createEntryMutation.isPending}
+                  className="bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 shadow-lg shadow-teal-600/20"
+                  data-testid="button-log-entry"
+                >
+                  {createEntryMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Heart className="w-4 h-4 mr-2" />
+                  )}
+                  Log Check-In
+                </Button>
               </div>
+
+              {entriesLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : trackerEntries && trackerEntries.length > 0 ? (
+                <div className="space-y-2 pt-4 border-t border-border/50">
+                  <h4 className="text-sm font-medium text-muted-foreground">Recent Check-Ins</h4>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {trackerEntries.slice(0, 5).map((entry) => {
+                      const moodState = entry.mood <= 3 ? emotionalStates[0] : 
+                                       entry.mood <= 4 ? emotionalStates[1] : 
+                                       entry.mood <= 5 ? emotionalStates[2] : 
+                                       entry.mood <= 7 ? emotionalStates[3] : emotionalStates[4];
+                      return (
+                        <motion.div
+                          key={entry.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group"
+                        >
+                          <span className="text-xl">{moodState.emoji}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">{moodState.label}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(entry.timestamp), "MMM d, h:mm a")}
+                              </span>
+                            </div>
+                            {entry.notes && (
+                              <p className="text-xs text-muted-foreground truncate">{entry.notes}</p>
+                            )}
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditDialog(entry)}
+                              className="h-7 w-7 p-0"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeletingEntryId(entry.id)}
+                              className="h-7 w-7 p-0 text-red-500 hover:text-red-600"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
 
-    {/* Detailed Entries List */}
-    <Card className="mt-6" data-testid="card-mood-entries">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Calendar className="w-5 h-5 text-primary" />
-          Recent Entries
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {entriesLoading ? (
-          <div className="flex items-center justify-center py-8 text-muted-foreground">
-            <Loader2 className="w-5 h-5 animate-spin mr-2" />
-            Loading entries...
-          </div>
-        ) : (trackerEntries || []).length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">No entries yet. Start tracking above!</p>
-        ) : (
-          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-            {(trackerEntries || []).map((entry) => {
-              const moodValue = entry.mood;
-              const moodLabel = moodValue <= 2 ? "Terrible" : moodValue <= 4 ? "Low" : moodValue <= 6 ? "Okay" : moodValue <= 8 ? "Good" : "Great";
-              const MoodIcon = moodValue <= 3 ? Frown : moodValue <= 5 ? Meh : moodValue <= 7 ? Smile : Zap;
-              const moodColor = moodValue <= 3 ? "text-red-500" : moodValue <= 5 ? "text-yellow-500" : moodValue <= 7 ? "text-green-500" : "text-blue-500";
-              const fronter = members?.find(m => m.id === entry.frontingMemberId);
-              
-              const parsed = parseTrackerNotes(entry.notes);
-              
-              return (
-                <motion.div 
-                  key={entry.id} 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-4 rounded-xl bg-muted/30 border border-border/50 space-y-3 transition-all duration-300 hover:border-cyan-500/30"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(6,182,212,0.02) 0%, transparent 100%)'
-                  }}
-                  data-testid={`entry-detail-${entry.id}`}
-                >
-                  {/* Header: Mood, Time, Fronter */}
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div 
-                        className={cn("p-2 rounded-lg relative", moodValue <= 3 ? "bg-red-100 dark:bg-red-900/20" : moodValue <= 5 ? "bg-yellow-100 dark:bg-yellow-900/20" : moodValue <= 7 ? "bg-green-100 dark:bg-green-900/20" : "bg-blue-100 dark:bg-blue-900/20")}
-                        style={{
-                          boxShadow: moodValue >= 7 
-                            ? '0 0 20px -5px rgba(34,197,94,0.4)' 
-                            : moodValue >= 5 
-                            ? '0 0 15px -5px rgba(234,179,8,0.3)' 
-                            : '0 0 15px -5px rgba(239,68,68,0.3)'
-                        }}
-                      >
-                        <MoodIcon 
-                          className={cn("w-5 h-5", moodColor)} 
-                          style={{ 
-                            filter: moodValue >= 7 
-                              ? 'drop-shadow(0 0 3px rgba(34,197,94,0.5))' 
-                              : undefined 
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <span className="font-semibold">{moodLabel}</span>
-                        <span className="text-muted-foreground ml-2 text-sm">{moodValue}/10</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      {entry.timeOfDay && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 capitalize">
-                          {entry.timeOfDay}
-                        </span>
-                      )}
-                      {entry.triggerTag && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 capitalize">
-                          {entry.triggerTag}
-                        </span>
-                      )}
-                      {fronter && (
-                        <span className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded-full text-xs">
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: fronter.color }} />
-                          {fronter.name}
-                        </span>
-                      )}
-                      <span>{format(new Date(entry.timestamp), "MMM d, h:mm a")}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => openEditDialog(entry)}
-                        data-testid={`button-edit-entry-${entry.id}`}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => setDeletingEntryId(entry.id)}
-                        data-testid={`button-delete-entry-${entry.id}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Metrics Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {entry.capacity !== null && entry.capacity !== undefined && (
-                      <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/10 p-2 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
-                        <BatteryFull className="w-4 h-4 text-emerald-500" />
-                        <div className="text-xs">
-                          <span className="text-muted-foreground">Capacity</span>
-                          <span className="font-semibold ml-1 text-emerald-700">{entry.capacity}/5</span>
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
-                      <Zap className="w-4 h-4 text-yellow-500" />
-                      <div className="text-xs">
-                        <span className="text-muted-foreground">Energy</span>
-                        <span className="font-semibold ml-1">{entry.energy}/10</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
-                      <Activity className="w-4 h-4 text-red-500" />
-                      <div className="text-xs">
-                        <span className="text-muted-foreground">Stress</span>
-                        <span className="font-semibold ml-1">{entry.stress}%</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
-                      <CloudFog className="w-4 h-4 text-purple-500" />
-                      <div className="text-xs">
-                        <span className="text-muted-foreground">Dissociation</span>
-                        <span className="font-semibold ml-1">{entry.dissociation}%</span>
-                      </div>
-                    </div>
-                    {parsed.metrics["Comfort"] && (
-                      <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
-                        <HeartPulse className="w-4 h-4 text-pink-500" />
-                        <div className="text-xs">
-                          <span className="text-muted-foreground">Pain</span>
-                          <span className="font-semibold ml-1">{parsed.metrics["Comfort"]}</span>
-                        </div>
-                      </div>
-                    )}
-                    {parsed.metrics["Sleep"] && (
-                      <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
-                        <Moon className="w-4 h-4 text-indigo-500" />
-                        <div className="text-xs">
-                          <span className="text-muted-foreground">Sleep</span>
-                          <span className="font-semibold ml-1">{parsed.metrics["Sleep"]}</span>
-                        </div>
-                      </div>
-                    )}
-                    {parsed.metrics["System Comm"] && (
-                      <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
-                        <MessageSquare className="w-4 h-4 text-indigo-500" />
-                        <div className="text-xs">
-                          <span className="text-muted-foreground">Comm</span>
-                          <span className="font-semibold ml-1">{parsed.metrics["System Comm"]}</span>
-                        </div>
-                      </div>
-                    )}
-                    {parsed.metrics["Urges"] && (
-                      <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
-                        <Flame className="w-4 h-4 text-orange-500" />
-                        <div className="text-xs">
-                          <span className="text-muted-foreground">Urges</span>
-                          <span className="font-semibold ml-1">{parsed.metrics["Urges"]}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Tags and Triggers */}
-                  {(parsed.tags.length > 0 || parsed.triggers.length > 0) && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {parsed.tags.map((tag, i) => (
-                        <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                          {tag}
-                        </span>
-                      ))}
-                      {parsed.triggers.map((trigger, i) => (
-                        <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 border border-red-200 dark:border-red-800">
-                          {trigger}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Notes */}
-                  {parsed.text && (
-                    <p className="text-sm text-muted-foreground bg-background p-2 rounded-lg border italic">
-                      "{parsed.text}"
-                    </p>
-                  )}
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-
-    {/* Edit Entry Dialog */}
-    <Dialog open={!!editingEntry} onOpenChange={(open) => !open && setEditingEntry(null)}>
-      <DialogContent className="max-w-md">
+    <Dialog open={!!editingEntry} onOpenChange={() => setEditingEntry(null)}>
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Entry</DialogTitle>
+          <DialogTitle>Edit Check-In</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Mood (1-10)</label>
-            <Slider
-              value={editMood}
-              onValueChange={setEditMood}
-              min={1}
-              max={10}
-              step={1}
-              className="w-full"
-              data-testid="slider-edit-mood"
-            />
-            <div className="text-xs text-muted-foreground text-center">{editMood[0]}/10</div>
+            <Slider value={editMood} onValueChange={setEditMood} max={10} step={1} />
+            <span className="text-xs text-muted-foreground">{editMood[0]}/10</span>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Energy (1-10)</label>
-            <Slider
-              value={editEnergy}
-              onValueChange={setEditEnergy}
-              min={1}
-              max={10}
-              step={1}
-              className="w-full"
-              data-testid="slider-edit-energy"
-            />
-            <div className="text-xs text-muted-foreground text-center">{editEnergy[0]}/10</div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Stress (0-10)</label>
-            <Slider
-              value={editStress}
-              onValueChange={setEditStress}
-              min={0}
-              max={10}
-              step={1}
-              className="w-full"
-              data-testid="slider-edit-stress"
-            />
-            <div className="text-xs text-muted-foreground text-center">{editStress[0] * 10}%</div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Dissociation (0-10)</label>
-            <Slider
-              value={editDissociation}
-              onValueChange={setEditDissociation}
-              min={0}
-              max={10}
-              step={1}
-              className="w-full"
-              data-testid="slider-edit-dissociation"
-            />
-            <div className="text-xs text-muted-foreground text-center">{editDissociation[0] * 10}%</div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Capacity (0-5)</label>
-            <Slider
-              value={editCapacity}
-              onValueChange={setEditCapacity}
-              min={0}
-              max={5}
-              step={1}
-              className="w-full"
-              data-testid="slider-edit-capacity"
-            />
-            <div className="text-xs text-muted-foreground text-center">{editCapacity[0]}/5</div>
+            <Slider value={editEnergy} onValueChange={setEditEnergy} max={10} step={1} />
+            <span className="text-xs text-muted-foreground">{editEnergy[0]}/10</span>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Notes</label>
-            <Textarea
-              value={editNotes}
+            <Textarea 
+              value={editNotes} 
               onChange={(e) => setEditNotes(e.target.value)}
-              placeholder="Update your notes..."
-              className="min-h-[80px]"
-              data-testid="input-edit-notes"
+              placeholder="How were you feeling?"
+              className="resize-none"
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setEditingEntry(null)} data-testid="button-cancel-edit">
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleUpdateEntry} 
-            disabled={updateEntryMutation.isPending}
-            data-testid="button-save-edit"
-          >
-            {updateEntryMutation.isPending ? "Saving..." : "Save Changes"}
+          <Button variant="outline" onClick={() => setEditingEntry(null)}>Cancel</Button>
+          <Button onClick={handleUpdateEntry} disabled={updateEntryMutation.isPending}>
+            {updateEntryMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
 
-    {/* Delete Confirmation Dialog */}
-    <AlertDialog open={!!deletingEntryId} onOpenChange={(open) => !open && setDeletingEntryId(null)}>
+    <AlertDialog open={!!deletingEntryId} onOpenChange={() => setDeletingEntryId(null)}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+          <AlertDialogTitle>Delete this check-in?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete this mood entry.
+            This will permanently remove this mood entry.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
-          <AlertDialogAction 
-            onClick={handleDeleteEntry}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            data-testid="button-confirm-delete"
-          >
-            {deleteEntryMutation.isPending ? "Deleting..." : "Delete"}
+          <AlertDialogCancel>Keep it</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDeleteEntry} className="bg-red-500 hover:bg-red-600">
+            Delete
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

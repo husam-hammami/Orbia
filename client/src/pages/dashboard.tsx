@@ -1,10 +1,7 @@
 import { Layout } from "@/components/layout";
-import { HeadspaceMap } from "@/components/headspace-map";
-import { GroundingAnchor } from "@/components/grounding-anchor";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { 
-  BrainCircuit, 
   Smile, 
   Frown, 
   Meh, 
@@ -152,7 +149,6 @@ const PRIORITY_COLORS = {
 
 export default function Dashboard() {
   const { data: insights, isLoading, error } = useDashboardInsights();
-  const [showHeadspace, setShowHeadspace] = useState(false);
 
   const wellnessScore = useMemo(() => {
     if (!insights) return 0;
@@ -253,27 +249,7 @@ export default function Dashboard() {
             </div>
           </div>
           
-          <Button 
-            variant={showHeadspace ? "default" : "outline"}
-            size="sm" 
-            className="gap-2"
-            onClick={() => setShowHeadspace(!showHeadspace)}
-            data-testid="button-toggle-headspace"
-          >
-            <BrainCircuit className="w-4 h-4" />
-            {showHeadspace ? "Hide Headspace" : "Show Headspace"}
-          </Button>
         </motion.div>
-
-        {showHeadspace && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-          >
-            <HeadspaceMap />
-          </motion.div>
-        )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <motion.div
@@ -752,7 +728,6 @@ export default function Dashboard() {
           </motion.div>
         )}
       </div>
-      <GroundingAnchor />
     </Layout>
   );
 }

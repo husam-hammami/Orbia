@@ -92,11 +92,11 @@ interface OrbitAction {
 }
 
 const QUICK_CHIPS = [
-  { label: "Today summary", prompt: "Give me a quick summary of today" },
-  { label: "What's left?", prompt: "What's left to do today?" },
-  { label: "Show insights", prompt: "What patterns do you see in my data?" },
-  { label: "What now?", prompt: "What should I do next?" },
-  { label: "Add habit", prompt: "Help me add a new habit" },
+  { label: "How's my day?", prompt: "Give me a quick summary of today" },
+  { label: "What's next?", prompt: "What should I focus on next?" },
+  { label: "Job hunt help", prompt: "Help me with my teaching job search" },
+  { label: "Study plan", prompt: "Help me plan my learning for today" },
+  { label: "Motivate me!", prompt: "I need some encouragement today" },
 ];
 
 function formatMarkdown(text: string): React.ReactNode {
@@ -109,19 +109,26 @@ function formatMarkdown(text: string): React.ReactNode {
   });
 }
 
-const ORBIT_SYSTEM_PROMPT = `You are Orbit, a calm operational co-pilot for Orbia. You only use Orbia data provided in context. You help the user operate the app: summarize today briefly, suggest the smallest next step when asked, and execute user requests by returning at most one action JSON object.
+const ORBIT_SYSTEM_PROMPT = `You are Orbia, Fatima's personal companion and supportive friend. You help her stay organized and on track with her goals.
 
-TONE: Calm, brief, operational. No "you should", no praise/shame, no deep emotional probing. Uses data-grounded language: "Based on today's logs…"
+TONE: Warm, encouraging, and playful - like a supportive big sister. Reference her interests (Disney, Harry Potter, Stranger Things) when appropriate. Be practical and helpful.
 
-WHAT YOU MUST NOT DO:
-- Diagnose or interpret psychology
-- Explain "why you feel this way"  
-- Encourage dependence ("I'm always here for you")
-- Invent data or pretend you completed actions
-- Use motivational pressure or shame
+WHO IS FATIMA:
+- Lebanese woman living in Ajman with family
+- Studied engineering, exploring teaching career
+- Taking cybersecurity course on Hack the Box
+- Loves: Disney, Harry Potter, Stranger Things, books, skincare, learning French
+- Tutors someone named Yasmina
+- Wants to start a skincare content account and blog
+
+WHAT YOU DO:
+- Help organize her goals and tasks
+- Celebrate small wins genuinely
+- When she's overwhelmed, help pick ONE thing to focus on
+- Be gentle about her moods - ups and downs are normal
 
 WHEN TO USE ACTIONS:
-If the user asks to mark something done, add/edit/delete a habit, task, or routine activity, output ONLY a JSON action object like:
+If she asks to mark something done, add/edit/delete a habit, task, or routine activity, output ONLY a JSON action object like:
 {"type":"action","name":"mark_habit","args":{"habit_id":"...","date":"YYYY-MM-DD","done":true},"confirm":false}
 
 SUPPORTED ACTIONS:
@@ -959,8 +966,8 @@ export default function OrbitPage() {
               <OrbitIcon className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-display font-bold tracking-tight">Orbit</h1>
-              <p className="text-xs text-muted-foreground">Your calm co-pilot</p>
+              <h1 className="text-2xl font-display font-bold tracking-tight">Orbia</h1>
+              <p className="text-xs text-muted-foreground">Hey Fatima! How can I help?</p>
             </div>
           </div>
           
@@ -1009,9 +1016,9 @@ export default function OrbitPage() {
                   <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                     <OrbitIcon className="w-8 h-8 text-primary" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Ready to help</h3>
+                  <h3 className="text-lg font-semibold mb-2">Hi Fatima!</h3>
                   <p className="text-sm text-muted-foreground max-w-sm">
-                    Ask me what to do next, get a summary of today, or explore patterns in your data.
+                    I'm here to help you stay on track. Ask me about your goals, get help with job hunting, or just chat about your day!
                   </p>
                 </div>
               )}
@@ -1107,7 +1114,7 @@ export default function OrbitPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-              placeholder="Ask Orbit anything..."
+              placeholder="Chat with Orbia..."
               disabled={isLoading}
               className="flex-1 bg-background border-input focus:border-primary"
               data-testid="input-orbit-message"

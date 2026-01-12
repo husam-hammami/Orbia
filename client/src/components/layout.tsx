@@ -58,12 +58,9 @@ function Sidebar({ className }: SidebarProps) {
   const links = [
     { href: "/", label: "Daily Tracker", icon: ClipboardList },
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/orbit", label: "Orbit", icon: Orbit },
-    { href: "/headspace", label: "Headspace", icon: BrainCircuit },
-    { href: "/deep-mind", label: "Deep Mind", icon: Sparkles },
-    { href: "/career", label: "Career & Vision", icon: Briefcase },
+    { href: "/orbit", label: "Orbia", icon: Orbit },
+    { href: "/career", label: "Goals & Vision", icon: Briefcase },
     { href: "/finance", label: "Finance", icon: Wallet },
-    { href: "/analytics", label: "Analytics", icon: BarChart2 },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
 
