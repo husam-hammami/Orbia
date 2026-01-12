@@ -67,8 +67,8 @@ import {
 import type { CareerProject, CareerTask } from "@shared/schema";
 
 const DEFAULT_VISION = [
-  { id: "1", title: "Senior Frontend Engineer", timeframe: "2 Years", color: "text-teal-500", order: 0 },
-  { id: "2", title: "Launch SaaS Product", timeframe: "This Year", color: "text-cyan-500", order: 1 },
+  { id: "1", title: "Senior Frontend Engineer", timeframe: "2 Years", color: "text-primary", order: 0 },
+  { id: "2", title: "Launch SaaS Product", timeframe: "This Year", color: "text-primary", order: 1 },
   { id: "3", title: "Deep Work Mastery", timeframe: "Ongoing", color: "text-violet-500", order: 2 },
 ];
 
@@ -96,7 +96,7 @@ function CircularProgress({ progress, size = 64, strokeWidth = 6 }: { progress: 
           stroke="currentColor"
           strokeWidth={strokeWidth}
           fill="none"
-          className="text-slate-200/60 dark:text-slate-700/60"
+          className="text-border"
         />
         <motion.circle
           cx={size / 2}
@@ -113,8 +113,8 @@ function CircularProgress({ progress, size = 64, strokeWidth = 6 }: { progress: 
         />
         <defs>
           <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#0f766e" stopOpacity="0.85" />
-            <stop offset="100%" stopColor="#14b8a6" stopOpacity="0.85" />
+            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.85" />
+            <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0.85" />
           </linearGradient>
         </defs>
       </svg>
@@ -132,8 +132,8 @@ function AnimatedCheckbox({ checked, onChange }: { checked: boolean; onChange: (
       className={cn(
         "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
         checked 
-          ? "bg-teal-600 dark:bg-teal-500 border-transparent" 
-          : "border-slate-300 dark:border-slate-600 hover:border-teal-500"
+          ? "bg-primary border-transparent" 
+          : "border-slate-300 dark:border-slate-600 hover:border-primary"
       )}
       whileTap={{ scale: 0.9 }}
     >
@@ -220,7 +220,7 @@ export default function CareerPage() {
     progress: 0,
     deadline: null,
     nextAction: "",
-    color: "bg-teal-500",
+    color: "bg-primary",
     tags: [],
   });
   
@@ -534,7 +534,7 @@ export default function CareerPage() {
       progress: selectedProject.id ? getProjectProgress(selectedProject.id) : 0,
       deadline: selectedProject.deadline || "",
       nextAction: selectedProject.nextAction || "",
-      color: selectedProject.color || "bg-teal-500",
+      color: selectedProject.color || "bg-primary",
       tags: selectedProject.tags || [],
     };
 
@@ -655,7 +655,7 @@ export default function CareerPage() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-full">
-          <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       </Layout>
     );
@@ -746,7 +746,7 @@ export default function CareerPage() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-2"
         >
-          <h1 className="text-3xl md:text-4xl font-display font-bold bg-gradient-to-r from-teal-700 to-teal-500 dark:from-teal-400 dark:to-teal-300 bg-clip-text text-transparent">
+          <h1 className="text-3xl md:text-4xl font-display font-bold text-primary">
             Career & Vision
           </h1>
           <p className="text-muted-foreground">Your professional growth dashboard</p>
@@ -755,7 +755,7 @@ export default function CareerPage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <Target className="w-5 h-5 text-teal-500" />
+              <Target className="w-5 h-5 text-primary" />
               North Star Vision
             </h2>
             <Button 
@@ -783,8 +783,8 @@ export default function CareerPage() {
                   )}
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center shrink-0">
-                      <Icon className="w-5 h-5 text-teal-700 dark:text-teal-400" />
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <Icon className="w-5 h-5 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-foreground text-sm leading-tight">{item.title}</h3>
@@ -803,14 +803,14 @@ export default function CareerPage() {
           <TabsList className={cn(glassCard, "w-full grid grid-cols-2 p-1 h-auto")}>
             <TabsTrigger 
               value="projects" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-700 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
             >
               <Rocket className="w-4 h-4 mr-2" />
               Goals
             </TabsTrigger>
             <TabsTrigger 
               value="coach" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-700 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
             >
               <Compass className="w-4 h-4 mr-2" />
               Coach
@@ -821,12 +821,12 @@ export default function CareerPage() {
             <section className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                  <Rocket className="w-5 h-5 text-teal-700 dark:text-teal-400" />
+                  <Rocket className="w-5 h-5 text-primary" />
                   Active Goals
                 </h2>
                 <Button 
                   onClick={() => openProjectDialog(null)}
-                  className="bg-teal-700 hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-500 text-white border-0"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground border-0"
                   size="sm"
                 >
                   <Plus className="w-4 h-4 mr-2" /> New Goal
@@ -875,7 +875,7 @@ export default function CareerPage() {
 
                           {project.nextAction && (
                             <p className="text-xs text-muted-foreground line-clamp-2">
-                              <span className="text-teal-700 dark:text-teal-400 font-medium">Next:</span> {project.nextAction}
+                              <span className="text-primary font-medium">Next:</span> {project.nextAction}
                             </p>
                           )}
 
@@ -928,7 +928,7 @@ export default function CareerPage() {
                     placeholder="Add a new task..." 
                     value={newTask}
                     onChange={(e) => setNewTask(e.target.value)}
-                    className="flex-1 bg-white/50 dark:bg-slate-800/50 border-slate-200/60 dark:border-slate-700/60 focus:ring-teal-500/20 focus:border-teal-500"
+                    className="flex-1 bg-white/50 dark:bg-slate-800/50 border-slate-200/60 dark:border-slate-700/60 focus:ring-primary/20 focus:border-primary"
                   />
                   <Button 
                     type="submit" 
@@ -997,7 +997,7 @@ export default function CareerPage() {
                 </p>
                 <Button 
                   onClick={fetchCoach}
-                  className="bg-teal-700 hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-500 text-white border-0"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground border-0"
                   size="lg"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
@@ -1042,7 +1042,7 @@ export default function CareerPage() {
                 >
                   <div className="flex items-center gap-3 flex-wrap">
                     <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                      <Compass className="w-5 h-5 text-teal-700 dark:text-teal-400" />
+                      <Compass className="w-5 h-5 text-primary" />
                       Coach
                     </h3>
                     {coachData.weeklyTheme && (
@@ -1073,7 +1073,7 @@ export default function CareerPage() {
                     {coachData.roadmap && coachData.roadmap.length > 0 && (
                       <>
                         <div className="flex items-center gap-2 mb-2">
-                          <Map className="w-4 h-4 text-teal-700 dark:text-teal-400" />
+                          <Map className="w-4 h-4 text-primary" />
                           <h4 className="font-medium text-foreground text-sm">Roadmap Timeline</h4>
                         </div>
                         {coachData.roadmap.map((phase, index) => {
@@ -1099,7 +1099,7 @@ export default function CareerPage() {
                                     initial={{ width: 0 }}
                                     animate={{ width: `${phaseProgress}%` }}
                                     transition={{ duration: 0.5, ease: "easeOut" }}
-                                    className="h-full bg-teal-600/70 dark:bg-teal-500/60"
+                                    className="h-full bg-primary/70"
                                   />
                                 </div>
                               )}
@@ -1107,8 +1107,8 @@ export default function CareerPage() {
                                 <Collapsible open={isExpanded} onOpenChange={() => togglePhaseExpanded(index)}>
                                   <CollapsibleTrigger className="w-full p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                     <div className="flex items-center gap-2">
-                                      <div className="w-6 h-6 rounded-lg bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center">
-                                        <TrendingUp className="w-3 h-3 text-teal-700 dark:text-teal-400" />
+                                      <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+                                        <TrendingUp className="w-3 h-3 text-primary" />
                                       </div>
                                       <div className="text-left">
                                         <div className="flex items-center gap-2">
@@ -1150,7 +1150,7 @@ export default function CareerPage() {
                                                     }}
                                                   />
                                                   <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveMilestoneEdit}>
-                                                    <Check className="w-3 h-3 text-teal-500" />
+                                                    <Check className="w-3 h-3 text-primary" />
                                                   </Button>
                                                   <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelMilestoneEdit}>
                                                     <X className="w-3 h-3 text-muted-foreground" />
@@ -1165,7 +1165,7 @@ export default function CareerPage() {
                                                 className={cn(
                                                   "text-xs flex items-start gap-2 p-1.5 rounded-lg transition-all group",
                                                   isCompleted && "text-muted-foreground",
-                                                  isNext && "border-l-2 border-teal-500 bg-teal-50/50 dark:bg-teal-900/10 pl-2"
+                                                  isNext && "border-l-2 border-primary/30 bg-primary/10 pl-2"
                                                 )}
                                               >
                                                 <div className="flex-1 flex items-start gap-2 cursor-pointer" onClick={() => toggleMilestone(index, milestone)}>
@@ -1274,7 +1274,7 @@ export default function CareerPage() {
                                                 }}
                                               />
                                               <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveMilestoneEdit}>
-                                                <Check className="w-3 h-3 text-teal-500" />
+                                                <Check className="w-3 h-3 text-primary" />
                                               </Button>
                                               <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelMilestoneEdit}>
                                                 <X className="w-3 h-3 text-muted-foreground" />
@@ -1289,7 +1289,7 @@ export default function CareerPage() {
                                             className={cn(
                                               "text-xs flex items-start gap-2 p-1.5 rounded-lg transition-all group",
                                               isCompleted && "text-muted-foreground",
-                                              isNext && "border-l-2 border-teal-500 bg-teal-50/50 dark:bg-teal-900/10 pl-2"
+                                              isNext && "border-l-2 border-primary/30 bg-primary/10 pl-2"
                                             )}
                                           >
                                             <div className="flex-1 flex items-start gap-2 cursor-pointer" onClick={() => toggleMilestone(index, milestone)}>
@@ -1399,7 +1399,7 @@ export default function CareerPage() {
                             <div className="p-2.5 rounded-lg bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 mb-3">
                               <div className="flex items-center justify-between text-xs mb-1.5">
                                 <span className="text-muted-foreground">Phase Progress</span>
-                                <span className="font-medium text-teal-700 dark:text-teal-400">
+                                <span className="font-medium text-primary">
                                   {getPhaseCompletedCount(activePhaseIndex)}/{activePhase.milestones?.length || 0} done
                                 </span>
                               </div>
@@ -1407,7 +1407,7 @@ export default function CareerPage() {
                                 <motion.div
                                   initial={{ width: 0 }}
                                   animate={{ width: `${getPhaseProgressPercent(activePhaseIndex)}%` }}
-                                  className="h-full bg-teal-600/70 dark:bg-teal-500/60 rounded-full"
+                                  className="h-full bg-primary/70 rounded-full"
                                 />
                               </div>
                               <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-2">
@@ -1432,9 +1432,9 @@ export default function CareerPage() {
                                 </div>
                               ))}
                               {activePhase.milestones?.filter(m => !isMilestoneCompleted(activePhaseIndex, m)).length === 0 && (
-                                <div className="p-3 text-center rounded-lg bg-teal-50 dark:bg-teal-900/20 border border-teal-200/60 dark:border-teal-700/40">
-                                  <Check className="w-5 h-5 text-teal-500 mx-auto mb-1" />
-                                  <p className="text-xs font-medium text-teal-600 dark:text-teal-400">Phase Complete!</p>
+                                <div className="p-3 text-center rounded-lg bg-primary/10 border border-primary/30">
+                                  <Check className="w-5 h-5 text-primary mx-auto mb-1" />
+                                  <p className="text-xs font-medium text-primary">Phase Complete!</p>
                                   <p className="text-[10px] text-muted-foreground mt-0.5">Move to next phase or regenerate roadmap</p>
                                 </div>
                               )}
@@ -1482,13 +1482,13 @@ export default function CareerPage() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.3 }}
-                          className="p-3 rounded-xl border-l-4 border-teal-500 bg-teal-50/50 dark:bg-teal-900/10"
+                          className="p-3 rounded-xl border-l-4 border-primary/30 bg-primary/10"
                         >
                           <div className="flex items-center gap-1.5 mb-1">
-                            <Lightbulb className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-                            <span className="text-[10px] font-semibold text-teal-600 dark:text-teal-400 uppercase">Coach's Note</span>
+                            <Lightbulb className="w-3.5 h-3.5 text-primary" />
+                            <span className="text-[10px] font-semibold text-primary uppercase">Coach's Note</span>
                           </div>
-                          <p className="text-xs text-teal-700 dark:text-teal-300 line-clamp-2">{coachData.coachingNote}</p>
+                          <p className="text-xs text-primary line-clamp-2">{coachData.coachingNote}</p>
                         </motion.div>
                       )}
                     </div>
@@ -1840,7 +1840,7 @@ export default function CareerPage() {
                       </div>
                       <div className="w-48 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                         <motion.div 
-                          className="h-full bg-teal-600/70 dark:bg-teal-500/60 rounded-full"
+                          className="h-full bg-primary/70 rounded-full"
                           initial={{ width: 0 }}
                           animate={{ width: `${progress}%` }}
                           transition={{ duration: 0.5 }}

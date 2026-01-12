@@ -111,35 +111,35 @@ const CATEGORY_LABELS: Record<TransactionCategory, string> = {
 };
 
 const CATEGORY_COLORS: Record<TransactionCategory, string> = {
-  salary: "bg-emerald-500",
-  food: "bg-amber-500",
-  transport: "bg-blue-500",
-  utilities: "bg-slate-500",
-  entertainment: "bg-purple-500",
-  healthcare: "bg-rose-500",
-  shopping: "bg-pink-500",
-  debt_payment: "bg-red-600",
-  savings: "bg-teal-500",
-  investment: "bg-indigo-500",
-  freelance: "bg-green-500",
-  benefits: "bg-cyan-500",
-  other: "bg-gray-500"
+  salary: "bg-[hsl(var(--chart-1))]",
+  food: "bg-[hsl(var(--chart-3))]",
+  transport: "bg-[hsl(var(--chart-4))]",
+  utilities: "bg-muted-foreground",
+  entertainment: "bg-[hsl(var(--chart-2))]",
+  healthcare: "bg-destructive",
+  shopping: "bg-[hsl(var(--chart-5))]",
+  debt_payment: "bg-destructive",
+  savings: "bg-primary",
+  investment: "bg-[hsl(var(--chart-2))]",
+  freelance: "bg-[hsl(var(--success))]",
+  benefits: "bg-[hsl(var(--info))]",
+  other: "bg-muted-foreground"
 };
 
 const CATEGORY_HEX_COLORS: Record<TransactionCategory, string> = {
-  salary: "#10b981",
-  food: "#f59e0b",
-  transport: "#3b82f6",
-  utilities: "#64748b",
-  entertainment: "#a855f7",
-  healthcare: "#f43f5e",
-  shopping: "#ec4899",
-  debt_payment: "#dc2626",
-  savings: "#14b8a6",
-  investment: "#6366f1",
-  freelance: "#22c55e",
-  benefits: "#06b6d4",
-  other: "#6b7280"
+  salary: "hsl(var(--chart-1))",
+  food: "hsl(var(--chart-3))",
+  transport: "hsl(var(--chart-4))",
+  utilities: "hsl(var(--muted-foreground))",
+  entertainment: "hsl(var(--chart-2))",
+  healthcare: "hsl(var(--destructive))",
+  shopping: "hsl(var(--chart-5))",
+  debt_payment: "hsl(var(--destructive))",
+  savings: "hsl(var(--primary))",
+  investment: "hsl(var(--chart-2))",
+  freelance: "hsl(var(--success))",
+  benefits: "hsl(var(--info))",
+  other: "hsl(var(--muted-foreground))"
 };
 
 const formatCurrency = (amount: number, currency = "AED") => 
@@ -327,7 +327,7 @@ export default function FinancePage() {
       .map(([cat, value]) => ({
         name: CATEGORY_LABELS[cat as TransactionCategory] || cat,
         value,
-        color: CATEGORY_HEX_COLORS[cat as TransactionCategory] || "#6b7280"
+        color: CATEGORY_HEX_COLORS[cat as TransactionCategory] || "hsl(var(--muted-foreground))"
       }));
   }, [transactions]);
 
@@ -580,15 +580,15 @@ export default function FinancePage() {
           <TabsContent value="summary" className="space-y-6">
             {/* Cash Flow Summary */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="border-border/50 shadow-sm bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/30 dark:to-background">
+          <Card className="border-border/50 shadow-sm bg-gradient-to-br from-[hsl(var(--success))]/10 to-white dark:from-[hsl(var(--success))]/10 dark:to-background">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <ArrowDownLeft className="w-4 h-4 text-emerald-600" />
+                <ArrowDownLeft className="w-4 h-4 text-[hsl(var(--success))]" />
                 Income
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-emerald-600">
+              <div className="text-2xl font-bold text-[hsl(var(--success))]">
                 {formatCurrency(monthlyIncome, currency)}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
@@ -597,15 +597,15 @@ export default function FinancePage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 shadow-sm bg-gradient-to-br from-rose-50 to-white dark:from-rose-950/30 dark:to-background">
+          <Card className="border-border/50 shadow-sm bg-gradient-to-br from-destructive/10 to-white dark:from-destructive/10 dark:to-background">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <ArrowUpRight className="w-4 h-4 text-rose-600" />
+                <ArrowUpRight className="w-4 h-4 text-destructive" />
                 Expenses
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-rose-600">
+              <div className="text-2xl font-bold text-destructive">
                 {formatCurrency(monthlyExpenses, currency)}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
@@ -614,15 +614,15 @@ export default function FinancePage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 shadow-sm bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 dark:to-background">
+          <Card className="border-border/50 shadow-sm bg-gradient-to-br from-[hsl(var(--info))]/10 to-white dark:from-[hsl(var(--info))]/10 dark:to-background">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-blue-600" />
+                <TrendingUp className="w-4 h-4 text-[hsl(var(--info))]" />
                 Net Flow
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={cn("text-2xl font-bold", netCashFlow >= 0 ? "text-blue-600" : "text-rose-600")}>
+              <div className={cn("text-2xl font-bold", netCashFlow >= 0 ? "text-[hsl(var(--info))]" : "text-destructive")}>
                 {netCashFlow >= 0 ? "+" : ""}{formatCurrency(netCashFlow, currency)}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
@@ -634,7 +634,7 @@ export default function FinancePage() {
           <Card className="border-border/50 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Wallet className="w-4 h-4 text-indigo-600" />
+                <Wallet className="w-4 h-4 text-primary" />
                 Savings Goal
               </CardTitle>
             </CardHeader>
@@ -646,7 +646,7 @@ export default function FinancePage() {
                 <Progress 
                   value={savingsProgress} 
                   className="h-2 mt-2"
-                  indicatorClassName={savingsProgress >= 100 ? "bg-emerald-500" : "bg-indigo-500"}
+                  indicatorClassName={savingsProgress >= 100 ? "bg-[hsl(var(--success))]" : "bg-primary"}
                 />
               ) : (
                 <p className="text-xs text-muted-foreground mt-1">No goal set</p>
@@ -662,7 +662,7 @@ export default function FinancePage() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-indigo-500" />
+                    <FileText className="w-5 h-5 text-primary" />
                     Transactions
                   </CardTitle>
                   <CardDescription>All income and expenses for {scope.label}</CardDescription>
@@ -682,7 +682,7 @@ export default function FinancePage() {
                       setTransactionType("expense");
                       setIsTransactionDialogOpen(true);
                     }}
-                    className="bg-rose-600 hover:bg-rose-700"
+                    className="bg-destructive hover:bg-destructive/90"
                     data-testid="btn-add-expense"
                   >
                     <TrendingDown className="w-4 h-4 mr-1" /> Expense
@@ -693,7 +693,7 @@ export default function FinancePage() {
                       setTransactionType("income");
                       setIsTransactionDialogOpen(true);
                     }}
-                    className="bg-emerald-600 hover:bg-emerald-700"
+                    className="bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90"
                     data-testid="btn-add-income"
                   >
                     <TrendingUp className="w-4 h-4 mr-1" /> Income
@@ -703,7 +703,7 @@ export default function FinancePage() {
               <CardContent>
                 {transactionsLoading ? (
                   <div className="text-center py-12 flex flex-col items-center text-muted-foreground">
-                    <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-3" />
+                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
                     <p>Loading transactions...</p>
                   </div>
                 ) : transactions.length === 0 ? (
@@ -723,12 +723,12 @@ export default function FinancePage() {
                         <div className="flex items-center gap-3">
                           <div className={cn(
                             "w-10 h-10 rounded-lg flex items-center justify-center",
-                            tx.type === "income" ? "bg-emerald-500/10" : "bg-rose-500/10"
+                            tx.type === "income" ? "bg-[hsl(var(--success))]/10" : "bg-destructive/10"
                           )}>
                             {tx.type === "income" ? (
-                              <ArrowDownLeft className="w-5 h-5 text-emerald-600" />
+                              <ArrowDownLeft className="w-5 h-5 text-[hsl(var(--success))]" />
                             ) : (
-                              <ArrowUpRight className="w-5 h-5 text-rose-600" />
+                              <ArrowUpRight className="w-5 h-5 text-destructive" />
                             )}
                           </div>
                           <div>
@@ -744,7 +744,7 @@ export default function FinancePage() {
                         <div className="flex items-center gap-3">
                           <div className={cn(
                             "font-bold font-mono",
-                            tx.type === "income" ? "text-emerald-600" : "text-rose-600"
+                            tx.type === "income" ? "text-[hsl(var(--success))]" : "text-destructive"
                           )}>
                             {tx.type === "income" ? "+" : "-"}{formatCurrency(Number(tx.amount), currency)}
                           </div>
@@ -757,7 +757,7 @@ export default function FinancePage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem 
                                 onClick={() => handleDeleteTransaction(tx.id)} 
-                                className="text-rose-600"
+                                className="text-destructive"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" /> Delete
                               </DropdownMenuItem>
@@ -778,7 +778,7 @@ export default function FinancePage() {
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Briefcase className="w-4 h-4 text-emerald-600" />
+                  <Briefcase className="w-4 h-4 text-[hsl(var(--success))]" />
                   Income Streams
                 </CardTitle>
                 <Button 
@@ -810,13 +810,13 @@ export default function FinancePage() {
                         <div className="text-xs text-muted-foreground capitalize">{stream.frequency}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm text-emerald-600">
+                        <span className="font-mono text-sm text-[hsl(var(--success))]">
                           {formatCurrency(Number(stream.amount), currency)}
                         </span>
                         <Button 
                           variant="default" 
                           size="sm" 
-                          className="h-7 text-xs px-3 bg-emerald-600 hover:bg-emerald-700"
+                          className="h-7 text-xs px-3 bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90"
                           onClick={() => handleLogIncomePayment(stream)}
                           data-testid={`log-payment-${stream.id}`}
                         >
@@ -828,7 +828,7 @@ export default function FinancePage() {
                           className="h-7 w-7"
                           onClick={() => handleDeleteIncomeStream(stream.id)}
                         >
-                          <Trash2 className="w-3 h-3 text-rose-500" />
+                          <Trash2 className="w-3 h-3 text-destructive" />
                         </Button>
                       </div>
                     </div>
@@ -841,7 +841,7 @@ export default function FinancePage() {
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-rose-500" />
+                  <TrendingUp className="w-4 h-4 text-destructive" />
                   Top Spending
                 </CardTitle>
               </CardHeader>
@@ -873,7 +873,7 @@ export default function FinancePage() {
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-indigo-600" />
+                  <DollarSign className="w-4 h-4 text-primary" />
                   Loans
                 </CardTitle>
                 <Button 
@@ -916,13 +916,13 @@ export default function FinancePage() {
                             className="h-7 w-7"
                             onClick={() => handleDeleteLoan(loan.id)}
                           >
-                            <Trash2 className="w-3 h-3 text-rose-500" />
+                            <Trash2 className="w-3 h-3 text-destructive" />
                           </Button>
                         </div>
                         <div className="space-y-1">
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div 
-                              className="h-full rounded-full bg-emerald-600"
+                              className="h-full rounded-full bg-[hsl(var(--success))]"
                               style={{ width: `${Math.min(progressPercent, 100)}%` }}
                             />
                           </div>
@@ -940,7 +940,7 @@ export default function FinancePage() {
                           <Button 
                             variant="default" 
                             size="sm" 
-                            className="h-7 text-xs px-3 bg-emerald-600 hover:bg-emerald-700"
+                            className="h-7 text-xs px-3 bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90"
                             onClick={() => handleOpenPaymentDialog(loan)}
                             data-testid={`make-payment-${loan.id}`}
                           >
@@ -966,7 +966,7 @@ export default function FinancePage() {
             <Card className="border-border/50 shadow-sm" data-testid="card-cash-flow-chart">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-indigo-500" />
+                  <TrendingUp className="w-5 h-5 text-primary" />
                   Cash Flow Overview
                 </CardTitle>
                 <CardDescription>Income, expenses, and net flow for the last 12 months</CardDescription>
@@ -979,12 +979,12 @@ export default function FinancePage() {
                       dataKey="month" 
                       tick={{ fontSize: 12 }}
                       tickLine={false}
-                      axisLine={{ stroke: '#e5e7eb' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
                     />
                     <YAxis 
                       tick={{ fontSize: 12 }}
                       tickLine={false}
-                      axisLine={{ stroke: '#e5e7eb' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
                       tickFormatter={(value) => {
                         if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
                         if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
@@ -1010,14 +1010,14 @@ export default function FinancePage() {
                     />
                     <Bar 
                       dataKey="income" 
-                      fill="#10b981" 
+                      fill="hsl(var(--success))" 
                       name="Income" 
                       radius={[4, 4, 0, 0]}
                       opacity={0.9}
                     />
                     <Bar 
                       dataKey="expenses" 
-                      fill="#f43f5e" 
+                      fill="hsl(var(--destructive))" 
                       name="Expenses" 
                       radius={[4, 4, 0, 0]}
                       opacity={0.9}
@@ -1025,10 +1025,10 @@ export default function FinancePage() {
                     <Line 
                       type="monotone"
                       dataKey="netFlow" 
-                      stroke="#6366f1" 
+                      stroke="hsl(var(--primary))" 
                       strokeWidth={2} 
                       name="Net Flow"
-                      dot={{ r: 4, fill: '#6366f1' }}
+                      dot={{ r: 4, fill: 'hsl(var(--primary))' }}
                       activeDot={{ r: 6 }}
                     />
                   </ComposedChart>
@@ -1040,7 +1040,7 @@ export default function FinancePage() {
               <Card className="border-border/50 shadow-sm" data-testid="card-net-flow-trend">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-indigo-500" />
+                    <TrendingUp className="w-5 h-5 text-primary" />
                     Net Flow Trend
                   </CardTitle>
                   <CardDescription>Your financial trajectory over 12 months</CardDescription>
@@ -1050,8 +1050,8 @@ export default function FinancePage() {
                     <AreaChart data={chartData12Months} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                       <defs>
                         <linearGradient id="netFlowGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -1059,12 +1059,12 @@ export default function FinancePage() {
                         dataKey="month" 
                         tick={{ fontSize: 12 }}
                         tickLine={false}
-                        axisLine={{ stroke: '#e5e7eb' }}
+                        axisLine={{ stroke: 'hsl(var(--border))' }}
                       />
                       <YAxis 
                         tick={{ fontSize: 12 }}
                         tickLine={false}
-                        axisLine={{ stroke: '#e5e7eb' }}
+                        axisLine={{ stroke: 'hsl(var(--border))' }}
                         tickFormatter={(value) => {
                           if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
                           if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
@@ -1084,7 +1084,7 @@ export default function FinancePage() {
                       <Area 
                         type="monotone"
                         dataKey="netFlow"
-                        stroke="#6366f1"
+                        stroke="hsl(var(--primary))"
                         strokeWidth={2}
                         fill="url(#netFlowGradient)"
                       />
@@ -1096,7 +1096,7 @@ export default function FinancePage() {
               <Card className="border-border/50 shadow-sm" data-testid="card-spending-breakdown">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-2">
-                    <Wallet className="w-5 h-5 text-rose-500" />
+                    <Wallet className="w-5 h-5 text-destructive" />
                     Spending Breakdown
                   </CardTitle>
                   <CardDescription>Expenses by category this month</CardDescription>
@@ -1145,7 +1145,7 @@ export default function FinancePage() {
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ marginBottom: 40 }}>
                         <div className="text-center">
                           <p className="text-sm text-muted-foreground">Total</p>
-                          <p className="text-xl font-bold text-rose-600">{formatCurrency(monthlyExpenses, currency)}</p>
+                          <p className="text-xl font-bold text-destructive">{formatCurrency(monthlyExpenses, currency)}</p>
                         </div>
                       </div>
                     </div>
@@ -1162,9 +1162,9 @@ export default function FinancePage() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 {transactionType === "income" ? (
-                  <ArrowDownLeft className="w-5 h-5 text-emerald-600" />
+                  <ArrowDownLeft className="w-5 h-5 text-[hsl(var(--success))]" />
                 ) : (
-                  <ArrowUpRight className="w-5 h-5 text-rose-600" />
+                  <ArrowUpRight className="w-5 h-5 text-destructive" />
                 )}
                 Add {transactionType === "income" ? "Income" : "Expense"}
               </DialogTitle>
@@ -1246,7 +1246,7 @@ export default function FinancePage() {
               <Button 
                 onClick={handleAddTransaction}
                 disabled={createTransaction.isPending}
-                className={transactionType === "income" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"}
+                className={transactionType === "income" ? "bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90" : "bg-destructive hover:bg-destructive/90"}
                 data-testid="btn-save-tx"
               >
                 {createTransaction.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -1261,7 +1261,7 @@ export default function FinancePage() {
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Briefcase className="w-5 h-5 text-emerald-600" />
+                <Briefcase className="w-5 h-5 text-[hsl(var(--success))]" />
                 Add Income Stream
               </DialogTitle>
               <DialogDescription>
@@ -1314,7 +1314,7 @@ export default function FinancePage() {
               <Button 
                 onClick={handleAddIncomeStream}
                 disabled={createIncomeStream.isPending}
-                className="bg-emerald-600 hover:bg-emerald-700"
+                className="bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90"
                 data-testid="btn-save-income-stream"
               >
                 {createIncomeStream.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -1384,7 +1384,7 @@ export default function FinancePage() {
           <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-indigo-500" />
+                <Sparkles className="w-5 h-5 text-primary" />
                 Smart Import
               </DialogTitle>
               <DialogDescription>
@@ -1408,7 +1408,7 @@ export default function FinancePage() {
                   <Button 
                     onClick={handleParseDocument}
                     disabled={isImporting || !importText.trim()}
-                    className="bg-indigo-600 hover:bg-indigo-700"
+                    className="bg-primary hover:bg-primary/90"
                     data-testid="btn-parse-import"
                   >
                     {isImporting ? (
@@ -1434,9 +1434,9 @@ export default function FinancePage() {
                       <div key={i} className="grid grid-cols-[auto,1fr,auto] gap-2 p-2 rounded bg-muted/50 text-sm items-start">
                         <div className="pt-0.5">
                           {tx.type === "income" ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                            <CheckCircle2 className="w-4 h-4 text-[hsl(var(--success))]" />
                           ) : (
-                            <XCircle className="w-4 h-4 text-rose-500" />
+                            <XCircle className="w-4 h-4 text-destructive" />
                           )}
                         </div>
                         <div className="min-w-0">
@@ -1451,7 +1451,7 @@ export default function FinancePage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className={cn("font-mono font-medium", tx.type === "income" ? "text-emerald-600" : "text-rose-600")}>
+                          <div className={cn("font-mono font-medium", tx.type === "income" ? "text-[hsl(var(--success))]" : "text-destructive")}>
                             {tx.type === "income" ? "+" : "-"}{formatCurrency(tx.amount, currency)}
                           </div>
                           {dateStr && (
@@ -1467,7 +1467,7 @@ export default function FinancePage() {
                   <Button 
                     onClick={handleConfirmImport}
                     disabled={createManyTransactions.isPending}
-                    className="bg-emerald-600 hover:bg-emerald-700"
+                    className="bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90"
                     data-testid="btn-confirm-import"
                   >
                     {createManyTransactions.isPending ? (
@@ -1487,7 +1487,7 @@ export default function FinancePage() {
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-indigo-600" />
+                <DollarSign className="w-5 h-5 text-primary" />
                 Add Loan
               </DialogTitle>
               <DialogDescription>
@@ -1583,7 +1583,7 @@ export default function FinancePage() {
               <Button 
                 onClick={handleAddLoan}
                 disabled={createLoan.isPending}
-                className="bg-indigo-600 hover:bg-indigo-700"
+                className="bg-primary hover:bg-primary/90"
                 data-testid="btn-save-loan"
               >
                 {createLoan.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -1604,7 +1604,7 @@ export default function FinancePage() {
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-emerald-600" />
+                <DollarSign className="w-5 h-5 text-[hsl(var(--success))]" />
                 Make Payment
               </DialogTitle>
               <DialogDescription>
@@ -1640,7 +1640,7 @@ export default function FinancePage() {
               <Button 
                 onClick={handleMakePayment}
                 disabled={createLoanPayment.isPending}
-                className="bg-emerald-600 hover:bg-emerald-700"
+                className="bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90"
                 data-testid="btn-submit-payment"
               >
                 {createLoanPayment.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

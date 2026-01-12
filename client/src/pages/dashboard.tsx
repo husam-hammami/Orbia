@@ -67,10 +67,10 @@ function getMoodEmoji(mood: number) {
 }
 
 function getMoodIcon(mood: number) {
-  if (mood <= 3) return <Frown className="w-5 h-5 text-red-500" />;
-  if (mood <= 5) return <Meh className="w-5 h-5 text-yellow-500" />;
-  if (mood <= 7) return <Smile className="w-5 h-5 text-green-500" />;
-  return <Zap className="w-5 h-5 text-teal-500" />;
+  if (mood <= 3) return <Frown className="w-5 h-5 text-destructive" />;
+  if (mood <= 5) return <Meh className="w-5 h-5 text-[hsl(var(--warning))]" />;
+  if (mood <= 7) return <Smile className="w-5 h-5 text-[hsl(var(--success))]" />;
+  return <Zap className="w-5 h-5 text-primary" />;
 }
 
 function getMoodLabel(mood: number) {
@@ -90,15 +90,15 @@ function getTimeIcon(time: string | null) {
 }
 
 function getTrendIcon(direction: string) {
-  if (direction === "improving") return <TrendingUp className="w-4 h-4 text-green-500" />;
-  if (direction === "declining") return <TrendingDown className="w-4 h-4 text-red-500" />;
-  return <Minus className="w-4 h-4 text-slate-400" />;
+  if (direction === "improving") return <TrendingUp className="w-4 h-4 text-[hsl(var(--success))]" />;
+  if (direction === "declining") return <TrendingDown className="w-4 h-4 text-destructive" />;
+  return <Minus className="w-4 h-4 text-muted-foreground" />;
 }
 
 function getTrendBadge(direction: string) {
   if (direction === "improving") {
     return (
-      <Badge className="bg-green-100 text-green-700 border-green-200 gap-1">
+      <Badge className="bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success))] border-[hsl(var(--success)/0.3)] gap-1">
         <ArrowUpRight className="w-3 h-3" />
         Improving
       </Badge>
@@ -106,14 +106,14 @@ function getTrendBadge(direction: string) {
   }
   if (direction === "declining") {
     return (
-      <Badge className="bg-red-100 text-red-700 border-red-200 gap-1">
+      <Badge className="bg-destructive/15 text-destructive border-destructive/30 gap-1">
         <ArrowDownRight className="w-3 h-3" />
         Declining
       </Badge>
     );
   }
   return (
-    <Badge className="bg-slate-100 text-slate-600 border-slate-200 gap-1">
+    <Badge className="bg-muted text-muted-foreground border-border gap-1">
       <Minus className="w-3 h-3" />
       Stable
     </Badge>
@@ -122,29 +122,29 @@ function getTrendBadge(direction: string) {
 
 function getPriorityBadge(priority: string) {
   if (priority === "high") {
-    return <Badge className="bg-red-100 text-red-700 border-red-200">High Priority</Badge>;
+    return <Badge className="bg-destructive/15 text-destructive border-destructive/30">High Priority</Badge>;
   }
   if (priority === "medium") {
-    return <Badge className="bg-amber-100 text-amber-700 border-amber-200">Medium</Badge>;
+    return <Badge className="bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))] border-[hsl(var(--warning)/0.3)]">Medium</Badge>;
   }
-  return <Badge className="bg-slate-100 text-slate-600 border-slate-200">Low</Badge>;
+  return <Badge className="bg-muted text-muted-foreground border-border">Low</Badge>;
 }
 
 function getCategoryIcon(category: string) {
   switch (category) {
-    case "mood": return <Activity className="w-5 h-5 text-purple-500" />;
-    case "habits": return <CheckCircle2 className="w-5 h-5 text-teal-500" />;
-    case "routine": return <Clock className="w-5 h-5 text-blue-500" />;
-    case "journal": return <BookOpen className="w-5 h-5 text-indigo-500" />;
-    case "food": return <Utensils className="w-5 h-5 text-orange-500" />;
-    default: return <Lightbulb className="w-5 h-5 text-amber-500" />;
+    case "mood": return <Activity className="w-5 h-5 text-[hsl(var(--chart-2))]" />;
+    case "habits": return <CheckCircle2 className="w-5 h-5 text-primary" />;
+    case "routine": return <Clock className="w-5 h-5 text-[hsl(var(--info))]" />;
+    case "journal": return <BookOpen className="w-5 h-5 text-[hsl(var(--chart-2))]" />;
+    case "food": return <Utensils className="w-5 h-5 text-[hsl(var(--chart-3))]" />;
+    default: return <Lightbulb className="w-5 h-5 text-[hsl(var(--warning))]" />;
   }
 }
 
 const PRIORITY_COLORS = {
-  high: "#ef4444",
-  medium: "#f59e0b", 
-  low: "#22c55e"
+  high: "hsl(var(--destructive))",
+  medium: "hsl(var(--warning))", 
+  low: "hsl(var(--success))"
 };
 
 export default function Dashboard() {
@@ -193,7 +193,7 @@ export default function Dashboard() {
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
             <p className="text-muted-foreground">Loading your insights...</p>
           </div>
         </div>
@@ -241,10 +241,10 @@ export default function Dashboard() {
                     initial={{ width: 0 }}
                     animate={{ width: `${wellnessScore}%` }}
                     transition={{ duration: 1, ease: "easeOut" }}
-                    className="h-full bg-gradient-to-r from-teal-500 to-cyan-500"
+                    className="h-full bg-primary"
                   />
                 </div>
-                <span className="font-mono font-bold text-teal-600" data-testid="text-wellness-score">{wellnessScore}%</span>
+                <span className="font-mono font-bold text-primary" data-testid="text-wellness-score">{wellnessScore}%</span>
               </div>
             </div>
           </div>
@@ -258,7 +258,7 @@ export default function Dashboard() {
             animate="visible"
             variants={cardVariants}
           >
-            <Card className="bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-lg h-full" data-testid="card-mood-today">
+            <Card className="bg-card/80 backdrop-blur-xl border border-border/60 shadow-lg h-full" data-testid="card-mood-today">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm text-muted-foreground font-medium">Today's Mood</span>
@@ -283,11 +283,11 @@ export default function Dashboard() {
             animate="visible"
             variants={cardVariants}
           >
-            <Card className="bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-lg h-full" data-testid="card-habits-today">
+            <Card className="bg-card/80 backdrop-blur-xl border border-border/60 shadow-lg h-full" data-testid="card-habits-today">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm text-muted-foreground font-medium">Habits Today</span>
-                  <CheckCircle2 className="w-5 h-5 text-teal-500" />
+                  <CheckCircle2 className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="relative w-12 h-12">
@@ -313,8 +313,8 @@ export default function Dashboard() {
                       />
                       <defs>
                         <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#14b8a6" />
-                          <stop offset="100%" stopColor="#06b6d4" />
+                          <stop offset="0%" stopColor="hsl(var(--primary))" />
+                          <stop offset="100%" stopColor="hsl(var(--accent))" />
                         </linearGradient>
                       </defs>
                     </svg>
@@ -336,7 +336,7 @@ export default function Dashboard() {
             animate="visible"
             variants={cardVariants}
           >
-            <Card className="bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-lg h-full" data-testid="card-routine-today">
+            <Card className="bg-card/80 backdrop-blur-xl border border-border/60 shadow-lg h-full" data-testid="card-routine-today">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm text-muted-foreground font-medium">Routine</span>
@@ -359,7 +359,7 @@ export default function Dashboard() {
             animate="visible"
             variants={cardVariants}
           >
-            <Card className="bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-lg h-full" data-testid="card-streak">
+            <Card className="bg-card/80 backdrop-blur-xl border border-border/60 shadow-lg h-full" data-testid="card-streak">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm text-muted-foreground font-medium">Best Streak</span>
@@ -384,7 +384,7 @@ export default function Dashboard() {
             animate="visible"
             variants={cardVariants}
           >
-            <Card className="bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-lg" data-testid="card-mood-trends">
+            <Card className="bg-card/80 backdrop-blur-xl border border-border/60 shadow-lg" data-testid="card-mood-trends">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
@@ -401,16 +401,16 @@ export default function Dashboard() {
                     <AreaChart data={moodChartData}>
                       <defs>
                         <linearGradient id="moodGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
-                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                      <YAxis domain={[0, 10]} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                      <YAxis domain={[0, 10]} axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
                       <Tooltip 
                         contentStyle={{ 
-                          background: 'rgba(255,255,255,0.95)', 
-                          border: '1px solid #e2e8f0',
+                          background: 'hsl(var(--card))', 
+                          border: '1px solid hsl(var(--border))',
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
                         }}
@@ -418,7 +418,7 @@ export default function Dashboard() {
                       <Area 
                         type="monotone" 
                         dataKey="mood" 
-                        stroke="#14b8a6" 
+                        stroke="hsl(var(--primary))" 
                         strokeWidth={2}
                         fill="url(#moodGradient)" 
                       />
@@ -426,31 +426,31 @@ export default function Dashboard() {
                   </ResponsiveContainer>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-3 rounded-lg bg-slate-50">
+                  <div className="text-center p-3 rounded-lg bg-muted/50">
                     <p className="text-sm text-muted-foreground mb-1">Avg Mood</p>
-                    <p className="text-lg font-bold text-slate-700" data-testid="text-avg-mood">{insights.mood.averages.mood}</p>
+                    <p className="text-lg font-bold text-foreground" data-testid="text-avg-mood">{insights.mood.averages.mood}</p>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-slate-50">
+                  <div className="text-center p-3 rounded-lg bg-muted/50">
                     <p className="text-sm text-muted-foreground mb-1">Avg Energy</p>
-                    <p className="text-lg font-bold text-slate-700" data-testid="text-avg-energy">{insights.mood.averages.energy}</p>
+                    <p className="text-lg font-bold text-foreground" data-testid="text-avg-energy">{insights.mood.averages.energy}</p>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-slate-50">
+                  <div className="text-center p-3 rounded-lg bg-muted/50">
                     <p className="text-sm text-muted-foreground mb-1">Avg Stress</p>
-                    <p className="text-lg font-bold text-slate-700" data-testid="text-avg-stress">{insights.mood.averages.stress}%</p>
+                    <p className="text-lg font-bold text-foreground" data-testid="text-avg-stress">{insights.mood.averages.stress}%</p>
                   </div>
                 </div>
                 {(insights.mood.bestTimeOfDay || insights.mood.worstTimeOfDay) && (
                   <div className="flex gap-4 mt-4">
                     {insights.mood.bestTimeOfDay && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 border border-green-200">
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[hsl(var(--success)/0.1)] border border-[hsl(var(--success)/0.2)]">
                         {getTimeIcon(insights.mood.bestTimeOfDay)}
-                        <span className="text-sm text-green-700">Best: {insights.mood.bestTimeOfDay}</span>
+                        <span className="text-sm text-[hsl(var(--success))]">Best: {insights.mood.bestTimeOfDay}</span>
                       </div>
                     )}
                     {insights.mood.worstTimeOfDay && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200">
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20">
                         {getTimeIcon(insights.mood.worstTimeOfDay)}
-                        <span className="text-sm text-red-700">Lowest: {insights.mood.worstTimeOfDay}</span>
+                        <span className="text-sm text-destructive">Lowest: {insights.mood.worstTimeOfDay}</span>
                       </div>
                     )}
                   </div>
@@ -465,23 +465,23 @@ export default function Dashboard() {
             animate="visible"
             variants={cardVariants}
           >
-            <Card className="bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-lg" data-testid="card-habits-insights">
+            <Card className="bg-card/80 backdrop-blur-xl border border-border/60 shadow-lg" data-testid="card-habits-insights">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-teal-500" />
+                  <CheckCircle2 className="w-5 h-5 text-primary" />
                   Habits & Routine Insights
                 </CardTitle>
                 <CardDescription>Your consistency patterns</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 rounded-lg bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-200/60">
-                    <p className="text-sm text-teal-700 mb-1">7-Day Rate</p>
-                    <p className="text-2xl font-bold text-teal-600" data-testid="text-habit-7day">{insights.habits.completionRate7Day}%</p>
+                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                    <p className="text-sm text-primary mb-1">7-Day Rate</p>
+                    <p className="text-2xl font-bold text-primary" data-testid="text-habit-7day">{insights.habits.completionRate7Day}%</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-gradient-to-br from-slate-50 to-cyan-50 border border-slate-200/60">
-                    <p className="text-sm text-slate-600 mb-1">30-Day Rate</p>
-                    <p className="text-2xl font-bold text-slate-700" data-testid="text-habit-30day">{insights.habits.completionRate30Day}%</p>
+                  <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                    <p className="text-sm text-muted-foreground mb-1">30-Day Rate</p>
+                    <p className="text-2xl font-bold text-foreground" data-testid="text-habit-30day">{insights.habits.completionRate30Day}%</p>
                   </div>
                 </div>
 
@@ -490,9 +490,9 @@ export default function Dashboard() {
                     <p className="text-sm font-medium text-muted-foreground mb-2">Most Consistent</p>
                     <div className="space-y-2">
                       {insights.habits.mostConsistent.slice(0, 3).map((habit, i) => (
-                        <div key={habit.habitId} className="flex items-center justify-between p-2 rounded-lg bg-slate-50" data-testid={`habit-consistent-${i}`}>
+                        <div key={habit.habitId} className="flex items-center justify-between p-2 rounded-lg bg-muted/50" data-testid={`habit-consistent-${i}`}>
                           <span className="text-sm font-medium truncate flex-1">{habit.title}</span>
-                          <Badge className="bg-teal-100 text-teal-700 border-teal-200">{habit.rate}%</Badge>
+                          <Badge className="bg-primary/15 text-primary border-primary/30">{habit.rate}%</Badge>
                         </div>
                       ))}
                     </div>
@@ -500,12 +500,12 @@ export default function Dashboard() {
                 )}
 
                 {insights.habits.moodCorrelation.correlation !== "insufficient_data" && (
-                  <div className="p-3 rounded-lg bg-purple-50 border border-purple-200/60" data-testid="text-mood-correlation">
+                  <div className="p-3 rounded-lg bg-accent/30 border border-accent/50" data-testid="text-mood-correlation">
                     <div className="flex items-start gap-2">
-                      <Sparkles className="w-4 h-4 text-purple-500 mt-0.5" />
+                      <Sparkles className="w-4 h-4 text-accent-foreground mt-0.5" />
                       <div>
-                        <p className="text-sm font-medium text-purple-700">Mood Correlation</p>
-                        <p className="text-xs text-purple-600">
+                        <p className="text-sm font-medium text-accent-foreground">Mood Correlation</p>
+                        <p className="text-xs text-accent-foreground/80">
                           {insights.habits.moodCorrelation.correlation === "positive" 
                             ? `You're happier on high-habit days (${insights.habits.moodCorrelation.highCompletionAvgMood} vs ${insights.habits.moodCorrelation.lowCompletionAvgMood})`
                             : insights.habits.moodCorrelation.correlation === "neutral"
@@ -543,7 +543,7 @@ export default function Dashboard() {
             animate="visible"
             variants={cardVariants}
           >
-            <Card className="bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-lg" data-testid="card-productivity">
+            <Card className="bg-card/80 backdrop-blur-xl border border-border/60 shadow-lg" data-testid="card-productivity">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="w-5 h-5 text-blue-500" />
@@ -626,7 +626,7 @@ export default function Dashboard() {
             animate="visible"
             variants={cardVariants}
           >
-            <Card className="bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-lg" data-testid="card-journal-wellness">
+            <Card className="bg-card/80 backdrop-blur-xl border border-border/60 shadow-lg" data-testid="card-journal-wellness">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-indigo-500" />
@@ -662,17 +662,17 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-2">Daily Feeling Distribution</p>
                   <div className="flex gap-2">
-                    <div className="flex-1 p-2 rounded-lg bg-green-50 border border-green-200/60 text-center" data-testid="feeling-lighter">
-                      <p className="text-xs text-green-600">Lighter</p>
-                      <p className="text-lg font-bold text-green-700">{insights.food.feelingDistribution.lighter}</p>
+                    <div className="flex-1 p-2 rounded-lg bg-[hsl(var(--success)/0.1)] border border-[hsl(var(--success)/0.2)] text-center" data-testid="feeling-lighter">
+                      <p className="text-xs text-[hsl(var(--success))]">Lighter</p>
+                      <p className="text-lg font-bold text-[hsl(var(--success))]">{insights.food.feelingDistribution.lighter}</p>
                     </div>
-                    <div className="flex-1 p-2 rounded-lg bg-slate-50 border border-slate-200/60 text-center" data-testid="feeling-average">
-                      <p className="text-xs text-slate-600">Average</p>
-                      <p className="text-lg font-bold text-slate-700">{insights.food.feelingDistribution.average}</p>
+                    <div className="flex-1 p-2 rounded-lg bg-muted/50 border border-border text-center" data-testid="feeling-average">
+                      <p className="text-xs text-muted-foreground">Average</p>
+                      <p className="text-lg font-bold text-foreground">{insights.food.feelingDistribution.average}</p>
                     </div>
-                    <div className="flex-1 p-2 rounded-lg bg-amber-50 border border-amber-200/60 text-center" data-testid="feeling-heavier">
-                      <p className="text-xs text-amber-600">Heavier</p>
-                      <p className="text-lg font-bold text-amber-700">{insights.food.feelingDistribution.heavier}</p>
+                    <div className="flex-1 p-2 rounded-lg bg-[hsl(var(--warning)/0.1)] border border-[hsl(var(--warning)/0.2)] text-center" data-testid="feeling-heavier">
+                      <p className="text-xs text-[hsl(var(--warning))]">Heavier</p>
+                      <p className="text-lg font-bold text-[hsl(var(--warning))]">{insights.food.feelingDistribution.heavier}</p>
                     </div>
                   </div>
                 </div>
@@ -688,7 +688,7 @@ export default function Dashboard() {
             animate="visible"
             variants={cardVariants}
           >
-            <Card className="bg-gradient-to-br from-white/90 to-teal-50/50 backdrop-blur-xl border border-teal-200/60 shadow-lg" data-testid="card-recommendations">
+            <Card className="bg-gradient-to-br from-card/90 to-primary/5 backdrop-blur-xl border border-primary/20 shadow-lg" data-testid="card-recommendations">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Lightbulb className="w-5 h-5 text-amber-500" />
@@ -717,7 +717,7 @@ export default function Dashboard() {
                             {getPriorityBadge(rec.priority)}
                           </div>
                           <p className="text-xs text-muted-foreground mb-2">{rec.description}</p>
-                          <p className="text-xs font-medium text-teal-600">{rec.actionable}</p>
+                          <p className="text-xs font-medium text-primary">{rec.actionable}</p>
                         </div>
                       </div>
                     </motion.div>
