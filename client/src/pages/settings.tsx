@@ -16,11 +16,16 @@ import {
   Download,
   Loader2,
   Check,
-  Info
+  Info,
+  Palette,
+  Moon,
+  Sun
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiRequest } from "@/lib/queryClient";
 import type { SystemSettings } from "@shared/schema";
+import { useTheme } from "@/hooks/useTheme";
+import { cn } from "@/lib/utils";
 
 export default function Settings() {
   const queryClient = useQueryClient();
@@ -28,6 +33,7 @@ export default function Settings() {
   const [privacyMode, setPrivacyMode] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const { themeId, themes, isDark, setTheme, toggleDarkMode } = useTheme();
 
   const { data: settings, isLoading } = useQuery<SystemSettings>({
     queryKey: ["/api/settings"],
@@ -153,6 +159,94 @@ export default function Settings() {
                 <p className="text-[0.8rem] text-muted-foreground">
                   This name appears on your dashboard.
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Palette className="w-5 h-5 text-primary" />
+                Theme & Mood
+              </CardTitle>
+              <CardDescription>
+                Choose a color theme that feels right for you.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-base">Dark Mode</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Toggle between light and dark appearance.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={toggleDarkMode}
+                  className="h-9 w-9"
+                  data-testid="button-toggle-dark-mode"
+                >
+                  {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </Button>
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-3">
+                <Label className="text-base">Color Theme</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {themes.map((theme) => {
+                    const isSelected = themeId === theme.id;
+                    const primaryHsl = theme.light["--primary"];
+                    const secondaryHsl = theme.light["--secondary"];
+                    const accentHsl = theme.light["--accent"];
+                    
+                    return (
+                      <button
+                        key={theme.id}
+                        onClick={() => {
+                          setTheme(theme.id);
+                          toast.success(`Theme changed to ${theme.name}`);
+                        }}
+                        className={cn(
+                          "relative p-4 rounded-xl border-2 text-left transition-all duration-200",
+                          "hover:scale-[1.02] hover:shadow-md",
+                          isSelected 
+                            ? "border-primary bg-primary/5 shadow-sm" 
+                            : "border-border hover:border-primary/50"
+                        )}
+                        data-testid={`button-theme-${theme.id}`}
+                      >
+                        {isSelected && (
+                          <div className="absolute top-2 right-2">
+                            <Check className="w-4 h-4 text-primary" />
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-xl">{theme.emoji}</span>
+                          <span className="font-medium text-foreground">{theme.name}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-3">{theme.description}</p>
+                        <div className="flex gap-1.5">
+                          <div 
+                            className="w-6 h-6 rounded-full border border-border/50 shadow-sm"
+                            style={{ backgroundColor: `hsl(${primaryHsl})` }}
+                          />
+                          <div 
+                            className="w-6 h-6 rounded-full border border-border/50 shadow-sm"
+                            style={{ backgroundColor: `hsl(${secondaryHsl})` }}
+                          />
+                          <div 
+                            className="w-6 h-6 rounded-full border border-border/50 shadow-sm"
+                            style={{ backgroundColor: `hsl(${accentHsl})` }}
+                          />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </CardContent>
           </Card>

@@ -67,7 +67,7 @@ function Sidebar({ className }: SidebarProps) {
   return (
     <div className={cn(
       "flex flex-col h-full pt-0 pb-4 px-3",
-      "bg-white/70 backdrop-blur-xl border-r border-slate-200/60",
+      "bg-card/70 backdrop-blur-xl border-r border-border/60",
       className
     )}>
       <div className="-mb-2 -mx-3 -mt-4">
@@ -89,8 +89,8 @@ function Sidebar({ className }: SidebarProps) {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
                 isActive
-                  ? "bg-gradient-to-r from-teal-700 to-teal-600 text-white shadow-lg shadow-teal-700/25"
-                  : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                  : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
               )}
             >
               <Icon className={cn(
@@ -114,11 +114,11 @@ function Sidebar({ className }: SidebarProps) {
         {(() => {
           const quote = getDailyQuote();
           return (
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-teal-50/30 border border-slate-200/60 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-teal-600/10 to-teal-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-              <p className="text-xs font-semibold text-teal-700 mb-2 uppercase tracking-wide">Quote of the day</p>
-              <p className="text-sm italic text-slate-700 font-serif leading-relaxed relative z-10">"{quote.text}"</p>
-              <p className="text-xs text-slate-500 mt-2 text-right font-medium">— {quote.author}</p>
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-muted/50 to-primary/5 border border-border/60 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+              <p className="text-xs font-semibold text-primary mb-2 uppercase tracking-wide">Quote of the day</p>
+              <p className="text-sm italic text-foreground/80 font-serif leading-relaxed relative z-10">"{quote.text}"</p>
+              <p className="text-xs text-muted-foreground mt-2 text-right font-medium">— {quote.author}</p>
             </div>
           );
         })()}
@@ -129,7 +129,7 @@ function Sidebar({ className }: SidebarProps) {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-gradient-to-br from-slate-50 via-white to-teal-50/20">
+    <div className="flex h-screen w-full overflow-hidden bg-gradient-to-br from-background via-background to-primary/5">
       <aside className="hidden md:block w-64 flex-shrink-0">
         <Sidebar />
       </aside>

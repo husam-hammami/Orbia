@@ -45,7 +45,7 @@ export default function WelcomePage({ onAuthenticated }: WelcomePageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-purple-50 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-accent/20 flex flex-col items-center justify-center p-6 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           animate={{
@@ -53,7 +53,7 @@ export default function WelcomePage({ onAuthenticated }: WelcomePageProps) {
             opacity: [0.3, 0.6, 0.3],
           }}
           transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-20 left-10 text-teal-300"
+          className="absolute top-20 left-10 text-primary/40"
         >
           <Star className="w-8 h-8" />
         </motion.div>
@@ -63,7 +63,7 @@ export default function WelcomePage({ onAuthenticated }: WelcomePageProps) {
             opacity: [0.2, 0.5, 0.2],
           }}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          className="absolute top-40 right-20 text-purple-300"
+          className="absolute top-40 right-20 text-accent/60"
         >
           <Sparkles className="w-10 h-10" />
         </motion.div>
@@ -110,7 +110,7 @@ export default function WelcomePage({ onAuthenticated }: WelcomePageProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.4 }}
-            className="text-teal-600 font-medium text-center mb-8 h-6"
+            className="text-primary font-medium text-center mb-8 h-6"
           >
             {MOTIVATIONAL_MESSAGES[currentMessage]}
           </motion.p>
@@ -133,7 +133,7 @@ export default function WelcomePage({ onAuthenticated }: WelcomePageProps) {
                 setPassword(e.target.value);
                 setError("");
               }}
-              className="pl-10 h-12 text-lg bg-white/80 border-slate-200 focus:border-teal-400 focus:ring-teal-400/20 rounded-xl"
+              className="pl-10 h-12 text-lg bg-card/80 border-border focus:border-primary focus:ring-primary/20 rounded-xl"
               data-testid="input-password"
             />
           </div>
@@ -150,7 +150,7 @@ export default function WelcomePage({ onAuthenticated }: WelcomePageProps) {
 
           <Button
             type="submit"
-            className="w-full h-12 text-lg bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 rounded-xl shadow-lg shadow-teal-600/25 transition-all"
+            className="w-full h-12 text-lg bg-primary hover:bg-primary/90 rounded-xl shadow-lg shadow-primary/25 transition-all"
             data-testid="button-enter"
           >
             <span>Enter Orbia</span>
