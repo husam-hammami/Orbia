@@ -4,7 +4,7 @@ import { LayoutDashboard, BarChart2, Settings, Menu, Briefcase, BrainCircuit, Sp
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { TopBarControls } from "@/components/top-bar-controls";
+import { GardenTopBar } from "@/components/garden-top-bar";
 
 interface SidebarProps {
   className?: string;
@@ -151,9 +151,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Sheet>
         </header>
 
-        {/* Top Bar Controls - Theme picker with animated kitty */}
-        <div className="fixed top-4 right-4 z-50">
-          <TopBarControls />
+        {/* Garden Top Bar - Animated scene with cat, butterflies, flowers */}
+        <div className="hidden md:block">
+          <GardenTopBar />
         </div>
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
