@@ -236,12 +236,12 @@ export function JournalTab() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 text-white shadow-lg">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-lg">
                   <BookOpen className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-800">Journal</h2>
-                  <p className="text-xs text-slate-500">{stats.total} entries · {stats.thisWeek} this week</p>
+                  <h2 className="text-lg font-semibold text-foreground">Journal</h2>
+                  <p className="text-xs text-muted-foreground">{stats.total} entries · {stats.thisWeek} this week</p>
                 </div>
               </div>
               
@@ -249,11 +249,11 @@ export function JournalTab() {
                 <Button 
                   onClick={() => setIsWriting(true)} 
                   size="lg"
-                  className="gap-2 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 shadow-lg shadow-indigo-500/25 text-base px-6"
+                  className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-lg shadow-primary/25 text-base px-3 md:px-6 min-w-[44px]"
                   data-testid="button-new-entry"
                 >
                   <Plus className="w-5 h-5" />
-                  Write
+                  <span className="hidden md:inline">Write</span>
                 </Button>
               </motion.div>
             </div>

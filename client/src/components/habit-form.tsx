@@ -107,9 +107,9 @@ export function HabitForm({ onSubmit, trigger }: HabitFormProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button size="lg" className="rounded-full px-6 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
-            <Plus className="w-5 h-5 mr-2" />
-            New Habit
+          <Button size="lg" className="rounded-full px-3 md:px-6 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all min-w-[44px] md:min-w-0">
+            <Plus className="w-5 h-5 md:mr-2" />
+            <span className="hidden md:inline">New Habit</span>
           </Button>
         )}
       </DialogTrigger>

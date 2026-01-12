@@ -11,7 +11,6 @@ import FinancePage from "@/pages/finance";
 import OrbitPage from "@/pages/orbit";
 import JournalPage from "@/pages/journal";
 import WelcomePage from "@/pages/welcome";
-import { OrbitFab } from "@/components/orbit-fab";
 import { LockScreen, useLockScreen } from "@/components/lock-screen";
 
 import Settings from "@/pages/settings";
@@ -78,7 +77,6 @@ function App() {
             <>
               <Toaster />
               <Router />
-              <OrbitFab />
             </>
           )}
         </LockContext.Provider>
