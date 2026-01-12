@@ -88,22 +88,20 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
   };
 
   return (
-    <div className="relative group flex flex-col items-center justify-center gap-2 p-2">
-       {/* Delete Button - Appears on hover */}
+    <div className="relative group flex flex-col items-center justify-center gap-1 md:gap-2 p-1 md:p-2">
        <button 
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="absolute top-2 right-2 p-2 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity z-20"
+          className="absolute top-0 right-0 md:top-2 md:right-2 p-1.5 md:p-2 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity z-20"
        >
-          <LucideIcons.Trash2 className="w-4 h-4" />
+          <LucideIcons.Trash2 className="w-3 h-3 md:w-4 md:h-4" />
        </button>
 
-       {/* The "Plant" Orb - Clean solid glow effect matching original */}
        <motion.button
           onClick={onToggle}
           whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileTap={{ scale: 0.92 }}
           data-testid={`button-habit-garden-${habit.id}`}
-          className="relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300"
+          className="relative w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center transition-all duration-300"
        >
           {/* Main Circle */}
           <AnimatePresence mode="wait">
@@ -131,7 +129,6 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
             )}
           </AnimatePresence>
 
-          {/* Icon */}
           <div className="relative z-10">
             {isCompleted ? (
               <motion.div
@@ -139,20 +136,19 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 400, damping: 15 }}
               >
-                <HabitIcon className="w-7 h-7 text-white" />
+                <HabitIcon className="w-5 h-5 md:w-7 md:h-7 text-white" />
               </motion.div>
             ) : (
               <HabitIcon 
-                className="w-7 h-7 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors"
+                className="w-5 h-5 md:w-7 md:h-7 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors"
               />
             )}
           </div>
        </motion.button>
 
-       {/* Label */}
-       <div className="text-center w-full px-1">
-          <h3 className="font-medium text-xs leading-tight line-clamp-2">{habit.title}</h3>
-          <p className="text-[9px] text-muted-foreground">
+       <div className="text-center w-full px-0.5 md:px-1">
+          <h3 className="font-medium text-[10px] md:text-xs leading-tight line-clamp-2">{habit.title}</h3>
+          <p className="text-[8px] md:text-[9px] text-muted-foreground">
              {habit.streak}d{habit.streak > 5 && <span className="text-amber-500">🔥</span>}
           </p>
        </div>
@@ -162,25 +158,24 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
 
 export function HabitGarden({ habits, onToggle, onDelete, onEdit }: HabitGardenProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 py-3">
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 md:gap-3 py-2 md:py-3">
       {habits.map((habit) => (
         <div key={habit.id} className="relative group">
           <PlantNode habit={habit} onToggle={() => onToggle(habit.id)} onDelete={() => onDelete(habit.id)} />
           {onEdit && (
-            <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute top-1 left-1 md:top-2 md:left-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <HabitEditForm habit={habit} onSubmit={onEdit} />
             </div>
           )}
         </div>
       ))}
       
-      {/* Empty Plot for "New Habit" visualization */}
-      <button className="group flex flex-col items-center justify-center gap-1 p-1 opacity-40 hover:opacity-80 transition-opacity">
-         <div className="w-16 h-16 rounded-full border-2 border-dashed border-muted flex items-center justify-center bg-muted/5 group-hover:bg-muted/10 transition-colors">
-            <span className="text-xl text-muted-foreground font-light">+</span>
+      <button className="group flex flex-col items-center justify-center gap-0.5 md:gap-1 p-1 opacity-40 hover:opacity-80 transition-opacity">
+         <div className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-dashed border-muted flex items-center justify-center bg-muted/5 group-hover:bg-muted/10 transition-colors">
+            <span className="text-lg md:text-xl text-muted-foreground font-light">+</span>
          </div>
          <div className="text-center">
-            <h3 className="font-medium text-[10px] text-muted-foreground">New</h3>
+            <h3 className="font-medium text-[9px] md:text-[10px] text-muted-foreground">New</h3>
          </div>
       </button>
     </div>

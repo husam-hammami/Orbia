@@ -1,10 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, BarChart2, Settings, Menu, Briefcase, BrainCircuit, Sparkles, Wallet, ClipboardList, Orbit } from "lucide-react";
+import { LayoutDashboard, Settings, Menu, Briefcase, Wallet, ClipboardList, Orbit, Plus, Sparkles, Lock, Sun, Moon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { GardenTopBar } from "@/components/garden-top-bar";
+import { motion, AnimatePresence } from "framer-motion";
+import { useTheme } from "@/hooks/useTheme";
+import { themePresets } from "@/lib/themePresets";
+import { SetPasswordDialog } from "@/components/lock-screen";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface SidebarProps {
   className?: string;
@@ -12,36 +21,33 @@ interface SidebarProps {
 
 import logoUrl from '@assets/ChatGPT_Image_Jan_10,_2026,_05_13_01_PM_1768050787078.png';
 
+const AFFIRMATIONS = [
+  "You're doing amazing, habibi! 💕",
+  "One step at a time, you've got this! ✨",
+  "Today is full of possibilities! 🌸",
+  "Your energy is beautiful today! 🦋",
+  "Small wins lead to big dreams! 🌟",
+  "Be gentle with yourself today 💗",
+  "You're exactly where you need to be 🌷",
+  "Magic happens when you believe! ✨",
+];
+
+function getDailyAffirmation() {
+  const today = new Date();
+  const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+  return AFFIRMATIONS[dayOfYear % AFFIRMATIONS.length];
+}
+
 const PHILOSOPHER_QUOTES = [
   { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
   { text: "The unexamined life is not worth living.", author: "Socrates" },
   { text: "He who has a why to live can bear almost any how.", author: "Friedrich Nietzsche" },
   { text: "Happiness is not something ready made. It comes from your own actions.", author: "Dalai Lama" },
-  { text: "The only true wisdom is in knowing you know nothing.", author: "Socrates" },
   { text: "No man is free who is not master of himself.", author: "Epictetus" },
-  { text: "It is not death that a man should fear, but he should fear never beginning to live.", author: "Marcus Aurelius" },
   { text: "The soul becomes dyed with the color of its thoughts.", author: "Marcus Aurelius" },
-  { text: "To live is to suffer, to survive is to find some meaning in the suffering.", author: "Friedrich Nietzsche" },
   { text: "Knowing yourself is the beginning of all wisdom.", author: "Aristotle" },
   { text: "The mind is everything. What you think you become.", author: "Buddha" },
   { text: "Peace comes from within. Do not seek it without.", author: "Buddha" },
-  { text: "Be kind, for everyone you meet is fighting a hard battle.", author: "Plato" },
-  { text: "Life must be understood backward. But it must be lived forward.", author: "Søren Kierkegaard" },
-  { text: "Man is condemned to be free; because once thrown into the world, he is responsible for everything he does.", author: "Jean-Paul Sartre" },
-  { text: "The greatest glory in living lies not in never falling, but in rising every time we fall.", author: "Confucius" },
-  { text: "Do not dwell in the past, do not dream of the future, concentrate the mind on the present moment.", author: "Buddha" },
-  { text: "Waste no more time arguing about what a good man should be. Be one.", author: "Marcus Aurelius" },
-  { text: "You have power over your mind — not outside events. Realize this, and you will find strength.", author: "Marcus Aurelius" },
-  { text: "The wound is the place where the Light enters you.", author: "Rumi" },
-  { text: "What lies behind us and what lies before us are tiny matters compared to what lies within us.", author: "Ralph Waldo Emerson" },
-  { text: "Difficulties strengthen the mind, as labor does the body.", author: "Seneca" },
-  { text: "It is during our darkest moments that we must focus to see the light.", author: "Aristotle" },
-  { text: "The only thing I know is that I know nothing.", author: "Socrates" },
-  { text: "In the middle of difficulty lies opportunity.", author: "Albert Einstein" },
-  { text: "To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment.", author: "Ralph Waldo Emerson" },
-  { text: "The privilege of a lifetime is to become who you truly are.", author: "Carl Jung" },
-  { text: "Until you make the unconscious conscious, it will direct your life and you will call it fate.", author: "Carl Jung" },
-  { text: "Out of suffering have emerged the strongest souls.", author: "Kahlil Gibran" },
   { text: "This too shall pass.", author: "Persian Proverb" },
   { text: "The obstacle is the way.", author: "Marcus Aurelius" },
 ];
@@ -127,7 +133,230 @@ function Sidebar({ className }: SidebarProps) {
   );
 }
 
-export function Layout({ children }: { children: React.ReactNode }) {
+const mobileNavItems = [
+  { href: "/", label: "Today", icon: ClipboardList },
+  { href: "/dashboard", label: "Insights", icon: LayoutDashboard },
+  { href: "/orbit", label: "Orbia", icon: Orbit, special: true },
+  { href: "/career", label: "Goals", icon: Briefcase },
+  { href: "/settings", label: "Settings", icon: Settings },
+];
+
+function MobileBottomNav() {
+  const [location] = useLocation();
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+      <div className="mx-3 mb-3">
+        <div className="bg-background/90 backdrop-blur-2xl rounded-2xl border border-border/40 shadow-xl shadow-black/5">
+          <div className="flex items-center justify-around h-16 px-1">
+            {mobileNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location === item.href;
+              
+              if (item.special) {
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="relative -mt-6"
+                    data-testid={`nav-${item.label.toLowerCase()}`}
+                  >
+                    <motion.div
+                      whileTap={{ scale: 0.9 }}
+                      className={cn(
+                        "w-14 h-14 rounded-full flex items-center justify-center shadow-lg",
+                        "bg-gradient-to-br from-primary to-accent",
+                        "border-4 border-background"
+                      )}
+                    >
+                      <Icon className="w-6 h-6 text-white" />
+                    </motion.div>
+                    <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[10px] font-medium text-primary whitespace-nowrap">
+                      {item.label}
+                    </span>
+                  </Link>
+                );
+              }
+              
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "relative flex flex-col items-center justify-center gap-0.5 flex-1 py-2 transition-all",
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  )}
+                  data-testid={`nav-${item.label.toLowerCase()}`}
+                >
+                  <motion.div
+                    whileTap={{ scale: 0.85 }}
+                    className="relative"
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="mobile-nav-indicator"
+                        className="absolute -inset-2 rounded-xl bg-primary/10"
+                        transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                      />
+                    )}
+                    <Icon className={cn(
+                      "w-5 h-5 relative z-10 transition-all",
+                      isActive && "scale-110"
+                    )} />
+                  </motion.div>
+                  <span className={cn(
+                    "text-[10px] transition-all",
+                    isActive ? "font-semibold" : "font-medium"
+                  )}>
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+interface MobileHeaderProps {
+  lockContext?: {
+    isLocked: boolean;
+    hasPassword: boolean;
+    lock: () => void;
+    setPassword: (password: string) => void;
+    removePassword: () => void;
+  } | null;
+}
+
+function MobileHeader({ lockContext }: MobileHeaderProps) {
+  const { themeId, setTheme, isDark, toggleDarkMode } = useTheme();
+  const currentTheme = themePresets.find(t => t.id === themeId) || themePresets[0];
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const affirmation = getDailyAffirmation();
+
+  return (
+    <>
+      <header className="sticky top-0 z-40 md:hidden">
+        <div className="bg-gradient-to-b from-primary/5 via-background to-background/95 backdrop-blur-xl">
+          <div className="px-4 pt-3 pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <img 
+                  src={logoUrl} 
+                  alt="Orbia" 
+                  className="h-9 w-auto object-contain" 
+                />
+              </div>
+              
+              <div className="flex items-center gap-1.5">
+                {lockContext && (
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      if (lockContext.hasPassword) {
+                        lockContext.lock();
+                      } else {
+                        setShowPasswordDialog(true);
+                      }
+                    }}
+                    className={cn(
+                      "w-9 h-9 rounded-full flex items-center justify-center transition-colors",
+                      "bg-white/60 backdrop-blur-sm border border-white/40",
+                      lockContext.hasPassword ? "text-primary" : "text-muted-foreground"
+                    )}
+                    data-testid="button-mobile-lock"
+                  >
+                    <Lock className="w-4 h-4" />
+                  </motion.button>
+                )}
+                
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={toggleDarkMode}
+                  className="w-9 h-9 rounded-full flex items-center justify-center bg-white/60 backdrop-blur-sm border border-white/40 text-muted-foreground"
+                >
+                  {isDark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                </motion.button>
+                
+                <Popover open={showThemeMenu} onOpenChange={setShowThemeMenu}>
+                  <PopoverTrigger asChild>
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      className="w-9 h-9 rounded-full flex items-center justify-center bg-white/60 backdrop-blur-sm border border-white/40"
+                      data-testid="button-mobile-theme"
+                    >
+                      <div 
+                        className="w-5 h-5 rounded-full border border-white/30 shadow-inner"
+                        style={{ 
+                          background: `linear-gradient(135deg, hsl(${(isDark ? currentTheme.dark : currentTheme.light)['--primary']}), hsl(${(isDark ? currentTheme.dark : currentTheme.light)['--accent']}))` 
+                        }}
+                      />
+                    </motion.button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-3 mr-2" align="end" sideOffset={8}>
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm text-center">Choose your vibe ✨</h4>
+                      <div className="grid grid-cols-5 gap-2">
+                        {themePresets.map((theme) => {
+                          const palette = isDark ? theme.dark : theme.light;
+                          const isSelected = themeId === theme.id;
+                          return (
+                            <motion.button
+                              key={theme.id}
+                              whileTap={{ scale: 0.85 }}
+                              onClick={() => { setTheme(theme.id); setShowThemeMenu(false); }}
+                              className={cn(
+                                "w-10 h-10 rounded-full transition-all shadow-md",
+                                isSelected && "ring-2 ring-primary ring-offset-2 scale-110"
+                              )}
+                              style={{ 
+                                background: `linear-gradient(135deg, hsl(${palette['--primary']}), hsl(${palette['--accent']}))` 
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-2 px-1"
+            >
+              <p className="text-sm font-medium text-primary/80 text-center">
+                {affirmation}
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </header>
+      
+      {lockContext && (
+        <SetPasswordDialog
+          isOpen={showPasswordDialog}
+          onClose={() => setShowPasswordDialog(false)}
+          onSetPassword={lockContext.setPassword}
+          hasExistingPassword={lockContext.hasPassword}
+          onRemovePassword={lockContext.removePassword}
+        />
+      )}
+    </>
+  );
+}
+
+interface LayoutProps {
+  children: React.ReactNode;
+  lockContext?: MobileHeaderProps['lockContext'];
+}
+
+export function Layout({ children, lockContext }: LayoutProps) {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-gradient-to-br from-background via-background to-primary/5">
       <aside className="hidden md:block w-64 flex-shrink-0">
@@ -135,32 +364,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        <header className="md:hidden flex items-center justify-between p-3 border-b bg-white/70 backdrop-blur-xl">
-          <div className="flex items-center">
-            <img src={logoUrl} alt="Orbia Logo" className="h-12 w-auto object-contain" />
-          </div>
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="hover:bg-slate-100">
-                <Menu className="w-5 h-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-64 border-r-0">
-              <Sidebar />
-            </SheetContent>
-          </Sheet>
-        </header>
+        <MobileHeader lockContext={lockContext} />
 
-        {/* Garden Top Bar - Animated scene with cat, butterflies, flowers */}
         <div className="hidden md:block">
           <GardenTopBar />
         </div>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="w-full px-4 md:px-6 lg:px-8 xl:px-10 py-4 md:py-6 lg:py-8 space-y-6">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 md:pb-0">
+          <div className="w-full px-3 md:px-6 lg:px-8 xl:px-10 py-3 md:py-6 lg:py-8 space-y-4 md:space-y-6">
             {children}
           </div>
         </div>
+        
+        <MobileBottomNav />
       </main>
     </div>
   );

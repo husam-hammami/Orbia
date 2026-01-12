@@ -144,66 +144,70 @@ export default function TrackerPage() {
 
   return (
     <Layout>
-      <div className="space-y-6 animate-in fade-in duration-500">
-        <div className="flex flex-col items-center gap-2 mb-2">
-          <p className="text-muted-foreground font-medium">{format(new Date(), "EEEE, MMMM do")}</p>
-          <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+      <div className="space-y-4 md:space-y-6 animate-in fade-in duration-500">
+        <div className="flex flex-col items-center gap-1 md:gap-2 mb-1 md:mb-2">
+          <p className="text-xs md:text-sm text-muted-foreground font-medium">{format(new Date(), "EEEE, MMMM do")}</p>
+          <h1 className="text-xl md:text-4xl font-display font-bold text-foreground">
             Daily Tracker
           </h1>
-          <CurrentTimeDisplay />
+          <div className="hidden md:block">
+            <CurrentTimeDisplay />
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full flex h-12 items-center justify-center gap-1 rounded-xl bg-muted/60 p-1.5 border border-border/50 shadow-sm">
-            <TabsTrigger 
-              value="habits" 
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground hover:bg-background/50" 
-              data-testid="tab-habits"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>Habits</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="mood" 
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground hover:bg-background/50" 
-              data-testid="tab-mood"
-            >
-              <Activity className="w-4 h-4" />
-              <span>State</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="routine" 
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground hover:bg-background/50" 
-              data-testid="tab-routine"
-            >
-              <Calendar className="w-4 h-4" />
-              <span>Routine</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="food" 
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground hover:bg-background/50" 
-              data-testid="tab-food"
-            >
-              <Utensils className="w-4 h-4" />
-              <span>Food</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="todos" 
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground hover:bg-background/50" 
-              data-testid="tab-todos"
-            >
-              <ListTodo className="w-4 h-4" />
-              <span>Tasks</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="journal" 
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground hover:bg-background/50" 
-              data-testid="tab-journal"
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>Journal</span>
-            </TabsTrigger>
-          </TabsList>
+          <div className="sticky top-0 z-30 -mx-3 px-3 py-2 bg-background/80 backdrop-blur-xl md:static md:mx-0 md:px-0 md:py-0 md:bg-transparent md:backdrop-blur-none">
+            <TabsList className="w-full flex h-10 md:h-12 items-center gap-1 rounded-full md:rounded-xl bg-muted/50 md:bg-muted/60 p-1 md:p-1.5 border border-border/30 md:border-border/50 shadow-sm overflow-x-auto scrollbar-hide md:justify-center">
+              <TabsTrigger 
+                value="habits" 
+                className="inline-flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap rounded-full md:rounded-lg px-3 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground flex-shrink-0" 
+                data-testid="tab-habits"
+              >
+                <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                <span>Habits</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="mood" 
+                className="inline-flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap rounded-full md:rounded-lg px-3 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground flex-shrink-0" 
+                data-testid="tab-mood"
+              >
+                <Activity className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                <span>State</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="routine" 
+                className="inline-flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap rounded-full md:rounded-lg px-3 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground flex-shrink-0" 
+                data-testid="tab-routine"
+              >
+                <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                <span>Routine</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="food" 
+                className="inline-flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap rounded-full md:rounded-lg px-3 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground flex-shrink-0" 
+                data-testid="tab-food"
+              >
+                <Utensils className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                <span>Food</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="todos" 
+                className="inline-flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap rounded-full md:rounded-lg px-3 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground flex-shrink-0" 
+                data-testid="tab-todos"
+              >
+                <ListTodo className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                <span>Tasks</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="journal" 
+                className="inline-flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap rounded-full md:rounded-lg px-3 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground flex-shrink-0" 
+                data-testid="tab-journal"
+              >
+                <BookOpen className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                <span>Journal</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
           
           <TabsContent value="habits" className="mt-4" data-testid="content-habits">
             <div className="space-y-4">
