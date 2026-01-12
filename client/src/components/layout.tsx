@@ -245,7 +245,7 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 <img 
                   src={logoUrl} 
                   alt="Orbia" 
-                  className="h-9 w-auto object-contain" 
+                  className="h-16 w-auto object-contain" 
                 />
               </div>
               
