@@ -218,6 +218,170 @@ function Tree({ x, type = 'round' }: { x: number; type?: 'round' | 'pine' | 'che
   );
 }
 
+// Cute bush
+function Bush({ x, size = 1, variant = 'round' }: { x: number; size?: number; variant?: 'round' | 'berry' | 'flower' }) {
+  return (
+    <motion.g
+      transform={`translate(${x}, 0) scale(${size})`}
+      initial={{ scale: 0 }}
+      animate={{ scale: size }}
+      transition={{ duration: 0.5, type: "spring" }}
+    >
+      {variant === 'round' && (
+        <motion.g
+          animate={{ scaleY: [1, 1.02, 1] }}
+          transition={{ duration: 3, repeat: Infinity }}
+          style={{ transformOrigin: "0px 54px" }}
+        >
+          <ellipse cx="0" cy="48" rx="12" ry="8" className="fill-success/70" />
+          <ellipse cx="-6" cy="46" rx="8" ry="6" className="fill-success/80" />
+          <ellipse cx="7" cy="47" rx="7" ry="5" className="fill-success/60" />
+          <ellipse cx="0" cy="44" rx="6" ry="5" className="fill-success/90" />
+        </motion.g>
+      )}
+      
+      {variant === 'berry' && (
+        <motion.g
+          animate={{ scaleY: [1, 1.02, 1] }}
+          transition={{ duration: 2.5, repeat: Infinity }}
+          style={{ transformOrigin: "0px 54px" }}
+        >
+          <ellipse cx="0" cy="48" rx="10" ry="7" className="fill-success/75" />
+          <ellipse cx="-5" cy="46" rx="6" ry="5" className="fill-success/85" />
+          <ellipse cx="5" cy="47" rx="5" ry="4" className="fill-success/65" />
+          {/* Berries */}
+          <circle cx="-3" cy="44" r="2" className="fill-destructive/80" />
+          <circle cx="2" cy="46" r="1.5" className="fill-destructive/80" />
+          <circle cx="5" cy="44" r="1.8" className="fill-destructive/80" />
+        </motion.g>
+      )}
+      
+      {variant === 'flower' && (
+        <motion.g
+          animate={{ scaleY: [1, 1.02, 1] }}
+          transition={{ duration: 3.5, repeat: Infinity }}
+          style={{ transformOrigin: "0px 54px" }}
+        >
+          <ellipse cx="0" cy="48" rx="11" ry="7" className="fill-success/70" />
+          <ellipse cx="-5" cy="46" rx="7" ry="5" className="fill-success/80" />
+          <ellipse cx="6" cy="47" rx="6" ry="4" className="fill-success/65" />
+          {/* Small flowers */}
+          <circle cx="-4" cy="43" r="2" className="fill-primary/70" />
+          <circle cx="3" cy="44" r="1.8" className="fill-accent/70" />
+          <circle cx="0" cy="46" r="1.5" className="fill-primary/60" />
+        </motion.g>
+      )}
+    </motion.g>
+  );
+}
+
+// Adorable bunny with hopping animation
+function Bunny({ x, delay = 0 }: { x: number; delay?: number }) {
+  const [isHopping, setIsHopping] = useState(false);
+  const [earWiggle, setEarWiggle] = useState(0);
+  const hopTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  useEffect(() => {
+    const hopInterval = setInterval(() => {
+      if (Math.random() < 0.15) {
+        setIsHopping(true);
+        hopTimeoutRef.current = setTimeout(() => setIsHopping(false), 500);
+      }
+    }, 2000);
+    
+    const earInterval = setInterval(() => {
+      setEarWiggle(prev => (prev + 1) % 3);
+    }, 800);
+    
+    return () => {
+      clearInterval(hopInterval);
+      clearInterval(earInterval);
+      if (hopTimeoutRef.current) {
+        clearTimeout(hopTimeoutRef.current);
+      }
+    };
+  }, []);
+  
+  return (
+    <motion.g
+      transform={`translate(${x}, 0)`}
+      initial={{ scale: 0, y: 10 }}
+      animate={{ 
+        scale: 1, 
+        y: isHopping ? -8 : 0 
+      }}
+      transition={{ 
+        scale: { duration: 0.5, delay },
+        y: { duration: 0.25, type: "spring", stiffness: 300 }
+      }}
+    >
+      {/* Body */}
+      <ellipse cx="0" cy="48" rx="8" ry="6" className="fill-background" />
+      <ellipse cx="0" cy="49" rx="6" ry="4" className="fill-muted/30" />
+      
+      {/* Fluffy tail */}
+      <motion.circle 
+        cx="-7" 
+        cy="48" 
+        r="3" 
+        className="fill-background"
+        animate={{ scale: [1, 1.15, 1] }}
+        transition={{ duration: 1.5, repeat: Infinity }}
+      />
+      
+      {/* Back legs */}
+      <ellipse cx="-4" cy="52" rx="3" ry="2" className="fill-background" />
+      <ellipse cx="4" cy="52" rx="3" ry="2" className="fill-background" />
+      
+      {/* Front paws */}
+      <ellipse cx="-2" cy="53" rx="1.5" ry="1" className="fill-muted/20" />
+      <ellipse cx="2" cy="53" rx="1.5" ry="1" className="fill-muted/20" />
+      
+      {/* Head */}
+      <circle cx="6" cy="42" r="6" className="fill-background" />
+      
+      {/* Ears */}
+      <motion.g
+        animate={{ rotate: earWiggle === 1 ? 5 : earWiggle === 2 ? -5 : 0 }}
+        style={{ transformOrigin: "4px 40px" }}
+        transition={{ duration: 0.2 }}
+      >
+        <ellipse cx="2" cy="32" rx="2.5" ry="7" className="fill-background" />
+        <ellipse cx="2" cy="32" rx="1.2" ry="5" className="fill-primary/30" />
+      </motion.g>
+      <motion.g
+        animate={{ rotate: earWiggle === 2 ? 5 : earWiggle === 1 ? -5 : 0 }}
+        style={{ transformOrigin: "8px 40px" }}
+        transition={{ duration: 0.2 }}
+      >
+        <ellipse cx="8" cy="33" rx="2.5" ry="6" className="fill-background" />
+        <ellipse cx="8" cy="33" rx="1.2" ry="4.5" className="fill-primary/30" />
+      </motion.g>
+      
+      {/* Face */}
+      <circle cx="4" cy="41" r="1" className="fill-foreground/70" />
+      <circle cx="9" cy="41" r="1" className="fill-foreground/70" />
+      <circle cx="4.5" cy="40.5" r="0.3" className="fill-background" />
+      <circle cx="9.5" cy="40.5" r="0.3" className="fill-background" />
+      
+      {/* Nose */}
+      <ellipse cx="6.5" cy="44" rx="1" ry="0.8" className="fill-primary/60" />
+      
+      {/* Whiskers */}
+      <g className="stroke-foreground/20" strokeWidth="0.3">
+        <line x1="3" y1="43" x2="-1" y2="42" />
+        <line x1="3" y1="44" x2="-1" y2="44" />
+        <line x1="10" y1="43" x2="14" y2="42" />
+        <line x1="10" y1="44" x2="14" y2="44" />
+      </g>
+      
+      {/* Rosy cheeks */}
+      <circle cx="2" cy="43" r="1.2" className="fill-primary/20" />
+      <circle cx="11" cy="43" r="1.2" className="fill-primary/20" />
+    </motion.g>
+  );
+}
+
 function Butterfly({ delay, startX, color }: { delay: number; startX: number; color: string }) {
   return (
     <motion.g
@@ -846,11 +1010,24 @@ export function GardenTopBar() {
         <Bird startX={containerWidth / 2 + 30} delay={4} />
         
         {/* Trees */}
-        <Tree x={containerWidth / 2 - 60} type="cherry" />
-        <Tree x={containerWidth / 2 + 80} type="round" />
+        <Tree x={75} type="pine" />
+        <Tree x={containerWidth / 2 - 70} type="cherry" />
+        <Tree x={containerWidth / 2 + 90} type="round" />
+        <Tree x={containerWidth - 85} type="pine" />
+        
+        {/* Bushes */}
+        <Bush x={55} size={0.7} variant="round" />
+        <Bush x={105} size={0.6} variant="berry" />
+        <Bush x={containerWidth - 75} size={0.65} variant="flower" />
+        <Bush x={containerWidth - 110} size={0.6} variant="round" />
+        <Bush x={containerWidth / 2 - 40} size={0.55} variant="berry" />
+        <Bush x={containerWidth / 2 + 55} size={0.6} variant="flower" />
         
         {/* Cottage */}
         <Cottage x={containerWidth / 2 + 10} />
+        
+        {/* Bunny */}
+        <Bunny x={containerWidth / 2 - 25} delay={0.5} />
         
         {/* Ground/grass */}
         <path 
