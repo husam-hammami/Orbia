@@ -233,7 +233,6 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
   const currentTheme = themePresets.find(t => t.id === themeId) || themePresets[0];
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
-  const affirmation = getDailyAffirmation();
 
   return (
     <>
@@ -246,66 +245,16 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 opacity: [0.3, 0.5, 0.3]
               }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -top-20 -left-20 w-60 h-60 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 blur-3xl"
+              className="absolute -top-16 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 blur-3xl"
             />
-            <motion.div
-              animate={{ 
-                scale: [1.2, 1, 1.2],
-                opacity: [0.2, 0.4, 0.2]
-              }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-              className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-gradient-to-bl from-accent/30 to-primary/20 blur-2xl"
-            />
-            {[...Array(6)].map((_, i) => (
-              <motion.div
-                key={i}
-                animate={{
-                  y: [-20, -60, -20],
-                  x: [0, Math.sin(i) * 10, 0],
-                  opacity: [0, 0.8, 0],
-                  scale: [0.5, 1, 0.5]
-                }}
-                transition={{
-                  duration: 3 + i * 0.5,
-                  repeat: Infinity,
-                  delay: i * 0.8,
-                  ease: "easeOut"
-                }}
-                className="absolute w-2 h-2 rounded-full bg-primary/40"
-                style={{
-                  left: `${15 + i * 15}%`,
-                  bottom: '20%'
-                }}
-              />
-            ))}
           </div>
 
-          <div className="relative z-10 px-5 pt-4 pb-4">
-            <div className="flex items-start justify-between">
-              <motion.div 
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                className="relative"
-              >
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-                  className="absolute -inset-4 rounded-full bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 blur-xl opacity-60"
-                />
-                <motion.img 
-                  src={logoUrl} 
-                  alt="Orbia" 
-                  className="h-28 w-auto object-contain relative z-10 drop-shadow-lg" 
-                  whileTap={{ scale: 0.95 }}
-                />
-              </motion.div>
-              
-              <div className="flex items-center gap-2 mt-2">
+          <div className="relative z-10 px-4 pt-2 pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
                 {lockContext && (
                   <motion.button
                     whileTap={{ scale: 0.85 }}
-                    whileHover={{ scale: 1.05 }}
                     onClick={() => {
                       if (lockContext.hasPassword) {
                         lockContext.lock();
@@ -314,35 +263,54 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                       }
                     }}
                     className={cn(
-                      "w-11 h-11 rounded-2xl flex items-center justify-center transition-all",
-                      "bg-white/70 backdrop-blur-md border border-white/50 shadow-lg shadow-primary/10",
+                      "w-9 h-9 rounded-xl flex items-center justify-center transition-all",
+                      "bg-card/70 backdrop-blur-md border border-border/50 shadow-sm",
                       lockContext.hasPassword ? "text-primary" : "text-muted-foreground"
                     )}
                     data-testid="button-mobile-lock"
                   >
-                    <Lock className="w-5 h-5" />
+                    <Lock className="w-4 h-4" />
                   </motion.button>
                 )}
-                
+              </div>
+              
+              <motion.div 
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                className="relative flex-1 flex justify-center"
+              >
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                  className="absolute -inset-2 rounded-full bg-gradient-to-r from-primary/15 via-accent/15 to-primary/15 blur-lg opacity-60"
+                />
+                <motion.img 
+                  src={logoUrl} 
+                  alt="Orbia" 
+                  className="h-16 w-auto object-contain relative z-10 drop-shadow-md" 
+                  whileTap={{ scale: 0.95 }}
+                />
+              </motion.div>
+              
+              <div className="flex items-center gap-1.5">
                 <motion.button
                   whileTap={{ scale: 0.85 }}
-                  whileHover={{ scale: 1.05 }}
                   onClick={toggleDarkMode}
-                  className="w-11 h-11 rounded-2xl flex items-center justify-center bg-white/70 backdrop-blur-md border border-white/50 shadow-lg shadow-primary/10 text-muted-foreground"
+                  className="w-9 h-9 rounded-xl flex items-center justify-center bg-card/70 backdrop-blur-md border border-border/50 shadow-sm text-muted-foreground"
                 >
-                  {isDark ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                  {isDark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                 </motion.button>
                 
                 <Popover open={showThemeMenu} onOpenChange={setShowThemeMenu}>
                   <PopoverTrigger asChild>
                     <motion.button
                       whileTap={{ scale: 0.85 }}
-                      whileHover={{ scale: 1.05 }}
-                      className="w-11 h-11 rounded-2xl flex items-center justify-center bg-white/70 backdrop-blur-md border border-white/50 shadow-lg shadow-primary/10"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center bg-card/70 backdrop-blur-md border border-border/50 shadow-sm"
                       data-testid="button-mobile-theme"
                     >
                       <div 
-                        className="w-6 h-6 rounded-full border-2 border-white/50 shadow-inner"
+                        className="w-5 h-5 rounded-full border-2 border-white/50 shadow-inner"
                         style={{ 
                           background: `linear-gradient(135deg, hsl(${(isDark ? currentTheme.dark : currentTheme.light)['--primary']}), hsl(${(isDark ? currentTheme.dark : currentTheme.light)['--accent']}))` 
                         }}
@@ -351,7 +319,7 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                   </PopoverTrigger>
                   <PopoverContent className="w-72 p-4 mr-2" align="end" sideOffset={8}>
                     <div className="space-y-4">
-                      <h4 className="font-bold text-base text-center">Choose your vibe ✨</h4>
+                      <h4 className="font-bold text-base text-center">Choose your vibe</h4>
                       <div className="grid grid-cols-5 gap-3">
                         {themePresets.map((theme) => {
                           const palette = isDark ? theme.dark : theme.light;
@@ -378,17 +346,6 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 </Popover>
               </div>
             </div>
-            
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="mt-3"
-            >
-              <p className="text-base font-semibold text-primary text-center tracking-wide">
-                {affirmation}
-              </p>
-            </motion.div>
           </div>
         </div>
       </header>

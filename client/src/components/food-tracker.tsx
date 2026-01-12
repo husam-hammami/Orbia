@@ -37,41 +37,41 @@ const mealConfig = {
   breakfast: {
     label: "Breakfast",
     icon: Sunrise,
-    gradient: "from-[#F7F3EF] to-[#F5F0E8]",
-    border: "border-[#E1D7C7]",
-    iconBg: "bg-[#EFE4D5]",
-    iconColor: "text-[#8B6A45]",
-    selectedBg: "bg-[#EFE4D5]/40",
-    selectedBorder: "border-[#C9B8A0]",
-    accentColor: "text-[#8B6A45]",
-    chipBg: "bg-[#F7F3EF]",
-    addBtnBg: "bg-[#8B6A45] hover:bg-[#7A5C3A]",
+    gradient: "from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30",
+    border: "border-amber-200 dark:border-amber-800/40",
+    iconBg: "bg-amber-100 dark:bg-amber-900/40",
+    iconColor: "text-amber-600 dark:text-amber-400",
+    selectedBg: "bg-amber-100/60 dark:bg-amber-900/30",
+    selectedBorder: "border-amber-300 dark:border-amber-700",
+    accentColor: "text-amber-700 dark:text-amber-400",
+    chipBg: "bg-amber-50 dark:bg-amber-950/30",
+    addBtnBg: "bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-500",
   },
   lunch: {
     label: "Lunch",
     icon: Sun,
-    gradient: "from-[#F2F5F9] to-[#EDF1F7]",
-    border: "border-[#D4DEE8]",
-    iconBg: "bg-[#E4ECF5]",
-    iconColor: "text-[#4F6E8F]",
-    selectedBg: "bg-[#E4ECF5]/40",
-    selectedBorder: "border-[#B8C9DC]",
-    accentColor: "text-[#4F6E8F]",
-    chipBg: "bg-[#F2F5F9]",
-    addBtnBg: "bg-[#4F6E8F] hover:bg-[#3D5A78]",
+    gradient: "from-sky-50 to-blue-50 dark:from-sky-950/30 dark:to-blue-950/30",
+    border: "border-sky-200 dark:border-sky-800/40",
+    iconBg: "bg-sky-100 dark:bg-sky-900/40",
+    iconColor: "text-sky-600 dark:text-sky-400",
+    selectedBg: "bg-sky-100/60 dark:bg-sky-900/30",
+    selectedBorder: "border-sky-300 dark:border-sky-700",
+    accentColor: "text-sky-700 dark:text-sky-400",
+    chipBg: "bg-sky-50 dark:bg-sky-950/30",
+    addBtnBg: "bg-sky-600 hover:bg-sky-700 dark:bg-sky-600 dark:hover:bg-sky-500",
   },
   dinner: {
     label: "Dinner",
     icon: Moon,
-    gradient: "from-[#F3F5F1] to-[#EEF2EA]",
-    border: "border-[#D8E0D1]",
-    iconBg: "bg-[#E7ECDD]",
-    iconColor: "text-[#557565]",
-    selectedBg: "bg-[#E7ECDD]/40",
-    selectedBorder: "border-[#B8CABA]",
-    accentColor: "text-[#557565]",
-    chipBg: "bg-[#F3F5F1]",
-    addBtnBg: "bg-[#557565] hover:bg-[#476355]",
+    gradient: "from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30",
+    border: "border-emerald-200 dark:border-emerald-800/40",
+    iconBg: "bg-emerald-100 dark:bg-emerald-900/40",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
+    selectedBg: "bg-emerald-100/60 dark:bg-emerald-900/30",
+    selectedBorder: "border-emerald-300 dark:border-emerald-700",
+    accentColor: "text-emerald-700 dark:text-emerald-400",
+    chipBg: "bg-emerald-50 dark:bg-emerald-950/30",
+    addBtnBg: "bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500",
   },
 };
 
@@ -270,7 +270,7 @@ export function FoodTracker() {
               <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
-                    <Plus className="w-5 h-5 text-indigo-500" />
+                    <Plus className="w-5 h-5 text-primary" />
                     Add New Meal Option
                   </DialogTitle>
                   <DialogDescription>Create a meal option you can quickly select each day</DialogDescription>
@@ -311,13 +311,13 @@ export function FoodTracker() {
                       value={newOption.name}
                       onChange={(e) => setNewOption({ ...newOption, name: e.target.value })}
                       placeholder="e.g., Grilled chicken with rice"
-                      className="bg-white"
+                      className="bg-background"
                       data-testid="input-new-option-name"
                     />
                   </div>
                   {newOption.mealType === "dinner" && (
-                    <div className="space-y-2 p-4 rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-200">
-                      <Label className="flex items-center gap-2 text-indigo-700">
+                    <div className="space-y-2 p-4 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/30">
+                      <Label className="flex items-center gap-2 text-primary">
                         <ChefHat className="w-4 h-4" />
                         Recipe / Cooking Steps
                       </Label>
@@ -326,7 +326,7 @@ export function FoodTracker() {
                         onChange={(e) => setNewOption({ ...newOption, description: e.target.value })}
                         placeholder={`Example:\n1. Season chicken with salt & pepper\n2. Heat pan with olive oil\n3. Cook 6 min each side\n4. Serve with steamed rice`}
                         rows={5}
-                        className="font-mono text-sm bg-white/80"
+                        className="font-mono text-sm bg-background/80"
                         data-testid="input-new-option-recipe"
                       />
                     </div>
@@ -334,7 +334,7 @@ export function FoodTracker() {
                   <Button
                     onClick={() => addOptionMutation.mutate(newOption)}
                     disabled={!newOption.name.trim() || addOptionMutation.isPending}
-                    className={cn("w-full gap-2 text-white", mealConfig[newOption.mealType as keyof typeof mealConfig].addBtnBg)}
+                    className="w-full gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground"
                     data-testid="button-save-new-option"
                   >
                     {addOptionMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -487,8 +487,8 @@ export function FoodTracker() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
-                <ChefHat className="w-4 h-4 text-indigo-600" />
+              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                <ChefHat className="w-4 h-4 text-primary" />
               </div>
               {selectedRecipe?.name}
             </DialogTitle>
@@ -516,7 +516,7 @@ export function FoodTracker() {
                   <Button 
                     onClick={handleSaveRecipe}
                     disabled={updateRecipeMutation.isPending}
-                    className="flex-1 gap-2 bg-indigo-500 hover:bg-indigo-600"
+                    className="flex-1 gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground"
                   >
                     {updateRecipeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Save Recipe
