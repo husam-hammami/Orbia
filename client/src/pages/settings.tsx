@@ -114,7 +114,7 @@ export default function Settings() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border/40 pb-6">
           <div className="space-y-1">
             <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className="border-slate-500/30 text-slate-600 bg-slate-500/5 gap-1">
+              <Badge variant="outline" className="border-border text-muted-foreground bg-muted/50 gap-1">
                 <SettingsIcon className="w-3 h-3" /> Configuration
               </Badge>
             </div>
@@ -139,7 +139,7 @@ export default function Settings() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <User className="w-5 h-5 text-indigo-500" />
+                <User className="w-5 h-5 text-[hsl(var(--chart-4))]" />
                 Profile
               </CardTitle>
               <CardDescription>

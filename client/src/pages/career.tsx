@@ -133,7 +133,7 @@ function AnimatedCheckbox({ checked, onChange }: { checked: boolean; onChange: (
         "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
         checked 
           ? "bg-primary border-transparent" 
-          : "border-slate-300 dark:border-slate-600 hover:border-primary"
+          : "border-border hover:border-primary"
       )}
       whileTap={{ scale: 0.9 }}
     >
@@ -153,7 +153,7 @@ function AnimatedCheckbox({ checked, onChange }: { checked: boolean; onChange: (
   );
 }
 
-const glassCard = "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-lg rounded-2xl";
+const glassCard = "bg-card/80 backdrop-blur-xl border border-border/60 shadow-lg rounded-2xl";
 const glassCardHover = "hover:shadow-xl hover:scale-[1.02] transition-all duration-300";
 
 export default function CareerPage() {
@@ -616,7 +616,7 @@ export default function CareerPage() {
     if (days < 0) return { text: "Overdue", className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" };
     if (days === 0) return { text: "Due today", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" };
     if (days === 1) return { text: "Tomorrow", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" };
-    return { text: `${days} days left`, className: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400" };
+    return { text: `${days} days left`, className: "bg-muted text-muted-foreground" };
   };
 
   const incompleteTasks = tasks.filter(t => t.completed === 0);
@@ -665,7 +665,7 @@ export default function CareerPage() {
     const classes = {
       high: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
       medium: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-      low: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
+      low: "bg-muted text-muted-foreground",
     };
     return classes[priority as keyof typeof classes] || classes.medium;
   };
@@ -678,7 +678,7 @@ export default function CareerPage() {
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: index * 0.05 }}
         onClick={() => { setSelectedTask(task); setIsTaskDialogOpen(true); }}
-        className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors group"
+        className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 cursor-pointer transition-colors group"
       >
         <AnimatedCheckbox 
           checked={task.completed === 1} 
@@ -718,7 +718,7 @@ export default function CareerPage() {
     emptyText?: string;
   }) => (
     <Collapsible open={open} onOpenChange={onOpenChange}>
-      <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+      <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-xl hover:bg-muted/50 transition-colors">
         <div className="flex items-center gap-2">
           <span className={cn("font-semibold text-sm", accentColor)}>{title}</span>
           <Badge variant="secondary" className="text-xs">{tasks.length}</Badge>
@@ -857,10 +857,10 @@ export default function CareerPage() {
                                 variant="outline" 
                                 className={cn(
                                   "text-[10px] font-medium",
-                                  project.status === "in_progress" && "border-slate-400/60 text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50",
-                                  project.status === "planning" && "border-slate-300/60 text-slate-500 dark:text-slate-400",
-                                  project.status === "completed" && "border-slate-400/40 text-slate-500",
-                                  project.status === "ongoing" && "border-slate-400/60 text-slate-600 dark:text-slate-400"
+                                  project.status === "in_progress" && "border-border text-muted-foreground bg-muted/50",
+                                  project.status === "planning" && "border-border/60 text-muted-foreground",
+                                  project.status === "completed" && "border-border/40 text-muted-foreground",
+                                  project.status === "ongoing" && "border-border text-muted-foreground"
                                 )}
                               >
                                 {STATUS_DISPLAY[project.status] || project.status}
@@ -928,12 +928,12 @@ export default function CareerPage() {
                     placeholder="Add a new task..." 
                     value={newTask}
                     onChange={(e) => setNewTask(e.target.value)}
-                    className="flex-1 bg-white/50 dark:bg-slate-800/50 border-slate-200/60 dark:border-slate-700/60 focus:ring-primary/20 focus:border-primary"
+                    className="flex-1 bg-card/50 border-border/60 focus:ring-primary/20 focus:border-primary"
                   />
                   <Button 
                     type="submit" 
                     disabled={!newTask.trim() || createTask.isPending}
-                    className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-200 dark:hover:bg-slate-100 text-white dark:text-slate-900 border-0"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground border-0"
                   >
                     <Plus className="w-4 h-4 mr-2" /> Add Task
                   </Button>
@@ -1060,7 +1060,7 @@ export default function CareerPage() {
                       onClick={fetchCoach}
                       variant="ghost"
                       size="sm"
-                      className="h-7 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      className="h-7 text-xs text-muted-foreground hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
                       <RefreshCw className="w-3 h-3 mr-1" />
                       Refresh
@@ -1105,7 +1105,7 @@ export default function CareerPage() {
                               )}
                               {shouldCollapse ? (
                                 <Collapsible open={isExpanded} onOpenChange={() => togglePhaseExpanded(index)}>
-                                  <CollapsibleTrigger className="w-full p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                  <CollapsibleTrigger className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition-colors">
                                     <div className="flex items-center gap-2">
                                       <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
                                         <TrendingUp className="w-3 h-3 text-primary" />
@@ -1396,7 +1396,7 @@ export default function CareerPage() {
                               <p className="text-xs text-muted-foreground">{activePhase.timeframe}</p>
                             </div>
                             
-                            <div className="p-2.5 rounded-lg bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 mb-3">
+                            <div className="p-2.5 rounded-lg bg-muted/80 border border-border/60 mb-3">
                               <div className="flex items-center justify-between text-xs mb-1.5">
                                 <span className="text-muted-foreground">Phase Progress</span>
                                 <span className="font-medium text-primary">
@@ -1421,7 +1421,7 @@ export default function CareerPage() {
                               {activePhase.milestones?.filter(m => !isMilestoneCompleted(activePhaseIndex, m)).slice(0, 4).map((milestone, mIdx) => (
                                 <div
                                   key={mIdx}
-                                  className="flex items-start gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                                  className="flex items-start gap-2 p-2 rounded-lg bg-muted/50 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
                                   onClick={() => toggleMilestone(activePhaseIndex, milestone)}
                                 >
                                   <AnimatedCheckbox
@@ -1507,7 +1507,7 @@ export default function CareerPage() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               {editingVision.map((item, index) => (
-                <div key={item.id} className="space-y-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                <div key={item.id} className="space-y-2 p-4 rounded-xl bg-muted/50">
                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                     {index === 0 && <Target className="w-4 h-4" />}
                     {index === 1 && <Rocket className="w-4 h-4" />}
@@ -1531,7 +1531,7 @@ export default function CareerPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsVisionDialogOpen(false)}>Cancel</Button>
-              <Button onClick={saveVision} disabled={updateVisionMutation.isPending} className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-200 dark:hover:bg-slate-100 text-white dark:text-slate-900 border-0">
+              <Button onClick={saveVision} disabled={updateVisionMutation.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground border-0">
                 {updateVisionMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 Save Changes
               </Button>
@@ -1622,7 +1622,7 @@ export default function CareerPage() {
                   <X className="w-4 h-4 mr-1" /> Delete
                 </Button>
               )}
-              <Button onClick={handleSaveTask} disabled={updateTask.isPending} className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-200 dark:hover:bg-slate-100 text-white dark:text-slate-900 border-0">
+              <Button onClick={handleSaveTask} disabled={updateTask.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground border-0">
                 {updateTask.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 Save
               </Button>
@@ -1720,7 +1720,7 @@ export default function CareerPage() {
                       size="sm"
                       onClick={handleAddEditingTask}
                       disabled={!newEditingProjectTask.trim()}
-                      className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-200 dark:hover:bg-slate-100 text-white dark:text-slate-900 border-0"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground border-0"
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
@@ -1792,7 +1792,7 @@ export default function CareerPage() {
                   <X className="w-4 h-4 mr-1" /> Delete
                 </Button>
               )}
-              <Button onClick={handleSaveProject} disabled={updateProject.isPending || createProject.isPending} className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-200 dark:hover:bg-slate-100 text-white dark:text-slate-900 border-0">
+              <Button onClick={handleSaveProject} disabled={updateProject.isPending || createProject.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground border-0">
                 {(updateProject.isPending || createProject.isPending) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 {selectedProject?.id ? "Save Changes" : "Create Project"}
               </Button>
@@ -1850,7 +1850,7 @@ export default function CareerPage() {
                     <CircularProgress progress={progress} size={72} strokeWidth={6} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                  <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-muted/50">
                     <div className="space-y-1">
                       <div className="text-xs text-muted-foreground uppercase font-semibold flex items-center gap-1">
                         <Calendar className="w-3 h-3" /> Deadline
@@ -1871,8 +1871,8 @@ export default function CareerPage() {
                   </div>
 
                   {selectedProject.nextAction && (
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
-                      <div className="text-xs text-slate-600 dark:text-slate-400 font-semibold uppercase mb-1">Next Action</div>
+                    <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/60 dark:border-slate-700/60">
+                      <div className="text-xs text-muted-foreground font-semibold uppercase mb-1">Next Action</div>
                       <p className="text-sm text-slate-700 dark:text-slate-300">{selectedProject.nextAction}</p>
                     </div>
                   )}
@@ -1900,7 +1900,7 @@ export default function CareerPage() {
                         size="sm"
                         onClick={() => handleAddProjectTask(selectedProject.id)}
                         disabled={!newProjectTask.trim() || createTask.isPending}
-                        className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-200 dark:hover:bg-slate-100 text-white dark:text-slate-900 border-0"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground border-0"
                       >
                         {createTask.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                       </Button>

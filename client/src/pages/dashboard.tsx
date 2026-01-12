@@ -83,9 +83,9 @@ function getMoodLabel(mood: number) {
 
 function getTimeIcon(time: string | null) {
   if (!time) return <Clock className="w-4 h-4" />;
-  if (time === "morning") return <Sun className="w-4 h-4 text-amber-500" />;
-  if (time === "afternoon") return <Sunset className="w-4 h-4 text-orange-500" />;
-  if (time === "evening" || time === "night") return <Moon className="w-4 h-4 text-indigo-500" />;
+  if (time === "morning") return <Sun className="w-4 h-4 text-[hsl(var(--warning))]" />;
+  if (time === "afternoon") return <Sunset className="w-4 h-4 text-[hsl(var(--chart-3))]" />;
+  if (time === "evening" || time === "night") return <Moon className="w-4 h-4 text-[hsl(var(--chart-4))]" />;
   return <Clock className="w-4 h-4" />;
 }
 
@@ -206,7 +206,7 @@ export default function Dashboard() {
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center space-y-4">
-            <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto" />
+            <AlertTriangle className="w-12 h-12 text-[hsl(var(--warning))] mx-auto" />
             <h2 className="text-xl font-semibold">Unable to load insights</h2>
             <p className="text-muted-foreground">Please try again later</p>
           </div>
@@ -340,7 +340,7 @@ export default function Dashboard() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm text-muted-foreground font-medium">Routine</span>
-                  <Clock className="w-5 h-5 text-blue-500" />
+                  <Clock className="w-5 h-5 text-[hsl(var(--chart-1))]" />
                 </div>
                 <div className="space-y-2">
                   <span className="text-2xl font-bold" data-testid="text-routine-rate">
@@ -363,10 +363,10 @@ export default function Dashboard() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm text-muted-foreground font-medium">Best Streak</span>
-                  <Flame className="w-5 h-5 text-orange-500" />
+                  <Flame className="w-5 h-5 text-[hsl(var(--chart-3))]" />
                 </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent" data-testid="text-streak-count">
+                  <span className="text-3xl font-bold gradient-text" data-testid="text-streak-count">
                     {longestStreak}
                   </span>
                   <span className="text-lg text-muted-foreground">days</span>
@@ -388,7 +388,7 @@ export default function Dashboard() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-purple-500" />
+                    <Activity className="w-5 h-5 text-[hsl(var(--chart-4))]" />
                     Mood Trends
                   </CardTitle>
                   {getTrendBadge(insights.mood.trend7Day.direction)}
@@ -546,35 +546,35 @@ export default function Dashboard() {
             <Card className="bg-card/80 backdrop-blur-xl border border-border/60 shadow-lg" data-testid="card-productivity">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-blue-500" />
+                  <Target className="w-5 h-5 text-[hsl(var(--chart-1))]" />
                   Productivity Pulse
                 </CardTitle>
                 <CardDescription>Task completion overview</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="p-4 rounded-lg bg-blue-50 border border-blue-200/60 text-center">
-                    <p className="text-sm text-blue-600 mb-1">Completion Rate</p>
-                    <p className="text-3xl font-bold text-blue-700" data-testid="text-todo-rate">{insights.todos.completionRate}%</p>
-                    <p className="text-xs text-blue-500">{insights.todos.completedTodos}/{insights.todos.totalTodos} tasks</p>
+                  <div className="p-4 rounded-lg bg-[hsl(var(--info)/0.1)] border border-[hsl(var(--info)/0.2)] text-center">
+                    <p className="text-sm text-[hsl(var(--info))] mb-1">Completion Rate</p>
+                    <p className="text-3xl font-bold text-[hsl(var(--info))]" data-testid="text-todo-rate">{insights.todos.completionRate}%</p>
+                    <p className="text-xs text-[hsl(var(--info))]">{insights.todos.completedTodos}/{insights.todos.totalTodos} tasks</p>
                   </div>
                   <div className={cn(
                     "p-4 rounded-lg border text-center",
                     insights.todos.overdueCount > 0 
-                      ? "bg-red-50 border-red-200/60" 
-                      : "bg-green-50 border-green-200/60"
+                      ? "bg-destructive/10 border-destructive/20" 
+                      : "bg-[hsl(var(--success)/0.1)] border-[hsl(var(--success)/0.2)]"
                   )}>
                     <p className={cn(
                       "text-sm mb-1",
-                      insights.todos.overdueCount > 0 ? "text-red-600" : "text-green-600"
+                      insights.todos.overdueCount > 0 ? "text-destructive" : "text-[hsl(var(--success))]"
                     )}>Overdue</p>
                     <p className={cn(
                       "text-3xl font-bold",
-                      insights.todos.overdueCount > 0 ? "text-red-700" : "text-green-700"
+                      insights.todos.overdueCount > 0 ? "text-destructive" : "text-[hsl(var(--success))]"
                     )} data-testid="text-overdue-count">{insights.todos.overdueCount}</p>
                     <p className={cn(
                       "text-xs",
-                      insights.todos.overdueCount > 0 ? "text-red-500" : "text-green-500"
+                      insights.todos.overdueCount > 0 ? "text-destructive" : "text-[hsl(var(--success))]"
                     )}>{insights.todos.overdueCount > 0 ? "needs attention" : "all caught up!"}</p>
                   </div>
                 </div>
@@ -629,20 +629,20 @@ export default function Dashboard() {
             <Card className="bg-card/80 backdrop-blur-xl border border-border/60 shadow-lg" data-testid="card-journal-wellness">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-indigo-500" />
+                  <BookOpen className="w-5 h-5 text-[hsl(var(--chart-4))]" />
                   Journal & Wellness
                 </CardTitle>
                 <CardDescription>Reflection and self-care tracking</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-200/60 text-center">
-                    <p className="text-sm text-indigo-600 mb-1">Entries (7 days)</p>
-                    <p className="text-2xl font-bold text-indigo-700" data-testid="text-journal-frequency">{insights.journal.entryFrequency7Day}</p>
+                  <div className="p-3 rounded-lg bg-[hsl(var(--chart-4)/0.1)] border border-[hsl(var(--chart-4)/0.2)] text-center">
+                    <p className="text-sm text-[hsl(var(--chart-4))] mb-1">Entries (7 days)</p>
+                    <p className="text-2xl font-bold text-[hsl(var(--chart-4))]" data-testid="text-journal-frequency">{insights.journal.entryFrequency7Day}</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-orange-50 border border-orange-200/60 text-center">
-                    <p className="text-sm text-orange-600 mb-1">Food Logging</p>
-                    <p className="text-2xl font-bold text-orange-700" data-testid="text-food-consistency">{insights.food.mealLoggingConsistency}%</p>
+                  <div className="p-3 rounded-lg bg-[hsl(var(--chart-3)/0.1)] border border-[hsl(var(--chart-3)/0.2)] text-center">
+                    <p className="text-sm text-[hsl(var(--chart-3))] mb-1">Food Logging</p>
+                    <p className="text-2xl font-bold text-[hsl(var(--chart-3))]" data-testid="text-food-consistency">{insights.food.mealLoggingConsistency}%</p>
                   </div>
                 </div>
 
@@ -691,7 +691,7 @@ export default function Dashboard() {
             <Card className="bg-gradient-to-br from-card/90 to-primary/5 backdrop-blur-xl border border-primary/20 shadow-lg" data-testid="card-recommendations">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Lightbulb className="w-5 h-5 text-amber-500" />
+                  <Lightbulb className="w-5 h-5 text-[hsl(var(--warning))]" />
                   Personalized Recommendations
                 </CardTitle>
                 <CardDescription>Actionable insights based on your data</CardDescription>
@@ -704,11 +704,11 @@ export default function Dashboard() {
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.8 + i * 0.1 }}
-                      className="p-4 rounded-xl bg-white/80 border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow"
+                      className="p-4 rounded-xl bg-card/80 border border-border/60 shadow-sm hover:shadow-md transition-shadow"
                       data-testid={`recommendation-${i}`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-lg bg-slate-100">
+                        <div className="p-2 rounded-lg bg-muted">
                           {getCategoryIcon(rec.category)}
                         </div>
                         <div className="flex-1 min-w-0">
