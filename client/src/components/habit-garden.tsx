@@ -12,6 +12,31 @@ interface HabitGardenProps {
   onEdit?: (id: string, data: Partial<Omit<Habit, "id" | "streak" | "completedToday" | "history">>) => void;
 }
 
+// Convert Tailwind bg-color classes to actual CSS color values
+const tailwindColorMap: Record<string, string> = {
+  'bg-blue-500': '#3b82f6',
+  'bg-purple-500': '#a855f7',
+  'bg-amber-500': '#f59e0b',
+  'bg-pink-500': '#ec4899',
+  'bg-green-500': '#22c55e',
+  'bg-teal-500': '#14b8a6',
+  'bg-orange-500': '#f97316',
+  'bg-indigo-500': '#6366f1',
+  'bg-red-500': '#ef4444',
+  'bg-yellow-500': '#eab308',
+  'bg-cyan-500': '#06b6d4',
+  'bg-emerald-500': '#10b981',
+  'bg-rose-500': '#f43f5e',
+  'bg-violet-500': '#8b5cf6',
+  'bg-sky-500': '#0ea5e9',
+  'bg-lime-500': '#84cc16',
+  'bg-fuchsia-500': '#d946ef',
+};
+
+function getActualColor(tailwindClass: string): string {
+  return tailwindColorMap[tailwindClass] || '#14b8a6'; // Default to teal if not found
+}
+
 // Map categories to icons (case-insensitive)
 const CategoryIconsMap: Record<string, any> = {
   health: LucideIcons.Heart,
@@ -39,6 +64,9 @@ function getCategoryIcon(category: string) {
 const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () => void; onDelete: () => void }) => {
   const isCompleted = habit.completedToday;
   const streak = habit.streak;
+  
+  // Convert Tailwind class to actual CSS color
+  const actualColor = getActualColor(habit.color);
   
   // Determine growth stage based on streak
   let stage = "seed";
@@ -88,8 +116,8 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 className="absolute inset-0 rounded-full"
                 style={{ 
-                  backgroundColor: habit.color,
-                  boxShadow: `0 0 20px ${habit.color}60, 0 0 40px ${habit.color}30`
+                  backgroundColor: actualColor,
+                  boxShadow: `0 0 20px ${actualColor}99, 0 0 40px ${actualColor}50`
                 }}
               />
             ) : (
