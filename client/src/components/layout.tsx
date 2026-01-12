@@ -237,21 +237,10 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
   return (
     <>
       <header className="sticky top-0 z-40 md:hidden overflow-hidden">
-        <div className="relative bg-gradient-to-b from-primary/10 via-accent/5 to-background">
-          <div className="absolute inset-0 overflow-hidden">
-            <motion.div
-              animate={{ 
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 0.5, 0.3]
-              }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -top-16 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 blur-3xl"
-            />
-          </div>
-
-          <div className="relative z-10 px-4 pt-2 pb-2">
+        <div className="relative">
+          <div className="relative z-10 px-4 pt-3 pb-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 w-20">
                 {lockContext && (
                   <motion.button
                     whileTap={{ scale: 0.85 }}
@@ -263,13 +252,13 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                       }
                     }}
                     className={cn(
-                      "w-9 h-9 rounded-xl flex items-center justify-center transition-all",
-                      "bg-card/70 backdrop-blur-md border border-border/50 shadow-sm",
-                      lockContext.hasPassword ? "text-primary" : "text-muted-foreground"
+                      "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+                      "bg-card/80 backdrop-blur-md border border-primary/30 shadow-lg shadow-primary/10",
+                      lockContext.hasPassword ? "text-primary" : "text-foreground"
                     )}
                     data-testid="button-mobile-lock"
                   >
-                    <Lock className="w-4 h-4" />
+                    <Lock className="w-5 h-5" />
                   </motion.button>
                 )}
               </div>
@@ -278,39 +267,39 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                className="relative flex-1 flex justify-center"
+                className="relative flex justify-center"
               >
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-                  className="absolute -inset-2 rounded-full bg-gradient-to-r from-primary/15 via-accent/15 to-primary/15 blur-lg opacity-60"
+                  className="absolute -inset-6 rounded-full bg-gradient-to-r from-primary/25 via-accent/25 to-primary/25 blur-2xl opacity-80"
                 />
                 <motion.img 
                   src={logoUrl} 
                   alt="Orbia" 
-                  className="h-16 w-auto object-contain relative z-10 drop-shadow-md" 
+                  className="h-20 w-auto object-contain relative z-10 drop-shadow-xl" 
                   whileTap={{ scale: 0.95 }}
                 />
               </motion.div>
               
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 w-20 justify-end">
                 <motion.button
                   whileTap={{ scale: 0.85 }}
                   onClick={toggleDarkMode}
-                  className="w-9 h-9 rounded-xl flex items-center justify-center bg-card/70 backdrop-blur-md border border-border/50 shadow-sm text-muted-foreground"
+                  className="w-10 h-10 rounded-xl flex items-center justify-center bg-card/80 backdrop-blur-md border border-primary/30 shadow-lg shadow-primary/10 text-foreground"
                 >
-                  {isDark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                  {isDark ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
                 </motion.button>
                 
                 <Popover open={showThemeMenu} onOpenChange={setShowThemeMenu}>
                   <PopoverTrigger asChild>
                     <motion.button
                       whileTap={{ scale: 0.85 }}
-                      className="w-9 h-9 rounded-xl flex items-center justify-center bg-card/70 backdrop-blur-md border border-border/50 shadow-sm"
+                      className="w-10 h-10 rounded-xl flex items-center justify-center bg-card/80 backdrop-blur-md border border-primary/30 shadow-lg shadow-primary/10"
                       data-testid="button-mobile-theme"
                     >
                       <div 
-                        className="w-5 h-5 rounded-full border-2 border-white/50 shadow-inner"
+                        className="w-6 h-6 rounded-full border-2 border-white/50 shadow-lg"
                         style={{ 
                           background: `linear-gradient(135deg, hsl(${(isDark ? currentTheme.dark : currentTheme.light)['--primary']}), hsl(${(isDark ? currentTheme.dark : currentTheme.light)['--accent']}))` 
                         }}
@@ -376,13 +365,40 @@ export function Layout({ children, lockContext }: LayoutProps) {
       </aside>
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+        <div className="absolute inset-0 md:hidden overflow-hidden pointer-events-none">
+          <motion.div
+            animate={{ 
+              scale: [1, 1.3, 1],
+              opacity: [0.2, 0.4, 0.2]
+            }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -top-32 -left-32 w-80 h-80 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 blur-3xl"
+          />
+          <motion.div
+            animate={{ 
+              scale: [1.2, 1, 1.2],
+              opacity: [0.15, 0.35, 0.15]
+            }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            className="absolute top-1/3 -right-20 w-64 h-64 rounded-full bg-gradient-to-bl from-accent/25 to-primary/25 blur-3xl"
+          />
+          <motion.div
+            animate={{ 
+              scale: [1, 1.15, 1],
+              opacity: [0.1, 0.3, 0.1]
+            }}
+            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+            className="absolute bottom-1/4 left-1/4 w-48 h-48 rounded-full bg-gradient-to-tr from-primary/20 to-accent/20 blur-3xl"
+          />
+        </div>
+
         <MobileHeader lockContext={lockContext} />
 
         <div className="hidden md:block">
           <GardenTopBar />
         </div>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 md:pb-0">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 md:pb-0 relative z-10">
           <div className="w-full px-3 md:px-6 lg:px-8 xl:px-10 py-3 md:py-6 lg:py-8 space-y-4 md:space-y-6">
             {children}
           </div>
