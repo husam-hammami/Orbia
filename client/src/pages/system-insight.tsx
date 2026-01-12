@@ -292,7 +292,7 @@ export default function SystemInsight() {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-6 h-6 animate-spin text-teal-600" />
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
         ) : (
           <>
@@ -317,7 +317,7 @@ export default function SystemInsight() {
                         </CardTitle>
                         <CardDescription>Manage your state directory</CardDescription>
                       </div>
-                      <Button onClick={openAddDialog} className="bg-teal-700 hover:bg-teal-600 text-white" data-testid="button-add-member">
+                      <Button onClick={openAddDialog} className="bg-primary hover:bg-primary/90 text-primary-foreground" data-testid="button-add-member">
                         <Plus className="w-4 h-4 mr-2" /> Add State
                       </Button>
                     </div>
@@ -493,7 +493,7 @@ export default function SystemInsight() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)} data-testid="button-cancel-member">
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={createMember.isPending || updateMember.isPending} className="bg-teal-700 hover:bg-teal-600 text-white" data-testid="button-save-member">
+            <Button onClick={handleSave} disabled={createMember.isPending || updateMember.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground" data-testid="button-save-member">
               {(createMember.isPending || updateMember.isPending) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {editingMember ? "Save Changes" : "Add State"}
             </Button>
