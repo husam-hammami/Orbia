@@ -38,35 +38,55 @@ export function HabitCard({ habit, onToggle }: HabitCardProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "group relative bg-card rounded-2xl border border-border shadow-sm hover:shadow-md transition-all duration-300",
-        completed && "bg-opacity-50 border-primary/20"
+        "group relative bg-card rounded-2xl border shadow-sm hover:shadow-md transition-all duration-300",
+        completed 
+          ? "border-primary/40 shadow-[0_0_20px_-5px_hsl(var(--primary)/0.4),0_0_40px_-10px_hsl(var(--accent)/0.3)] bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5" 
+          : "border-border"
       )}
     >
       <div className="p-5 flex items-center gap-4">
-        {/* Check Button */}
+        {/* Check Button with Glow */}
         <button
           onClick={handleToggle}
+          data-testid={`button-habit-toggle-${habit.id}`}
           className={cn(
             "relative flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300",
             completed
-              ? "bg-primary text-primary-foreground shadow-sm scale-105"
-              : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-secondary-foreground"
+              ? "bg-gradient-to-br from-primary via-accent to-primary text-primary-foreground shadow-[0_0_15px_hsl(var(--primary)/0.5),0_0_30px_hsl(var(--accent)/0.3)] scale-110"
+              : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-secondary-foreground hover:scale-105"
           )}
         >
+          {/* Animated glow ring when completed */}
+          {completed && (
+            <motion.div
+              className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/30 via-accent/20 to-primary/30"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ 
+                opacity: [0.5, 0.8, 0.5], 
+                scale: [1, 1.1, 1]
+              }}
+              transition={{ 
+                duration: 2, 
+                repeat: Infinity, 
+                ease: "easeInOut" 
+              }}
+            />
+          )}
           <AnimatePresence mode="wait">
             {completed && (
               <motion.div
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.5, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0, rotate: 180 }}
+                transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                className="relative z-10"
               >
-                <Check className="w-6 h-6 stroke-[3px]" />
+                <Check className="w-6 h-6 stroke-[3px] drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
               </motion.div>
             )}
           </AnimatePresence>
           {!completed && (
-             <div className="w-6 h-6 rounded-full border-2 border-current opacity-20 group-hover:opacity-40" />
+             <div className="w-6 h-6 rounded-full border-2 border-current opacity-30 group-hover:opacity-50 transition-opacity" />
           )}
         </button>
 
