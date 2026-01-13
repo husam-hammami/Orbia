@@ -77,9 +77,9 @@
   --popover: 350 50% 99%;
   --popover-foreground: 350 20% 20%;
 
-  /* Rose Primary - Warm & Friendly */
+  /* Rose Primary - Warm & Friendly with dark text for contrast */
   --primary: 340 75% 65%;
-  --primary-foreground: 0 0% 100%;
+  --primary-foreground: 340 30% 15%;
 
   /* Peach Secondary */
   --secondary: 30 80% 92%;

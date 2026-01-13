@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Zap, Heart, Moon, Loader2, Pencil, Trash2, Save } from "lucide-react";
@@ -17,7 +17,7 @@ interface EmojiSelectorProps {
   selected: number | null;
   onSelect: (value: number) => void;
   label: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }
 
 function EmojiSelector({ options, selected, onSelect, label, icon }: EmojiSelectorProps) {
