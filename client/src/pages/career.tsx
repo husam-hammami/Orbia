@@ -746,9 +746,7 @@ export default function CareerPage() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-2"
         >
-          <h1 className="text-3xl md:text-4xl font-display font-bold text-primary">
-            Career & Vision
-          </h1>
+          <h1 className="text-3xl md:text-4xl font-display font-bold text-primary">Goals & Vision</h1>
           <p className="text-muted-foreground">Your professional growth dashboard</p>
         </motion.div>
 
