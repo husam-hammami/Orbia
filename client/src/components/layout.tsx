@@ -240,7 +240,7 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
         <div className="relative">
           <div className="relative z-10 px-4 pt-3 pb-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 w-20">
+              <div className="flex items-center gap-1.5 w-16">
                 {lockContext && (
                   <motion.button
                     whileTap={{ scale: 0.85 }}
@@ -267,22 +267,43 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                className="relative flex justify-center"
+                className="relative flex justify-center items-center"
               >
+                {/* Multi-layer glow effect for hero logo */}
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                    opacity: [0.4, 0.7, 0.4]
+                  }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute inset-0 -m-8 rounded-full bg-gradient-to-r from-primary/40 via-accent/40 to-primary/40 blur-3xl"
+                />
                 <motion.div
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-                  className="absolute -inset-6 rounded-full bg-gradient-to-r from-primary/25 via-accent/25 to-primary/25 blur-2xl opacity-80"
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-0 -m-4 rounded-full bg-gradient-to-r from-primary/30 via-accent/30 to-primary/30 blur-2xl"
+                />
+                <motion.div
+                  animate={{ 
+                    scale: [1.1, 1, 1.1],
+                    rotate: [-10, 10, -10]
+                  }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute inset-0 -m-2 rounded-full bg-gradient-radial from-white/20 to-transparent blur-xl"
                 />
                 <motion.img 
                   src={logoUrl} 
                   alt="Orbia" 
-                  className="h-20 w-auto object-contain relative z-10 drop-shadow-xl" 
+                  className="h-32 w-auto object-contain relative z-10 drop-shadow-2xl" 
                   whileTap={{ scale: 0.95 }}
+                  animate={{ 
+                    filter: ["drop-shadow(0 0 20px hsl(var(--primary)/0.3))", "drop-shadow(0 0 40px hsl(var(--primary)/0.5))", "drop-shadow(0 0 20px hsl(var(--primary)/0.3))"]
+                  }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 />
               </motion.div>
               
-              <div className="flex items-center gap-1.5 w-20 justify-end">
+              <div className="flex items-center gap-1.5 w-16 justify-end">
                 <motion.button
                   whileTap={{ scale: 0.85 }}
                   onClick={toggleDarkMode}

@@ -236,7 +236,7 @@ export function JournalTab() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-lg">
+                <div className="p-2 rounded-xl bg-primary/15 text-primary shadow-sm">
                   <BookOpen className="w-5 h-5" />
                 </div>
                 <div>
@@ -249,7 +249,7 @@ export function JournalTab() {
                 <Button 
                   onClick={() => setIsWriting(true)} 
                   size="lg"
-                  className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-lg shadow-primary/25 text-base px-3 md:px-6 min-w-[44px]"
+                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 text-base px-3 md:px-6 min-w-[44px]"
                   data-testid="button-new-entry"
                 >
                   <Plus className="w-5 h-5" />
@@ -276,7 +276,7 @@ export function JournalTab() {
                 <motion.div
                   animate={{ scale: [1, 1.05, 1] }}
                   transition={{ duration: 3, repeat: Infinity }}
-                  className="inline-flex p-5 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 mb-4"
+                  className="inline-flex p-5 rounded-2xl bg-primary/15 mb-4"
                 >
                   <BookOpen className="w-10 h-10 text-primary" />
                 </motion.div>
@@ -286,7 +286,7 @@ export function JournalTab() {
                 </p>
                 <Button 
                   onClick={() => setIsWriting(true)}
-                  className="gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg"
+                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
                   data-testid="button-first-entry"
                 >
                   <Plus className="w-4 h-4" />
@@ -815,7 +815,7 @@ export function JournalTab() {
               <Button 
                 onClick={handleSubmit}
                 disabled={createMutation.isPending || updateMutation.isPending || !content.trim()}
-                className="flex-1 gap-2 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600"
+                className="flex-1 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                 data-testid="button-save-entry"
               >
                 <Save className="w-4 h-4" />

@@ -125,7 +125,7 @@ export function TodoList() {
             onClick={handleAdd} 
             size="icon" 
             disabled={!newTodo.trim() || createTodo.isPending} 
-            className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground shadow-md min-w-[44px] h-11"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md min-w-[44px] h-11"
             data-testid="button-add-todo"
           >
             <Plus className="w-4 h-4" />
@@ -179,7 +179,7 @@ export function TodoList() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center py-12"
         >
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/15 flex items-center justify-center">
             <CheckCircle2 className="w-8 h-8 text-primary" />
           </div>
           <p className="text-lg font-medium text-foreground mb-1">No tasks yet</p>

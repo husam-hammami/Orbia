@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Smile, Frown, Meh, Zap, Sun, Cloud, Heart, Sparkles, ChevronDown, ChevronUp, Clock, Loader2, Moon, Pencil, Trash2 } from "lucide-react";
+import { Zap, Heart, Moon, Loader2, Pencil, Trash2, Save, BatteryFull, BatteryMedium, BatteryLow } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { useTrackerEntries, useCreateTrackerEntry, useUpdateTrackerEntry, useDeleteTrackerEntry } from "@/lib/api-hooks";
 import { toast } from "sonner";
@@ -12,23 +11,139 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { TrackerEntry } from "@shared/schema";
 
+// Circular selector component for mood/energy
+interface CircularSelectorProps {
+  options: { value: number; emoji: string; label: string }[];
+  selected: number | null;
+  onSelect: (value: number) => void;
+  label: string;
+  icon: React.ReactNode;
+  color: string;
+}
+
+function CircularSelector({ options, selected, onSelect, label, icon, color }: CircularSelectorProps) {
+  const selectedOption = options.find(o => o.value === selected);
+  
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+        {icon}
+        {label}
+      </span>
+      <div className="relative">
+        {/* Center display */}
+        <motion.div
+          key={selected}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className={cn(
+            "w-16 h-16 rounded-full flex items-center justify-center",
+            "bg-gradient-to-br from-card to-muted/50 border-2 shadow-lg",
+            selected ? `border-${color}` : "border-border"
+          )}
+          style={{ borderColor: selected ? `hsl(var(--${color}))` : undefined }}
+        >
+          <span className="text-2xl">{selectedOption?.emoji || "🤔"}</span>
+        </motion.div>
+        
+        {/* Circular options */}
+        <div className="absolute inset-0">
+          {options.map((option, index) => {
+            const angle = (index / options.length) * 360 - 90;
+            const radius = 44;
+            const x = Math.cos((angle * Math.PI) / 180) * radius;
+            const y = Math.sin((angle * Math.PI) / 180) * radius;
+            const isSelected = selected === option.value;
+            
+            return (
+              <motion.button
+                key={option.value}
+                onClick={() => onSelect(option.value)}
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.9 }}
+                className={cn(
+                  "absolute w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                  "text-lg shadow-md border-2",
+                  isSelected 
+                    ? "bg-primary border-primary scale-110 ring-2 ring-primary/30" 
+                    : "bg-card/90 border-border/60 hover:border-primary/50"
+                )}
+                style={{
+                  left: `calc(50% + ${x}px - 16px)`,
+                  top: `calc(50% + ${y}px - 16px)`,
+                }}
+                data-testid={`selector-${label.toLowerCase()}-${option.value}`}
+              >
+                {option.emoji}
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+      <span className="text-xs text-muted-foreground min-h-[16px]">
+        {selectedOption?.label || "Tap to select"}
+      </span>
+    </div>
+  );
+}
+
+// Quick-tap sleep selector
+interface SleepSelectorProps {
+  value: number;
+  onChange: (value: number) => void;
+}
+
+function SleepSelector({ value, onChange }: SleepSelectorProps) {
+  const options = [4, 5, 6, 7, 8, 9, 10];
+  
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+          <Moon className="w-3.5 h-3.5" />
+          Sleep
+        </span>
+        <span className="text-sm font-mono text-primary">{value}h</span>
+      </div>
+      <div className="flex gap-1">
+        {options.map((hours) => (
+          <motion.button
+            key={hours}
+            onClick={() => onChange(hours)}
+            whileTap={{ scale: 0.9 }}
+            className={cn(
+              "flex-1 py-2 rounded-lg text-xs font-medium transition-all",
+              value === hours 
+                ? "bg-primary text-primary-foreground shadow-md" 
+                : "bg-muted/50 text-muted-foreground hover:bg-muted"
+            )}
+            data-testid={`sleep-${hours}`}
+          >
+            {hours}
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function MoodTracker() {
   const { data: trackerEntries, isLoading: entriesLoading } = useTrackerEntries(30);
   const createEntryMutation = useCreateTrackerEntry();
   const updateEntryMutation = useUpdateTrackerEntry();
   const deleteEntryMutation = useDeleteTrackerEntry();
 
-  const [isExpanded, setIsExpanded] = useState(true);
   const [editingEntry, setEditingEntry] = useState<TrackerEntry | null>(null);
   const [deletingEntryId, setDeletingEntryId] = useState<string | null>(null);
   const [editMood, setEditMood] = useState([5]);
   const [editEnergy, setEditEnergy] = useState([5]);
   const [editNotes, setEditNotes] = useState("");
-  const [mood, setMood] = useState<string | null>(null);
-  const [energy, setEnergy] = useState([5]);
-  const [sleep, setSleep] = useState([7.5]);
+  
+  const [mood, setMood] = useState<number | null>(null);
+  const [energy, setEnergy] = useState<number | null>(null);
+  const [sleep, setSleep] = useState(7);
   const [note, setNote] = useState("");
-  const [entryTime, setEntryTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  const [showNote, setShowNote] = useState(false);
 
   const getTimeOfDay = (): string => {
     const hour = new Date().getHours();
@@ -42,49 +157,39 @@ export function MoodTracker() {
     const entryDate = format(new Date(entry.timestamp), "yyyy-MM-dd");
     const today = format(new Date(), "yyyy-MM-dd");
     return entryDate === today;
-  }).map(entry => ({
-    time: format(new Date(entry.timestamp), "HH:mm"),
-    mood: entry.mood <= 3 ? "rough" : entry.mood <= 5 ? "okay" : entry.mood <= 7 ? "good" : "great"
-  }));
+  });
 
-  const emotionalStates = [
-    { value: "rough", icon: Cloud, color: "text-slate-500", bg: "bg-slate-100", label: "Rough Day", emoji: "😔" },
-    { value: "meh", icon: Meh, color: "text-amber-500", bg: "bg-amber-100", label: "Just Meh", emoji: "😐" },
-    { value: "okay", icon: Sun, color: "text-yellow-500", bg: "bg-yellow-100", label: "Doing Okay", emoji: "🙂" },
-    { value: "good", icon: Smile, color: "text-green-500", bg: "bg-green-100", label: "Good!", emoji: "😊" },
-    { value: "great", icon: Sparkles, color: "text-pink-500", bg: "bg-pink-100", label: "Wonderful!", emoji: "✨" },
+  const moodOptions = [
+    { value: 1, emoji: "😢", label: "Struggling" },
+    { value: 2, emoji: "😔", label: "Rough" },
+    { value: 3, emoji: "😐", label: "Meh" },
+    { value: 4, emoji: "🙂", label: "Okay" },
+    { value: 5, emoji: "😊", label: "Good" },
+    { value: 6, emoji: "😄", label: "Great" },
   ];
 
-  const quickTags = [
-    "Productive", "Tired", "Excited", "Relaxed", "Anxious", "Motivated", 
-    "Creative", "Social", "Cozy", "Focused"
+  const energyOptions = [
+    { value: 1, emoji: "🪫", label: "Drained" },
+    { value: 2, emoji: "😴", label: "Tired" },
+    { value: 3, emoji: "😌", label: "Calm" },
+    { value: 4, emoji: "⚡", label: "Active" },
+    { value: 5, emoji: "🔥", label: "Energized" },
+    { value: 6, emoji: "🚀", label: "Supercharged" },
   ];
-
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-
-  const toggleTag = (tag: string) => {
-    if (selectedTags.includes(tag)) {
-      setSelectedTags(selectedTags.filter(t => t !== tag));
-    } else {
-      setSelectedTags([...selectedTags, tag]);
-    }
-  };
 
   const handleAddEntry = () => {
-    const moodValue = mood === "rough" ? 2 : mood === "meh" ? 4 : mood === "okay" ? 5 : mood === "good" ? 7 : mood === "great" ? 9 : 5;
-    
-    const noteParts = [];
-    if (note) noteParts.push(note);
-    if (selectedTags.length > 0) noteParts.push(`Feeling: ${selectedTags.join(", ")}`);
-    if (sleep[0] > 0) noteParts.push(`Sleep: ${sleep[0]}h`);
+    if (!mood || !energy) {
+      toast.error("Please select both mood and energy");
+      return;
+    }
 
     createEntryMutation.mutate({
       frontingMemberId: null,
-      mood: moodValue,
-      energy: energy[0],
+      mood: mood * 1.67, // Scale 1-6 to 1-10
+      energy: energy * 1.67,
       stress: 0,
       dissociation: 0,
-      sleepHours: sleep[0] > 0 ? sleep[0] : null,
+      sleepHours: sleep,
       sleepQuality: null,
       capacity: null,
       pain: null,
@@ -92,14 +197,15 @@ export function MoodTracker() {
       workLoad: null,
       workTag: null,
       timeOfDay: getTimeOfDay(),
-      notes: noteParts.join(" | "),
+      notes: note || null,
       timestamp: new Date(),
     }, {
       onSuccess: () => {
-        toast.success("How you're feeling has been logged!");
+        toast.success("Check-in logged! 💫");
         setNote("");
-        setSelectedTags([]);
         setMood(null);
+        setEnergy(null);
+        setShowNote(false);
       },
       onError: () => toast.error("Oops! Something went wrong"),
     });
@@ -142,280 +248,219 @@ export function MoodTracker() {
     });
   };
 
+  const canSubmit = mood !== null && energy !== null;
+
   return (
     <>
-    <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden transition-all duration-300">
-      <div className="p-4 flex items-center justify-between gap-4">
-         <div className="flex items-center gap-4 flex-1">
-            <div>
-                <h3 className="font-display font-semibold text-lg hidden sm:block">How are you feeling?</h3>
-                <p className="text-[10px] text-muted-foreground hidden sm:block">
-                    {entriesToday.length} check-ins today{entriesToday.length > 0 ? ` • Last at ${entriesToday[entriesToday.length-1]?.time}` : ''}
+      <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm overflow-hidden">
+        {/* Header */}
+        <div className="p-4 border-b border-border/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/15">
+                <Heart className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">How are you?</h3>
+                <p className="text-xs text-muted-foreground">
+                  {entriesToday.length} check-in{entriesToday.length !== 1 ? "s" : ""} today
                 </p>
+              </div>
             </div>
             
-            <div className="flex gap-1.5 bg-muted/30 p-1.5 rounded-full">
-                {emotionalStates.map((m) => {
-                  const Icon = m.icon;
-                  const isSelected = mood === m.value;
-                  return (
-                    <motion.button
-                      key={m.value}
-                      onClick={(e) => { e.stopPropagation(); setMood(m.value); }}
-                      title={m.label}
-                      whileHover={{ scale: 1.15 }}
-                      whileTap={{ scale: 0.95 }}
-                      className={cn(
-                        "p-2.5 rounded-full transition-all duration-300 relative",
-                        isSelected 
-                          ? `${m.bg} ${m.color} ring-2 ring-offset-1` 
-                          : "text-muted-foreground hover:bg-muted"
-                      )}
-                      data-testid={`button-mood-${m.value}`}
-                    >
-                      <span className="text-lg">{m.emoji}</span>
-                    </motion.button>
-                  );
-                })}
-            </div>
-         </div>
-
-            {isExpanded && (
-                <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-md border border-border/50">
-                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                    <input 
-                        type="time" 
-                        value={entryTime}
-                        onChange={(e) => setEntryTime(e.target.value)}
-                        className="bg-transparent text-xs font-mono focus:outline-none w-16"
-                    />
-                </div>
-            )}
-
-            <Button 
-            variant={isExpanded ? "secondary" : "default"} 
-            size="sm" 
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="shrink-0"
-         >
-            {isExpanded ? "Close" : "Check In"}
-            {isExpanded ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
-         </Button>
-      </div>
-
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="border-t border-border"
-          >
-            <div className="p-4 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                <div className="space-y-4">
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 p-4 rounded-xl border border-purple-100/50 dark:border-purple-900/30">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Zap className="w-4 h-4 text-amber-500" />
-                      <span className="text-sm font-medium">Energy Level</span>
-                      <span className="ml-auto text-sm font-mono text-amber-600">
-                        {energy[0] <= 3 ? "Low" : energy[0] <= 6 ? "Medium" : "High"}
-                      </span>
-                    </div>
-                    <Slider 
-                      value={energy} 
-                      onValueChange={setEnergy} 
-                      max={10} 
-                      step={1} 
-                      className="h-3"
-                      data-testid="slider-energy"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                      <span>Running on empty</span>
-                      <span>Full of energy!</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 p-4 rounded-xl border border-indigo-100/50 dark:border-indigo-900/30">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Moon className="w-4 h-4 text-indigo-500" />
-                      <span className="text-sm font-medium">Sleep Last Night</span>
-                      <span className="ml-auto text-sm font-mono text-indigo-600">{sleep[0]}h</span>
-                    </div>
-                    <Slider 
-                      value={sleep} 
-                      onValueChange={setSleep} 
-                      max={12} 
-                      step={0.5} 
-                      className="h-3"
-                      data-testid="slider-sleep"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200/50 dark:border-slate-800/50">
-                    <span className="text-sm font-medium block mb-3">Quick Tags</span>
-                    <div className="flex flex-wrap gap-2">
-                      {quickTags.map(tag => (
-                        <button
-                          key={tag}
-                          onClick={() => toggleTag(tag)}
-                          data-testid={`button-tag-${tag.toLowerCase()}`}
-                          className={cn(
-                            "text-xs px-3 py-1.5 rounded-full transition-all",
-                            selectedTags.includes(tag)
-                              ? "bg-teal-100 text-teal-700 ring-1 ring-teal-300 dark:bg-teal-900/50 dark:text-teal-300"
-                              : "bg-muted hover:bg-muted/80 text-muted-foreground"
-                          )}
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Textarea 
-                    placeholder="What's on your mind? (optional)"
-                    className="bg-white dark:bg-slate-900 border-slate-200/50 dark:border-slate-800/50 resize-none h-24 text-sm"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    data-testid="textarea-note"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <Button
-                  onClick={handleAddEntry}
-                  disabled={!mood || createEntryMutation.isPending}
-                  className="bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 shadow-lg shadow-teal-600/20"
-                  data-testid="button-log-entry"
+            <AnimatePresence>
+              {canSubmit && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
                 >
-                  {createEntryMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Heart className="w-4 h-4 mr-2" />
-                  )}
-                  Log Check-In
-                </Button>
-              </div>
-
-              {entriesLoading ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : trackerEntries && trackerEntries.length > 0 ? (
-                <div className="space-y-2 pt-4 border-t border-border/50">
-                  <h4 className="text-sm font-medium text-muted-foreground">Recent Check-Ins</h4>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {trackerEntries.slice(0, 5).map((entry) => {
-                      const moodState = entry.mood <= 3 ? emotionalStates[0] : 
-                                       entry.mood <= 4 ? emotionalStates[1] : 
-                                       entry.mood <= 5 ? emotionalStates[2] : 
-                                       entry.mood <= 7 ? emotionalStates[3] : emotionalStates[4];
-                      return (
-                        <motion.div
-                          key={entry.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group"
-                        >
-                          <span className="text-xl">{moodState.emoji}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">{moodState.label}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {format(new Date(entry.timestamp), "MMM d, h:mm a")}
-                              </span>
-                            </div>
-                            {entry.notes && (
-                              <p className="text-xs text-muted-foreground truncate">{entry.notes}</p>
-                            )}
-                          </div>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditDialog(entry)}
-                              className="h-7 w-7 p-0"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDeletingEntryId(entry.id)}
-                              className="h-7 w-7 p-0 text-red-500 hover:text-red-600"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-
-    <Dialog open={!!editingEntry} onOpenChange={() => setEditingEntry(null)}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Edit Check-In</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Mood (1-10)</label>
-            <Slider value={editMood} onValueChange={setEditMood} max={10} step={1} />
-            <span className="text-xs text-muted-foreground">{editMood[0]}/10</span>
+                  <Button 
+                    onClick={handleAddEntry}
+                    disabled={createEntryMutation.isPending}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+                    data-testid="button-log-entry"
+                  >
+                    {createEntryMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Log
+                      </>
+                    )}
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Energy (1-10)</label>
-            <Slider value={editEnergy} onValueChange={setEditEnergy} max={10} step={1} />
-            <span className="text-xs text-muted-foreground">{editEnergy[0]}/10</span>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Notes</label>
-            <Textarea 
-              value={editNotes} 
-              onChange={(e) => setEditNotes(e.target.value)}
-              placeholder="How were you feeling?"
-              className="resize-none"
+        </div>
+        
+        {/* Circular selectors */}
+        <div className="p-6">
+          <div className="flex justify-center gap-8 md:gap-16">
+            <CircularSelector
+              options={moodOptions}
+              selected={mood}
+              onSelect={setMood}
+              label="Mood"
+              icon={<span className="text-sm">💭</span>}
+              color="primary"
+            />
+            <CircularSelector
+              options={energyOptions}
+              selected={energy}
+              onSelect={setEnergy}
+              label="Energy"
+              icon={<Zap className="w-3.5 h-3.5 text-amber-500" />}
+              color="accent"
             />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setEditingEntry(null)}>Cancel</Button>
-          <Button onClick={handleUpdateEntry} disabled={updateEntryMutation.isPending}>
-            {updateEntryMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        
+        {/* Sleep and notes section */}
+        <div className="px-4 pb-4 space-y-3">
+          <SleepSelector value={sleep} onChange={setSleep} />
+          
+          <motion.div 
+            initial={false}
+            animate={{ height: showNote ? "auto" : 0, opacity: showNote ? 1 : 0 }}
+            className="overflow-hidden"
+          >
+            <Textarea 
+              placeholder="Quick note (optional)..."
+              className="bg-muted/30 border-border resize-none h-20 text-sm mt-2"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              data-testid="textarea-note"
+            />
+          </motion.div>
+          
+          <button
+            onClick={() => setShowNote(!showNote)}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          >
+            <Pencil className="w-3 h-3" />
+            {showNote ? "Hide note" : "Add note"}
+          </button>
+        </div>
+        
+        {/* Recent entries */}
+        {entriesToday.length > 0 && (
+          <div className="border-t border-border/50 px-4 py-3 bg-muted/20">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <span className="text-xs text-muted-foreground shrink-0">Today:</span>
+              {entriesToday.map((entry) => {
+                const moodEmoji = moodOptions.find(m => Math.round(entry.mood / 1.67) === m.value)?.emoji || "🙂";
+                const energyEmoji = energyOptions.find(e => Math.round(entry.energy / 1.67) === e.value)?.emoji || "⚡";
+                return (
+                  <motion.button
+                    key={entry.id}
+                    onClick={() => openEditDialog(entry)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-1 px-2 py-1 bg-card rounded-full border border-border text-xs shrink-0 hover:border-primary/50 transition-colors"
+                  >
+                    <span>{moodEmoji}</span>
+                    <span>{energyEmoji}</span>
+                    <span className="text-muted-foreground">{format(new Date(entry.timestamp), "HH:mm")}</span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
 
-    <AlertDialog open={!!deletingEntryId} onOpenChange={() => setDeletingEntryId(null)}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete this check-in?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will permanently remove this mood entry.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Keep it</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDeleteEntry} className="bg-red-500 hover:bg-red-600">
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      {/* Edit Dialog */}
+      <Dialog open={!!editingEntry} onOpenChange={(open) => !open && setEditingEntry(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit Check-In</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Mood</label>
+              <div className="flex gap-1">
+                {moodOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setEditMood([option.value * 1.67])}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-lg transition-all",
+                      Math.round(editMood[0] / 1.67) === option.value 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-muted hover:bg-muted/80"
+                    )}
+                  >
+                    {option.emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Energy</label>
+              <div className="flex gap-1">
+                {energyOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setEditEnergy([option.value * 1.67])}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-lg transition-all",
+                      Math.round(editEnergy[0] / 1.67) === option.value 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-muted hover:bg-muted/80"
+                    )}
+                  >
+                    {option.emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Textarea 
+              placeholder="Notes..."
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              className="resize-none"
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditingEntry(null)}>Cancel</Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => editingEntry && setDeletingEntryId(editingEntry.id)}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Delete
+            </Button>
+            <Button 
+              onClick={handleUpdateEntry}
+              disabled={updateEntryMutation.isPending}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {updateEntryMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deletingEntryId} onOpenChange={(open) => !open && setDeletingEntryId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete check-in?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this entry.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteEntry} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
