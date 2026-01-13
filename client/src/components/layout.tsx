@@ -380,45 +380,59 @@ interface LayoutProps {
 
 export function Layout({ children, lockContext }: LayoutProps) {
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="flex h-screen w-full overflow-hidden bg-background">
       <aside className="hidden md:block w-64 flex-shrink-0">
         <Sidebar />
       </aside>
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {/* Global animated background - visible on all screen sizes */}
+        {/* Global animated background - covers entire page with animated orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          {/* Top-left primary glow - most prominent */}
           <motion.div
             animate={{ 
-              scale: [1, 1.3, 1],
-              opacity: [0.15, 0.3, 0.15]
+              scale: [1, 1.4, 1],
+              opacity: [0.25, 0.45, 0.25]
             }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute -top-32 -left-32 w-80 h-80 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 blur-3xl"
+            className="absolute -top-20 -left-20 w-96 h-96 rounded-full bg-gradient-to-br from-primary/40 to-accent/40 blur-3xl"
           />
+          {/* Right side accent glow */}
           <motion.div
             animate={{ 
               scale: [1.2, 1, 1.2],
-              opacity: [0.1, 0.25, 0.1]
+              opacity: [0.2, 0.35, 0.2]
             }}
             transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-            className="absolute top-1/3 -right-20 w-64 h-64 rounded-full bg-gradient-to-bl from-accent/25 to-primary/25 blur-3xl"
+            className="absolute top-1/4 -right-16 w-80 h-80 rounded-full bg-gradient-to-bl from-accent/35 to-primary/35 blur-3xl"
           />
+          {/* Center flowing glow */}
           <motion.div
             animate={{ 
-              scale: [1, 1.15, 1],
-              opacity: [0.08, 0.2, 0.08]
+              scale: [1, 1.2, 1],
+              opacity: [0.15, 0.3, 0.15],
+              y: [-20, 20, -20]
             }}
-            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 4 }}
-            className="absolute bottom-1/4 left-1/4 w-48 h-48 rounded-full bg-gradient-to-tr from-primary/20 to-accent/20 blur-3xl"
+            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+            className="absolute top-1/2 left-1/3 w-72 h-72 rounded-full bg-gradient-to-tr from-primary/30 to-accent/30 blur-3xl"
           />
+          {/* Bottom accent glow */}
           <motion.div
             animate={{ 
               scale: [1.1, 1, 1.1],
-              opacity: [0.05, 0.15, 0.05]
+              opacity: [0.15, 0.25, 0.15]
             }}
-            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 6 }}
-            className="absolute bottom-1/3 right-1/4 w-56 h-56 rounded-full bg-gradient-to-tl from-primary/15 to-accent/15 blur-3xl"
+            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 5 }}
+            className="absolute bottom-20 right-1/4 w-64 h-64 rounded-full bg-gradient-to-tl from-primary/25 to-accent/25 blur-3xl"
+          />
+          {/* Extra bottom-left glow for continuity */}
+          <motion.div
+            animate={{ 
+              scale: [1, 1.3, 1],
+              opacity: [0.1, 0.2, 0.1]
+            }}
+            transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 7 }}
+            className="absolute bottom-1/3 -left-10 w-56 h-56 rounded-full bg-gradient-to-r from-accent/20 to-primary/20 blur-3xl"
           />
         </div>
 
