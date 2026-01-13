@@ -24,7 +24,8 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const fullUrl = url.startsWith('/') ? `${API_BASE_URL}${url}` : url;
+  const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
+  const fullUrl = API_BASE_URL ? `${API_BASE_URL}${normalizedUrl}` : normalizedUrl;
   const res = await fetch(fullUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
@@ -43,7 +44,8 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const url = queryKey.join("/") as string;
-    const fullUrl = url.startsWith('/') ? `${API_BASE_URL}${url}` : url;
+    const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
+    const fullUrl = API_BASE_URL ? `${API_BASE_URL}${normalizedUrl}` : normalizedUrl;
     const res = await fetch(fullUrl, {
       credentials: "include",
     });
