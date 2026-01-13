@@ -377,53 +377,126 @@ interface LayoutProps {
   lockContext?: MobileHeaderProps['lockContext'];
 }
 
+function AnimatedBackground() {
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 bg-background">
+      {/* Layer 1: Flowing gradient mesh - primary aurora wave */}
+      <motion.div
+        animate={{ 
+          x: [0, 30, 0],
+          y: [0, -20, 0],
+          rotate: [0, 3, 0],
+          scale: [1, 1.05, 1]
+        }}
+        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -top-1/4 -left-1/4 w-[150%] h-[80%]"
+        style={{
+          background: `
+            radial-gradient(ellipse 80% 60% at 20% 30%, hsl(var(--primary) / 0.35), transparent 60%),
+            radial-gradient(ellipse 60% 50% at 70% 20%, hsl(var(--accent) / 0.3), transparent 55%),
+            radial-gradient(ellipse 50% 40% at 40% 60%, hsl(var(--primary) / 0.2), transparent 50%)
+          `,
+          filter: 'blur(60px)',
+        }}
+      />
+      
+      {/* Layer 2: Secondary flowing wave - moves opposite direction */}
+      <motion.div
+        animate={{ 
+          x: [0, -25, 0],
+          y: [0, 15, 0],
+          rotate: [0, -2, 0]
+        }}
+        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        className="absolute top-1/4 -right-1/4 w-[120%] h-[70%]"
+        style={{
+          background: `
+            radial-gradient(ellipse 70% 55% at 80% 40%, hsl(var(--accent) / 0.3), transparent 55%),
+            radial-gradient(ellipse 55% 45% at 30% 70%, hsl(var(--primary) / 0.25), transparent 50%)
+          `,
+          filter: 'blur(70px)',
+        }}
+      />
+      
+      {/* Layer 3: Center flowing aurora - gentle breathing */}
+      <motion.div
+        animate={{ 
+          opacity: [0.4, 0.6, 0.4],
+          scale: [1, 1.08, 1],
+          y: [-10, 10, -10]
+        }}
+        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+        className="absolute top-1/3 left-1/4 w-[80%] h-[60%]"
+        style={{
+          background: `
+            radial-gradient(ellipse 60% 50% at 50% 50%, hsl(var(--primary) / 0.2), transparent 60%),
+            radial-gradient(ellipse 40% 35% at 60% 40%, hsl(var(--accent) / 0.15), transparent 50%)
+          `,
+          filter: 'blur(80px)',
+        }}
+      />
+      
+      {/* Layer 4: Bottom accent wave */}
+      <motion.div
+        animate={{ 
+          x: [0, 20, 0],
+          opacity: [0.3, 0.5, 0.3]
+        }}
+        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 6 }}
+        className="absolute bottom-0 left-0 w-full h-[50%]"
+        style={{
+          background: `
+            radial-gradient(ellipse 90% 50% at 50% 100%, hsl(var(--primary) / 0.25), transparent 60%),
+            radial-gradient(ellipse 60% 40% at 20% 80%, hsl(var(--accent) / 0.2), transparent 55%)
+          `,
+          filter: 'blur(50px)',
+        }}
+      />
+      
+      {/* Layer 5: Subtle shimmer particles */}
+      <div className="absolute inset-0">
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={i}
+            animate={{
+              opacity: [0.2, 0.5, 0.2],
+              scale: [1, 1.2, 1],
+              y: [0, -10, 0]
+            }}
+            transition={{
+              duration: 8 + i * 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: i * 1.5
+            }}
+            className="absolute rounded-full"
+            style={{
+              width: `${20 + i * 8}px`,
+              height: `${20 + i * 8}px`,
+              left: `${15 + i * 15}%`,
+              top: `${20 + (i % 3) * 25}%`,
+              background: `radial-gradient(circle, hsl(var(--primary) / 0.4), transparent 70%)`,
+              filter: 'blur(8px)',
+            }}
+          />
+        ))}
+      </div>
+      
+      {/* Subtle grain overlay for texture */}
+      <div 
+        className="absolute inset-0 opacity-[0.015]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+        }}
+      />
+    </div>
+  );
+}
+
 export function Layout({ children, lockContext }: LayoutProps) {
   return (
     <>
-      {/* FIXED animated background layer - sits behind everything but visible through transparent content */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 bg-background">
-        <motion.div
-          animate={{ 
-            scale: [1, 1.4, 1],
-            opacity: [0.3, 0.5, 0.3]
-          }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute -top-20 -left-20 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-primary/50 to-accent/50 blur-3xl"
-        />
-        <motion.div
-          animate={{ 
-            scale: [1.2, 1, 1.2],
-            opacity: [0.25, 0.4, 0.25]
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute top-1/4 -right-16 w-96 h-96 rounded-full bg-gradient-to-bl from-accent/45 to-primary/45 blur-3xl"
-        />
-        <motion.div
-          animate={{ 
-            scale: [1, 1.2, 1],
-            opacity: [0.2, 0.35, 0.2],
-            y: [-20, 20, -20]
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-          className="absolute top-1/2 left-1/3 w-80 h-80 rounded-full bg-gradient-to-tr from-primary/40 to-accent/40 blur-3xl"
-        />
-        <motion.div
-          animate={{ 
-            scale: [1.1, 1, 1.1],
-            opacity: [0.2, 0.35, 0.2]
-          }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 5 }}
-          className="absolute bottom-20 right-1/4 w-72 h-72 rounded-full bg-gradient-to-tl from-primary/35 to-accent/35 blur-3xl"
-        />
-        <motion.div
-          animate={{ 
-            scale: [1, 1.3, 1],
-            opacity: [0.15, 0.3, 0.15]
-          }}
-          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 7 }}
-          className="absolute bottom-1/3 -left-10 w-64 h-64 rounded-full bg-gradient-to-r from-accent/30 to-primary/30 blur-3xl"
-        />
-      </div>
+      <AnimatedBackground />
 
       {/* Main layout container - transparent to show animated background */}
       <div className="flex h-screen w-full overflow-hidden relative z-10">
