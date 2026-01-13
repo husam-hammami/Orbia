@@ -159,23 +159,31 @@ export function MoodTracker() {
     return entryDate === today;
   });
 
+  // Map to 0-10 scale with discrete integer values
   const moodOptions = [
-    { value: 1, emoji: "😢", label: "Struggling" },
-    { value: 2, emoji: "😔", label: "Rough" },
-    { value: 3, emoji: "😐", label: "Meh" },
-    { value: 4, emoji: "🙂", label: "Okay" },
-    { value: 5, emoji: "😊", label: "Good" },
-    { value: 6, emoji: "😄", label: "Great" },
+    { value: 2, emoji: "😢", label: "Struggling" },
+    { value: 4, emoji: "😔", label: "Rough" },
+    { value: 5, emoji: "😐", label: "Meh" },
+    { value: 6, emoji: "🙂", label: "Okay" },
+    { value: 8, emoji: "😊", label: "Good" },
+    { value: 10, emoji: "😄", label: "Great" },
   ];
 
   const energyOptions = [
-    { value: 1, emoji: "🪫", label: "Drained" },
-    { value: 2, emoji: "😴", label: "Tired" },
-    { value: 3, emoji: "😌", label: "Calm" },
-    { value: 4, emoji: "⚡", label: "Active" },
-    { value: 5, emoji: "🔥", label: "Energized" },
-    { value: 6, emoji: "🚀", label: "Supercharged" },
+    { value: 2, emoji: "🪫", label: "Drained" },
+    { value: 4, emoji: "😴", label: "Tired" },
+    { value: 5, emoji: "😌", label: "Calm" },
+    { value: 6, emoji: "⚡", label: "Active" },
+    { value: 8, emoji: "🔥", label: "Energized" },
+    { value: 10, emoji: "🚀", label: "Supercharged" },
   ];
+
+  // Helper to find closest option for given value
+  const findClosestOption = (value: number, options: typeof moodOptions) => {
+    return options.reduce((prev, curr) => 
+      Math.abs(curr.value - value) < Math.abs(prev.value - value) ? curr : prev
+    );
+  };
 
   const handleAddEntry = () => {
     if (!mood || !energy) {
@@ -185,8 +193,8 @@ export function MoodTracker() {
 
     createEntryMutation.mutate({
       frontingMemberId: null,
-      mood: mood * 1.67, // Scale 1-6 to 1-10
-      energy: energy * 1.67,
+      mood: mood, // Already 0-10 integer scale
+      energy: energy,
       stress: 0,
       dissociation: 0,
       sleepHours: sleep,
@@ -351,8 +359,8 @@ export function MoodTracker() {
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
               <span className="text-xs text-muted-foreground shrink-0">Today:</span>
               {entriesToday.map((entry) => {
-                const moodEmoji = moodOptions.find(m => Math.round(entry.mood / 1.67) === m.value)?.emoji || "🙂";
-                const energyEmoji = energyOptions.find(e => Math.round(entry.energy / 1.67) === e.value)?.emoji || "⚡";
+                const moodEmoji = findClosestOption(entry.mood, moodOptions).emoji;
+                const energyEmoji = findClosestOption(entry.energy, energyOptions).emoji;
                 return (
                   <motion.button
                     key={entry.id}
@@ -385,10 +393,10 @@ export function MoodTracker() {
                 {moodOptions.map((option) => (
                   <button
                     key={option.value}
-                    onClick={() => setEditMood([option.value * 1.67])}
+                    onClick={() => setEditMood([option.value])}
                     className={cn(
                       "flex-1 py-2 rounded-lg text-lg transition-all",
-                      Math.round(editMood[0] / 1.67) === option.value 
+                      findClosestOption(editMood[0], moodOptions).value === option.value 
                         ? "bg-primary text-primary-foreground" 
                         : "bg-muted hover:bg-muted/80"
                     )}
@@ -404,10 +412,10 @@ export function MoodTracker() {
                 {energyOptions.map((option) => (
                   <button
                     key={option.value}
-                    onClick={() => setEditEnergy([option.value * 1.67])}
+                    onClick={() => setEditEnergy([option.value])}
                     className={cn(
                       "flex-1 py-2 rounded-lg text-lg transition-all",
-                      Math.round(editEnergy[0] / 1.67) === option.value 
+                      findClosestOption(editEnergy[0], energyOptions).value === option.value 
                         ? "bg-primary text-primary-foreground" 
                         : "bg-muted hover:bg-muted/80"
                     )}
@@ -428,7 +436,12 @@ export function MoodTracker() {
             <Button variant="outline" onClick={() => setEditingEntry(null)}>Cancel</Button>
             <Button 
               variant="destructive" 
-              onClick={() => editingEntry && setDeletingEntryId(editingEntry.id)}
+              onClick={() => {
+                if (editingEntry) {
+                  setDeletingEntryId(editingEntry.id);
+                  setEditingEntry(null);
+                }
+              }}
             >
               <Trash2 className="w-4 h-4 mr-1" />
               Delete
