@@ -1015,44 +1015,232 @@ export default function CareerPage() {
 
             {coachData && !coachLoading && !isLoadingStoredCoach && (
               <div className="space-y-3">
-                {/* Compact Coach Header */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                      <Compass className="w-4 h-4 text-primary" />
-                      Coach
-                    </h3>
-                    {coachData.weeklyTheme && (
-                      <Badge variant="secondary" className="text-[10px] h-5">
-                        <Star className="w-2.5 h-2.5 mr-0.5" />
-                        {coachData.weeklyTheme}
-                      </Badge>
-                    )}
-                  </div>
-                  <Button
-                    onClick={fetchCoach}
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-[10px] text-muted-foreground hover:text-foreground px-2"
+                {/* Active Sprint FIRST - Main Focus */}
+                {activePhase && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={cn(glassCard, "p-3")}
                   >
-                    <RefreshCw className="w-2.5 h-2.5 mr-1" />
-                    Refresh
-                  </Button>
-                </motion.div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
-                  <div className="lg:col-span-3 space-y-2">
-                    {coachData.roadmap && coachData.roadmap.length > 0 && (
-                      <>
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <Map className="w-3.5 h-3.5 text-primary" />
-                          <h4 className="font-medium text-foreground text-xs">Roadmap</h4>
+                    {/* Sprint Header */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <Zap className="w-4 h-4 text-amber-500" />
+                        <h4 className="font-medium text-foreground text-xs">Active Sprint</h4>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Select value={String(activePhaseIndex)} onValueChange={(v) => setActivePhaseOverride(Number(v))}>
+                          <SelectTrigger className="h-6 w-[100px] text-[10px] border-0 bg-muted/50">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {coachData?.roadmap?.map((phase, idx) => (
+                              <SelectItem key={idx} value={String(idx)} className="text-xs">
+                                Phase {idx + 1}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={fetchCoach}
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                        >
+                          <RefreshCw className={cn("w-3 h-3", coachLoading && "animate-spin")} />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Phase Title & Progress Bar */}
+                    <div className="mb-2">
+                      <p className="text-xs font-medium text-foreground line-clamp-1">{activePhase.phase}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${getPhaseProgressPercent(activePhaseIndex)}%` }}
+                            className="h-full bg-primary rounded-full"
+                          />
                         </div>
-                        {coachData.roadmap.map((phase, index) => {
+                        <span className="text-[10px] text-primary font-medium">
+                          {getPhaseCompletedCount(activePhaseIndex)}/{activePhase.milestones?.length || 0}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Up Next Milestones - Compact List */}
+                    <div className="space-y-1">
+                      {activePhase.milestones?.filter(m => !isMilestoneCompleted(activePhaseIndex, m)).slice(0, 3).map((milestone, mIdx) => (
+                        <div
+                          key={mIdx}
+                          className="flex items-start gap-2 p-1.5 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
+                          onClick={() => toggleMilestone(activePhaseIndex, milestone)}
+                        >
+                          <AnimatedCheckbox
+                            checked={false}
+                            onChange={() => toggleMilestone(activePhaseIndex, milestone)}
+                          />
+                          <span className="text-[11px] text-foreground leading-tight">{milestone}</span>
+                        </div>
+                      ))}
+                      {activePhase.milestones?.filter(m => !isMilestoneCompleted(activePhaseIndex, m)).length === 0 && (
+                        <div className="p-2 text-center rounded-lg bg-primary/10 border border-primary/20">
+                          <Check className="w-4 h-4 text-primary mx-auto mb-0.5" />
+                          <p className="text-[10px] font-medium text-primary">Phase Complete!</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Quick Actions Row */}
+                    <div className="flex gap-1.5 mt-2 pt-2 border-t border-border/50">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex-1 h-7 text-[10px] bg-muted/50"
+                        onClick={() => window.location.href = '/orbit'}
+                      >
+                        <MessageCircle className="w-3 h-3 mr-1" />
+                        Chat
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex-1 h-7 text-[10px] bg-muted/50"
+                        onClick={() => setIsLogWinDialogOpen(true)}
+                      >
+                        <Trophy className="w-3 h-3 mr-1" />
+                        Log Win
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Roadmap Phases - Horizontal Pills */}
+                {coachData.roadmap && coachData.roadmap.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Map className="w-3.5 h-3.5 text-primary" />
+                        <h4 className="font-medium text-foreground text-xs">Roadmap</h4>
+                      </div>
+                      <span className="text-[9px] text-muted-foreground">
+                        {getTotalCompletedMilestones()}/{getTotalMilestones()} total
+                      </span>
+                    </div>
+                    
+                    {/* Horizontal Phase Pills */}
+                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3 scrollbar-hide">
+                      {coachData.roadmap.map((phase, index) => {
+                        const progress = getPhaseProgressPercent(index);
+                        const isActive = index === activePhaseIndex;
+                        return (
+                          <motion.button
+                            key={index}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            onClick={() => setActivePhaseOverride(index)}
+                            className={cn(
+                              "shrink-0 p-2 rounded-xl border transition-all",
+                              isActive 
+                                ? "bg-primary/10 border-primary/40" 
+                                : "bg-card/60 border-border/40 hover:border-primary/30"
+                            )}
+                          >
+                            <div className="flex items-center gap-2 min-w-[120px]">
+                              <div className="relative w-8 h-8">
+                                <svg className="w-8 h-8 -rotate-90">
+                                  <circle cx="16" cy="16" r="12" stroke="currentColor" strokeWidth="3" fill="none" className="text-muted" />
+                                  <circle 
+                                    cx="16" cy="16" r="12" 
+                                    stroke="currentColor" 
+                                    strokeWidth="3" 
+                                    fill="none" 
+                                    strokeLinecap="round"
+                                    strokeDasharray={75.4}
+                                    strokeDashoffset={75.4 - (progress / 100) * 75.4}
+                                    className="text-primary"
+                                  />
+                                </svg>
+                                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-foreground">
+                                  {progress}%
+                                </span>
+                              </div>
+                              <div className="text-left">
+                                <p className="text-[10px] font-medium text-foreground line-clamp-1">Phase {index + 1}</p>
+                                <p className="text-[8px] text-muted-foreground">{phase.timeframe}</p>
+                              </div>
+                            </div>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Coach's Note */}
+                {coachData?.coachingNote && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-2.5 rounded-xl border-l-4 border-primary/30 bg-primary/10"
+                  >
+                    <div className="flex items-center gap-1 mb-0.5">
+                      <Lightbulb className="w-3 h-3 text-primary" />
+                      <span className="text-[9px] font-semibold text-primary uppercase">Coach's Note</span>
+                    </div>
+                    <p className="text-[11px] text-primary">{coachData.coachingNote}</p>
+                  </motion.div>
+                )}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Keep dialogs below */}
+        <Dialog open={isVisionDialogOpen} onOpenChange={setIsVisionDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit North Star Vision</DialogTitle>
+              <DialogDescription>Define your guiding principles and long-term goals.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {editingVision.map((item, index) => (
+                <div key={item.id} className="space-y-2 p-4 rounded-xl bg-muted/50">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    {index === 0 && <Target className="w-4 h-4" />}
+                    {index === 1 && <Rocket className="w-4 h-4" />}
+                    {index === 2 && <Sparkles className="w-4 h-4" />}
+                    Vision {index + 1}
+                  </div>
+                  <Input
+                    value={item.title}
+                    onChange={(e) => setEditingVision(editingVision.map(v => v.id === item.id ? { ...v, title: e.target.value } : v))}
+                    placeholder="Vision title"
+                    className="font-medium"
+                  />
+                  <Input
+                    value={item.timeframe}
+                    onChange={(e) => setEditingVision(editingVision.map(v => v.id === item.id ? { ...v, timeframe: e.target.value } : v))}
+                    placeholder="Timeframe (e.g., 2 Years, Ongoing)"
+                    className="text-sm"
+                  />
+                </div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsVisionDialogOpen(false)}>Cancel</Button>
+              <Button onClick={saveVision} disabled={updateVisionMutation.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground border-0">
+                {updateVisionMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Placeholder to prevent duplicate - old code removed */}
+        {false && coachData?.roadmap?.map((phase, index) => {
                           const phaseResources = getLearningResourcesForPhase(index);
                           const isExpanded = expandedPhases.has(index);
                           const shouldCollapse = coachData.roadmap && coachData.roadmap.length >= 3;
