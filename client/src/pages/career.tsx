@@ -1071,19 +1071,28 @@ export default function CareerPage() {
                     
                     {/* Up Next Milestones - Compact List */}
                     <div className="space-y-1">
-                      {activePhase.milestones?.filter(m => !isMilestoneCompleted(activePhaseIndex, m)).slice(0, 3).map((milestone, mIdx) => (
-                        <div
-                          key={mIdx}
-                          className="flex items-start gap-2 p-1.5 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
-                          onClick={() => toggleMilestone(activePhaseIndex, milestone)}
-                        >
-                          <AnimatedCheckbox
-                            checked={false}
-                            onChange={() => toggleMilestone(activePhaseIndex, milestone)}
-                          />
-                          <span className="text-[11px] text-foreground leading-tight">{milestone}</span>
-                        </div>
-                      ))}
+                      {activePhase.milestones?.map((milestone, mIdx) => {
+                        const isCompleted = isMilestoneCompleted(activePhaseIndex, milestone);
+                        return (
+                          <div
+                            key={mIdx}
+                            className={cn(
+                              "flex items-start gap-2 p-1.5 rounded-lg cursor-pointer transition-colors",
+                              isCompleted ? "bg-primary/10" : "bg-muted/50 hover:bg-muted"
+                            )}
+                            onClick={() => toggleMilestone(activePhaseIndex, milestone)}
+                          >
+                            <AnimatedCheckbox
+                              checked={isCompleted}
+                              onChange={() => toggleMilestone(activePhaseIndex, milestone)}
+                            />
+                            <span className={cn(
+                              "text-[11px] leading-tight",
+                              isCompleted ? "text-muted-foreground line-through" : "text-foreground"
+                            )}>{milestone}</span>
+                          </div>
+                        );
+                      })}
                       {activePhase.milestones?.filter(m => !isMilestoneCompleted(activePhaseIndex, m)).length === 0 && (
                         <div className="p-2 text-center rounded-lg bg-primary/10 border border-primary/20">
                           <Check className="w-4 h-4 text-primary mx-auto mb-0.5" />
