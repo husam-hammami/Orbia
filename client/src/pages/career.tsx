@@ -739,56 +739,57 @@ export default function CareerPage() {
 
   return (
     <Layout>
-      <div className="space-y-8 pb-12 max-w-6xl mx-auto w-full px-4">
+      <div className="space-y-4 pb-12 max-w-6xl mx-auto w-full px-3 md:px-4">
         
+        {/* Compact Header */}
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-2"
+          className="flex items-center justify-between"
         >
-          <h1 className="text-3xl md:text-4xl font-display font-bold text-primary">Goals & Vision</h1>
-          <p className="text-muted-foreground">Your professional growth dashboard</p>
+          <div>
+            <h1 className="text-xl md:text-3xl font-display font-bold text-primary">Goals & Vision</h1>
+            <p className="text-xs md:text-sm text-muted-foreground">Your growth dashboard</p>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={openEditVision}
+            className="text-muted-foreground hover:text-foreground h-8 px-2"
+          >
+            <Pencil className="w-3.5 h-3.5 md:mr-1.5" />
+            <span className="hidden md:inline text-xs">Edit</span>
+          </Button>
         </motion.div>
 
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <Target className="w-5 h-5 text-primary" />
-              North Star Vision
-            </h2>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={openEditVision}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Pencil className="w-4 h-4 mr-2" /> Edit Vision
-            </Button>
-          </div>
+        {/* North Star Vision - Horizontal Scroll on Mobile */}
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+            <Target className="w-4 h-4 text-primary" />
+            North Star Vision
+          </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-3 px-3 md:mx-0 md:px-0 md:grid md:grid-cols-3 scrollbar-hide">
             {vision.map((item, index) => {
               const Icon = VISION_ICONS[index] || Sparkles;
               return (
                 <motion.div
                   key={item.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
                   className={cn(
                     glassCard,
-                    "p-5 group hover:border-slate-400/60 transition-all duration-300"
+                    "p-3 md:p-4 shrink-0 w-[200px] md:w-auto group hover:border-primary/40 transition-all duration-300"
                   )}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Icon className="w-5 h-5 text-primary" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Icon className="w-4 h-4 md:w-4.5 md:h-4.5 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-foreground text-sm leading-tight">{item.title}</h3>
-                      <Badge variant="secondary" className="mt-2 text-xs font-normal">
-                        {item.timeframe}
-                      </Badge>
+                      <h3 className="font-medium text-foreground text-xs md:text-sm leading-tight line-clamp-2">{item.title}</h3>
+                      <span className="text-[10px] md:text-xs text-primary/70 font-medium">{item.timeframe}</span>
                     </div>
                   </div>
                 </motion.div>
