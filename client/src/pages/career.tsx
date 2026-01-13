@@ -373,6 +373,77 @@ export default function CareerPage() {
     }
   };
 
+  const [addingMilestoneToPhase, setAddingMilestoneToPhase] = useState<number | null>(null);
+  const [newMilestoneText, setNewMilestoneText] = useState("");
+  const [regeneratingPhase, setRegeneratingPhase] = useState<number | null>(null);
+
+  const addMilestone = (phaseIndex: number) => {
+    if (!newMilestoneText.trim() || !coachData?.roadmap?.[phaseIndex]) return;
+    
+    const phase = coachData.roadmap[phaseIndex];
+    createTask.mutate({
+      title: newMilestoneText.trim(),
+      description: `Phase: ${phase.phase} | ${phase.timeframe}`,
+      projectId: null,
+      completed: 0,
+      priority: "medium",
+      due: null,
+      tags: ["coach", "milestone", `phase-${phaseIndex}`],
+    }, {
+      onSuccess: () => {
+        setNewMilestoneText("");
+        setAddingMilestoneToPhase(null);
+        toast.success("Milestone added!");
+      }
+    });
+  };
+
+  const regeneratePhase = async (phaseIndex: number) => {
+    if (!coachData?.roadmap?.[phaseIndex]) return;
+    
+    const currentPhase = coachData.roadmap[phaseIndex];
+    setRegeneratingPhase(phaseIndex);
+    
+    try {
+      const response = await fetch("/api/career/regenerate-phase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phaseIndex,
+          currentPhase,
+          vision: vision,
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.newPhase) {
+          const updatedRoadmap = [...coachData.roadmap];
+          updatedRoadmap[phaseIndex] = data.newPhase;
+          
+          const saveResponse = await fetch("/api/career/coach/roadmap", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ roadmap: updatedRoadmap }),
+          });
+          
+          if (saveResponse.ok) {
+            const savedData = await saveResponse.json();
+            setCoachData(prev => prev ? { ...prev, roadmap: savedData.roadmap } : null);
+            toast.success("Phase regenerated!");
+          }
+        }
+      } else {
+        toast.error("Failed to regenerate phase");
+      }
+    } catch (error) {
+      console.error("Failed to regenerate phase:", error);
+      toast.error("Failed to regenerate phase");
+    } finally {
+      setRegeneratingPhase(null);
+    }
+  };
+
   const getPhaseProgressPercent = (phaseIndex: number) => {
     const milestoneTasks = getMilestoneTasks(phaseIndex);
     if (milestoneTasks.length === 0) return 0;
@@ -1073,23 +1144,89 @@ export default function CareerPage() {
                     <div className="space-y-1">
                       {activePhase.milestones?.map((milestone, mIdx) => {
                         const isCompleted = isMilestoneCompleted(activePhaseIndex, milestone);
+                        const milestoneTasks = getMilestoneTasks(activePhaseIndex);
+                        const milestoneTask = milestoneTasks.find(t => t.title === milestone);
+                        const isEditing = milestoneTask && editingMilestoneId === milestoneTask.id;
+                        const isRegenerating = milestoneTask && regeneratingMilestoneId === milestoneTask.id;
+                        
+                        if (isEditing) {
+                          return (
+                            <div key={mIdx} className="flex items-center gap-1 p-1 rounded-lg bg-muted">
+                              <Input
+                                value={editingMilestoneText}
+                                onChange={(e) => setEditingMilestoneText(e.target.value)}
+                                className="h-7 text-[11px] flex-1"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') saveMilestoneEdit();
+                                  if (e.key === 'Escape') cancelMilestoneEdit();
+                                }}
+                              />
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveMilestoneEdit}>
+                                <Check className="w-3 h-3 text-primary" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelMilestoneEdit}>
+                                <X className="w-3 h-3 text-muted-foreground" />
+                              </Button>
+                            </div>
+                          );
+                        }
+                        
                         return (
                           <div
                             key={mIdx}
                             className={cn(
-                              "flex items-start gap-2 p-1.5 rounded-lg cursor-pointer transition-colors",
+                              "flex items-start gap-2 p-1.5 rounded-lg transition-colors group",
                               isCompleted ? "bg-primary/10" : "bg-muted/50 hover:bg-muted"
                             )}
-                            onClick={() => toggleMilestone(activePhaseIndex, milestone)}
                           >
-                            <AnimatedCheckbox
-                              checked={isCompleted}
-                              onChange={() => toggleMilestone(activePhaseIndex, milestone)}
-                            />
-                            <span className={cn(
-                              "text-[11px] leading-tight",
-                              isCompleted ? "text-muted-foreground line-through" : "text-foreground"
-                            )}>{milestone}</span>
+                            <div 
+                              className="flex items-start gap-2 flex-1 cursor-pointer"
+                              onClick={() => toggleMilestone(activePhaseIndex, milestone)}
+                            >
+                              <AnimatedCheckbox
+                                checked={isCompleted}
+                                onChange={() => toggleMilestone(activePhaseIndex, milestone)}
+                              />
+                              <span className={cn(
+                                "text-[11px] leading-tight flex-1",
+                                isCompleted ? "text-muted-foreground line-through" : "text-foreground"
+                              )}>{milestone}</span>
+                            </div>
+                            
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {isRegenerating ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <MoreHorizontal className="w-3 h-3" />
+                                  )}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-32">
+                                <DropdownMenuItem onClick={() => startEditMilestone(activePhaseIndex, milestone)}>
+                                  <Pencil className="w-3 h-3 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => regenerateMilestone(activePhaseIndex, milestone)}>
+                                  <RefreshCw className="w-3 h-3 mr-2" />
+                                  Regenerate
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => deleteMilestone(activePhaseIndex, milestone)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="w-3 h-3 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         );
                       })}
@@ -1099,6 +1236,45 @@ export default function CareerPage() {
                           <p className="text-[10px] font-medium text-primary">Phase Complete!</p>
                         </div>
                       )}
+                      
+                      {/* Add Milestone */}
+                      {addingMilestoneToPhase === activePhaseIndex ? (
+                        <div className="flex items-center gap-1 p-1 rounded-lg bg-muted mt-1">
+                          <Input
+                            value={newMilestoneText}
+                            onChange={(e) => setNewMilestoneText(e.target.value)}
+                            placeholder="New milestone..."
+                            className="h-7 text-[11px] flex-1"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') addMilestone(activePhaseIndex);
+                              if (e.key === 'Escape') {
+                                setAddingMilestoneToPhase(null);
+                                setNewMilestoneText("");
+                              }
+                            }}
+                          />
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => addMilestone(activePhaseIndex)}>
+                            <Check className="w-3 h-3 text-primary" />
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => {
+                            setAddingMilestoneToPhase(null);
+                            setNewMilestoneText("");
+                          }}>
+                            <X className="w-3 h-3 text-muted-foreground" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full h-6 text-[10px] text-muted-foreground hover:text-foreground mt-1"
+                          onClick={() => setAddingMilestoneToPhase(activePhaseIndex)}
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Add Milestone
+                        </Button>
+                      )}
                     </div>
                     
                     {/* Quick Actions Row */}
@@ -1107,10 +1283,15 @@ export default function CareerPage() {
                         variant="ghost"
                         size="sm"
                         className="flex-1 h-7 text-[10px] bg-muted/50"
-                        onClick={() => window.location.href = '/orbit'}
+                        onClick={() => regeneratePhase(activePhaseIndex)}
+                        disabled={regeneratingPhase === activePhaseIndex}
                       >
-                        <MessageCircle className="w-3 h-3 mr-1" />
-                        Chat
+                        {regeneratingPhase === activePhaseIndex ? (
+                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-3 h-3 mr-1" />
+                        )}
+                        Regen Phase
                       </Button>
                       <Button
                         variant="ghost"

@@ -2217,6 +2217,112 @@ Based on my North Star vision, create a comprehensive career coaching plan. Be s
     }
   });
 
+  app.patch("/api/career/coach/roadmap", async (req, res) => {
+    try {
+      const { roadmap } = req.body;
+      if (!roadmap || !Array.isArray(roadmap)) {
+        return res.status(400).json({ error: "Invalid roadmap format" });
+      }
+
+      const currentSnapshot = await storage.getLatestCoachSnapshot();
+      if (!currentSnapshot) {
+        return res.status(404).json({ error: "No coach data found" });
+      }
+
+      const currentPayload = currentSnapshot.payload as Record<string, unknown>;
+      const updatedPayload = {
+        ...currentPayload,
+        roadmap,
+      };
+
+      const snapshot = await storage.upsertCoachSnapshot(updatedPayload);
+
+      const tasks = await storage.getAllCareerTasks();
+      const milestoneTasks = tasks.filter(t => t.tags?.includes("milestone"));
+      for (const task of milestoneTasks) {
+        await storage.deleteCareerTask(task.id);
+      }
+
+      for (let phaseIndex = 0; phaseIndex < roadmap.length; phaseIndex++) {
+        const phase = roadmap[phaseIndex];
+        if (phase.milestones) {
+          for (const milestone of phase.milestones) {
+            await storage.createCareerTask({
+              title: milestone,
+              description: `Phase: ${phase.phase} | ${phase.timeframe}`,
+              projectId: null,
+              completed: 0,
+              priority: "medium",
+              due: null,
+              tags: ["coach", "milestone", `phase-${phaseIndex}`],
+            });
+          }
+        }
+      }
+
+      res.json({
+        ...updatedPayload,
+        generatedAt: snapshot.generatedAt,
+      });
+    } catch (error) {
+      console.error("Update roadmap error:", error);
+      res.status(500).json({ error: "Failed to update roadmap" });
+    }
+  });
+
+  app.post("/api/career/regenerate-phase", async (req, res) => {
+    try {
+      const { phaseIndex, currentPhase, vision } = req.body;
+      
+      if (phaseIndex === undefined || !currentPhase) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const visionSummary = vision?.map((v: any) => v.title).filter(Boolean).join(", ") || "No vision set";
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5.1",
+        messages: [
+          {
+            role: "system",
+            content: `You are a career coach. Regenerate a complete phase for a career roadmap with fresh, specific milestones. Return ONLY valid JSON matching this exact format:
+{
+  "phase": "Phase X: [descriptive name]",
+  "timeframe": "[specific timeframe like Weeks 1-4]",
+  "goal": "[what success looks like]",
+  "milestones": ["milestone 1", "milestone 2", "milestone 3", "milestone 4"],
+  "weeklyFocus": "[one key focus]"
+}`
+          },
+          {
+            role: "user",
+            content: `Vision: ${visionSummary}
+Current Phase to Replace:
+- Name: ${currentPhase.phase}
+- Timeframe: ${currentPhase.timeframe}
+- Goal: ${currentPhase.goal}
+- Current Milestones: ${currentPhase.milestones?.join(", ")}
+
+Generate a fresh version of this phase with new, specific milestones that still serve the vision but offer alternative approaches.`
+          }
+        ],
+        response_format: { type: "json_object" },
+        max_completion_tokens: 500,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        return res.status(500).json({ error: "Failed to generate new phase" });
+      }
+
+      const newPhase = JSON.parse(content);
+      res.json({ newPhase });
+    } catch (error) {
+      console.error("Regenerate phase error:", error);
+      res.status(500).json({ error: "Failed to regenerate phase" });
+    }
+  });
+
   app.post("/api/career/regenerate-milestone", async (req, res) => {
     try {
       const { currentMilestone, phaseName, phaseGoal, vision } = req.body;
