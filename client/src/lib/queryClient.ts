@@ -1,4 +1,16 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { Capacitor } from "@capacitor/core";
+
+const PRODUCTION_API_URL = "https://orbia-1.replit.app";
+
+function getApiBaseUrl(): string {
+  if (Capacitor.isNativePlatform()) {
+    return PRODUCTION_API_URL;
+  }
+  return "";
+}
+
+export const API_BASE_URL = getApiBaseUrl();
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -12,7 +24,8 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  const fullUrl = url.startsWith('/') ? `${API_BASE_URL}${url}` : url;
+  const res = await fetch(fullUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
@@ -29,7 +42,9 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
+    const url = queryKey.join("/") as string;
+    const fullUrl = url.startsWith('/') ? `${API_BASE_URL}${url}` : url;
+    const res = await fetch(fullUrl, {
       credentials: "include",
     });
 
