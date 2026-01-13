@@ -798,41 +798,43 @@ export default function CareerPage() {
           </div>
         </section>
 
+        {/* Compact Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={cn(glassCard, "w-full grid grid-cols-2 p-1 h-auto")}>
+          <TabsList className={cn(glassCard, "w-full grid grid-cols-2 p-0.5 h-auto")}>
             <TabsTrigger 
               value="projects" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm py-2 text-xs md:text-sm rounded-lg transition-all"
             >
-              <Rocket className="w-4 h-4 mr-2" />
+              <Rocket className="w-3.5 h-3.5 mr-1.5" />
               Goals
             </TabsTrigger>
             <TabsTrigger 
               value="coach" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm py-2.5 rounded-xl transition-all"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm py-2 text-xs md:text-sm rounded-lg transition-all"
             >
-              <Compass className="w-4 h-4 mr-2" />
+              <Compass className="w-3.5 h-3.5 mr-1.5" />
               Coach
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="projects" className="mt-6 space-y-8">
-            <section className="space-y-4">
+          <TabsContent value="projects" className="mt-4 space-y-4">
+            {/* Active Goals - 2 Column Compact Grid */}
+            <section className="space-y-2">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                  <Rocket className="w-5 h-5 text-primary" />
+                <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <Rocket className="w-4 h-4 text-primary" />
                   Active Goals
                 </h2>
                 <Button 
                   onClick={() => openProjectDialog(null)}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground border-0"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 h-7 text-xs px-2.5"
                   size="sm"
                 >
-                  <Plus className="w-4 h-4 mr-2" /> New Goal
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Add
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
                 {projects.map((project, index) => {
                   const deadline = getDeadlineDisplay(project.deadline);
                   const projectTasks = getProjectTasks(project.id);
@@ -841,100 +843,80 @@ export default function CareerPage() {
                   return (
                     <motion.div
                       key={project.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.05 }}
                       onClick={() => { setSelectedProject(project); setNewProjectTask(""); setIsProjectDetailsOpen(true); }}
-                      className={cn(glassCard, glassCardHover, "p-5 cursor-pointer group")}
+                      className={cn(glassCard, "p-2.5 md:p-3 cursor-pointer hover:border-primary/40 transition-all duration-200 active:scale-[0.98]")}
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0 space-y-3">
-                          <div>
-                            <h3 className="font-semibold text-foreground leading-tight mb-1">{project.title}</h3>
-                            <div className="flex items-center gap-2">
-                              <Badge 
-                                variant="outline" 
-                                className={cn(
-                                  "text-[10px] font-medium",
-                                  project.status === "in_progress" && "border-border text-muted-foreground bg-muted/50",
-                                  project.status === "planning" && "border-border/60 text-muted-foreground",
-                                  project.status === "completed" && "border-border/40 text-muted-foreground",
-                                  project.status === "ongoing" && "border-border text-muted-foreground"
-                                )}
-                              >
-                                {STATUS_DISPLAY[project.status] || project.status}
-                              </Badge>
-                              {projectTasks.length > 0 && (
-                                <span className="text-[10px] text-muted-foreground">
-                                  {completedTasks}/{projectTasks.length} tasks
-                                </span>
-                              )}
-                            </div>
+                      <div className="flex flex-col gap-1.5">
+                        {/* Progress ring and title */}
+                        <div className="flex items-start gap-2">
+                          <CircularProgress progress={progress} size={36} strokeWidth={3} />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-foreground text-xs leading-tight line-clamp-2">{project.title}</h3>
                           </div>
-
-                          {project.nextAction && (
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              <span className="text-primary font-medium">Next:</span> {project.nextAction}
-                            </p>
-                          )}
-
+                        </div>
+                        
+                        {/* Status row */}
+                        <div className="flex items-center justify-between text-[9px] md:text-[10px]">
+                          <span className="text-muted-foreground">
+                            {projectTasks.length > 0 ? `${completedTasks}/${projectTasks.length}` : STATUS_DISPLAY[project.status] || project.status}
+                          </span>
                           {deadline && (
-                            <div className="flex items-center gap-1.5">
-                              <Clock className="w-3 h-3 text-muted-foreground" />
-                              <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", deadline.className)}>
-                                {deadline.text}
-                              </span>
-                            </div>
+                            <span className={cn("px-1.5 py-0.5 rounded-full font-medium", deadline.className)}>
+                              {deadline.text}
+                            </span>
                           )}
                         </div>
-
-                        <CircularProgress progress={progress} size={56} strokeWidth={5} />
                       </div>
                     </motion.div>
                   );
                 })}
 
+                {/* Add Goal Button - Same size as cards */}
                 <motion.button
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: projects.length * 0.1 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: projects.length * 0.05 }}
                   onClick={() => openProjectDialog(null)}
                   className={cn(
                     glassCard,
-                    "p-5 border-dashed border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2",
-                    "text-muted-foreground hover:text-slate-600 hover:border-slate-400 transition-all duration-300 min-h-[140px]"
+                    "p-2.5 md:p-3 border-dashed border-2 border-primary/20 flex flex-col items-center justify-center gap-1",
+                    "text-muted-foreground hover:text-primary hover:border-primary/40 transition-all duration-200 min-h-[80px]"
                   )}
                 >
                   <Plus className="w-5 h-5" />
-                  <span className="font-medium">Add Project</span>
+                  <span className="text-[10px] font-medium">New Goal</span>
                 </motion.button>
               </div>
             </section>
 
-            <section className="space-y-4">
-              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-amber-500" />
+            {/* Today's Focus - Compact */}
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-500" />
                 Today's Focus
               </h2>
 
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={cn(glassCard, "p-6 space-y-4")}
+                className={cn(glassCard, "p-3 md:p-4 space-y-3")}
               >
-                <form onSubmit={handleAddTask} className="flex gap-3">
+                <form onSubmit={handleAddTask} className="flex gap-2">
                   <Input 
-                    placeholder="Add a new task..." 
+                    placeholder="Add a task..." 
                     value={newTask}
                     onChange={(e) => setNewTask(e.target.value)}
-                    className="flex-1 bg-card/50 border-border/60 focus:ring-primary/20 focus:border-primary"
+                    className="flex-1 h-8 text-xs bg-card/50 border-border/60 focus:ring-primary/20 focus:border-primary"
                   />
                   <Button 
                     type="submit" 
                     disabled={!newTask.trim() || createTask.isPending}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground border-0"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 h-8 px-3 text-xs"
                   >
-                    <Plus className="w-4 h-4 mr-2" /> Add Task
+                    <Plus className="w-3.5 h-3.5" />
                   </Button>
                 </form>
 
