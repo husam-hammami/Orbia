@@ -78,7 +78,6 @@ export default function WelcomePage({ onAuthenticated }: WelcomePageProps) {
           <Heart className="w-6 h-6" />
         </motion.div>
       </div>
-
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -163,11 +162,8 @@ export default function WelcomePage({ onAuthenticated }: WelcomePageProps) {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
           className="text-slate-400 text-sm mt-8 text-center"
-        >
-          Made with love for Fatima
-        </motion.p>
+        >Made with care for Fatima</motion.p>
       </motion.div>
-
       <style>{`
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
