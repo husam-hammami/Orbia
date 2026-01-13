@@ -139,9 +139,9 @@
   --popover: 340 25% 15%;
   --popover-foreground: 340 20% 95%;
 
-  /* Soft Rose Primary */
-  --primary: 340 70% 70%;
-  --primary-foreground: 340 25% 10%;
+  /* Soft Rose Primary - with white text for contrast */
+  --primary: 340 70% 55%;
+  --primary-foreground: 0 0% 100%;
 
   --secondary: 30 40% 25%;
   --secondary-foreground: 30 30% 90%;

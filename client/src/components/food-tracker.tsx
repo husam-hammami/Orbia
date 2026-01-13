@@ -247,8 +247,8 @@ export function FoodTracker() {
       <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/80 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
-              <Utensils className="w-5 h-5 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+              <Utensils className="w-5 h-5 text-primary" />
             </div>
             <div>
               <h2 className="font-semibold text-foreground">Today's Meals</h2>
@@ -262,7 +262,7 @@ export function FoodTracker() {
             </div>
             <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="gap-1.5 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground shadow-lg shadow-primary/20" data-testid="button-add-option">
+                <Button size="sm" className="gap-1.5 bg-primary hover:bg-primary/90" data-testid="button-add-option">
                   <Plus className="w-4 h-4" />
                   Add Meal
                 </Button>

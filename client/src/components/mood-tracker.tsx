@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Zap, Heart, Moon, Loader2, Pencil, Trash2, Save, BatteryFull, BatteryMedium, BatteryLow } from "lucide-react";
+import { Zap, Heart, Moon, Loader2, Pencil, Trash2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useTrackerEntries, useCreateTrackerEntry, useUpdateTrackerEntry, useDeleteTrackerEntry } from "@/lib/api-hooks";
@@ -11,78 +11,50 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { TrackerEntry } from "@shared/schema";
 
-// Circular selector component for mood/energy
-interface CircularSelectorProps {
+// Clean horizontal emoji selector
+interface EmojiSelectorProps {
   options: { value: number; emoji: string; label: string }[];
   selected: number | null;
   onSelect: (value: number) => void;
   label: string;
   icon: React.ReactNode;
-  color: string;
 }
 
-function CircularSelector({ options, selected, onSelect, label, icon, color }: CircularSelectorProps) {
+function EmojiSelector({ options, selected, onSelect, label, icon }: EmojiSelectorProps) {
   const selectedOption = options.find(o => o.value === selected);
   
   return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-        {icon}
-        {label}
-      </span>
-      <div className="relative">
-        {/* Center display */}
-        <motion.div
-          key={selected}
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className={cn(
-            "w-16 h-16 rounded-full flex items-center justify-center",
-            "bg-gradient-to-br from-card to-muted/50 border-2 shadow-lg",
-            selected ? `border-${color}` : "border-border"
-          )}
-          style={{ borderColor: selected ? `hsl(var(--${color}))` : undefined }}
-        >
-          <span className="text-2xl">{selectedOption?.emoji || "🤔"}</span>
-        </motion.div>
-        
-        {/* Circular options */}
-        <div className="absolute inset-0">
-          {options.map((option, index) => {
-            const angle = (index / options.length) * 360 - 90;
-            const radius = 44;
-            const x = Math.cos((angle * Math.PI) / 180) * radius;
-            const y = Math.sin((angle * Math.PI) / 180) * radius;
-            const isSelected = selected === option.value;
-            
-            return (
-              <motion.button
-                key={option.value}
-                onClick={() => onSelect(option.value)}
-                whileHover={{ scale: 1.2 }}
-                whileTap={{ scale: 0.9 }}
-                className={cn(
-                  "absolute w-8 h-8 rounded-full flex items-center justify-center transition-all",
-                  "text-lg shadow-md border-2",
-                  isSelected 
-                    ? "bg-primary border-primary scale-110 ring-2 ring-primary/30" 
-                    : "bg-card/90 border-border/60 hover:border-primary/50"
-                )}
-                style={{
-                  left: `calc(50% + ${x}px - 16px)`,
-                  top: `calc(50% + ${y}px - 16px)`,
-                }}
-                data-testid={`selector-${label.toLowerCase()}-${option.value}`}
-              >
-                {option.emoji}
-              </motion.button>
-            );
-          })}
-        </div>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+          {icon}
+          {label}
+        </span>
+        <span className="text-xs text-primary font-medium min-w-[70px] text-right">
+          {selectedOption?.label || "Select"}
+        </span>
       </div>
-      <span className="text-xs text-muted-foreground min-h-[16px]">
-        {selectedOption?.label || "Tap to select"}
-      </span>
+      <div className="flex gap-1.5">
+        {options.map((option) => {
+          const isSelected = selected === option.value;
+          return (
+            <motion.button
+              key={option.value}
+              onClick={() => onSelect(option.value)}
+              whileTap={{ scale: 0.9 }}
+              className={cn(
+                "flex-1 py-2.5 rounded-xl text-xl transition-all border-2",
+                isSelected 
+                  ? "bg-primary/15 border-primary shadow-sm scale-105" 
+                  : "bg-muted/30 border-transparent hover:bg-muted/50 hover:border-border"
+              )}
+              data-testid={`selector-${label.toLowerCase()}-${option.value}`}
+            >
+              {option.emoji}
+            </motion.button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -103,7 +75,7 @@ function SleepSelector({ value, onChange }: SleepSelectorProps) {
           <Moon className="w-3.5 h-3.5" />
           Sleep
         </span>
-        <span className="text-sm font-mono text-primary">{value}h</span>
+        <span className="text-xs font-medium text-primary">{value}h</span>
       </div>
       <div className="flex gap-1">
         {options.map((hours) => (
@@ -112,10 +84,10 @@ function SleepSelector({ value, onChange }: SleepSelectorProps) {
             onClick={() => onChange(hours)}
             whileTap={{ scale: 0.9 }}
             className={cn(
-              "flex-1 py-2 rounded-lg text-xs font-medium transition-all",
+              "flex-1 py-2 rounded-lg text-xs font-medium transition-all border",
               value === hours 
-                ? "bg-primary text-primary-foreground shadow-md" 
-                : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                ? "bg-primary border-primary text-primary-foreground shadow-sm" 
+                : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50"
             )}
             data-testid={`sleep-${hours}`}
           >
@@ -159,7 +131,6 @@ export function MoodTracker() {
     return entryDate === today;
   });
 
-  // Map to 0-10 scale with discrete integer values
   const moodOptions = [
     { value: 2, emoji: "😢", label: "Struggling" },
     { value: 4, emoji: "😔", label: "Rough" },
@@ -178,7 +149,6 @@ export function MoodTracker() {
     { value: 10, emoji: "🚀", label: "Supercharged" },
   ];
 
-  // Helper to find closest option for given value
   const findClosestOption = (value: number, options: typeof moodOptions) => {
     return options.reduce((prev, curr) => 
       Math.abs(curr.value - value) < Math.abs(prev.value - value) ? curr : prev
@@ -193,7 +163,7 @@ export function MoodTracker() {
 
     createEntryMutation.mutate({
       frontingMemberId: null,
-      mood: mood, // Already 0-10 integer scale
+      mood: mood,
       energy: energy,
       stress: 0,
       dissociation: 0,
@@ -261,7 +231,6 @@ export function MoodTracker() {
   return (
     <>
       <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm overflow-hidden">
-        {/* Header */}
         <div className="p-4 border-b border-border/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -286,7 +255,7 @@ export function MoodTracker() {
                   <Button 
                     onClick={handleAddEntry}
                     disabled={createEntryMutation.isPending}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+                    className="bg-primary hover:bg-primary/90"
                     data-testid="button-log-entry"
                   >
                     {createEntryMutation.isPending ? (
@@ -304,30 +273,23 @@ export function MoodTracker() {
           </div>
         </div>
         
-        {/* Circular selectors */}
-        <div className="p-6">
-          <div className="flex justify-center gap-8 md:gap-16">
-            <CircularSelector
-              options={moodOptions}
-              selected={mood}
-              onSelect={setMood}
-              label="Mood"
-              icon={<span className="text-sm">💭</span>}
-              color="primary"
-            />
-            <CircularSelector
-              options={energyOptions}
-              selected={energy}
-              onSelect={setEnergy}
-              label="Energy"
-              icon={<Zap className="w-3.5 h-3.5 text-amber-500" />}
-              color="accent"
-            />
-          </div>
-        </div>
-        
-        {/* Sleep and notes section */}
-        <div className="px-4 pb-4 space-y-3">
+        <div className="p-4 space-y-4">
+          <EmojiSelector
+            options={moodOptions}
+            selected={mood}
+            onSelect={setMood}
+            label="Mood"
+            icon={<span className="text-sm">💭</span>}
+          />
+          
+          <EmojiSelector
+            options={energyOptions}
+            selected={energy}
+            onSelect={setEnergy}
+            label="Energy"
+            icon={<Zap className="w-3.5 h-3.5 text-amber-500" />}
+          />
+          
           <SleepSelector value={sleep} onChange={setSleep} />
           
           <motion.div 
@@ -337,7 +299,7 @@ export function MoodTracker() {
           >
             <Textarea 
               placeholder="Quick note (optional)..."
-              className="bg-muted/30 border-border resize-none h-20 text-sm mt-2"
+              className="bg-muted/30 border-border resize-none h-20 text-sm"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               data-testid="textarea-note"
@@ -353,7 +315,6 @@ export function MoodTracker() {
           </button>
         </div>
         
-        {/* Recent entries */}
         {entriesToday.length > 0 && (
           <div className="border-t border-border/50 px-4 py-3 bg-muted/20">
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -380,7 +341,6 @@ export function MoodTracker() {
         )}
       </div>
 
-      {/* Edit Dialog */}
       <Dialog open={!!editingEntry} onOpenChange={(open) => !open && setEditingEntry(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -395,10 +355,10 @@ export function MoodTracker() {
                     key={option.value}
                     onClick={() => setEditMood([option.value])}
                     className={cn(
-                      "flex-1 py-2 rounded-lg text-lg transition-all",
+                      "flex-1 py-2 rounded-lg text-lg transition-all border",
                       findClosestOption(editMood[0], moodOptions).value === option.value 
-                        ? "bg-primary text-primary-foreground" 
-                        : "bg-muted hover:bg-muted/80"
+                        ? "bg-primary/15 border-primary" 
+                        : "bg-muted/30 border-transparent hover:bg-muted/50"
                     )}
                   >
                     {option.emoji}
@@ -414,10 +374,10 @@ export function MoodTracker() {
                     key={option.value}
                     onClick={() => setEditEnergy([option.value])}
                     className={cn(
-                      "flex-1 py-2 rounded-lg text-lg transition-all",
+                      "flex-1 py-2 rounded-lg text-lg transition-all border",
                       findClosestOption(editEnergy[0], energyOptions).value === option.value 
-                        ? "bg-primary text-primary-foreground" 
-                        : "bg-muted hover:bg-muted/80"
+                        ? "bg-primary/15 border-primary" 
+                        : "bg-muted/30 border-transparent hover:bg-muted/50"
                     )}
                   >
                     {option.emoji}
@@ -457,7 +417,6 @@ export function MoodTracker() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation */}
       <AlertDialog open={!!deletingEntryId} onOpenChange={(open) => !open && setDeletingEntryId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

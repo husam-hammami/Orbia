@@ -386,11 +386,12 @@ export function Layout({ children, lockContext }: LayoutProps) {
       </aside>
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        <div className="absolute inset-0 md:hidden overflow-hidden pointer-events-none">
+        {/* Global animated background - visible on all screen sizes */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
           <motion.div
             animate={{ 
               scale: [1, 1.3, 1],
-              opacity: [0.2, 0.4, 0.2]
+              opacity: [0.15, 0.3, 0.15]
             }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
             className="absolute -top-32 -left-32 w-80 h-80 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 blur-3xl"
@@ -398,7 +399,7 @@ export function Layout({ children, lockContext }: LayoutProps) {
           <motion.div
             animate={{ 
               scale: [1.2, 1, 1.2],
-              opacity: [0.15, 0.35, 0.15]
+              opacity: [0.1, 0.25, 0.1]
             }}
             transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
             className="absolute top-1/3 -right-20 w-64 h-64 rounded-full bg-gradient-to-bl from-accent/25 to-primary/25 blur-3xl"
@@ -406,10 +407,18 @@ export function Layout({ children, lockContext }: LayoutProps) {
           <motion.div
             animate={{ 
               scale: [1, 1.15, 1],
-              opacity: [0.1, 0.3, 0.1]
+              opacity: [0.08, 0.2, 0.08]
             }}
             transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 4 }}
             className="absolute bottom-1/4 left-1/4 w-48 h-48 rounded-full bg-gradient-to-tr from-primary/20 to-accent/20 blur-3xl"
+          />
+          <motion.div
+            animate={{ 
+              scale: [1.1, 1, 1.1],
+              opacity: [0.05, 0.15, 0.05]
+            }}
+            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 6 }}
+            className="absolute bottom-1/3 right-1/4 w-56 h-56 rounded-full bg-gradient-to-tl from-primary/15 to-accent/15 blur-3xl"
           />
         </div>
 
