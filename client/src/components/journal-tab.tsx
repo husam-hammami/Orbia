@@ -264,7 +264,7 @@ export function JournalTab() {
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                 >
-                  <Sparkles className="w-6 h-6 text-indigo-500" />
+                  <Sparkles className="w-6 h-6 text-primary" />
                 </motion.div>
               </div>
             ) : entries?.length === 0 ? (
@@ -276,17 +276,17 @@ export function JournalTab() {
                 <motion.div
                   animate={{ scale: [1, 1.05, 1] }}
                   transition={{ duration: 3, repeat: Infinity }}
-                  className="inline-flex p-5 rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 mb-4"
+                  className="inline-flex p-5 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 mb-4"
                 >
-                  <BookOpen className="w-10 h-10 text-indigo-600" />
+                  <BookOpen className="w-10 h-10 text-primary" />
                 </motion.div>
-                <h3 className="text-lg font-semibold text-slate-700 mb-2">Your journal awaits</h3>
-                <p className="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
+                <h3 className="text-lg font-semibold text-foreground mb-2">Your journal awaits</h3>
+                <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
                   A safe space to express yourself, process experiences, and track your inner world.
                 </p>
                 <Button 
                   onClick={() => setIsWriting(true)}
-                  className="gap-2 bg-gradient-to-r from-indigo-500 to-violet-500"
+                  className="gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg"
                   data-testid="button-first-entry"
                 >
                   <Plus className="w-4 h-4" />
@@ -308,8 +308,8 @@ export function JournalTab() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.03 }}
                       className={cn(
-                        "bg-white rounded-xl border border-slate-200/80 overflow-hidden transition-all",
-                        isExpanded ? "shadow-lg" : "hover:border-slate-300 hover:shadow-sm"
+                        "bg-card/80 backdrop-blur-sm rounded-xl border border-border overflow-hidden transition-all",
+                        isExpanded ? "shadow-lg" : "hover:border-primary/30 hover:shadow-sm"
                       )}
                       data-testid={`entry-${entry.id}`}
                     >
@@ -328,7 +328,7 @@ export function JournalTab() {
                         
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-medium text-slate-500">
+                            <span className="text-xs font-medium text-muted-foreground">
                               {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
                             </span>
                             {author && (
@@ -341,7 +341,7 @@ export function JournalTab() {
                           </div>
                           
                           <div className={cn(
-                            "text-sm text-slate-700 prose prose-sm prose-slate max-w-none",
+                            "text-sm text-foreground prose prose-sm max-w-none dark:prose-invert",
                             !isExpanded && "line-clamp-2"
                           )}>
                             {isExpanded ? (
@@ -353,7 +353,7 @@ export function JournalTab() {
                           
                           {entry.primaryDriver && !isExpanded && (
                             <div className="flex gap-1 mt-2 flex-wrap">
-                              <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded flex items-center gap-1">
+                              <span className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded flex items-center gap-1">
                                 <Zap className="w-2.5 h-2.5" />
                                 {allDrivers.find(d => d.value === entry.primaryDriver)?.label}
                                 {entry.secondaryDriver && ` → ${allDrivers.find(d => d.value === entry.secondaryDriver)?.label}`}
@@ -363,7 +363,7 @@ export function JournalTab() {
                         </div>
                         
                         <ChevronRight className={cn(
-                          "w-4 h-4 text-slate-400 transition-transform shrink-0 mt-1",
+                          "w-4 h-4 text-muted-foreground transition-transform shrink-0 mt-1",
                           isExpanded && "rotate-90"
                         )} />
                       </button>
@@ -374,7 +374,7 @@ export function JournalTab() {
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            className="border-t border-slate-100"
+                            className="border-t border-border"
                           >
                             <div className="p-4 pt-3 space-y-3">
                               {(entry.mood || entry.energy) && (
@@ -382,13 +382,13 @@ export function JournalTab() {
                                   {entry.mood && (
                                     <div className="flex items-center gap-2">
                                       <Smile className="w-3.5 h-3.5 text-amber-500" />
-                                      <span className="text-slate-600">{moodLabels[entry.mood - 1]}</span>
+                                      <span className="text-muted-foreground">{moodLabels[entry.mood - 1]}</span>
                                     </div>
                                   )}
                                   {entry.energy && (
                                     <div className="flex items-center gap-2">
                                       <Battery className="w-3.5 h-3.5 text-cyan-500" />
-                                      <span className="text-slate-600">{energyLabels[entry.energy - 1]}</span>
+                                      <span className="text-muted-foreground">{energyLabels[entry.energy - 1]}</span>
                                     </div>
                                   )}
                                 </div>
@@ -397,7 +397,7 @@ export function JournalTab() {
                               {entry.primaryDriver && (
                                 <div className="flex gap-1.5 flex-wrap items-center">
                                   <Zap className="w-3.5 h-3.5 text-amber-500" />
-                                  <span className="text-xs text-slate-600">
+                                  <span className="text-xs text-muted-foreground">
                                     {allDrivers.find(d => d.value === entry.primaryDriver)?.emoji} {allDrivers.find(d => d.value === entry.primaryDriver)?.label}
                                     {entry.secondaryDriver && ` → ${allDrivers.find(d => d.value === entry.secondaryDriver)?.emoji} ${allDrivers.find(d => d.value === entry.secondaryDriver)?.label}`}
                                   </span>
@@ -466,7 +466,7 @@ export function JournalTab() {
           >
             <button
               onClick={resetForm}
-              className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
               data-testid="button-back"
             >
               <ChevronRight className="w-4 h-4 rotate-180" />
@@ -474,10 +474,10 @@ export function JournalTab() {
             </button>
 
             {/* Drivers Section - always visible at top */}
-            <div className="bg-white rounded-xl border border-slate-200 p-3">
+            <div className="bg-card/80 backdrop-blur-sm rounded-xl border border-border p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Zap className="w-4 h-4 text-amber-500" />
-                <span className="text-xs font-medium text-slate-600">What's driving this entry?</span>
+                <span className="text-xs font-medium text-muted-foreground">What's driving this entry?</span>
                 {primaryDriver && (
                   <span className="text-xs text-indigo-500 ml-auto">
                     {allDrivers.find(d => d.value === primaryDriver)?.emoji} {allDrivers.find(d => d.value === primaryDriver)?.label}
@@ -495,7 +495,7 @@ export function JournalTab() {
                       "px-2 py-1 rounded-lg text-[11px] font-medium transition-all flex items-center gap-1",
                       primaryDriver === driver.value
                         ? "text-white shadow-sm"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
                     )}
                     style={primaryDriver === driver.value ? { backgroundColor: driver.color } : {}}
                     data-testid={`driver-primary-${driver.value}`}
@@ -504,7 +504,7 @@ export function JournalTab() {
                     <span>{driver.label}</span>
                   </button>
                 ))}
-                <div className="w-px h-5 bg-slate-200 mx-1 self-center" />
+                <div className="w-px h-5 bg-border mx-1 self-center" />
                 {positiveDrivers.map((driver) => (
                   <button
                     key={driver.value}
@@ -514,7 +514,7 @@ export function JournalTab() {
                       "px-2 py-1 rounded-lg text-[11px] font-medium transition-all flex items-center gap-1",
                       primaryDriver === driver.value
                         ? "text-white shadow-sm"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
                     )}
                     style={primaryDriver === driver.value ? { backgroundColor: driver.color } : {}}
                     data-testid={`driver-primary-${driver.value}`}
@@ -525,8 +525,8 @@ export function JournalTab() {
                 ))}
               </div>
               {primaryDriver && !["none", "joy", "connection", "growth", "peace"].includes(primaryDriver) && (
-                <div className="pt-2 border-t border-slate-100">
-                  <p className="text-[10px] text-slate-400 mb-2">Secondary driver? (e.g., Work → Urges)</p>
+                <div className="pt-2 border-t border-border">
+                  <p className="text-[10px] text-muted-foreground/70 mb-2">Secondary driver? (e.g., Work → Urges)</p>
                   <div className="flex flex-wrap gap-1.5">
                     {[...challengingDrivers.filter(d => d.value !== primaryDriver), ...positiveDrivers.filter(d => d.value !== "none")].map((driver) => (
                       <button
@@ -537,7 +537,7 @@ export function JournalTab() {
                           "px-2 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1",
                           secondaryDriver === driver.value
                             ? "text-white shadow-sm"
-                            : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                            : "bg-muted/60 text-muted-foreground hover:bg-muted"
                         )}
                         style={secondaryDriver === driver.value ? { backgroundColor: driver.color } : {}}
                         data-testid={`driver-secondary-${driver.value}`}
@@ -551,14 +551,14 @@ export function JournalTab() {
               )}
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-card/90 backdrop-blur-sm rounded-2xl border border-border shadow-sm overflow-hidden">
               <TooltipProvider>
-                <div className="flex items-center gap-1 px-3 py-2 border-b border-slate-100 bg-slate-50/50">
+                <div className="flex items-center gap-1 px-3 py-2 border-b border-border bg-muted/30">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => insertFormatting("**")}
-                        className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                         aria-label="Bold"
                         data-testid="button-format-bold"
                       >
@@ -572,7 +572,7 @@ export function JournalTab() {
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => insertFormatting("*")}
-                        className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                         aria-label="Italic"
                         data-testid="button-format-italic"
                       >
@@ -582,13 +582,13 @@ export function JournalTab() {
                     <TooltipContent>Italic</TooltipContent>
                   </Tooltip>
                   
-                  <div className="w-px h-5 bg-slate-200 mx-1" />
+                  <div className="w-px h-5 bg-border mx-1" />
                   
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => insertFormatting("## ", "")}
-                        className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                         aria-label="Heading"
                         data-testid="button-format-heading"
                       >
@@ -602,7 +602,7 @@ export function JournalTab() {
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => insertFormatting("- ", "")}
-                        className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                         aria-label="List"
                         data-testid="button-format-list"
                       >
@@ -622,7 +622,7 @@ export function JournalTab() {
                           "p-2 rounded-lg transition-colors",
                           showPreview 
                             ? "bg-indigo-100 text-indigo-600" 
-                            : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
                         )}
                         aria-label={showPreview ? "Edit" : "Preview"}
                         data-testid="button-toggle-preview"
@@ -640,7 +640,7 @@ export function JournalTab() {
                   {content ? (
                     <ReactMarkdown>{content}</ReactMarkdown>
                   ) : (
-                    <p className="text-slate-400 italic">Nothing to preview yet...</p>
+                    <p className="text-muted-foreground/70 italic">Nothing to preview yet...</p>
                   )}
                 </div>
               ) : (
@@ -649,18 +649,18 @@ export function JournalTab() {
                   placeholder="What's on your mind?"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  className="w-full min-h-[280px] p-4 text-base text-slate-700 placeholder:text-slate-400 resize-none focus:outline-none leading-relaxed"
+                  className="w-full min-h-[280px] p-4 text-base text-foreground bg-transparent placeholder:text-muted-foreground/60 resize-none focus:outline-none leading-relaxed"
                   data-testid="textarea-content"
                 />
               )}
               
-              <div className="border-t border-slate-100 px-3 py-2">
+              <div className="border-t border-border px-3 py-2">
                 <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                   {writingPrompts.map((prompt, i) => (
                     <button
                       key={i}
                       onClick={() => insertPrompt(prompt)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors whitespace-nowrap"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors whitespace-nowrap"
                       data-testid={`button-prompt-${i}`}
                     >
                       <Lightbulb className="w-3 h-3" />
@@ -673,18 +673,18 @@ export function JournalTab() {
 
             <div className="space-y-2">
               <Collapsible open={showContext} onOpenChange={setShowContext}>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full p-3 bg-white rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors" data-testid="trigger-context">
-                  <User className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm font-medium text-slate-600 flex-1 text-left">Context</span>
-                  <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", showContext && "rotate-180")} />
+                <CollapsibleTrigger className="flex items-center gap-2 w-full p-3 bg-card/80 rounded-xl border border-border hover:bg-muted/50 transition-colors" data-testid="trigger-context">
+                  <User className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground flex-1 text-left">Context</span>
+                  <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", showContext && "rotate-180")} />
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <div className="mt-2 p-4 bg-white rounded-xl border border-slate-200 space-y-4">
+                  <div className="mt-2 p-4 bg-card/80 rounded-xl border border-border space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-xs font-medium text-slate-500 mb-1.5 block">Who is writing?</label>
+                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Who is writing?</label>
                         <Select value={authorId || "__none__"} onValueChange={(v) => setAuthorId(v === "__none__" ? null : v)}>
-                          <SelectTrigger data-testid="select-author" className="bg-white">
+                          <SelectTrigger data-testid="select-author" className="bg-card">
                             <SelectValue placeholder="Unknown" />
                           </SelectTrigger>
                           <SelectContent>
@@ -702,9 +702,9 @@ export function JournalTab() {
                       </div>
                       
                       <div>
-                        <label className="text-xs font-medium text-slate-500 mb-1.5 block">Time of Day</label>
+                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Time of Day</label>
                         <Select value={timeOfDay} onValueChange={setTimeOfDay}>
-                          <SelectTrigger data-testid="select-time-of-day" className="bg-white">
+                          <SelectTrigger data-testid="select-time-of-day" className="bg-card">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -725,9 +725,9 @@ export function JournalTab() {
                     </div>
                     
                     <div>
-                      <label className="text-xs font-medium text-slate-500 mb-1.5 block">Entry Date</label>
+                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Entry Date</label>
                       <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-slate-400" />
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
                         <input
                           type="date"
                           value={format(entryDate, "yyyy-MM-dd")}
@@ -737,7 +737,7 @@ export function JournalTab() {
                               setEntryDate(date);
                             }
                           }}
-                          className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           data-testid="input-entry-date"
                         />
                         <button
@@ -755,22 +755,22 @@ export function JournalTab() {
               </Collapsible>
 
               <Collapsible open={showVitals} onOpenChange={setShowVitals}>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full p-3 bg-white rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors" data-testid="trigger-vitals">
-                  <Smile className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm font-medium text-slate-600 flex-1 text-left">Mood & Energy</span>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full p-3 bg-card/80 rounded-xl border border-border hover:bg-muted/50 transition-colors" data-testid="trigger-vitals">
+                  <Smile className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground flex-1 text-left">Mood & Energy</span>
                   {(mood || energy) && (
                     <span className="text-xs text-indigo-500 mr-2">
                       {mood && `Mood: ${mood}`}{mood && energy && " · "}{energy && `Energy: ${energy}`}
                     </span>
                   )}
-                  <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", showVitals && "rotate-180")} />
+                  <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", showVitals && "rotate-180")} />
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <div className="mt-2 p-4 bg-white rounded-xl border border-slate-200 space-y-4">
+                  <div className="mt-2 p-4 bg-card/80 rounded-xl border border-border space-y-4">
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <label className="text-xs font-medium text-slate-500">Mood</label>
-                        <span className="text-xs text-slate-600">{mood ? moodLabels[mood - 1] : "Not set"}</span>
+                        <label className="text-xs font-medium text-muted-foreground">Mood</label>
+                        <span className="text-xs text-muted-foreground">{mood ? moodLabels[mood - 1] : "Not set"}</span>
                       </div>
                       <Slider
                         value={mood !== null ? [mood] : [5]}
@@ -785,8 +785,8 @@ export function JournalTab() {
                     
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <label className="text-xs font-medium text-slate-500">Energy</label>
-                        <span className="text-xs text-slate-600">{energy ? energyLabels[energy - 1] : "Not set"}</span>
+                        <label className="text-xs font-medium text-muted-foreground">Energy</label>
+                        <span className="text-xs text-muted-foreground">{energy ? energyLabels[energy - 1] : "Not set"}</span>
                       </div>
                       <Slider
                         value={energy !== null ? [energy] : [5]}

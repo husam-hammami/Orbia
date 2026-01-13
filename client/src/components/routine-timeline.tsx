@@ -247,7 +247,7 @@ export function RoutineTimeline() {
                 {/* Progress Ring */}
                 <div className="relative mb-2">
                   <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
-                    <circle cx="20" cy="20" r="16" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+                    <circle cx="20" cy="20" r="16" fill="none" className="stroke-muted" strokeWidth="3" />
                     <motion.circle 
                       cx="20" cy="20" r="16" 
                       fill="none" 
