@@ -9,13 +9,7 @@ const httpServer = createServer(app);
 
 // CORS configuration for mobile app (Capacitor)
 app.use(cors({
-  origin: [
-    'capacitor://localhost',
-    'https://localhost',
-    'http://localhost',
-    'http://localhost:5000',
-    'http://localhost:3000'
-  ],
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
