@@ -949,39 +949,38 @@ export default function CareerPage() {
             </section>
           </TabsContent>
 
-          <TabsContent value="coach" className="mt-6 space-y-4">
+          <TabsContent value="coach" className="mt-4 space-y-3">
             {(isLoadingStoredCoach || coachLoading) && (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={cn(glassCard, "p-6 flex items-center justify-center gap-3")}
+                className={cn(glassCard, "p-4 flex items-center justify-center gap-2")}
               >
-                <Loader2 className="w-5 h-5 animate-spin text-violet-500" />
-                <p className="text-sm text-muted-foreground">
-                  {isLoadingStoredCoach ? "Loading your guidance..." : "Generating your personalized guidance..."}
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                <p className="text-xs text-muted-foreground">
+                  {isLoadingStoredCoach ? "Loading..." : "Generating guidance..."}
                 </p>
               </motion.div>
             )}
 
             {!coachData && !coachLoading && !coachError && !isLoadingStoredCoach && (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={cn(glassCard, "p-8 text-center")}
+                className={cn(glassCard, "p-5 text-center")}
               >
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-violet-500/10 to-purple-500/10 flex items-center justify-center mx-auto mb-4">
-                  <Compass className="w-7 h-7 text-violet-500" />
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                  <Compass className="w-5 h-5 text-primary" />
                 </div>
-                <h3 className="text-lg font-medium text-foreground mb-2">Ready for your personalized career guidance?</h3>
-                <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-                  Based on your North Star vision, I'll create a focused roadmap with weekly actions.
+                <h3 className="text-sm font-medium text-foreground mb-1">Ready for personalized guidance?</h3>
+                <p className="text-xs text-muted-foreground mb-4 max-w-xs mx-auto">
+                  I'll create a focused roadmap based on your vision.
                 </p>
                 <Button 
                   onClick={fetchCoach}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground border-0"
-                  size="lg"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 h-8 text-xs"
                 >
-                  <Sparkles className="w-4 h-4 mr-2" />
+                  <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                   Get Started
                 </Button>
               </motion.div>
@@ -989,25 +988,25 @@ export default function CareerPage() {
 
             {coachError && !coachLoading && !isLoadingStoredCoach && (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={cn(glassCard, "p-5 border-red-200/60 dark:border-red-700/40")}
+                className={cn(glassCard, "p-3 border-red-200/60 dark:border-red-700/40")}
               >
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
-                    <X className="w-4 h-4 text-red-500" />
+                <div className="flex items-start gap-2">
+                  <div className="w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+                    <X className="w-3 h-3 text-red-500" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-medium text-foreground text-sm mb-1">Unable to Generate Insights</h4>
-                    <p className="text-xs text-muted-foreground mb-2">{coachError}</p>
+                    <h4 className="font-medium text-foreground text-xs mb-0.5">Unable to Generate</h4>
+                    <p className="text-[10px] text-muted-foreground mb-1.5">{coachError}</p>
                     <Button 
                       onClick={fetchCoach}
                       variant="outline"
                       size="sm"
-                      className="border-violet-500/40 text-violet-600 dark:text-violet-400 h-7 text-xs"
+                      className="border-primary/40 text-primary h-6 text-[10px] px-2"
                     >
-                      <RefreshCw className="w-3 h-3 mr-1" />
-                      Try Again
+                      <RefreshCw className="w-2.5 h-2.5 mr-1" />
+                      Retry
                     </Button>
                   </div>
                 </div>
@@ -1015,47 +1014,43 @@ export default function CareerPage() {
             )}
 
             {coachData && !coachLoading && !isLoadingStoredCoach && (
-              <div className="space-y-4">
+              <div className="space-y-3">
+                {/* Compact Coach Header */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                  className="flex items-center justify-between"
                 >
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                      <Compass className="w-5 h-5 text-primary" />
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      <Compass className="w-4 h-4 text-primary" />
                       Coach
                     </h3>
                     {coachData.weeklyTheme && (
-                      <Badge variant="secondary" className="text-xs">
-                        <Star className="w-3 h-3 mr-1" />
+                      <Badge variant="secondary" className="text-[10px] h-5">
+                        <Star className="w-2.5 h-2.5 mr-0.5" />
                         {coachData.weeklyTheme}
                       </Badge>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {coachGeneratedAt && (
-                      <span>Generated {format(coachGeneratedAt, "MMM d, h:mm a")}</span>
-                    )}
-                    <Button
-                      onClick={fetchCoach}
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs text-muted-foreground hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    >
-                      <RefreshCw className="w-3 h-3 mr-1" />
-                      Refresh
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={fetchCoach}
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-[10px] text-muted-foreground hover:text-foreground px-2"
+                  >
+                    <RefreshCw className="w-2.5 h-2.5 mr-1" />
+                    Refresh
+                  </Button>
                 </motion.div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-                  <div className="lg:col-span-3 space-y-3">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+                  <div className="lg:col-span-3 space-y-2">
                     {coachData.roadmap && coachData.roadmap.length > 0 && (
                       <>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Map className="w-4 h-4 text-primary" />
-                          <h4 className="font-medium text-foreground text-sm">Roadmap Timeline</h4>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Map className="w-3.5 h-3.5 text-primary" />
+                          <h4 className="font-medium text-foreground text-xs">Roadmap</h4>
                         </div>
                         {coachData.roadmap.map((phase, index) => {
                           const phaseResources = getLearningResourcesForPhase(index);
@@ -1086,25 +1081,25 @@ export default function CareerPage() {
                               )}
                               {shouldCollapse ? (
                                 <Collapsible open={isExpanded} onOpenChange={() => togglePhaseExpanded(index)}>
-                                  <CollapsibleTrigger className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition-colors">
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
-                                        <TrendingUp className="w-3 h-3 text-primary" />
+                                  <CollapsibleTrigger className="w-full p-2 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                                    <div className="flex items-center gap-1.5">
+                                      <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+                                        <TrendingUp className="w-2.5 h-2.5 text-primary" />
                                       </div>
                                       <div className="text-left">
-                                        <div className="flex items-center gap-2">
-                                          <h5 className="font-medium text-foreground text-sm">{phase.phase}</h5>
+                                        <div className="flex items-center gap-1.5">
+                                          <h5 className="font-medium text-foreground text-xs">{phase.phase}</h5>
                                           {totalMilestones > 0 && (
-                                            <span className="text-[10px] text-muted-foreground">{completedCount}/{totalMilestones} done</span>
+                                            <span className="text-[9px] text-muted-foreground">{completedCount}/{totalMilestones}</span>
                                           )}
                                         </div>
-                                        <p className="text-[10px] text-muted-foreground">{phase.timeframe}</p>
+                                        <p className="text-[9px] text-muted-foreground">{phase.timeframe}</p>
                                       </div>
                                     </div>
-                                    <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
+                                    <ChevronDown className={cn("w-3.5 h-3.5 text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
                                   </CollapsibleTrigger>
                                   <CollapsibleContent>
-                                    <div className="px-3 pb-3 space-y-2">
+                                    <div className="px-2 pb-2 space-y-1.5">
                                       {phase.goal && (
                                         <p className="text-xs text-muted-foreground">{phase.goal}</p>
                                       )}
