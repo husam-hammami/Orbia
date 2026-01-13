@@ -5,13 +5,15 @@ const config: CapacitorConfig = {
   appName: 'Orbia',
   webDir: 'dist/public',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    hostname: 'orbia.app',
+    allowNavigation: ['orbia-1.replit.app']
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
       launchAutoHide: true,
-      backgroundColor: '#f8f6f4',
+      backgroundColor: '#1a1a2e',
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
@@ -19,14 +21,22 @@ const config: CapacitorConfig = {
       splashImmersive: true
     },
     StatusBar: {
-      style: 'LIGHT',
-      backgroundColor: '#f8f6f4'
+      style: 'DARK',
+      backgroundColor: '#1a1a2e',
+      overlaysWebView: false
     },
     LocalNotifications: {
-      smallIcon: 'ic_stat_icon_config_sample',
-      iconColor: '#488AFF',
-      sound: 'beep.wav'
+      smallIcon: 'ic_notification',
+      iconColor: '#e879f9',
+      sound: 'default'
+    },
+    App: {
+      launchUrl: 'https://orbia.app'
     }
+  },
+  android: {
+    allowMixedContent: false,
+    backgroundColor: '#1a1a2e'
   }
 };
 
