@@ -71,7 +71,6 @@ function Sidebar({ className }: SidebarProps) {
   return (
     <div className={cn(
       "flex flex-col h-full pt-0 pb-4 px-3",
-      "bg-card/70 backdrop-blur-xl border-r border-border/60",
       className
     )}>
       <div className="-mb-2 -mx-3 -mt-4">
@@ -380,76 +379,74 @@ interface LayoutProps {
 
 export function Layout({ children, lockContext }: LayoutProps) {
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
-      <aside className="hidden md:block w-64 flex-shrink-0">
-        <Sidebar />
-      </aside>
+    <>
+      {/* FIXED animated background layer - sits behind everything but visible through transparent content */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 bg-background">
+        <motion.div
+          animate={{ 
+            scale: [1, 1.4, 1],
+            opacity: [0.3, 0.5, 0.3]
+          }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute -top-20 -left-20 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-primary/50 to-accent/50 blur-3xl"
+        />
+        <motion.div
+          animate={{ 
+            scale: [1.2, 1, 1.2],
+            opacity: [0.25, 0.4, 0.25]
+          }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          className="absolute top-1/4 -right-16 w-96 h-96 rounded-full bg-gradient-to-bl from-accent/45 to-primary/45 blur-3xl"
+        />
+        <motion.div
+          animate={{ 
+            scale: [1, 1.2, 1],
+            opacity: [0.2, 0.35, 0.2],
+            y: [-20, 20, -20]
+          }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+          className="absolute top-1/2 left-1/3 w-80 h-80 rounded-full bg-gradient-to-tr from-primary/40 to-accent/40 blur-3xl"
+        />
+        <motion.div
+          animate={{ 
+            scale: [1.1, 1, 1.1],
+            opacity: [0.2, 0.35, 0.2]
+          }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 5 }}
+          className="absolute bottom-20 right-1/4 w-72 h-72 rounded-full bg-gradient-to-tl from-primary/35 to-accent/35 blur-3xl"
+        />
+        <motion.div
+          animate={{ 
+            scale: [1, 1.3, 1],
+            opacity: [0.15, 0.3, 0.15]
+          }}
+          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 7 }}
+          className="absolute bottom-1/3 -left-10 w-64 h-64 rounded-full bg-gradient-to-r from-accent/30 to-primary/30 blur-3xl"
+        />
+      </div>
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {/* Global animated background - covers entire page with animated orbs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-          {/* Top-left primary glow - most prominent */}
-          <motion.div
-            animate={{ 
-              scale: [1, 1.4, 1],
-              opacity: [0.25, 0.45, 0.25]
-            }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute -top-20 -left-20 w-96 h-96 rounded-full bg-gradient-to-br from-primary/40 to-accent/40 blur-3xl"
-          />
-          {/* Right side accent glow */}
-          <motion.div
-            animate={{ 
-              scale: [1.2, 1, 1.2],
-              opacity: [0.2, 0.35, 0.2]
-            }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-            className="absolute top-1/4 -right-16 w-80 h-80 rounded-full bg-gradient-to-bl from-accent/35 to-primary/35 blur-3xl"
-          />
-          {/* Center flowing glow */}
-          <motion.div
-            animate={{ 
-              scale: [1, 1.2, 1],
-              opacity: [0.15, 0.3, 0.15],
-              y: [-20, 20, -20]
-            }}
-            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-            className="absolute top-1/2 left-1/3 w-72 h-72 rounded-full bg-gradient-to-tr from-primary/30 to-accent/30 blur-3xl"
-          />
-          {/* Bottom accent glow */}
-          <motion.div
-            animate={{ 
-              scale: [1.1, 1, 1.1],
-              opacity: [0.15, 0.25, 0.15]
-            }}
-            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 5 }}
-            className="absolute bottom-20 right-1/4 w-64 h-64 rounded-full bg-gradient-to-tl from-primary/25 to-accent/25 blur-3xl"
-          />
-          {/* Extra bottom-left glow for continuity */}
-          <motion.div
-            animate={{ 
-              scale: [1, 1.3, 1],
-              opacity: [0.1, 0.2, 0.1]
-            }}
-            transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 7 }}
-            className="absolute bottom-1/3 -left-10 w-56 h-56 rounded-full bg-gradient-to-r from-accent/20 to-primary/20 blur-3xl"
-          />
-        </div>
+      {/* Main layout container - transparent to show animated background */}
+      <div className="flex h-screen w-full overflow-hidden relative z-10">
+        <aside className="hidden md:block w-64 flex-shrink-0">
+          <Sidebar />
+        </aside>
 
-        <MobileHeader lockContext={lockContext} />
+        <main className="flex-1 flex flex-col h-full overflow-hidden">
+          <MobileHeader lockContext={lockContext} />
 
-        <div className="hidden md:block">
-          <GardenTopBar />
-        </div>
-
-        <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 md:pb-0 relative z-10">
-          <div className="w-full px-3 md:px-6 lg:px-8 xl:px-10 py-3 md:py-6 lg:py-8 space-y-4 md:space-y-6">
-            {children}
+          <div className="hidden md:block">
+            <GardenTopBar />
           </div>
-        </div>
-        
-        <MobileBottomNav />
-      </main>
-    </div>
+
+          <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 md:pb-0">
+            <div className="w-full px-3 md:px-6 lg:px-8 xl:px-10 py-3 md:py-6 lg:py-8 space-y-4 md:space-y-6">
+              {children}
+            </div>
+          </div>
+          
+          <MobileBottomNav />
+        </main>
+      </div>
+    </>
   );
 }
