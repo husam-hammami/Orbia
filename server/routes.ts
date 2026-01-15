@@ -1946,75 +1946,291 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
     }
   });
 
-  // News/Updates API - fetches and summarizes news based on user interests
-  app.get("/api/news", async (req, res) => {
+  // Define available RSS feeds for news topics
+  const rssFeedsByTopic: Record<string, { name: string; feeds: string[] }> = {
+    teaching: {
+      name: "Teaching & Education",
+      feeds: ["https://www.edweek.org/rss/blogs/edweek/default.rss", "https://www.teachthought.com/feed/"]
+    },
+    cybersecurity: {
+      name: "Cybersecurity",
+      feeds: ["https://feeds.feedburner.com/TheHackersNews", "https://krebsonsecurity.com/feed/"]
+    },
+    technology: {
+      name: "Technology",
+      feeds: ["https://hnrss.org/frontpage", "https://www.theverge.com/rss/index.xml"]
+    },
+    career: {
+      name: "Career & Work",
+      feeds: ["https://hbr.org/feed"]
+    },
+    wellness: {
+      name: "Wellness & Health",
+      feeds: ["https://www.mindbodygreen.com/feed/rss"]
+    },
+    skincare: {
+      name: "Skincare & Beauty",
+      feeds: ["https://www.allure.com/feed/rss"]
+    },
+    french: {
+      name: "French Language & Culture",
+      feeds: ["https://www.france24.com/en/rss"]
+    },
+    finance: {
+      name: "Personal Finance",
+      feeds: ["https://feeds.feedburner.com/TheFinancialDiet"]
+    },
+    productivity: {
+      name: "Productivity",
+      feeds: ["https://feeds.feedburner.com/zenhabits"]
+    },
+    ai: {
+      name: "AI & Machine Learning",
+      feeds: ["https://openai.com/blog/rss.xml"]
+    }
+  };
+
+  // Get suggested topics based on user's goals, projects, and visions
+  app.get("/api/news/suggested-topics", async (req, res) => {
     try {
-      const vision = await storage.getVision();
-      
-      // Define RSS feeds based on common interest areas
-      const rssFeeds: Record<string, string[]> = {
-        teaching: [
-          "https://www.edweek.org/rss/blogs/edweek/default.rss",
-          "https://www.teachthought.com/feed/"
-        ],
-        cybersecurity: [
-          "https://feeds.feedburner.com/TheHackersNews",
-          "https://krebsonsecurity.com/feed/"
-        ],
-        technology: [
-          "https://hnrss.org/frontpage",
-          "https://www.theverge.com/rss/index.xml"
-        ],
-        career: [
-          "https://hbr.org/feed",
-          "https://www.fastcompany.com/work-life/rss"
-        ],
-        wellness: [
-          "https://www.mindbodygreen.com/feed/rss"
-        ],
-        skincare: [
-          "https://www.allure.com/feed/rss"
-        ],
-        french: [
-          "https://www.france24.com/en/rss"
-        ]
+      const [vision, projects, habits] = await Promise.all([
+        storage.getVision(),
+        storage.getAllCareerProjects(),
+        storage.getAllHabits()
+      ]);
+
+      const suggestions: { topic: string; name: string; reason: string }[] = [];
+      const addedTopics = new Set<string>();
+
+      const addSuggestion = (topic: string, reason: string) => {
+        if (!addedTopics.has(topic) && rssFeedsByTopic[topic]) {
+          addedTopics.add(topic);
+          suggestions.push({ topic, name: rssFeedsByTopic[topic].name, reason });
+        }
       };
 
-      // Extract user interests from visions
-      const interests: string[] = [];
+      // Analyze visions
       vision.forEach(v => {
         const title = v.title.toLowerCase();
-        
-        if (title.includes("teach") || title.includes("education") || title.includes("tutor")) interests.push("teaching");
-        if (title.includes("cyber") || title.includes("security") || title.includes("hack") || title.includes("htb")) interests.push("cybersecurity");
-        if (title.includes("tech") || title.includes("software") || title.includes("code")) interests.push("technology");
-        if (title.includes("career") || title.includes("job") || title.includes("work")) interests.push("career");
-        if (title.includes("wellness") || title.includes("health") || title.includes("mental")) interests.push("wellness");
-        if (title.includes("skin") || title.includes("beauty")) interests.push("skincare");
-        if (title.includes("french") || title.includes("language")) interests.push("french");
+        if (title.includes("teach") || title.includes("education") || title.includes("tutor")) 
+          addSuggestion("teaching", `Based on your vision: "${v.title}"`);
+        if (title.includes("cyber") || title.includes("security") || title.includes("hack") || title.includes("htb")) 
+          addSuggestion("cybersecurity", `Based on your vision: "${v.title}"`);
+        if (title.includes("tech") || title.includes("software") || title.includes("code") || title.includes("developer")) 
+          addSuggestion("technology", `Based on your vision: "${v.title}"`);
+        if (title.includes("career") || title.includes("job") || title.includes("professional")) 
+          addSuggestion("career", `Based on your vision: "${v.title}"`);
+        if (title.includes("wellness") || title.includes("health") || title.includes("mental") || title.includes("balance")) 
+          addSuggestion("wellness", `Based on your vision: "${v.title}"`);
+        if (title.includes("skin") || title.includes("beauty") || title.includes("glow")) 
+          addSuggestion("skincare", `Based on your vision: "${v.title}"`);
+        if (title.includes("french") || title.includes("language") || title.includes("bilingual")) 
+          addSuggestion("french", `Based on your vision: "${v.title}"`);
+        if (title.includes("money") || title.includes("finance") || title.includes("invest") || title.includes("debt")) 
+          addSuggestion("finance", `Based on your vision: "${v.title}"`);
+        if (title.includes("ai") || title.includes("artificial") || title.includes("machine learning")) 
+          addSuggestion("ai", `Based on your vision: "${v.title}"`);
       });
 
-      // Default interests if none detected
-      const uniqueInterests = Array.from(new Set(interests));
-      if (uniqueInterests.length === 0) {
-        uniqueInterests.push("career", "technology", "wellness");
+      // Analyze projects
+      projects.forEach(p => {
+        const title = p.title.toLowerCase();
+        if (title.includes("htb") || title.includes("hack") || title.includes("security")) 
+          addSuggestion("cybersecurity", `Based on your project: "${p.title}"`);
+        if (title.includes("french") || title.includes("language")) 
+          addSuggestion("french", `Based on your project: "${p.title}"`);
+        if (title.includes("skin") || title.includes("content")) 
+          addSuggestion("skincare", `Based on your project: "${p.title}"`);
+      });
+
+      // Analyze habits
+      habits.forEach(h => {
+        const title = h.title.toLowerCase();
+        if (title.includes("french")) addSuggestion("french", `Based on your habit: "${h.title}"`);
+        if (title.includes("htb") || title.includes("hack")) addSuggestion("cybersecurity", `Based on your habit: "${h.title}"`);
+        if (title.includes("read")) addSuggestion("technology", `Based on your habit: "${h.title}"`);
+        if (title.includes("pilates") || title.includes("workout")) addSuggestion("wellness", `Based on your habit: "${h.title}"`);
+        if (title.includes("skin")) addSuggestion("skincare", `Based on your habit: "${h.title}"`);
+      });
+
+      // Add default suggestions if we have few
+      if (suggestions.length < 3) {
+        addSuggestion("career", "Great for professional growth");
+        addSuggestion("productivity", "Help you stay focused and efficient");
+        addSuggestion("wellness", "Support your overall wellbeing");
       }
 
-      // Fetch RSS feeds for user's interests
-      const feedsToFetch: { category: string; url: string }[] = [];
-      uniqueInterests.forEach(interest => {
-        if (rssFeeds[interest]) {
-          rssFeeds[interest].forEach(url => {
-            feedsToFetch.push({ category: interest, url });
+      // Get all available topics
+      const allTopics = Object.entries(rssFeedsByTopic).map(([key, val]) => ({
+        topic: key,
+        name: val.name
+      }));
+
+      res.json({ suggestions, allTopics });
+    } catch (error) {
+      console.error("Topic suggestions error:", error);
+      res.status(500).json({ error: "Failed to get topic suggestions" });
+    }
+  });
+
+  // User's saved topics CRUD
+  app.get("/api/news/topics", async (req, res) => {
+    try {
+      const topics = await storage.getAllNewsTopics();
+      res.json(topics);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get news topics" });
+    }
+  });
+
+  app.post("/api/news/topics", async (req, res) => {
+    try {
+      const { topic, isCustom } = req.body;
+      if (!topic) {
+        return res.status(400).json({ error: "Topic is required" });
+      }
+      const newTopic = await storage.createNewsTopic({ 
+        topic: topic.toLowerCase(), 
+        isCustom: isCustom ? 1 : 0,
+        isActive: 1
+      });
+      res.status(201).json(newTopic);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create news topic" });
+    }
+  });
+
+  app.patch("/api/news/topics/:id", async (req, res) => {
+    try {
+      const topic = await storage.updateNewsTopic(req.params.id, req.body);
+      if (!topic) {
+        return res.status(404).json({ error: "Topic not found" });
+      }
+      res.json(topic);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update news topic" });
+    }
+  });
+
+  app.delete("/api/news/topics/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteNewsTopic(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Topic not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete news topic" });
+    }
+  });
+
+  // Saved articles CRUD
+  app.get("/api/news/saved", async (req, res) => {
+    try {
+      const articles = await storage.getAllSavedArticles();
+      res.json(articles);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get saved articles" });
+    }
+  });
+
+  app.post("/api/news/saved", async (req, res) => {
+    try {
+      const { title, link, description, category, source, pubDate } = req.body;
+      if (!title || !link) {
+        return res.status(400).json({ error: "Title and link are required" });
+      }
+      
+      // Check if already saved
+      const existing = await storage.getSavedArticle(link);
+      if (existing) {
+        return res.status(400).json({ error: "Article already saved" });
+      }
+      
+      const article = await storage.createSavedArticle({
+        title,
+        link,
+        description,
+        category: category || "general",
+        source,
+        pubDate: pubDate ? new Date(pubDate) : undefined
+      });
+      res.status(201).json(article);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save article" });
+    }
+  });
+
+  app.delete("/api/news/saved/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteSavedArticle(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Saved article not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete saved article" });
+    }
+  });
+
+  // News/Updates API - fetches and summarizes news based on user's selected topics
+  app.get("/api/news", async (req, res) => {
+    try {
+      // Get user's active topics, or use suggestions if none selected
+      let userTopics = await storage.getActiveNewsTopics();
+      
+      let activeTopics: string[];
+      if (userTopics.length > 0) {
+        activeTopics = userTopics.map(t => t.topic);
+      } else {
+        // Fallback: auto-detect from visions
+        const vision = await storage.getVision();
+        const detectedInterests: string[] = [];
+        
+        vision.forEach(v => {
+          const title = v.title.toLowerCase();
+          if (title.includes("teach") || title.includes("education")) detectedInterests.push("teaching");
+          if (title.includes("cyber") || title.includes("security") || title.includes("htb")) detectedInterests.push("cybersecurity");
+          if (title.includes("tech") || title.includes("software")) detectedInterests.push("technology");
+          if (title.includes("career") || title.includes("job")) detectedInterests.push("career");
+          if (title.includes("wellness") || title.includes("health")) detectedInterests.push("wellness");
+          if (title.includes("skin") || title.includes("beauty")) detectedInterests.push("skincare");
+          if (title.includes("french") || title.includes("language")) detectedInterests.push("french");
+        });
+        
+        activeTopics = Array.from(new Set(detectedInterests));
+        if (activeTopics.length === 0) {
+          activeTopics = ["career", "technology", "wellness"];
+        }
+      }
+
+      // Fetch RSS feeds for active topics
+      const feedsToFetch: { category: string; url: string; source: string }[] = [];
+      activeTopics.forEach(topic => {
+        const feedConfig = rssFeedsByTopic[topic];
+        if (feedConfig) {
+          feedConfig.feeds.forEach(url => {
+            feedsToFetch.push({ category: topic, url, source: feedConfig.name });
           });
         }
       });
 
-      // Fetch and parse RSS feeds
-      const fetchedArticles: { title: string; link: string; description: string; category: string; pubDate?: string }[] = [];
+      // Fetch and parse RSS feeds with enhanced metadata
+      interface EnhancedArticle {
+        title: string;
+        link: string;
+        description: string;
+        category: string;
+        source: string;
+        pubDate?: string;
+        readingTime?: number;
+        imageUrl?: string;
+      }
+      
+      const fetchedArticles: EnhancedArticle[] = [];
       
       await Promise.allSettled(
-        feedsToFetch.slice(0, 6).map(async ({ category, url }) => {
+        feedsToFetch.slice(0, 8).map(async ({ category, url, source }) => {
           try {
             const response = await fetch(url, { 
               headers: { 'User-Agent': 'Orbya/1.0' },
@@ -2022,50 +2238,84 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
             });
             const text = await response.text();
             
-            // Simple RSS parsing
-            const items = text.match(/<item>[\s\S]*?<\/item>/gi) || [];
-            items.slice(0, 3).forEach(item => {
+            // Parse RSS/Atom items
+            const items = text.match(/<item>[\s\S]*?<\/item>/gi) || 
+                         text.match(/<entry>[\s\S]*?<\/entry>/gi) || [];
+            
+            items.slice(0, 4).forEach(item => {
               const titleMatch = item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/i);
-              const linkMatch = item.match(/<link>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/link>/i);
-              const descMatch = item.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/i);
-              const dateMatch = item.match(/<pubDate>(.*?)<\/pubDate>/i);
+              const linkMatch = item.match(/<link>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/link>/i) ||
+                               item.match(/<link[^>]*href="([^"]+)"/i);
+              const descMatch = item.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/i) ||
+                               item.match(/<summary>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/summary>/i) ||
+                               item.match(/<content[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/content>/i);
+              const dateMatch = item.match(/<pubDate>(.*?)<\/pubDate>/i) ||
+                               item.match(/<published>(.*?)<\/published>/i) ||
+                               item.match(/<updated>(.*?)<\/updated>/i);
+              const imageMatch = item.match(/<enclosure[^>]*url="([^"]+)"/i) ||
+                                item.match(/<media:content[^>]*url="([^"]+)"/i) ||
+                                item.match(/<image>\s*<url>(.*?)<\/url>/i);
               
               if (titleMatch && linkMatch) {
+                const description = descMatch ? descMatch[1].replace(/<[^>]*>/g, '').slice(0, 250).trim() : '';
+                const wordCount = description.split(/\s+/).length;
+                
                 fetchedArticles.push({
                   title: titleMatch[1].replace(/<[^>]*>/g, '').trim(),
                   link: linkMatch[1].trim(),
-                  description: descMatch ? descMatch[1].replace(/<[^>]*>/g, '').slice(0, 200).trim() : '',
+                  description,
                   category,
-                  pubDate: dateMatch ? dateMatch[1] : undefined
+                  source,
+                  pubDate: dateMatch ? dateMatch[1] : undefined,
+                  readingTime: Math.max(1, Math.ceil(wordCount / 200)),
+                  imageUrl: imageMatch ? imageMatch[1].trim() : undefined
                 });
               }
             });
           } catch (e) {
-            // Skip failed feeds
+            // Skip failed feeds silently
           }
         })
       );
 
-      // If we have articles and AI is available, get AI summaries
+      // Sort by date (newest first)
+      fetchedArticles.sort((a, b) => {
+        if (!a.pubDate) return 1;
+        if (!b.pubDate) return -1;
+        return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
+      });
+
+      // Get saved article links to mark which are saved
+      const savedArticles = await storage.getAllSavedArticles();
+      const savedLinks = new Set(savedArticles.map(a => a.link));
+
+      // Add isSaved flag to articles
+      const articlesWithSaveStatus = fetchedArticles.map(a => ({
+        ...a,
+        isSaved: savedLinks.has(a.link)
+      }));
+
+      // Generate AI summary if available
       let aiSummary = null;
-      if (fetchedArticles.length > 0 && process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+      if (articlesWithSaveStatus.length > 0 && process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
         try {
+          const vision = await storage.getVision();
           const visionSummary = vision.map(v => v.title).join(", ");
-          const articlesList = fetchedArticles.slice(0, 10).map((a, i) => 
-            `${i + 1}. [${a.category}] ${a.title}: ${a.description}`
+          const articlesList = articlesWithSaveStatus.slice(0, 8).map((a, i) => 
+            `${i + 1}. [${a.category}] ${a.title}`
           ).join("\n");
 
           const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
-            max_tokens: 500,
+            max_tokens: 400,
             messages: [
               {
                 role: "system",
-                content: `You are a helpful assistant that provides personalized daily briefings. The user's goals are: ${visionSummary || "career growth and personal development"}. Be concise and actionable.`
+                content: `You provide brief, actionable daily briefings. User's goals: ${visionSummary || "career growth and personal wellbeing"}. Be warm and concise.`
               },
               {
                 role: "user",
-                content: `Based on today's news, give me a 2-3 sentence personalized summary of what's most relevant to my goals. Then list the top 3 articles I should read with one-line explanations of why.\n\nArticles:\n${articlesList}`
+                content: `Give a 2-sentence summary of today's most relevant updates for my goals. Mention specific article topics that matter most.\n\nToday's articles:\n${articlesList}`
               }
             ]
           });
@@ -2077,9 +2327,11 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
       }
 
       res.json({
-        interests: uniqueInterests,
-        articles: fetchedArticles.slice(0, 15),
+        topics: activeTopics,
+        topicNames: activeTopics.map(t => rssFeedsByTopic[t]?.name || t),
+        articles: articlesWithSaveStatus.slice(0, 20),
         aiSummary,
+        hasUserTopics: userTopics.length > 0,
         lastUpdated: new Date().toISOString()
       });
     } catch (error) {
