@@ -6,17 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { startOfWeek, isAfter, formatDistanceToNow, format, startOfDay } from "date-fns";
+import { startOfWeek, isAfter, formatDistanceToNow, format } from "date-fns";
 import { 
   BookOpen, 
   Plus, 
-  Sparkles, 
-  Heart, 
-  Flame, 
-  Leaf, 
-  Brain, 
-  Users,
   Sun,
   Moon,
   Sunset,
@@ -24,24 +17,15 @@ import {
   Trash2,
   Edit,
   Save,
-  ChevronDown,
   ChevronRight,
   Lightbulb,
   Zap,
-  Shield,
-  MessageCircle,
-  Star,
-  AlertTriangle,
-  Smile,
-  Battery,
-  User,
   Bold,
   Italic,
   List,
   Heading2,
   Eye,
-  PenLine,
-  Calendar
+  PenLine
 } from "lucide-react";
 import { toast } from "sonner";
 import { useJournalEntries, useCreateJournalEntry, useUpdateJournalEntry, useDeleteJournalEntry } from "@/lib/api-hooks";
@@ -109,8 +93,6 @@ export function JournalTab() {
   const [energy, setEnergy] = useState<number | null>(null);
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDayAuto());
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
-  const [showContext, setShowContext] = useState(false);
-  const [showVitals, setShowVitals] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [entryDate, setEntryDate] = useState<Date>(new Date());
   const [primaryDriver, setPrimaryDriver] = useState<string | null>(null);
@@ -146,8 +128,6 @@ export function JournalTab() {
     setTimeOfDay(getTimeOfDayAuto());
     setEditingId(null);
     setIsWriting(false);
-    setShowContext(false);
-    setShowVitals(false);
     setShowPreview(false);
     setEntryDate(new Date());
     setPrimaryDriver(null);
@@ -657,114 +637,60 @@ export function JournalTab() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Collapsible open={showContext} onOpenChange={setShowContext}>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full p-3 bg-card/80 rounded-xl border border-border hover:bg-muted/50 transition-colors" data-testid="trigger-context">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground flex-1 text-left">Context</span>
-                  <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", showContext && "rotate-180")} />
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="mt-2 p-4 bg-card/80 rounded-xl border border-border space-y-4">
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Time of Day</label>
-                      <Select value={timeOfDay} onValueChange={setTimeOfDay}>
-                        <SelectTrigger data-testid="select-time-of-day" className="bg-card">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {timeOfDayOptions.map((opt) => {
-                            const Icon = opt.icon;
-                            return (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                <span className="flex items-center gap-2">
-                                  <Icon className={cn("w-4 h-4", opt.color)} />
-                                  {opt.label}
-                                </span>
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Entry Date</label>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <input
-                          type="date"
-                          value={format(entryDate, "yyyy-MM-dd")}
-                          onChange={(e) => {
-                            const date = new Date(e.target.value + "T12:00:00");
-                            if (!isNaN(date.getTime())) {
-                              setEntryDate(date);
-                            }
-                          }}
-                          className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                          data-testid="input-entry-date"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setEntryDate(new Date())}
-                          className="px-2 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                          data-testid="button-today"
-                        >
-                          Today
-                        </button>
-                      </div>
-                    </div>
+            <div className="p-4 bg-card/80 rounded-xl border border-border space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">Mood</span>
+                    <span className="text-xs text-primary">{mood ? moodLabels[mood - 1] : "—"}</span>
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
-
-              <Collapsible open={showVitals} onOpenChange={setShowVitals}>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full p-3 bg-card/80 rounded-xl border border-border hover:bg-muted/50 transition-colors" data-testid="trigger-vitals">
-                  <Smile className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground flex-1 text-left">Mood & Energy</span>
-                  {(mood || energy) && (
-                    <span className="text-xs text-indigo-500 mr-2">
-                      {mood && `Mood: ${mood}`}{mood && energy && " · "}{energy && `Energy: ${energy}`}
-                    </span>
-                  )}
-                  <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", showVitals && "rotate-180")} />
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="mt-2 p-4 bg-card/80 rounded-xl border border-border space-y-4">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-xs font-medium text-muted-foreground">Mood</label>
-                        <span className="text-xs text-muted-foreground">{mood ? moodLabels[mood - 1] : "Not set"}</span>
-                      </div>
-                      <Slider
-                        value={mood !== null ? [mood] : [5]}
-                        onValueChange={([v]) => setMood(v)}
-                        min={1}
-                        max={10}
-                        step={1}
-                        className="py-2"
-                        data-testid="slider-mood"
-                      />
-                    </div>
-                    
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-xs font-medium text-muted-foreground">Energy</label>
-                        <span className="text-xs text-muted-foreground">{energy ? energyLabels[energy - 1] : "Not set"}</span>
-                      </div>
-                      <Slider
-                        value={energy !== null ? [energy] : [5]}
-                        onValueChange={([v]) => setEnergy(v)}
-                        min={1}
-                        max={10}
-                        step={1}
-                        className="py-2"
-                        data-testid="slider-energy"
-                      />
-                    </div>
+                  <Slider
+                    value={mood !== null ? [mood] : [5]}
+                    onValueChange={([v]) => setMood(v)}
+                    min={1}
+                    max={10}
+                    step={1}
+                    data-testid="slider-mood"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">Energy</span>
+                    <span className="text-xs text-primary">{energy ? energyLabels[energy - 1] : "—"}</span>
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
+                  <Slider
+                    value={energy !== null ? [energy] : [5]}
+                    onValueChange={([v]) => setEnergy(v)}
+                    min={1}
+                    max={10}
+                    step={1}
+                    data-testid="slider-energy"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                {timeOfDayOptions.map((opt) => {
+                  const Icon = opt.icon;
+                  const isSelected = timeOfDay === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => setTimeOfDay(opt.value)}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all border",
+                        isSelected 
+                          ? "bg-primary/10 border-primary/30 text-primary" 
+                          : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50"
+                      )}
+                      data-testid={`time-${opt.value}`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="flex gap-3 pt-2">
