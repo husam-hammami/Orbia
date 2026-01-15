@@ -11,6 +11,7 @@ import FinancePage from "@/pages/finance";
 import OrbitPage from "@/pages/orbit";
 import JournalPage from "@/pages/journal";
 import WelcomePage from "@/pages/welcome";
+import NewsPage from "@/pages/news";
 import { LockScreen, useLockScreen } from "@/components/lock-screen";
 
 import Settings from "@/pages/settings";
@@ -43,6 +44,7 @@ function Router() {
       <Route path="/journal" component={JournalPage} />
       <Route path="/career" component={CareerPage} />
       <Route path="/finance" component={FinancePage} />
+      <Route path="/news" component={NewsPage} />
       <Route path="/settings" component={Settings} />
       <Route path="/admin/seed" component={AdminSeed} />
       <Route component={NotFound} />

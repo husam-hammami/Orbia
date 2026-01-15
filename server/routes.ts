@@ -1946,6 +1946,148 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
     }
   });
 
+  // News/Updates API - fetches and summarizes news based on user interests
+  app.get("/api/news", async (req, res) => {
+    try {
+      const vision = await storage.getVision();
+      
+      // Define RSS feeds based on common interest areas
+      const rssFeeds: Record<string, string[]> = {
+        teaching: [
+          "https://www.edweek.org/rss/blogs/edweek/default.rss",
+          "https://www.teachthought.com/feed/"
+        ],
+        cybersecurity: [
+          "https://feeds.feedburner.com/TheHackersNews",
+          "https://krebsonsecurity.com/feed/"
+        ],
+        technology: [
+          "https://hnrss.org/frontpage",
+          "https://www.theverge.com/rss/index.xml"
+        ],
+        career: [
+          "https://hbr.org/feed",
+          "https://www.fastcompany.com/work-life/rss"
+        ],
+        wellness: [
+          "https://www.mindbodygreen.com/feed/rss"
+        ],
+        skincare: [
+          "https://www.allure.com/feed/rss"
+        ],
+        french: [
+          "https://www.france24.com/en/rss"
+        ]
+      };
+
+      // Extract user interests from visions
+      const interests: string[] = [];
+      vision.forEach(v => {
+        const title = v.title.toLowerCase();
+        
+        if (title.includes("teach") || title.includes("education") || title.includes("tutor")) interests.push("teaching");
+        if (title.includes("cyber") || title.includes("security") || title.includes("hack") || title.includes("htb")) interests.push("cybersecurity");
+        if (title.includes("tech") || title.includes("software") || title.includes("code")) interests.push("technology");
+        if (title.includes("career") || title.includes("job") || title.includes("work")) interests.push("career");
+        if (title.includes("wellness") || title.includes("health") || title.includes("mental")) interests.push("wellness");
+        if (title.includes("skin") || title.includes("beauty")) interests.push("skincare");
+        if (title.includes("french") || title.includes("language")) interests.push("french");
+      });
+
+      // Default interests if none detected
+      const uniqueInterests = Array.from(new Set(interests));
+      if (uniqueInterests.length === 0) {
+        uniqueInterests.push("career", "technology", "wellness");
+      }
+
+      // Fetch RSS feeds for user's interests
+      const feedsToFetch: { category: string; url: string }[] = [];
+      uniqueInterests.forEach(interest => {
+        if (rssFeeds[interest]) {
+          rssFeeds[interest].forEach(url => {
+            feedsToFetch.push({ category: interest, url });
+          });
+        }
+      });
+
+      // Fetch and parse RSS feeds
+      const fetchedArticles: { title: string; link: string; description: string; category: string; pubDate?: string }[] = [];
+      
+      await Promise.allSettled(
+        feedsToFetch.slice(0, 6).map(async ({ category, url }) => {
+          try {
+            const response = await fetch(url, { 
+              headers: { 'User-Agent': 'Orbya/1.0' },
+              signal: AbortSignal.timeout(5000)
+            });
+            const text = await response.text();
+            
+            // Simple RSS parsing
+            const items = text.match(/<item>[\s\S]*?<\/item>/gi) || [];
+            items.slice(0, 3).forEach(item => {
+              const titleMatch = item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/i);
+              const linkMatch = item.match(/<link>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/link>/i);
+              const descMatch = item.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/i);
+              const dateMatch = item.match(/<pubDate>(.*?)<\/pubDate>/i);
+              
+              if (titleMatch && linkMatch) {
+                fetchedArticles.push({
+                  title: titleMatch[1].replace(/<[^>]*>/g, '').trim(),
+                  link: linkMatch[1].trim(),
+                  description: descMatch ? descMatch[1].replace(/<[^>]*>/g, '').slice(0, 200).trim() : '',
+                  category,
+                  pubDate: dateMatch ? dateMatch[1] : undefined
+                });
+              }
+            });
+          } catch (e) {
+            // Skip failed feeds
+          }
+        })
+      );
+
+      // If we have articles and AI is available, get AI summaries
+      let aiSummary = null;
+      if (fetchedArticles.length > 0 && process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+        try {
+          const visionSummary = vision.map(v => v.title).join(", ");
+          const articlesList = fetchedArticles.slice(0, 10).map((a, i) => 
+            `${i + 1}. [${a.category}] ${a.title}: ${a.description}`
+          ).join("\n");
+
+          const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            max_tokens: 500,
+            messages: [
+              {
+                role: "system",
+                content: `You are a helpful assistant that provides personalized daily briefings. The user's goals are: ${visionSummary || "career growth and personal development"}. Be concise and actionable.`
+              },
+              {
+                role: "user",
+                content: `Based on today's news, give me a 2-3 sentence personalized summary of what's most relevant to my goals. Then list the top 3 articles I should read with one-line explanations of why.\n\nArticles:\n${articlesList}`
+              }
+            ]
+          });
+
+          aiSummary = completion.choices[0]?.message?.content || null;
+        } catch (e) {
+          // AI summary is optional
+        }
+      }
+
+      res.json({
+        interests: uniqueInterests,
+        articles: fetchedArticles.slice(0, 15),
+        aiSummary,
+        lastUpdated: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("News fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch news" });
+    }
+  });
+
   app.get("/api/career/ai-roadmap", async (req, res) => {
     try {
       if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY || !process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Settings, Briefcase, Wallet, ClipboardList, Orbit, Lock, Sun, Moon } from "lucide-react";
+import { LayoutDashboard, Settings, Briefcase, Wallet, ClipboardList, Orbit, Lock, Sun, Moon, Newspaper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GardenTopBar } from "@/components/garden-top-bar";
 import { motion } from "framer-motion";
@@ -64,6 +64,7 @@ function Sidebar({ className }: SidebarProps) {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/orbit", label: "Orbia", icon: Orbit },
     { href: "/career", label: "Goals & Vision", icon: Briefcase },
+    { href: "/news", label: "Updates", icon: Newspaper },
     { href: "/finance", label: "Finance", icon: Wallet },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
@@ -135,7 +136,7 @@ const mobileNavItems = [
   { href: "/dashboard", label: "Insights", icon: LayoutDashboard },
   { href: "/orbit", label: "Orbia", icon: Orbit, special: true },
   { href: "/career", label: "Goals", icon: Briefcase },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/news", label: "Updates", icon: Newspaper },
 ];
 
 function MobileBottomNav() {
