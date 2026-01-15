@@ -25,7 +25,10 @@ import {
   List,
   Heading2,
   Eye,
-  PenLine
+  PenLine,
+  Sparkles,
+  Smile,
+  Battery
 } from "lucide-react";
 import { toast } from "sonner";
 import { useJournalEntries, useCreateJournalEntry, useUpdateJournalEntry, useDeleteJournalEntry } from "@/lib/api-hooks";
