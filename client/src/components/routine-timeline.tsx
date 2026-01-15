@@ -35,6 +35,13 @@ const iconMap: Record<string, any> = {
   Heart, Bed, Sparkles, Music, Users, Home, Zap, Activity
 };
 
+function formatTimeAmPm(time24: string): string {
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12;
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+}
+
 function getBlockIcon(name: string, storedIcon?: string | null) {
   if (storedIcon && iconMap[storedIcon]) {
     return iconMap[storedIcon];
@@ -67,7 +74,7 @@ function getActivityIcon(name: string) {
 function isActivityPast(activityTime: string | null): boolean {
   if (!activityTime) return false;
   const now = format(new Date(), "HH:mm");
-  return activityTime < now;
+  return activityTime < now; // Keep 24h format for comparison
 }
 
 export function RoutineTimeline() {
@@ -205,7 +212,7 @@ export function RoutineTimeline() {
 
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground ml-auto font-mono">
           <Clock className="w-3.5 h-3.5" />
-          <span>{format(new Date(), "HH:mm")}</span>
+          <span>{format(new Date(), "h:mm a")}</span>
         </div>
       </div>
 
@@ -297,11 +304,11 @@ export function RoutineTimeline() {
                     theme.iconColor,
                     theme.iconBg
                   )}>
-                    {block.startTime.slice(0, 5)}
+                    {formatTimeAmPm(block.startTime)}
                   </span>
                   <span className="text-[10px] text-muted-foreground">→</span>
                   <span className="text-[10px] font-mono font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
-                    {block.endTime.slice(0, 5)}
+                    {formatTimeAmPm(block.endTime)}
                   </span>
                 </div>
 
@@ -376,7 +383,7 @@ export function RoutineTimeline() {
                     <div>
                       <h3 className="font-semibold text-foreground">{block.name}</h3>
                       <p className="text-xs text-muted-foreground font-mono">
-                        {block.startTime} — {block.endTime}
+                        {formatTimeAmPm(block.startTime)} — {formatTimeAmPm(block.endTime)}
                         {block.purpose && <span className="mx-1.5 font-sans">•</span>}
                         {block.purpose && <span className="italic font-sans">{block.purpose}</span>}
                       </p>

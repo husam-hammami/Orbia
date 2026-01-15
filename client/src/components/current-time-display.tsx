@@ -10,18 +10,22 @@ export function CurrentTimeDisplay({ className }: { className?: string }) {
     return () => clearInterval(interval);
   }, []);
 
-  const hours = format(time, "HH");
+  const hours12 = format(time, "h");
   const minutes = format(time, "mm");
+  const period = format(time, "a");
 
   return (
     <div className={cn("flex items-center justify-center", className)}>
       <div className="flex items-center gap-0.5 px-5 py-1.5 rounded-2xl bg-gradient-to-r from-card/60 via-card/40 to-primary/10 backdrop-blur-xl border border-primary/30 shadow-lg">
         <span className="font-mono text-xl font-medium tracking-[0.15em] text-foreground tabular-nums">
-          {hours}
+          {hours12}
         </span>
         <span className="font-mono text-xl font-medium text-primary animate-pulse">:</span>
         <span className="font-mono text-xl font-medium tracking-[0.15em] text-foreground tabular-nums">
           {minutes}
+        </span>
+        <span className="font-mono text-sm font-medium text-muted-foreground ml-1">
+          {period}
         </span>
       </div>
     </div>

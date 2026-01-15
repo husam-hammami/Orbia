@@ -212,7 +212,7 @@ function build24hTimeline(
         normalizedColor: normalizeColor(frontingMember.color)
       } : null,
       entry: lastEntry,
-      label: format(blockTime, "HH:mm")
+      label: format(blockTime, "h:mm a")
     };
   });
 }
@@ -1067,10 +1067,10 @@ export function HeadspaceMap() {
               </div>
 
               <div className="flex justify-between mt-3 px-1 relative z-10">
-                <span className="text-[10px] font-mono text-slate-500">{format(subHours(now, 24), "HH:mm")}</span>
-                <span className="text-[10px] font-mono text-slate-500">{format(subHours(now, 18), "HH:mm")}</span>
-                <span className="text-[10px] font-mono text-slate-500">{format(subHours(now, 12), "HH:mm")}</span>
-                <span className="text-[10px] font-mono text-slate-500">{format(subHours(now, 6), "HH:mm")}</span>
+                <span className="text-[10px] font-mono text-slate-500">{format(subHours(now, 24), "h:mm a")}</span>
+                <span className="text-[10px] font-mono text-slate-500">{format(subHours(now, 18), "h:mm a")}</span>
+                <span className="text-[10px] font-mono text-slate-500">{format(subHours(now, 12), "h:mm a")}</span>
+                <span className="text-[10px] font-mono text-slate-500">{format(subHours(now, 6), "h:mm a")}</span>
                 <span className="text-[10px] font-mono font-bold text-indigo-400">Now</span>
               </div>
             </div>

@@ -332,7 +332,7 @@ export function MoodTracker() {
                   >
                     <span>{moodEmoji}</span>
                     <span>{energyEmoji}</span>
-                    <span className="text-muted-foreground">{format(new Date(entry.timestamp), "HH:mm")}</span>
+                    <span className="text-muted-foreground">{format(new Date(entry.timestamp), "h:mm a")}</span>
                   </motion.button>
                 );
               })}

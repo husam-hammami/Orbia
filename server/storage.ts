@@ -367,7 +367,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteHabit(id: string): Promise<boolean> {
+    // First, unlink any routine activities that reference this habit
+    await db.update(routineActivities).set({ habitId: null }).where(eq(routineActivities.habitId, id));
+    // Then delete habit completions
     await db.delete(habitCompletions).where(eq(habitCompletions.habitId, id));
+    // Finally delete the habit
     const result = await db.delete(habits).where(eq(habits.id, id)).returning();
     return result.length > 0;
   }
