@@ -963,62 +963,7 @@ export default function CareerPage() {
               </div>
             </section>
 
-            {/* Today's Focus - Compact */}
-            <section className="space-y-2">
-              <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                Today's Focus
-              </h2>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={cn(glassCard, "p-3 md:p-4 space-y-3")}
-              >
-                <form onSubmit={handleAddTask} className="flex gap-2">
-                  <Input 
-                    placeholder="Add a task..." 
-                    value={newTask}
-                    onChange={(e) => setNewTask(e.target.value)}
-                    className="flex-1 h-8 text-xs bg-card/50 border-border/60 focus:ring-primary/20 focus:border-primary"
-                  />
-                  <Button 
-                    type="submit" 
-                    disabled={!newTask.trim() || createTask.isPending}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 h-8 px-3 text-xs"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </Button>
-                </form>
-
-                <div className="space-y-2">
-                  <TaskSection 
-                    title="Today" 
-                    tasks={todayTasks} 
-                    open={todayOpen} 
-                    onOpenChange={setTodayOpen}
-                    accentColor="text-amber-600 dark:text-amber-400"
-                    emptyText="No tasks due today"
-                  />
-                  <TaskSection 
-                    title="This Week" 
-                    tasks={weekTasks} 
-                    open={weekOpen} 
-                    onOpenChange={setWeekOpen}
-                    accentColor="text-cyan-600 dark:text-cyan-400"
-                    emptyText="No tasks due this week"
-                  />
-                  <TaskSection 
-                    title="Later" 
-                    tasks={laterTasks} 
-                    open={laterOpen} 
-                    onOpenChange={setLaterOpen}
-                    emptyText="No upcoming tasks"
-                  />
-                </div>
-              </motion.div>
-            </section>
-          </TabsContent>
+            </TabsContent>
 
           <TabsContent value="coach" className="mt-4 space-y-3">
             {(isLoadingStoredCoach || coachLoading) && (
