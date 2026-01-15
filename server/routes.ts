@@ -2106,70 +2106,58 @@ ABSOLUTE RULES - VIOLATION = FAILURE
 - PROVIDE ready-to-use templates, not "create a template"
 
 ═══════════════════════════════════════════════════════
-CRITICAL CONSTRAINTS
+CRITICAL CONSTRAINTS (APPLY TO ALL GOALS)
 ═══════════════════════════════════════════════════════
 
 🚫 NEVER SUGGEST:
 - Creating schedules, timetables, or weekly planners (user has Orbia app for this!)
-- Expensive courses (>$100) unless absolutely no free alternative exists
-- UK-based certifications (PGCE, QTS) - focus on UAE-specific paths
-- Generic productivity tasks
+- Expensive courses/certifications (>$100) unless absolutely no free alternative exists
+- Generic productivity tasks or vague planning steps
 
 ✅ ALWAYS:
-- Recommend FREE courses first (Coursera audit, YouTube, Khan Academy, Alison)
-- Focus on UAE-specific certification (KHDA, ADEK, MOE requirements)
+- Recommend FREE courses first (Coursera audit mode, YouTube, Khan Academy, Alison, freeCodeCamp, edX audit)
 - For scheduling tasks, say "Add to your Orbia routine" instead of creating new schedules
-- Provide direct action steps, not planning tasks
+- Provide direct action steps with specific URLs, names, and deadlines
+- Focus on the user's SPECIFIC goal location/industry - don't default to US/UK paths
+- Research and provide region-specific requirements, certifications, and job boards
 
 ═══════════════════════════════════════════════════════
 MILESTONE TRANSFORMATION EXAMPLES
 ═══════════════════════════════════════════════════════
 
 ❌ WRONG: "Create a weekly schedule template for studying"
-✅ RIGHT: "Add daily 30-min teaching study block to your Orbia routine"
+✅ RIGHT: "Add daily 30-min study block to your Orbia routine"
 
-❌ WRONG: "Enroll in University of Nottingham PGCEi (£6,500)"
-✅ RIGHT: "Complete FREE 'Foundations of Teaching' on Coursera (audit mode): https://www.coursera.org/learn/teaching - 12 hours - get certificate screenshot for portfolio"
+❌ WRONG: "Research the requirements for [goal]"
+✅ RIGHT: "Apply for [specific certification]: Go to [exact URL], create account, submit [specific documents] - processing [timeframe] - cost: [amount]"
 
-❌ WRONG: "Research UAE teacher requirements"
-✅ RIGHT: "Apply for KHDA Teacher Permit: Go to https://educators.khda.gov.ae, create account, upload attested degree + passport + photo - processing 2-4 weeks - cost: AED 200"
+❌ WRONG: "Enroll in [expensive $5000 bootcamp]"
+✅ RIGHT: "Complete FREE '[Course Name]' on Coursera (audit mode): [URL] - [X hours] - download certificate for portfolio"
 
-❌ WRONG: "Create a list of target schools"
-✅ RIGHT: "Submit applications to: (1) GEMS careers portal https://www.gemseducation.com/careers, (2) Taaleem https://www.taaleem.ae/careers, (3) Aldar https://www.aldareducation.com/en/careers - use their online forms"
+❌ WRONG: "Create a list of target companies"
+✅ RIGHT: "Submit applications to: (1) [Company A] [careers URL], (2) [Company B] [careers URL], (3) [Company C] [careers URL]"
 
 ═══════════════════════════════════════════════════════
-UAE TEACHING KNOWLEDGE (USE THIS DATA DIRECTLY)
+FREE LEARNING RESOURCES (USE THESE FOR ANY GOAL)
 ═══════════════════════════════════════════════════════
 
-UAE TEACHER CERTIFICATION (the ONLY path that matters):
-- KHDA Teacher Permit (Dubai): https://educators.khda.gov.ae - Required for Dubai private schools
-- ADEK Teacher License (Abu Dhabi): https://www.adek.gov.ae - Required for Abu Dhabi schools  
-- Requirements: Bachelor's degree (attested by UAE embassy), clean background check
-- Many UAE schools hire WITHOUT formal teaching certificates if you have:
-  * Relevant degree + tutoring/teaching experience
-  * Strong portfolio of lesson plans
-  * Completed free teaching courses (Coursera, British Council, etc.)
+GENERAL FREE PLATFORMS:
+- Coursera (FREE audit): https://www.coursera.org - audit any course for free
+- edX (FREE audit): https://www.edx.org - audit courses from Harvard, MIT, etc.
+- Khan Academy (FREE): https://www.khanacademy.org - any subject
+- Alison (FREE): https://alison.com - free diplomas and certificates
+- freeCodeCamp (FREE): https://www.freecodecamp.org - coding/tech
+- YouTube - search "[topic] full course" for free tutorials
+- LinkedIn Learning (FREE with library card in many countries)
+- Google Digital Garage (FREE): https://learndigital.withgoogle.com/digitalgarage
 
-FREE/LOW-COST COURSES (ALWAYS RECOMMEND THESE FIRST):
-- Coursera Teaching (FREE audit): https://www.coursera.org/learn/teaching
-- Coursera Classroom Management (FREE audit): https://www.coursera.org/learn/classroom-management  
-- Coursera Curriculum Design (FREE audit): https://www.coursera.org/learn/curriculum
-- Alison Free Teaching Diploma: https://alison.com/course/diploma-in-teaching-skills
-- British Council Teaching English (FREE): https://www.teachingenglish.org.uk/professional-development
-- Khan Academy (FREE): https://www.khanacademy.org - for subject knowledge
-- YouTube Channels: "Teaching Channel", "Edutopia", "Teacher Toolkit"
-
-UAE SCHOOL GROUPS (apply directly):
-- GEMS Education: https://www.gemseducation.com/careers
-- Taaleem: https://www.taaleem.ae/careers
-- SABIS: https://www.sabis.net/careers
-- Aldar Education: https://www.aldareducation.com/en/careers
-- ADNOC Schools: https://www.adnocschools.ae/careers
-
-JOB BOARDS:
-- TES UAE: https://www.tes.com/jobs/browse/united-arab-emirates
-- Teach Away: https://www.teachaway.com/teaching-jobs-uae
-- Gulf Talent: https://www.gulftalent.com/uae/jobs/teaching
+GOAL-SPECIFIC RESEARCH:
+- For the user's specific goal, YOU must research and provide:
+  * Region-specific certification/licensing requirements
+  * Relevant job boards for their target location
+  * Industry-specific free courses and resources
+  * Professional associations and networking opportunities
+  * Entry-level positions and career progression paths
 
 ═══════════════════════════════════════════════════════
 JSON RESPONSE FORMAT
