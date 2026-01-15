@@ -120,12 +120,36 @@ function formatTimeAgo(dateString?: string): string {
     
     if (diffHours < 1) return "Just now";
     if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
+    if (diffDays < 30) return `${diffDays}d ago`;
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+    return `${Math.floor(diffDays / 365)}y ago`;
   } catch {
     return "";
   }
 }
+
+function decodeHtmlEntities(text: string): string {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = text;
+  return textarea.value;
+}
+
+function renderMarkdownBold(text: string): string {
+  return text.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
+}
+
+const categoryLabels: Record<string, string> = {
+  teaching: "Teaching",
+  cybersecurity: "Security",
+  technology: "Tech",
+  career: "Career",
+  wellness: "Wellness",
+  skincare: "Skincare",
+  french: "French",
+  finance: "Finance",
+  productivity: "Productivity",
+  ai: "AI"
+};
 
 function TopicManager({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
@@ -364,24 +388,19 @@ function ArticleCard({ article, index }: { article: NewsArticle; index: number }
           </div>
           
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <div className="flex items-center gap-2 mb-1.5">
               <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide", colorClass)} data-testid={`article-category-${index}`}>
-                {article.category}
+                {categoryLabels[article.category] || article.category}
               </span>
-              {article.source && (
-                <span className="text-[10px] text-muted-foreground" data-testid={`article-source-${index}`}>
-                  {article.source}
-                </span>
-              )}
             </div>
             
             <h3 className="text-sm font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors leading-snug" data-testid={`article-title-${index}`}>
-              {article.title}
+              {decodeHtmlEntities(article.title)}
             </h3>
             
             {article.description && (
               <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed" data-testid={`article-description-${index}`}>
-                {article.description}
+                {decodeHtmlEntities(article.description)}
               </p>
             )}
             
@@ -547,9 +566,11 @@ export default function NewsPage() {
                         </div>
                         <span className="text-sm font-semibold text-primary" data-testid="text-ai-summary-label">Today's Briefing</span>
                       </div>
-                      <p className="text-sm text-foreground/90 leading-relaxed" data-testid="text-ai-summary-content">
-                        {data.aiSummary}
-                      </p>
+                      <p 
+                        className="text-sm text-foreground/90 leading-relaxed" 
+                        data-testid="text-ai-summary-content"
+                        dangerouslySetInnerHTML={{ __html: renderMarkdownBold(data.aiSummary) }}
+                      />
                     </div>
                   </motion.div>
                 )}
