@@ -1,0 +1,54 @@
+What to check from Replit
+1. Server code changes (server/routes.ts)
+Primary file: server/routes.ts (lines 1893-2218)
+Check these sections:
+A. Career Coach AI Prompt (lines 2090-2142)
+Compare the systemPrompt text with your local version
+Verify the coachingNote field description
+Check if the JSON response structure changed
+Look for changes in guidelines or instructions
+B. Vision Data Formatting (lines 2144-2150)
+Check how vision items are formatted in the userPrompt
+Verify the template: "${v.title}" (Target: ${v.timeframe})
+C. Response Structure (lines 2094-2134)
+Verify all fields: northStarAnalysis, roadmap, immediateActions, learningPath, weeklyTheme, coachingNote
+Check if any new fields were added
+Check if field requirements changed
+D. Coach Data Processing (lines 2165-2213)
+Check how coachingNote is extracted and stored
+Verify roadmap phase structure
+Check milestone creation logic
+2. Storage methods (server/storage.ts)
+Check:
+getVision() method
+getLatestCoachSnapshot() method
+upsertCoachSnapshot() method
+How coach data payload is structured
+3. API endpoints
+Verify these endpoints match your local version:
+GET /api/vision (line 1893)
+POST /api/vision (line 1902)
+GET /api/career/coach (line 2044)
+POST /api/career/coach (line 2060)
+4. Quick comparison method
+On Replit:
+Open server/routes.ts
+Go to line 2090 (career coach system prompt)
+Copy the entire systemPrompt string (lines 2090-2142)
+Copy the userPrompt template (lines 2144-2150)
+Compare with your local server/routes.ts
+Or share:
+The exact text of the systemPrompt (especially the coachingNote part)
+Any changes to the JSON response structure
+Any new fields or modified field names
+5. What to export from Replit
+If changes were made, export:
+server/routes.ts (entire file, or at least lines 1893-2218)
+server/storage.ts (coach-related methods)
+Once you share the Replit version of these sections, I can:
+Compare with the local version
+Identify differences
+Update the local code
+Fix the cache/refresh issue
+Rebuild the APK
+Can you share the systemPrompt section from Replit's server/routes.ts (around lines 2090-2142), or export the updated server/routes.ts file?
