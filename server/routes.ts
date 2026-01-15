@@ -2217,11 +2217,25 @@ Based on my North Star vision, create a comprehensive career coaching plan. Be s
           { role: "user", content: userPrompt }
         ],
         response_format: { type: "json_object" },
-        max_completion_tokens: 4096,
+        max_completion_tokens: 8192,
       });
 
       const content = response.choices[0]?.message?.content || "{}";
-      const parsed = JSON.parse(content);
+      console.log("[Career Coach] Response length:", content.length, "chars");
+      
+      let parsed;
+      try {
+        parsed = JSON.parse(content);
+      } catch (parseError) {
+        console.error("[Career Coach] JSON parse error:", parseError);
+        console.error("[Career Coach] Raw content:", content.substring(0, 500));
+        return res.status(500).json({ error: "Failed to parse AI response" });
+      }
+      
+      if (!parsed.roadmap || parsed.roadmap.length === 0) {
+        console.error("[Career Coach] Missing roadmap in response:", Object.keys(parsed));
+        return res.status(500).json({ error: "AI response missing roadmap data" });
+      }
 
       const coachData = {
         ...parsed,
