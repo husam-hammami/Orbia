@@ -118,15 +118,15 @@ export default function NewsPage() {
         </div>
 
         {isLoading ? (
-          <div className="space-y-4">
-            <div className="h-32 bg-card rounded-xl animate-pulse" />
+          <div className="space-y-4" data-testid="loading-state">
+            <div className="h-32 bg-card rounded-xl animate-pulse" data-testid="skeleton-summary" />
             <div className="flex gap-2">
               {[1, 2, 3].map(i => (
-                <div key={i} className="h-8 w-20 bg-muted rounded-full animate-pulse" />
+                <div key={i} className="h-8 w-20 bg-muted rounded-full animate-pulse" data-testid={`skeleton-filter-${i}`} />
               ))}
             </div>
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-24 bg-card rounded-xl animate-pulse" />
+              <div key={i} className="h-24 bg-card rounded-xl animate-pulse" data-testid={`skeleton-article-${i}`} />
             ))}
           </div>
         ) : (
