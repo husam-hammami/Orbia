@@ -222,7 +222,7 @@ export function RoutineTimeline() {
         <div className="absolute top-1/2 left-8 right-8 h-0.5 bg-gradient-to-r from-primary/30 via-accent/30 to-primary/30 rounded-full -translate-y-1/2 z-0 hidden md:block" />
         
         <div className="flex md:grid gap-3 md:gap-2 relative z-10 pb-2 md:pb-0" style={{ gridTemplateColumns: `repeat(${blocks.length}, 1fr)` }}>
-          {blocks.map((block, idx) => {
+          {[...blocks].sort((a, b) => a.startTime.localeCompare(b.startTime)).map((block, idx) => {
             const progress = blockProgress[block.id] || { completed: 0, total: 0 };
             const isCurrent = currentBlock?.id === block.id;
             const isComplete = progress.total > 0 && progress.completed === progress.total;

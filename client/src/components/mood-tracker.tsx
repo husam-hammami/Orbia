@@ -131,6 +131,9 @@ export function MoodTracker() {
     return entryDate === today;
   });
 
+  // Check if sleep has already been logged today (only show sleep selector on first check-in)
+  const sleepAlreadyLogged = entriesToday.some(entry => entry.sleepHours !== null && entry.sleepHours > 0);
+
   const moodOptions = [
     { value: 2, emoji: "😢", label: "Struggling" },
     { value: 4, emoji: "😔", label: "Rough" },
@@ -290,7 +293,9 @@ export function MoodTracker() {
             icon={<Zap className="w-3.5 h-3.5 text-amber-500" />}
           />
           
-          <SleepSelector value={sleep} onChange={setSleep} />
+          {!sleepAlreadyLogged && (
+            <SleepSelector value={sleep} onChange={setSleep} />
+          )}
           
           <motion.div 
             initial={false}

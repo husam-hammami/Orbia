@@ -44,7 +44,7 @@ import {
   Calendar
 } from "lucide-react";
 import { toast } from "sonner";
-import { useJournalEntries, useCreateJournalEntry, useUpdateJournalEntry, useDeleteJournalEntry, useMembers } from "@/lib/api-hooks";
+import { useJournalEntries, useCreateJournalEntry, useUpdateJournalEntry, useDeleteJournalEntry } from "@/lib/api-hooks";
 import { cn } from "@/lib/utils";
 
 const timeOfDayOptions = [
@@ -97,7 +97,6 @@ function getTimeOfDayAuto(): string {
 
 export function JournalTab() {
   const { data: entries, isLoading } = useJournalEntries();
-  const { data: members } = useMembers();
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
   const deleteMutation = useDeleteJournalEntry();
@@ -108,7 +107,6 @@ export function JournalTab() {
   const [content, setContent] = useState("");
   const [mood, setMood] = useState<number | null>(null);
   const [energy, setEnergy] = useState<number | null>(null);
-  const [authorId, setAuthorId] = useState<string | null>(null);
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDayAuto());
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
   const [showContext, setShowContext] = useState(false);
@@ -145,7 +143,6 @@ export function JournalTab() {
     setContent("");
     setMood(null);
     setEnergy(null);
-    setAuthorId(null);
     setTimeOfDay(getTimeOfDayAuto());
     setEditingId(null);
     setIsWriting(false);
@@ -168,7 +165,7 @@ export function JournalTab() {
       entryType: "freewrite",
       mood,
       energy,
-      authorId,
+      authorId: null,
       timeOfDay,
       tags: [],
       isPrivate: 0,
@@ -201,7 +198,6 @@ export function JournalTab() {
     setContent(entry.content);
     setMood(entry.mood);
     setEnergy(entry.energy);
-    setAuthorId(entry.authorId);
     setTimeOfDay(entry.timeOfDay || getTimeOfDayAuto());
     setEntryDate(entry.entryDate ? new Date(entry.entryDate) : new Date());
     setPrimaryDriver(entry.primaryDriver || null);
@@ -220,8 +216,6 @@ export function JournalTab() {
     setContent(prev => prev ? `${prev}\n\n${prompt}` : prompt);
     textareaRef.current?.focus();
   };
-
-  const getAuthor = (id: string | null) => members?.find(m => m.id === id);
 
   return (
     <div className="space-y-4">
@@ -296,7 +290,6 @@ export function JournalTab() {
             ) : (
               <div className="space-y-2">
                 {entries?.map((entry, index) => {
-                  const author = getAuthor(entry.authorId);
                   const isExpanded = expandedEntry === entry.id;
                   const preview = entry.content.slice(0, 120);
                   const driverInfo = entry.primaryDriver ? allDrivers.find(d => d.value === entry.primaryDriver) : null;
@@ -331,13 +324,6 @@ export function JournalTab() {
                             <span className="text-xs font-medium text-muted-foreground">
                               {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
                             </span>
-                            {author && (
-                              <span 
-                                className="w-2 h-2 rounded-full" 
-                                style={{ backgroundColor: author.color }}
-                                title={author.name}
-                              />
-                            )}
                           </div>
                           
                           <div className={cn(
@@ -680,48 +666,26 @@ export function JournalTab() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="mt-2 p-4 bg-card/80 rounded-xl border border-border space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Who is writing?</label>
-                        <Select value={authorId || "__none__"} onValueChange={(v) => setAuthorId(v === "__none__" ? null : v)}>
-                          <SelectTrigger data-testid="select-author" className="bg-card">
-                            <SelectValue placeholder="Unknown" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">Unknown / Blended</SelectItem>
-                            {members?.map((m) => (
-                              <SelectItem key={m.id} value={m.id}>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Time of Day</label>
+                      <Select value={timeOfDay} onValueChange={setTimeOfDay}>
+                        <SelectTrigger data-testid="select-time-of-day" className="bg-card">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {timeOfDayOptions.map((opt) => {
+                            const Icon = opt.icon;
+                            return (
+                              <SelectItem key={opt.value} value={opt.value}>
                                 <span className="flex items-center gap-2">
-                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: m.color }} />
-                                  {m.name}
+                                  <Icon className={cn("w-4 h-4", opt.color)} />
+                                  {opt.label}
                                 </span>
                               </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div>
-                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Time of Day</label>
-                        <Select value={timeOfDay} onValueChange={setTimeOfDay}>
-                          <SelectTrigger data-testid="select-time-of-day" className="bg-card">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {timeOfDayOptions.map((opt) => {
-                              const Icon = opt.icon;
-                              return (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  <span className="flex items-center gap-2">
-                                    <Icon className={cn("w-4 h-4", opt.color)} />
-                                    {opt.label}
-                                  </span>
-                                </SelectItem>
-                              );
-                            })}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
                     </div>
                     
                     <div>
