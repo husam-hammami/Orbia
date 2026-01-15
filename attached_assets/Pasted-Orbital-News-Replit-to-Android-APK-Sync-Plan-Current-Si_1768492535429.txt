@@ -1,0 +1,142 @@
+Orbital News - Replit to Android APK Sync Plan
+Current Situation
+Orbital News has been implemented in the Replit web app
+Local Android codebase is outdated and missing Orbital News
+Need to identify and sync all Orbital News components from Replit
+What to Verify in Replit Project
+1. Frontend Components & Pages
+Required Files to Check:
+
+client/src/pages/news.tsx - Main Orbital News page component
+client/src/components/news/ - News-related components (if any subdirectory exists)
+News card component
+News filter/sort components
+Saved articles component
+Topic selector component
+Navigation Updates:
+
+client/src/App.tsx - Should have /news route added
+client/src/components/mobile-bottom-nav.tsx - Should include "News" tab with Newspaper icon
+client/src/components/layout.tsx - Should include "News" in sidebar navigation (if applicable)
+2. Backend API Routes
+Required Endpoints in server/routes.ts:
+
+GET /api/news - Fetch news feed
+GET /api/news/topics - Get user's news topics
+POST /api/news/topics - Add/update news topics
+GET /api/news/feed - Get RSS feed content
+POST /api/news/:id/save - Save article
+DELETE /api/news/:id/save - Unsave article
+GET /api/news/saved - Get saved articles
+POST /api/news/summarize - AI-generated summaries (if separate endpoint)
+Replit AI Integration:
+
+Verify use of AI_INTEGRATIONS_OPENAI_API_KEY and AI_INTEGRATIONS_OPENAI_BASE_URL
+Check for any new Replit AI integration patterns
+3. Database Schema
+Required Tables in shared/schema.ts:
+
+newsTopics - User's selected news topics (linked to vision/goals)
+Fields: id, userId, topic, source, rssUrl, createdAt
+newsItems - Cached news articles
+Fields: id, title, content, summary, source, url, imageUrl, publishedAt, topicId, createdAt
+savedNewsItems - User's saved articles
+Fields: id, userId, newsItemId, savedAt
+Schema Migration:
+
+Check if npm run db:push needs to be run after syncing schema
+4. RSS Feed Integration
+Required Functionality:
+
+RSS feed parser/reader
+Topic-to-RSS mapping
+Feed fetching and caching logic
+Check for any external RSS libraries in package.json
+5. AI Summarization
+Required Implementation:
+
+AI prompt for generating summaries based on user's vision/goals
+Integration with existing Replit AI (GPT-5.1)
+Summary generation endpoint or inline in feed endpoint
+6. Storage Layer
+Required Methods in server/storage.ts:
+
+getNewsTopics() - Get user's topics
+createNewsTopic() - Add new topic
+updateNewsTopic() - Update topic
+deleteNewsTopic() - Remove topic
+getNewsFeed() - Get news items
+saveNewsItem() - Save article
+getSavedNewsItems() - Get saved articles
+deleteSavedNewsItem() - Unsave article
+7. Frontend API Hooks
+Required Hooks in client/src/lib/api-hooks.ts:
+
+useNewsFeed() - Fetch news feed
+useNewsTopics() - Manage topics
+useSavedNews() - Manage saved articles
+useNewsSummary() - Get AI summaries
+8. Package Dependencies
+Check package.json for new dependencies:
+
+RSS parser library (e.g., rss-parser, feedparser)
+Any news-related utilities
+Check both root and any subdirectories
+9. Environment Variables
+Verify in Replit:
+
+No new environment variables needed (should use existing AI integrations)
+Confirm AI_INTEGRATIONS_OPENAI_API_KEY and AI_INTEGRATIONS_OPENAI_BASE_URL are set
+10. Mobile-Specific Considerations
+Android Build Requirements:
+
+Ensure /news route works in Capacitor
+Verify mobile navigation includes News tab
+Check if any native plugins needed for news features
+Verify offline caching if implemented
+Sync Checklist
+Step 1: Export from Replit
+[ ] Download/export complete Replit project
+[ ] Verify all files are included (especially client/src/pages/news.tsx)
+Step 2: Verify Files Exist
+[ ] client/src/pages/news.tsx exists
+[ ] client/src/App.tsx has /news route
+[ ] client/src/components/mobile-bottom-nav.tsx has News tab
+[ ] server/routes.ts has news endpoints
+[ ] shared/schema.ts has news tables
+[ ] server/storage.ts has news methods
+Step 3: Update Local Codebase
+[ ] Copy client/src/pages/news.tsx to local project
+[ ] Update client/src/App.tsx to add /news route
+[ ] Update client/src/components/mobile-bottom-nav.tsx to add News tab
+[ ] Update server/routes.ts with news endpoints
+[ ] Update shared/schema.ts with news tables
+[ ] Update server/storage.ts with news methods
+[ ] Update package.json if new dependencies needed
+[ ] Run npm install to install dependencies
+Step 4: Database Migration
+[ ] Run npm run db:push to sync schema
+[ ] Verify news tables created in database
+Step 5: Build & Test
+[ ] Run npm run build to build project
+[ ] Test /news route in web browser
+[ ] Test mobile navigation shows News tab
+[ ] Test news feed loads
+[ ] Test save/unsave functionality
+[ ] Test topic management
+[ ] Build Android APK and test
+Files to Specifically Check in Replit
+Frontend:
+client/src/pages/news.tsx
+client/src/App.tsx (route registration)
+client/src/components/mobile-bottom-nav.tsx (News tab)
+client/src/components/layout.tsx (if News in sidebar)
+client/src/lib/api-hooks.ts (news hooks)
+Backend:
+server/routes.ts (news endpoints)
+server/storage.ts (news storage methods)
+server/replit_integrations/ (check for news-specific integrations)
+Schema:
+shared/schema.ts (news tables)
+Dependencies:
+package.json (RSS/feed libraries)

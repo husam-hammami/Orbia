@@ -1,0 +1,308 @@
+# Orbital News Integration - Questions for Replit Implementation
+
+## Overview
+Orbital News is a new AI-based news feed section that provides personalized content based on the user's vision and goals. This document outlines all questions needed to determine what's required from Replit to implement this feature.
+
+---
+
+## 1. Feature Location & Integration
+
+**Q1.1:** Where should Orbital News be displayed in the app?
+- [ ] New dedicated page/route (e.g., `/orbital-news`)
+- [ ] Integrated into an existing page (Dashboard, Career, Orbit, etc.)
+- [ ] Both - dedicated page AND integration into existing pages
+- [ ] Other: _______________________
+
+**Q1.2:** If integrated into existing pages, which pages should show Orbital News?
+- [ ] Dashboard
+- [ ] Career page
+- [ ] Orbit page
+- [ ] Tracker page
+- [ ] Other: _______________________
+
+**Q1.3:** Should Orbital News be accessible from the navigation menu?
+- [ ] Yes, as a main navigation item
+- [ ] Yes, as a sub-menu item
+- [ ] No, only accessible from other pages
+
+---
+
+## 2. Content Type & Sources
+
+**Q2.1:** What type of content should Orbital News show?
+- [ ] External news articles relevant to user goals (requires web search/news API)
+- [ ] AI-generated personalized insights/articles based on vision/goals
+- [ ] Mixed - both external news and AI-generated content
+- [ ] Curated content from specific sources
+- [ ] Other: _______________________
+
+**Q2.2:** If using external news, which sources should be used?
+- [ ] Web search results (Google, Bing, etc.)
+- [ ] News API (NewsAPI.org, etc.)
+- [ ] RSS feeds
+- [ ] Social media feeds
+- [ ] Other: _______________________
+
+**Q2.3:** Should Orbital News include images/media?
+- [ ] Yes, images from articles
+- [ ] Yes, AI-generated images
+- [ ] No images, text only
+- [ ] Optional images
+
+---
+
+## 3. AI Integration & Personalization
+
+**Q3.1:** How should the AI personalize content based on vision/goals?
+- [ ] Analyze user's career vision items from `careerVision` table
+- [ ] Analyze active career projects
+- [ ] Analyze current habits and routines
+- [ ] Analyze journal entries for interests
+- [ ] All of the above
+- [ ] Other: _______________________
+
+**Q3.2:** What AI model should be used for content generation/curation?
+- [ ] GPT-5.1 (current Replit AI Integrations model)
+- [ ] Different model: _______________________
+- [ ] Multiple models for different tasks
+
+**Q3.3:** Should Orbital News use the existing Replit AI Integrations setup?
+- [ ] Yes, use `AI_INTEGRATIONS_OPENAI_API_KEY` and `AI_INTEGRATIONS_OPENAI_BASE_URL`
+- [ ] No, requires separate API keys
+- [ ] Need clarification on Replit's AI capabilities
+
+**Q3.4:** What should the AI do with the content?
+- [ ] Generate original articles based on vision/goals
+- [ ] Summarize and curate external news articles
+- [ ] Provide commentary on relevant news
+- [ ] Generate actionable insights
+- [ ] All of the above
+
+---
+
+## 4. Data Structure & Storage
+
+**Q4.1:** Should Orbital News items be stored in the database?
+- [ ] Yes, store all news items for history/offline access
+- [ ] Yes, but only store user interactions (saved, read, etc.)
+- [ ] No, fetch fresh content each time
+- [ ] Hybrid - cache recent items
+
+**Q4.2:** If storing in database, what fields are needed?
+- [ ] Title, content, source, date
+- [ ] User interaction tracking (read, saved, dismissed)
+- [ ] Relevance score to user goals
+- [ ] Categories/tags
+- [ ] Other: _______________________
+
+**Q4.3:** Should there be a new database table for Orbital News?
+- [ ] Yes, create `orbitalNews` table
+- [ ] Yes, create `newsItems` and `newsInteractions` tables
+- [ ] No, use existing tables
+- [ ] Need to determine based on requirements
+
+---
+
+## 5. API Endpoints & Backend
+
+**Q5.1:** What API endpoints are needed?
+- [ ] `GET /api/orbital-news` - Fetch news feed
+- [ ] `GET /api/orbital-news/:id` - Get single article
+- [ ] `POST /api/orbital-news/generate` - Generate new content
+- [ ] `POST /api/orbital-news/:id/save` - Save article
+- [ ] `POST /api/orbital-news/:id/dismiss` - Dismiss article
+- [ ] `GET /api/orbital-news/settings` - Get user preferences
+- [ ] `POST /api/orbital-news/settings` - Update preferences
+- [ ] Other: _______________________
+
+**Q5.2:** Should the news feed be:
+- [ ] Real-time (fetch on each page load)
+- [ ] Cached with periodic refresh
+- [ ] Background job that generates content daily
+- [ ] On-demand generation
+
+**Q5.3:** How many news items should be shown at once?
+- [ ] 5-10 items
+- [ ] 10-20 items
+- [ ] Infinite scroll
+- [ ] Paginated (e.g., 20 per page)
+
+---
+
+## 6. Replit-Specific Requirements
+
+**Q6.1:** Does Replit provide any news/search APIs?
+- [ ] Yes, need to know which ones
+- [ ] No, need to use external APIs
+- [ ] Unsure, need to check Replit documentation
+
+**Q6.2:** Are there any Replit-specific integrations needed?
+- [ ] Replit AI Integrations (already configured)
+- [ ] Replit web search capabilities
+- [ ] Replit scheduled jobs/cron
+- [ ] Other Replit services: _______________________
+
+**Q6.3:** Should Orbital News use Replit's batch processing utilities?
+- [ ] Yes, for generating multiple news items
+- [ ] No, single requests are sufficient
+- [ ] Need to evaluate based on volume
+
+---
+
+## 7. User Experience & Features
+
+**Q7.1:** What user interactions should be supported?
+- [ ] Read article (expand/collapse)
+- [ ] Save article for later
+- [ ] Dismiss/hide article
+- [ ] Share article
+- [ ] Mark as relevant/not relevant (for learning)
+- [ ] Other: _______________________
+
+**Q7.2:** Should there be filtering/sorting options?
+- [ ] Filter by relevance to goals
+- [ ] Filter by category/topic
+- [ ] Sort by date, relevance, etc.
+- [ ] Search within news feed
+- [ ] No filtering needed
+
+**Q7.3:** Should Orbital News have notifications?
+- [ ] Yes, notify when new relevant content is available
+- [ ] Yes, daily digest
+- [ ] No notifications
+
+---
+
+## 8. Content Freshness & Updates
+
+**Q8.1:** How often should the news feed update?
+- [ ] Real-time (on each app open)
+- [ ] Daily refresh
+- [ ] Multiple times per day
+- [ ] User-triggered refresh only
+- [ ] Other: _______________________
+
+**Q8.2:** Should old news items be archived or removed?
+- [ ] Keep all items indefinitely
+- [ ] Archive after X days
+- [ ] Remove after X days
+- [ ] Keep only last N items
+
+---
+
+## 9. Performance & Caching
+
+**Q9.1:** How should content be cached?
+- [ ] Client-side caching (localStorage/IndexedDB)
+- [ ] Server-side caching
+- [ ] Both
+- [ ] No caching needed
+
+**Q9.2:** What's the expected response time for generating/fetching news?
+- [ ] < 1 second
+- [ ] 1-3 seconds
+- [ ] 3-5 seconds
+- [ ] Can be slower, show loading state
+
+---
+
+## 10. Integration with Existing Features
+
+**Q10.1:** Should Orbital News integrate with Orbit (the AI co-pilot)?
+- [ ] Yes, Orbit should be able to discuss news items
+- [ ] Yes, Orbit should suggest relevant news
+- [ ] No, separate feature
+
+**Q10.2:** Should Orbital News link to Career/Vision features?
+- [ ] Yes, show how news relates to specific vision items
+- [ ] Yes, allow creating tasks/projects from news
+- [ ] No, standalone feature
+
+**Q10.3:** Should news items be trackable in analytics?
+- [ ] Yes, track which items are read/saved
+- [ ] Yes, track user engagement
+- [ ] No tracking needed
+
+---
+
+## 11. Error Handling & Fallbacks
+
+**Q11.1:** What should happen if AI generation fails?
+- [ ] Show error message
+- [ ] Show cached content
+- [ ] Show placeholder/default content
+- [ ] Retry automatically
+
+**Q11.2:** What should happen if external news APIs are unavailable?
+- [ ] Show error message
+- [ ] Fall back to AI-generated content only
+- [ ] Show cached content
+- [ ] Retry with exponential backoff
+
+---
+
+## 12. Mobile App Considerations
+
+**Q12.1:** Should Orbital News work offline?
+- [ ] Yes, cache content for offline access
+- [ ] No, requires internet connection
+- [ ] Partial - show cached content, fetch new when online
+
+**Q12.2:** Should there be push notifications for new news?
+- [ ] Yes, for highly relevant items
+- [ ] Yes, for daily digest
+- [ ] No push notifications
+
+---
+
+## 13. Content Format & Display
+
+**Q13.1:** What format should news items use?
+- [ ] Card-based layout
+- [ ] List layout
+- [ ] Magazine-style layout
+- [ ] Custom layout: _______________________
+
+**Q13.2:** What information should each news item display?
+- [ ] Title, summary, source, date
+- [ ] Full article content
+- [ ] Relevance score to goals
+- [ ] Related vision items
+- [ ] Action buttons (save, dismiss, etc.)
+- [ ] Other: _______________________
+
+---
+
+## 14. Testing & Validation
+
+**Q14.1:** What test scenarios are important?
+- [ ] Empty vision/goals (no personalization data)
+- [ ] Multiple vision items
+- [ ] API failures
+- [ ] Slow network conditions
+- [ ] Offline mode
+- [ ] Other: _______________________
+
+---
+
+## Summary
+
+Please fill out this document to help determine:
+1. What Replit services/APIs are needed
+2. What backend endpoints to create
+3. What database schema changes are required
+4. What frontend components to build
+5. What AI integration patterns to use
+6. What external APIs (if any) need to be integrated
+
+---
+
+## Next Steps
+
+Once this document is completed, we can:
+1. Identify all required Replit capabilities
+2. Design the database schema
+3. Create the API endpoints
+4. Build the frontend components
+5. Integrate with existing features
+6. Test and deploy
