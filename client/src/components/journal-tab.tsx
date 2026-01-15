@@ -694,6 +694,30 @@ export function JournalTab() {
                   );
                 })}
               </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground">Date:</span>
+                <input
+                  type="date"
+                  value={format(entryDate, "yyyy-MM-dd")}
+                  onChange={(e) => {
+                    const date = new Date(e.target.value + "T12:00:00");
+                    if (!isNaN(date.getTime())) {
+                      setEntryDate(date);
+                    }
+                  }}
+                  className="flex-1 px-3 py-1.5 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  data-testid="input-entry-date"
+                />
+                <button
+                  type="button"
+                  onClick={() => setEntryDate(new Date())}
+                  className="px-2 py-1.5 text-xs text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                  data-testid="button-today"
+                >
+                  Today
+                </button>
+              </div>
             </div>
 
             <div className="flex gap-3 pt-2">
