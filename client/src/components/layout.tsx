@@ -64,7 +64,7 @@ function Sidebar({ className }: SidebarProps) {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/orbit", label: "Orbia", icon: Orbit },
     { href: "/career", label: "Goals & Vision", icon: Briefcase },
-    { href: "/news", label: "Updates", icon: Newspaper },
+    { href: "/news", label: "Orbital News", icon: Newspaper },
     { href: "/finance", label: "Finance", icon: Wallet },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
@@ -136,7 +136,7 @@ const mobileNavItems = [
   { href: "/dashboard", label: "Insights", icon: LayoutDashboard },
   { href: "/orbit", label: "Orbia", icon: Orbit, special: true },
   { href: "/career", label: "Goals", icon: Briefcase },
-  { href: "/news", label: "Updates", icon: Newspaper },
+  { href: "/news", label: "News", icon: Newspaper },
 ];
 
 function MobileBottomNav() {

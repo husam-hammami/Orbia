@@ -486,7 +486,7 @@ export default function NewsPage() {
               <Newspaper className="w-6 h-6" />
             </motion.div>
             <div>
-              <h1 className="text-xl font-bold text-foreground" data-testid="text-page-title">Your Feed</h1>
+              <h1 className="text-xl font-bold text-foreground" data-testid="text-page-title">Orbital News</h1>
               <p className="text-xs text-muted-foreground" data-testid="text-page-subtitle">
                 {data?.hasUserTopics ? `Following ${data.topics.length} topics` : "Curated for your goals"}
               </p>
