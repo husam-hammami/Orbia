@@ -587,11 +587,12 @@ export default function NewsPage() {
                       )}
                       data-testid="filter-all"
                     >
-                      All
+                      All ({data.articles?.length || 0})
                     </button>
                     {data.topics.map((topic, idx) => {
                       const Icon = categoryIcons[topic] || Globe;
                       const topicName = data.topicNames?.[idx] || topic;
+                      const count = data.articles?.filter(a => a.category === topic).length || 0;
                       return (
                         <button
                           key={topic}
@@ -600,12 +601,14 @@ export default function NewsPage() {
                             "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all border whitespace-nowrap shrink-0",
                             selectedCategory === topic
                               ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20"
-                              : "bg-card text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
+                              : count === 0
+                                ? "bg-card/50 text-muted-foreground/50 border-border/50"
+                                : "bg-card text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
                           )}
                           data-testid={`filter-${topic}`}
                         >
                           <Icon className="w-3.5 h-3.5" />
-                          {topicName}
+                          {topicName} ({count})
                         </button>
                       );
                     })}

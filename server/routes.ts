@@ -1949,31 +1949,31 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   // Define available RSS feeds for news topics
   const rssFeedsByTopic: Record<string, { name: string; feeds: string[] }> = {
     teaching: {
-      name: "Teaching & Education",
+      name: "Teaching",
       feeds: ["https://www.edweek.org/rss/blogs/edweek/default.rss", "https://www.teachthought.com/feed/"]
     },
     cybersecurity: {
-      name: "Cybersecurity",
+      name: "Security",
       feeds: ["https://feeds.feedburner.com/TheHackersNews", "https://krebsonsecurity.com/feed/"]
     },
     technology: {
-      name: "Technology",
+      name: "Tech",
       feeds: ["https://hnrss.org/frontpage", "https://www.theverge.com/rss/index.xml"]
     },
     career: {
-      name: "Career & Work",
+      name: "Career",
       feeds: ["https://hbr.org/feed"]
     },
     wellness: {
-      name: "Wellness & Health",
-      feeds: ["https://www.mindbodygreen.com/feed/rss"]
+      name: "Wellness",
+      feeds: ["https://zenhabits.net/feed/", "https://www.psychologytoday.com/us/blog/feed"]
     },
     skincare: {
-      name: "Skincare & Beauty",
+      name: "Skincare",
       feeds: ["https://www.allure.com/feed/rss"]
     },
     french: {
-      name: "French Language & Culture",
+      name: "French",
       feeds: ["https://www.france24.com/en/rss"]
     },
     finance: {
