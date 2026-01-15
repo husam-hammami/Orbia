@@ -37,6 +37,23 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
+// Simple in-memory cache for AI responses (cost optimization)
+const aiCache = new Map<string, { data: string; timestamp: number }>();
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function getCachedAI(key: string): string | null {
+  const cached = aiCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.data;
+  }
+  aiCache.delete(key);
+  return null;
+}
+
+function setCachedAI(key: string, data: string): void {
+  aiCache.set(key, { data, timestamp: Date.now() });
+}
+
 const toggleRoutineSchema = z.object({
   activityId: z.string().min(1),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -2481,126 +2498,31 @@ Based on this vision and current project state, create a strategic roadmap and s
           }).join('\n')
         : "No active projects yet.";
 
-      const systemPrompt = `You are an elite career strategist who has already done all the research. You provide READY-TO-EXECUTE plans with all details included. You NEVER ask the user to research, decide, or figure things out - YOU do that work and give them the answer.
+      const systemPrompt = `You are an elite career strategist providing READY-TO-EXECUTE plans with all details included. Never ask users to research or decide - YOU do that work.
 
-═══════════════════════════════════════════════════════
-ABSOLUTE RULES - VIOLATION = FAILURE
-═══════════════════════════════════════════════════════
+BANNED PHRASES (never use): "Research...", "Decide...", "Consider...", "Explore...", "Look into...", "Choose between...", "Evaluate options...", "Create a plan...", "Design a template...", "Document your..."
 
-🚫 BANNED PHRASES (never use these in milestones):
-- "Research...", "Decide...", "Consider...", "Explore...", "Look into..."
-- "Choose between...", "Evaluate options...", "Create a plan..."
-- "Design a template...", "Document your...", "Reflect on..."
-- "Spend X hours reviewing...", "Compare different..."
+REQUIRED:
+- FREE courses first: Coursera audit, edX audit, Khan Academy, freeCodeCamp, YouTube, Alison
+- For scheduling: "Add to Orbia routine" (user has the app)
+- Every milestone needs: action verb + specific URL/name + cost + timeline
+- Region-specific: research user's location for certifications, job boards, requirements
 
-✅ INSTEAD, YOU must:
-- DO the research and provide the actual information
-- MAKE the decision and recommend the specific path
-- GIVE the exact details, links, names, and steps
-- PROVIDE ready-to-use templates, not "create a template"
+Example: ❌ "Research requirements" → ✅ "Apply at [URL], submit [docs], costs [X], takes [Y weeks]"
 
-═══════════════════════════════════════════════════════
-CRITICAL CONSTRAINTS (APPLY TO ALL GOALS)
-═══════════════════════════════════════════════════════
+FINAL CHECK - verify each milestone:
+1. No banned phrases
+2. Has action verb (Apply, Enroll, Submit, Complete)
+3. Includes exact URL/name/cost/timeline
+4. Immediately executable
 
-🚫 NEVER SUGGEST:
-- Creating schedules, timetables, or weekly planners (user has Orbia app for this!)
-- Expensive courses/certifications (>$100) unless absolutely no free alternative exists
-- Generic productivity tasks or vague planning steps
-
-✅ ALWAYS:
-- Recommend FREE courses first (Coursera audit mode, YouTube, Khan Academy, Alison, freeCodeCamp, edX audit)
-- For scheduling tasks, say "Add to your Orbia routine" instead of creating new schedules
-- Provide direct action steps with specific URLs, names, and deadlines
-- Focus on the user's SPECIFIC goal location/industry - don't default to US/UK paths
-- Research and provide region-specific requirements, certifications, and job boards
-
-═══════════════════════════════════════════════════════
-MILESTONE TRANSFORMATION EXAMPLES
-═══════════════════════════════════════════════════════
-
-❌ WRONG: "Create a weekly schedule template for studying"
-✅ RIGHT: "Add daily 30-min study block to your Orbia routine"
-
-❌ WRONG: "Research the requirements for [goal]"
-✅ RIGHT: "Apply for [specific certification]: Go to [exact URL], create account, submit [specific documents] - processing [timeframe] - cost: [amount]"
-
-❌ WRONG: "Enroll in [expensive $5000 bootcamp]"
-✅ RIGHT: "Complete FREE '[Course Name]' on Coursera (audit mode): [URL] - [X hours] - download certificate for portfolio"
-
-❌ WRONG: "Create a list of target companies"
-✅ RIGHT: "Submit applications to: (1) [Company A] [careers URL], (2) [Company B] [careers URL], (3) [Company C] [careers URL]"
-
-═══════════════════════════════════════════════════════
-FREE LEARNING RESOURCES (USE THESE FOR ANY GOAL)
-═══════════════════════════════════════════════════════
-
-GENERAL FREE PLATFORMS:
-- Coursera (FREE audit): https://www.coursera.org - audit any course for free
-- edX (FREE audit): https://www.edx.org - audit courses from Harvard, MIT, etc.
-- Khan Academy (FREE): https://www.khanacademy.org - any subject
-- Alison (FREE): https://alison.com - free diplomas and certificates
-- freeCodeCamp (FREE): https://www.freecodecamp.org - coding/tech
-- YouTube - search "[topic] full course" for free tutorials
-- LinkedIn Learning (FREE with library card in many countries)
-- Google Digital Garage (FREE): https://learndigital.withgoogle.com/digitalgarage
-
-GOAL-SPECIFIC RESEARCH:
-- For the user's specific goal, YOU must research and provide:
-  * Region-specific certification/licensing requirements
-  * Relevant job boards for their target location
-  * Industry-specific free courses and resources
-  * Professional associations and networking opportunities
-  * Entry-level positions and career progression paths
-
-═══════════════════════════════════════════════════════
-JSON RESPONSE FORMAT
-═══════════════════════════════════════════════════════
-
-{
-  "northStarAnalysis": {
-    "summary": "1-2 sentences",
-    "gaps": ["specific gaps with what's missing"],
-    "strengths": ["specific strengths"]
-  },
-  "roadmap": [
-    {
-      "phase": "Phase X: [Action-Outcome Name]",
-      "timeframe": "Weeks 1-4",
-      "goal": "Concrete measurable outcome",
-      "milestones": [
-        "Action verb + exact deliverable + specific target/link + deadline",
-        "Every milestone is ready-to-execute with all details included"
-      ],
-      "weeklyFocus": "ONE priority"
-    }
-  ],
-  "immediateActions": [
-    {
-      "title": "Specific ready-to-do action",
-      "why": "Connection to vision",
-      "timeEstimate": "2 hours",
-      "priority": "critical|high|medium"
-    }
-  ],
-  "learningPath": [
-    {
-      "skill": "Skill name",
-      "importance": "Why it matters",
-      "resources": [
-        {"title": "Exact name", "type": "course|book|tutorial|practice", "url": "real URL", "timeCommitment": "X hours"}
-      ]
-    }
-  ],
-  "weeklyTheme": "Theme",
-  "coachingNote": "2-3 sentences direct coaching"
-}
-
-FINAL CHECK: Before responding, verify EVERY milestone:
-1. Contains NO banned phrases (research, decide, consider, explore, design, document)
-2. Has a specific action verb (Apply, Enroll, Submit, Complete, Send, Create)
-3. Includes exact details (names, URLs, costs, timelines)
-4. Is immediately executable without further research`;
+JSON FORMAT:
+{"northStarAnalysis": {"summary": "1-2 sentences", "gaps": ["gaps"], "strengths": ["strengths"]},
+"roadmap": [{"phase": "Phase X: Name", "timeframe": "Weeks 1-4", "goal": "outcome", "milestones": ["action + details + link"], "weeklyFocus": "priority"}],
+"immediateActions": [{"title": "action", "why": "reason", "timeEstimate": "2h", "priority": "high"}],
+"learningPath": [{"skill": "name", "importance": "why", "resources": [{"title": "name", "type": "course", "url": "URL", "timeCommitment": "Xh"}]}],
+"weeklyTheme": "Theme",
+"coachingNote": "2-3 sentences coaching"}`;
 
       const userPrompt = `MY NORTH STAR VISION (Treat this as the ultimate destination):
 ${vision.map(v => `- "${v.title}" (Target: ${v.timeframe})`).join('\n')}
@@ -4445,7 +4367,7 @@ ${JSON.stringify(context, null, 2)}`;
     }
   });
   
-  // Deep Mind AI Insights endpoint - Evidence-based analysis
+  // Deep Mind AI Insights endpoint - Evidence-based analysis (with 24h caching)
   app.post("/api/deep-mind/insights", async (req, res) => {
     try {
       const [entries, journalEntries, members] = await Promise.all([
@@ -4458,6 +4380,27 @@ ${JSON.stringify(context, null, 2)}`;
       const now = new Date();
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const todayStr = now.toISOString().split('T')[0];
+      
+      // Create cache key with full content fingerprint (invalidates when any data changes)
+      // Simple hash function for cache key
+      const simpleHash = (str: string): string => {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+          hash = ((hash << 5) - hash) + str.charCodeAt(i);
+          hash |= 0;
+        }
+        return Math.abs(hash).toString(36);
+      };
+      
+      // Hash ALL entries and journals to detect any edits
+      const entriesFingerprint = entries.map(e => 
+        `${e.id}:${e.mood}:${e.energy}:${e.sleepHours || 0}:${(e.notes || "").length}`
+      ).join("|");
+      const journalsFingerprint = journalEntries.map(j => 
+        `${j.id}:${j.content.length}:${j.primaryDriver || ""}`
+      ).join("|");
+      const contentHash = simpleHash(entriesFingerprint + journalsFingerprint);
+      const cacheKey = `deep-mind-${todayStr}-${contentHash}`;
       
       const recentEntries = entries.filter(e => new Date(e.timestamp) >= sevenDaysAgo);
       const todayEntries = entries.filter(e => new Date(e.timestamp).toISOString().split('T')[0] === todayStr);
@@ -4573,6 +4516,15 @@ RULES:
       res.setHeader("Content-Type", "text/plain");
       res.setHeader("Transfer-Encoding", "chunked");
       
+      // Check cache first (saves AI costs) - bypass with ?refresh=true
+      const forceRefresh = req.body?.refresh === true || req.query?.refresh === "true";
+      const cachedResponse = !forceRefresh ? getCachedAI(cacheKey) : null;
+      if (cachedResponse) {
+        res.write(cachedResponse);
+        res.end();
+        return;
+      }
+      
       const stream = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
@@ -4583,10 +4535,20 @@ RULES:
         max_tokens: 500,
       });
       
+      let fullResponse = "";
       for await (const chunk of stream) {
         const content = chunk.choices[0]?.delta?.content || "";
-        if (content) res.write(content);
+        if (content) {
+          res.write(content);
+          fullResponse += content;
+        }
       }
+      
+      // Cache the response for 24 hours
+      if (fullResponse) {
+        setCachedAI(cacheKey, fullResponse);
+      }
+      
       res.end();
     } catch (error) {
       console.error("Deep mind insights error:", error);
