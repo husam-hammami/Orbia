@@ -97,16 +97,16 @@ const categoryIcons: Record<string, any> = {
 };
 
 const categoryColors: Record<string, string> = {
-  teaching: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-  cybersecurity: "bg-purple-500/10 text-purple-600 border-purple-500/20",
-  technology: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  career: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-  wellness: "bg-pink-500/10 text-pink-600 border-pink-500/20",
-  skincare: "bg-rose-500/10 text-rose-600 border-rose-500/20",
-  french: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
-  finance: "bg-green-500/10 text-green-600 border-green-500/20",
-  productivity: "bg-orange-500/10 text-orange-600 border-orange-500/20",
-  ai: "bg-violet-500/10 text-violet-600 border-violet-500/20"
+  teaching: "bg-primary/10 text-primary border-primary/20",
+  cybersecurity: "bg-accent/80 text-accent-foreground border-accent",
+  technology: "bg-primary/15 text-primary border-primary/25",
+  career: "bg-secondary/50 text-secondary-foreground border-secondary/30",
+  wellness: "bg-primary/10 text-primary border-primary/20",
+  skincare: "bg-accent/60 text-accent-foreground border-accent/80",
+  french: "bg-muted text-muted-foreground border-border",
+  finance: "bg-primary/12 text-primary border-primary/22",
+  productivity: "bg-secondary/40 text-secondary-foreground border-secondary/25",
+  ai: "bg-primary/18 text-primary border-primary/28"
 };
 
 function formatTimeAgo(dateString?: string): string {
