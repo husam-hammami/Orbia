@@ -36,6 +36,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 interface NewsArticle {
@@ -146,11 +147,11 @@ function TopicManager({ onClose }: { onClose: () => void }) {
   });
 
   const addTopic = useMutation({
-    mutationFn: async (topic: string) => {
+    mutationFn: async (data: { topic: string; isCustom?: boolean }) => {
       const res = await fetch("/api/news/topics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, isCustom: false })
+        body: JSON.stringify({ topic: data.topic, isCustom: data.isCustom ?? false })
       });
       return res.json();
     },
@@ -220,7 +221,7 @@ function TopicManager({ onClose }: { onClose: () => void }) {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   className="w-full flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors text-left"
-                  onClick={() => addTopic.mutate(suggestion.topic)}
+                  onClick={() => addTopic.mutate({ topic: suggestion.topic })}
                   data-testid={`topic-add-${suggestion.topic}`}
                 >
                   <div className={cn("p-2 rounded-lg", categoryColors[suggestion.topic] || "bg-muted")}>
@@ -247,7 +248,7 @@ function TopicManager({ onClose }: { onClose: () => void }) {
               <button
                 key={topic.topic}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors border border-transparent hover:border-border"
-                onClick={() => addTopic.mutate(topic.topic)}
+                onClick={() => addTopic.mutate({ topic: topic.topic })}
                 data-testid={`topic-browse-${topic.topic}`}
               >
                 <Icon className="w-3 h-3" />
@@ -257,6 +258,52 @@ function TopicManager({ onClose }: { onClose: () => void }) {
           })}
         </div>
       </div>
+
+      <CustomTopicInput onAdd={(topic) => addTopic.mutate({ topic, isCustom: true })} />
+    </div>
+  );
+}
+
+function CustomTopicInput({ onAdd }: { onAdd: (topic: string) => void }) {
+  const [customTopic, setCustomTopic] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = customTopic.trim().toLowerCase().replace(/\s+/g, "-");
+    if (trimmed.length >= 2) {
+      onAdd(trimmed);
+      setCustomTopic("");
+    } else {
+      toast.error("Topic must be at least 2 characters");
+    }
+  };
+
+  return (
+    <div className="border-t pt-4">
+      <h4 className="text-sm font-semibold mb-3 text-foreground flex items-center gap-2">
+        <Plus className="w-4 h-4 text-primary" />
+        Add Custom Topic
+      </h4>
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <Input
+          value={customTopic}
+          onChange={(e) => setCustomTopic(e.target.value)}
+          placeholder="Enter any topic..."
+          className="flex-1"
+          data-testid="input-custom-topic"
+        />
+        <Button 
+          type="submit" 
+          size="sm" 
+          disabled={customTopic.trim().length < 2}
+          data-testid="button-add-custom-topic"
+        >
+          <Plus className="w-4 h-4" />
+        </Button>
+      </form>
+      <p className="text-xs text-muted-foreground mt-2">
+        Add topics like "python", "cooking", "photography", etc.
+      </p>
     </div>
   );
 }
