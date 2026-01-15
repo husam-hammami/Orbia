@@ -39,6 +39,10 @@ import {
   type InsertIncomeStream,
   type Transaction,
   type InsertTransaction,
+  type UserNewsTopic,
+  type InsertUserNewsTopic,
+  type SavedArticle,
+  type InsertSavedArticle,
   systemMembers,
   trackerEntries,
   systemMessages,
@@ -70,6 +74,8 @@ import {
   type InsertLoan,
   type LoanPayment,
   type InsertLoanPayment,
+  userNewsTopics,
+  savedArticles,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, asc } from "drizzle-orm";
@@ -222,6 +228,19 @@ export interface IStorage {
   getLoanPayments(loanId: string): Promise<LoanPayment[]>;
   createLoanPayment(payment: InsertLoanPayment): Promise<LoanPayment>;
   deleteLoanPayment(id: string): Promise<boolean>;
+
+  // User News Topics
+  getAllNewsTopics(): Promise<UserNewsTopic[]>;
+  getActiveNewsTopics(): Promise<UserNewsTopic[]>;
+  createNewsTopic(topic: InsertUserNewsTopic): Promise<UserNewsTopic>;
+  updateNewsTopic(id: string, topic: Partial<InsertUserNewsTopic>): Promise<UserNewsTopic | undefined>;
+  deleteNewsTopic(id: string): Promise<boolean>;
+
+  // Saved Articles
+  getAllSavedArticles(): Promise<SavedArticle[]>;
+  getSavedArticle(link: string): Promise<SavedArticle | undefined>;
+  createSavedArticle(article: InsertSavedArticle): Promise<SavedArticle>;
+  deleteSavedArticle(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -889,6 +908,50 @@ export class DatabaseStorage implements IStorage {
     
     // Delete the payment
     const result = await db.delete(loanPayments).where(eq(loanPayments.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // User News Topics
+  async getAllNewsTopics(): Promise<UserNewsTopic[]> {
+    return await db.select().from(userNewsTopics).orderBy(desc(userNewsTopics.createdAt));
+  }
+
+  async getActiveNewsTopics(): Promise<UserNewsTopic[]> {
+    return await db.select().from(userNewsTopics).where(eq(userNewsTopics.isActive, 1)).orderBy(desc(userNewsTopics.createdAt));
+  }
+
+  async createNewsTopic(topic: InsertUserNewsTopic): Promise<UserNewsTopic> {
+    const result = await db.insert(userNewsTopics).values(topic).returning();
+    return result[0];
+  }
+
+  async updateNewsTopic(id: string, topic: Partial<InsertUserNewsTopic>): Promise<UserNewsTopic | undefined> {
+    const result = await db.update(userNewsTopics).set(topic).where(eq(userNewsTopics.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteNewsTopic(id: string): Promise<boolean> {
+    const result = await db.delete(userNewsTopics).where(eq(userNewsTopics.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Saved Articles
+  async getAllSavedArticles(): Promise<SavedArticle[]> {
+    return await db.select().from(savedArticles).orderBy(desc(savedArticles.createdAt));
+  }
+
+  async getSavedArticle(link: string): Promise<SavedArticle | undefined> {
+    const result = await db.select().from(savedArticles).where(eq(savedArticles.link, link));
+    return result[0];
+  }
+
+  async createSavedArticle(article: InsertSavedArticle): Promise<SavedArticle> {
+    const result = await db.insert(savedArticles).values(article).returning();
+    return result[0];
+  }
+
+  async deleteSavedArticle(id: string): Promise<boolean> {
+    const result = await db.delete(savedArticles).where(eq(savedArticles.id, id)).returning();
     return result.length > 0;
   }
 }
