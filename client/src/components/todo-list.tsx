@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Loader2, CheckCircle2, Calendar, Clock, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Loader2, CheckCircle2, Calendar, Clock, AlertTriangle, ChevronRight, ChevronDown, ListPlus } from "lucide-react";
 import { toast } from "sonner";
 import { format, isToday, isTomorrow, isPast, differenceInDays } from "date-fns";
+import type { Todo } from "@shared/schema";
 
 export function TodoList() {
   const { data: todos = [], isLoading } = useTodos();
@@ -18,6 +19,9 @@ export function TodoList() {
   const [newTodo, setNewTodo] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [dueDate, setDueDate] = useState<string>("");
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [addingSubtaskFor, setAddingSubtaskFor] = useState<string | null>(null);
+  const [subtaskText, setSubtaskText] = useState("");
 
   const handleAdd = () => {
     if (!newTodo.trim()) return;
@@ -32,6 +36,23 @@ export function TodoList() {
         toast.success("Task added");
       },
       onError: () => toast.error("Failed to add task"),
+    });
+  };
+
+  const handleAddSubtask = (parentId: string) => {
+    if (!subtaskText.trim()) return;
+    createTodo.mutate({ 
+      title: subtaskText.trim(), 
+      priority: "medium",
+      parentId
+    }, {
+      onSuccess: () => {
+        setSubtaskText("");
+        setAddingSubtaskFor(null);
+        setExpandedTasks(prev => new Set([...prev, parentId]));
+        toast.success("Subtask added");
+      },
+      onError: () => toast.error("Failed to add subtask"),
     });
   };
 
@@ -50,8 +71,23 @@ export function TodoList() {
     if (e.key === "Enter") handleAdd();
   };
 
-  const incompleteTodos = todos.filter(t => t.completed === 0);
-  const completedTodos = todos.filter(t => t.completed === 1);
+  const toggleExpanded = (id: string) => {
+    setExpandedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const parentTodos = todos.filter(t => !t.parentId);
+  const getSubtasks = (parentId: string) => todos.filter(t => t.parentId === parentId);
+  
+  const incompleteParentTodos = parentTodos.filter(t => t.completed === 0);
+  const completedParentTodos = parentTodos.filter(t => t.completed === 1);
 
   const priorityConfig = {
     low: { 
@@ -98,6 +134,156 @@ export function TodoList() {
       return { label: format(dueDate, "EEEE"), color: "text-primary bg-primary/10", isOverdue: false };
     }
     return { label: format(dueDate, "MMM d"), color: "text-muted-foreground bg-muted/50", isOverdue: false };
+  };
+
+  const renderTodoItem = (todo: Todo, isSubtask = false) => {
+    const config = priorityConfig[todo.priority as keyof typeof priorityConfig] || priorityConfig.medium;
+    const dueDateInfo = getDueDateInfo(todo.dueDate);
+    const isOverdue = dueDateInfo?.isOverdue && todo.completed === 0;
+    const subtasks = getSubtasks(todo.id);
+    const isExpanded = expandedTasks.has(todo.id);
+    const completedSubtasks = subtasks.filter(s => s.completed === 1).length;
+    const isAddingSubtask = addingSubtaskFor === todo.id;
+    
+    return (
+      <div key={todo.id}>
+        <motion.div 
+          layout
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 20, scale: 0.95 }}
+          className={cn(
+            "flex items-center gap-3 p-4 bg-card/90 backdrop-blur-sm rounded-xl border-l-4 border border-border/80 hover:border-border transition-all group",
+            config.border,
+            config.glow,
+            isOverdue && "animate-pulse border-rose-200",
+            isSubtask && "ml-8 p-3"
+          )}
+          data-testid={`todo-item-${todo.id}`}
+        >
+          {!isSubtask && subtasks.length > 0 && (
+            <button 
+              onClick={() => toggleExpanded(todo.id)}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </button>
+          )}
+          <Checkbox
+            checked={todo.completed === 1}
+            onCheckedChange={() => handleToggle(todo.id, todo.completed)}
+            className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+            data-testid={`checkbox-todo-${todo.id}`}
+          />
+          <div className="flex-1 min-w-0">
+            <span className={cn(
+              "text-sm font-medium text-foreground block truncate",
+              todo.completed === 1 && "line-through text-muted-foreground"
+            )}>
+              {todo.title}
+            </span>
+            <div className="flex items-center gap-2 mt-1">
+              {dueDateInfo && (
+                <div className="flex items-center gap-1">
+                  {isOverdue ? (
+                    <AlertTriangle className="w-3 h-3 text-rose-500" />
+                  ) : (
+                    <Clock className="w-3 h-3 text-muted-foreground" />
+                  )}
+                  <span className={cn("text-xs font-medium px-1.5 py-0.5 rounded", dueDateInfo.color)}>
+                    {dueDateInfo.label}
+                  </span>
+                </div>
+              )}
+              {!isSubtask && subtasks.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {completedSubtasks}/{subtasks.length} subtasks
+                </span>
+              )}
+            </div>
+          </div>
+          <span className={cn(
+            "text-[10px] font-semibold px-2 py-1 rounded-full uppercase tracking-wide shrink-0",
+            config.bg,
+            config.text
+          )}>
+            {todo.priority}
+          </span>
+          {!isSubtask && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary shrink-0"
+              onClick={() => {
+                setAddingSubtaskFor(todo.id);
+                setExpandedTasks(prev => new Set([...prev, todo.id]));
+              }}
+              data-testid={`button-add-subtask-${todo.id}`}
+            >
+              <ListPlus className="w-4 h-4" />
+            </Button>
+          )}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-rose-500 shrink-0"
+            onClick={() => handleDelete(todo.id)}
+            data-testid={`button-delete-todo-${todo.id}`}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </motion.div>
+        
+        {!isSubtask && isExpanded && (
+          <div className="space-y-2 mt-2">
+            {subtasks.map(subtask => renderTodoItem(subtask, true))}
+            
+            {isAddingSubtask && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="ml-8 flex gap-2"
+              >
+                <Input
+                  placeholder="Add subtask..."
+                  value={subtaskText}
+                  onChange={(e) => setSubtaskText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAddSubtask(todo.id);
+                    if (e.key === "Escape") {
+                      setAddingSubtaskFor(null);
+                      setSubtaskText("");
+                    }
+                  }}
+                  className="flex-1 h-9 text-sm"
+                  autoFocus
+                  data-testid={`input-subtask-${todo.id}`}
+                />
+                <Button 
+                  size="sm"
+                  onClick={() => handleAddSubtask(todo.id)}
+                  disabled={!subtaskText.trim()}
+                  className="h-9"
+                >
+                  Add
+                </Button>
+                <Button 
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setAddingSubtaskFor(null);
+                    setSubtaskText("");
+                  }}
+                  className="h-9"
+                >
+                  Cancel
+                </Button>
+              </motion.div>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -173,7 +359,7 @@ export function TodoList() {
         </div>
       </div>
 
-      {todos.length === 0 ? (
+      {parentTodos.length === 0 ? (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -189,121 +375,35 @@ export function TodoList() {
         <>
           <div className="space-y-2">
             <AnimatePresence mode="popLayout">
-              {incompleteTodos.map((todo) => {
-                const config = priorityConfig[todo.priority as keyof typeof priorityConfig] || priorityConfig.medium;
-                const dueDateInfo = getDueDateInfo(todo.dueDate);
-                const isOverdue = dueDateInfo?.isOverdue && todo.completed === 0;
-                
-                return (
-                  <motion.div 
-                    key={todo.id}
-                    layout
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                    className={cn(
-                      "flex items-center gap-3 p-4 bg-card/90 backdrop-blur-sm rounded-xl border-l-4 border border-border/80 hover:border-border transition-all group",
-                      config.border,
-                      config.glow,
-                      isOverdue && "animate-pulse border-rose-200"
-                    )}
-                    data-testid={`todo-item-${todo.id}`}
-                  >
-                    <Checkbox
-                      checked={todo.completed === 1}
-                      onCheckedChange={() => handleToggle(todo.id, todo.completed)}
-                      className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                      data-testid={`checkbox-todo-${todo.id}`}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium text-foreground block truncate">{todo.title}</span>
-                      {dueDateInfo && (
-                        <div className="flex items-center gap-1 mt-1">
-                          {isOverdue ? (
-                            <AlertTriangle className="w-3 h-3 text-rose-500" />
-                          ) : (
-                            <Clock className="w-3 h-3 text-muted-foreground" />
-                          )}
-                          <span className={cn("text-xs font-medium px-1.5 py-0.5 rounded", dueDateInfo.color)}>
-                            {dueDateInfo.label}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <span className={cn(
-                      "text-[10px] font-semibold px-2 py-1 rounded-full uppercase tracking-wide shrink-0",
-                      config.bg,
-                      config.text
-                    )}>
-                      {todo.priority}
-                    </span>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-rose-500 shrink-0"
-                      onClick={() => handleDelete(todo.id)}
-                      data-testid={`button-delete-todo-${todo.id}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </motion.div>
-                );
-              })}
+              {incompleteParentTodos.map((todo) => renderTodoItem(todo))}
             </AnimatePresence>
           </div>
 
-          {completedTodos.length > 0 && (
+          {completedParentTodos.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                Completed ({completedTodos.length})
+                Completed ({completedParentTodos.length})
               </p>
               <AnimatePresence mode="popLayout">
-                {completedTodos.map((todo) => (
-                  <motion.div 
-                    key={todo.id}
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="flex items-center gap-3 p-3 bg-muted/50 backdrop-blur-sm rounded-xl border border-border/50 group"
-                    data-testid={`todo-item-completed-${todo.id}`}
-                  >
-                    <Checkbox
-                      checked={true}
-                      onCheckedChange={() => handleToggle(todo.id, todo.completed)}
-                      className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
-                      data-testid={`checkbox-todo-completed-${todo.id}`}
-                    />
-                    <span className="flex-1 text-sm line-through text-muted-foreground">{todo.title}</span>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-rose-500"
-                      onClick={() => handleDelete(todo.id)}
-                      data-testid={`button-delete-todo-completed-${todo.id}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </motion.div>
-                ))}
+                {completedParentTodos.map((todo) => renderTodoItem(todo))}
               </AnimatePresence>
             </div>
           )}
         </>
       )}
 
-      {todos.length > 0 && (
+      {parentTodos.length > 0 && (
         <div className="text-center">
           <div className="inline-flex items-center gap-3 px-4 py-2 bg-card/60 backdrop-blur-sm rounded-full border border-border/50 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-amber-500" />
-              {incompleteTodos.length} pending
+              {incompleteParentTodos.length} pending
             </span>
             <span className="w-px h-3 bg-border" />
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              {completedTodos.length} completed
+              {completedParentTodos.length} completed
             </span>
           </div>
         </div>

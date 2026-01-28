@@ -212,6 +212,12 @@ export default function CareerPage() {
   const [editingMilestoneText, setEditingMilestoneText] = useState("");
   const [isLogWinDialogOpen, setIsLogWinDialogOpen] = useState(false);
   const [logWinText, setLogWinText] = useState("");
+  
+  const [editingLearningSkillIdx, setEditingLearningSkillIdx] = useState<number | null>(null);
+  const [editingLearningResourceIdx, setEditingLearningResourceIdx] = useState<number | null>(null);
+  const [editingLearningResource, setEditingLearningResource] = useState<{ title: string; type: string; url: string; timeCommitment: string }>({ title: "", type: "course", url: "", timeCommitment: "" });
+  const [addingResourceToSkill, setAddingResourceToSkill] = useState<number | null>(null);
+  const [newResourceData, setNewResourceData] = useState<{ title: string; type: string; url: string; timeCommitment: string }>({ title: "", type: "course", url: "", timeCommitment: "1-2 hours" });
 
   const getEmptyProject = (): Partial<CareerProject> => ({
     title: "",
@@ -445,15 +451,28 @@ export default function CareerPage() {
   };
 
   const getPhaseProgressPercent = (phaseIndex: number) => {
-    const milestoneTasks = getMilestoneTasks(phaseIndex);
-    if (milestoneTasks.length === 0) return 0;
-    const completed = milestoneTasks.filter(t => t.completed === 1).length;
-    return Math.round((completed / milestoneTasks.length) * 100);
+    const phase = coachData?.roadmap?.[phaseIndex];
+    if (!phase?.milestones?.length) return 0;
+    const totalMilestones = phase.milestones.length;
+    let completed = 0;
+    phase.milestones.forEach(milestone => {
+      if (isMilestoneCompleted(phaseIndex, milestone)) {
+        completed++;
+      }
+    });
+    return Math.round((completed / totalMilestones) * 100);
   };
 
   const getPhaseCompletedCount = (phaseIndex: number) => {
-    const milestoneTasks = getMilestoneTasks(phaseIndex);
-    return milestoneTasks.filter(t => t.completed === 1).length;
+    const phase = coachData?.roadmap?.[phaseIndex];
+    if (!phase?.milestones?.length) return 0;
+    let completed = 0;
+    phase.milestones.forEach(milestone => {
+      if (isMilestoneCompleted(phaseIndex, milestone)) {
+        completed++;
+      }
+    });
+    return completed;
   };
 
   const getTotalMilestones = () => {
@@ -537,6 +556,100 @@ export default function CareerPage() {
     const resourcesPerPhase = Math.ceil(coachData.learningPath.length / phaseCount);
     const start = phaseIndex * resourcesPerPhase;
     return coachData.learningPath.slice(start, start + resourcesPerPhase);
+  };
+
+  const startEditLearningResource = (skillIdx: number, resourceIdx: number) => {
+    const resource = coachData?.learningPath?.[skillIdx]?.resources?.[resourceIdx];
+    if (resource) {
+      setEditingLearningSkillIdx(skillIdx);
+      setEditingLearningResourceIdx(resourceIdx);
+      setEditingLearningResource({ ...resource });
+    }
+  };
+
+  const saveLearningResourceEdit = async () => {
+    if (editingLearningSkillIdx === null || editingLearningResourceIdx === null || !coachData?.learningPath) return;
+    
+    const updatedLearningPath = [...coachData.learningPath];
+    updatedLearningPath[editingLearningSkillIdx] = {
+      ...updatedLearningPath[editingLearningSkillIdx],
+      resources: updatedLearningPath[editingLearningSkillIdx].resources.map((r, idx) =>
+        idx === editingLearningResourceIdx ? { ...editingLearningResource } : r
+      )
+    };
+    
+    try {
+      const response = await fetch("/api/career/coach", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ learningPath: updatedLearningPath })
+      });
+      if (response.ok) {
+        setCoachData(prev => prev ? { ...prev, learningPath: updatedLearningPath } : null);
+        toast.success("Resource updated!");
+      }
+    } catch (error) {
+      toast.error("Failed to update resource");
+    }
+    
+    setEditingLearningSkillIdx(null);
+    setEditingLearningResourceIdx(null);
+  };
+
+  const cancelLearningResourceEdit = () => {
+    setEditingLearningSkillIdx(null);
+    setEditingLearningResourceIdx(null);
+    setEditingLearningResource({ title: "", type: "course", url: "", timeCommitment: "" });
+  };
+
+  const deleteLearningResource = async (skillIdx: number, resourceIdx: number) => {
+    if (!coachData?.learningPath) return;
+    
+    const updatedLearningPath = [...coachData.learningPath];
+    updatedLearningPath[skillIdx] = {
+      ...updatedLearningPath[skillIdx],
+      resources: updatedLearningPath[skillIdx].resources.filter((_, idx) => idx !== resourceIdx)
+    };
+    
+    try {
+      const response = await fetch("/api/career/coach", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ learningPath: updatedLearningPath })
+      });
+      if (response.ok) {
+        setCoachData(prev => prev ? { ...prev, learningPath: updatedLearningPath } : null);
+        toast.success("Resource removed!");
+      }
+    } catch (error) {
+      toast.error("Failed to remove resource");
+    }
+  };
+
+  const addLearningResource = async (skillIdx: number) => {
+    if (!newResourceData.title.trim() || !coachData?.learningPath) return;
+    
+    const updatedLearningPath = [...coachData.learningPath];
+    updatedLearningPath[skillIdx] = {
+      ...updatedLearningPath[skillIdx],
+      resources: [...updatedLearningPath[skillIdx].resources, { ...newResourceData }]
+    };
+    
+    try {
+      const response = await fetch("/api/career/coach", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ learningPath: updatedLearningPath })
+      });
+      if (response.ok) {
+        setCoachData(prev => prev ? { ...prev, learningPath: updatedLearningPath } : null);
+        toast.success("Resource added!");
+        setNewResourceData({ title: "", type: "course", url: "", timeCommitment: "1-2 hours" });
+        setAddingResourceToSkill(null);
+      }
+    } catch (error) {
+      toast.error("Failed to add resource");
+    }
   };
 
   const toggleTask = (id: string) => {
@@ -1358,35 +1471,178 @@ export default function CareerPage() {
                           </CollapsibleTrigger>
                           <CollapsibleContent className="px-2.5 pb-2.5">
                             <div className="space-y-1.5 pt-1 border-t border-border/30">
-                              {skill.resources.map((resource, rIdx) => (
-                                <a
-                                  key={rIdx}
-                                  href={resource.url.startsWith('search:') ? `https://www.google.com/search?q=${encodeURIComponent(resource.url.replace('search: ', ''))}` : resource.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-2 p-1.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
+                              {skill.resources.map((resource, rIdx) => {
+                                const isEditing = editingLearningSkillIdx === sIdx && editingLearningResourceIdx === rIdx;
+                                
+                                if (isEditing) {
+                                  return (
+                                    <div key={rIdx} className="p-2 rounded-lg bg-muted/80 space-y-2">
+                                      <Input
+                                        value={editingLearningResource.title}
+                                        onChange={(e) => setEditingLearningResource(prev => ({ ...prev, title: e.target.value }))}
+                                        placeholder="Resource title"
+                                        className="h-7 text-xs"
+                                        autoFocus
+                                      />
+                                      <Input
+                                        value={editingLearningResource.url}
+                                        onChange={(e) => setEditingLearningResource(prev => ({ ...prev, url: e.target.value }))}
+                                        placeholder="URL (or search: query)"
+                                        className="h-7 text-xs"
+                                      />
+                                      <div className="flex gap-2">
+                                        <select
+                                          value={editingLearningResource.type}
+                                          onChange={(e) => setEditingLearningResource(prev => ({ ...prev, type: e.target.value }))}
+                                          className="h-7 px-2 text-xs rounded border border-border bg-background flex-1"
+                                        >
+                                          <option value="course">Course</option>
+                                          <option value="book">Book</option>
+                                          <option value="tutorial">Tutorial</option>
+                                          <option value="practice">Practice</option>
+                                        </select>
+                                        <Input
+                                          value={editingLearningResource.timeCommitment}
+                                          onChange={(e) => setEditingLearningResource(prev => ({ ...prev, timeCommitment: e.target.value }))}
+                                          placeholder="Time (e.g., 2 hours)"
+                                          className="h-7 text-xs flex-1"
+                                        />
+                                      </div>
+                                      <div className="flex gap-1 justify-end">
+                                        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={cancelLearningResourceEdit}>
+                                          Cancel
+                                        </Button>
+                                        <Button size="sm" className="h-6 px-2 text-xs" onClick={saveLearningResourceEdit}>
+                                          Save
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                
+                                return (
+                                  <div
+                                    key={rIdx}
+                                    className="flex items-center gap-2 p-1.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
+                                  >
+                                    <div className={cn(
+                                      "w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0",
+                                      resource.type === 'course' && "bg-blue-500/20 text-blue-600",
+                                      resource.type === 'book' && "bg-amber-500/20 text-amber-600",
+                                      resource.type === 'tutorial' && "bg-green-500/20 text-green-600",
+                                      resource.type === 'practice' && "bg-purple-500/20 text-purple-600"
+                                    )}>
+                                      {resource.type === 'course' && '📚'}
+                                      {resource.type === 'book' && '📖'}
+                                      {resource.type === 'tutorial' && '🎓'}
+                                      {resource.type === 'practice' && '✍️'}
+                                    </div>
+                                    <a
+                                      href={resource.url.startsWith('search:') ? `https://www.google.com/search?q=${encodeURIComponent(resource.url.replace('search: ', ''))}` : resource.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex-1 min-w-0"
+                                    >
+                                      <p className="text-[11px] font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                        {resource.title}
+                                      </p>
+                                      <p className="text-[9px] text-muted-foreground">{resource.timeCommitment}</p>
+                                    </a>
+                                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-5 w-5"
+                                        onClick={(e) => { e.stopPropagation(); startEditLearningResource(sIdx, rIdx); }}
+                                      >
+                                        <Pencil className="w-2.5 h-2.5 text-muted-foreground hover:text-primary" />
+                                      </Button>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-5 w-5"
+                                        onClick={(e) => { e.stopPropagation(); deleteLearningResource(sIdx, rIdx); }}
+                                      >
+                                        <Trash2 className="w-2.5 h-2.5 text-muted-foreground hover:text-rose-500" />
+                                      </Button>
+                                    </div>
+                                    <a
+                                      href={resource.url.startsWith('search:') ? `https://www.google.com/search?q=${encodeURIComponent(resource.url.replace('search: ', ''))}` : resource.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-primary shrink-0" />
+                                    </a>
+                                  </div>
+                                );
+                              })}
+                              
+                              {addingResourceToSkill === sIdx ? (
+                                <div className="p-2 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
+                                  <Input
+                                    value={newResourceData.title}
+                                    onChange={(e) => setNewResourceData(prev => ({ ...prev, title: e.target.value }))}
+                                    placeholder="Resource title"
+                                    className="h-7 text-xs"
+                                    autoFocus
+                                  />
+                                  <Input
+                                    value={newResourceData.url}
+                                    onChange={(e) => setNewResourceData(prev => ({ ...prev, url: e.target.value }))}
+                                    placeholder="URL (or search: query for search)"
+                                    className="h-7 text-xs"
+                                  />
+                                  <div className="flex gap-2">
+                                    <select
+                                      value={newResourceData.type}
+                                      onChange={(e) => setNewResourceData(prev => ({ ...prev, type: e.target.value }))}
+                                      className="h-7 px-2 text-xs rounded border border-border bg-background flex-1"
+                                    >
+                                      <option value="course">Course</option>
+                                      <option value="book">Book</option>
+                                      <option value="tutorial">Tutorial</option>
+                                      <option value="practice">Practice</option>
+                                    </select>
+                                    <Input
+                                      value={newResourceData.timeCommitment}
+                                      onChange={(e) => setNewResourceData(prev => ({ ...prev, timeCommitment: e.target.value }))}
+                                      placeholder="Time (e.g., 2 hours)"
+                                      className="h-7 text-xs flex-1"
+                                    />
+                                  </div>
+                                  <div className="flex gap-1 justify-end">
+                                    <Button 
+                                      size="sm" 
+                                      variant="ghost" 
+                                      className="h-6 px-2 text-xs" 
+                                      onClick={() => {
+                                        setAddingResourceToSkill(null);
+                                        setNewResourceData({ title: "", type: "course", url: "", timeCommitment: "1-2 hours" });
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                    <Button 
+                                      size="sm" 
+                                      className="h-6 px-2 text-xs" 
+                                      onClick={() => addLearningResource(sIdx)}
+                                      disabled={!newResourceData.title.trim()}
+                                    >
+                                      Add
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="w-full h-7 text-xs text-muted-foreground hover:text-primary"
+                                  onClick={() => setAddingResourceToSkill(sIdx)}
                                 >
-                                  <div className={cn(
-                                    "w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0",
-                                    resource.type === 'course' && "bg-blue-500/20 text-blue-600",
-                                    resource.type === 'book' && "bg-amber-500/20 text-amber-600",
-                                    resource.type === 'tutorial' && "bg-green-500/20 text-green-600",
-                                    resource.type === 'practice' && "bg-purple-500/20 text-purple-600"
-                                  )}>
-                                    {resource.type === 'course' && '📚'}
-                                    {resource.type === 'book' && '📖'}
-                                    {resource.type === 'tutorial' && '🎓'}
-                                    {resource.type === 'practice' && '✍️'}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-[11px] font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                                      {resource.title}
-                                    </p>
-                                    <p className="text-[9px] text-muted-foreground">{resource.timeCommitment}</p>
-                                  </div>
-                                  <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-primary shrink-0" />
-                                </a>
-                              ))}
+                                  <Plus className="w-3 h-3 mr-1" />
+                                  Add Resource
+                                </Button>
+                              )}
                             </div>
                           </CollapsibleContent>
                         </Collapsible>

@@ -2737,6 +2737,43 @@ Based on my North Star vision, create a comprehensive career coaching plan. Be s
     }
   });
 
+  app.patch("/api/career/coach", async (req, res) => {
+    try {
+      const { learningPath, immediateActions, weeklyTheme, coachingNote } = req.body;
+      
+      const currentSnapshot = await storage.getLatestCoachSnapshot();
+      if (!currentSnapshot) {
+        return res.status(404).json({ error: "No coach data found" });
+      }
+
+      const currentPayload = currentSnapshot.payload as Record<string, unknown>;
+      const updatedPayload = { ...currentPayload };
+      
+      if (learningPath !== undefined) {
+        updatedPayload.learningPath = learningPath;
+      }
+      if (immediateActions !== undefined) {
+        updatedPayload.immediateActions = immediateActions;
+      }
+      if (weeklyTheme !== undefined) {
+        updatedPayload.weeklyTheme = weeklyTheme;
+      }
+      if (coachingNote !== undefined) {
+        updatedPayload.coachingNote = coachingNote;
+      }
+
+      const snapshot = await storage.upsertCoachSnapshot(updatedPayload);
+
+      res.json({
+        ...updatedPayload,
+        generatedAt: snapshot.generatedAt,
+      });
+    } catch (error) {
+      console.error("Update coach data error:", error);
+      res.status(500).json({ error: "Failed to update coach data" });
+    }
+  });
+
   app.post("/api/career/regenerate-phase", async (req, res) => {
     try {
       const { phaseIndex, currentPhase, vision } = req.body;
