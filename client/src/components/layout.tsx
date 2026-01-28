@@ -318,60 +318,38 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
                 className="relative flex flex-col justify-center items-center"
               >
-                {/* Soft breathing glow behind the orb - blends as part of logo */}
+                {/* Unified aura glow - wraps entire logo+text as one element */}
                 <motion.div
                   animate={{ 
-                    opacity: [0.4, 0.7, 0.4],
-                    scale: [0.95, 1.08, 0.95]
+                    opacity: [0.5, 0.9, 0.5],
+                    scale: [1, 1.15, 1]
                   }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute w-20 h-20 rounded-full pointer-events-none"
+                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute inset-0 -inset-x-8 -inset-y-4 pointer-events-none"
                   style={{
-                    background: 'radial-gradient(circle, hsl(var(--primary)/0.5) 0%, hsl(var(--accent)/0.3) 40%, transparent 70%)',
-                    filter: 'blur(10px)',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)'
+                    background: 'radial-gradient(ellipse 80% 70% at 50% 40%, hsl(var(--primary)/0.35) 0%, hsl(var(--accent)/0.15) 50%, transparent 80%)',
+                    filter: 'blur(15px)'
                   }}
                 />
                 
-                {/* Single elegant orbital ring */}
-                <motion.div
-                  animate={{ 
-                    rotate: 360,
-                    opacity: [0.5, 0.8, 0.5]
-                  }}
-                  transition={{ 
-                    rotate: { duration: 8, repeat: Infinity, ease: "linear" },
-                    opacity: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-                  }}
-                  className="absolute w-24 h-24 rounded-full pointer-events-none"
-                  style={{
-                    border: '1.5px solid hsl(var(--primary)/0.4)',
-                    boxShadow: '0 0 20px hsl(var(--primary)/0.25), inset 0 0 15px hsl(var(--primary)/0.1)',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)'
-                  }}
-                />
-                
-                {/* Clean orb image with pulsing glow */}
+                {/* Clean orb image with strong pulsing glow */}
                 <motion.img 
                   src={orbCleanUrl} 
                   alt="Orbia" 
                   className="relative z-10 w-16 h-16 object-contain"
                   whileTap={{ scale: 0.95 }}
                   animate={{ 
+                    scale: [1, 1.05, 1],
                     filter: [
-                      "drop-shadow(0 0 8px hsl(var(--primary)/0.5))",
-                      "drop-shadow(0 0 18px hsl(var(--primary)/0.7))",
-                      "drop-shadow(0 0 8px hsl(var(--primary)/0.5))"
+                      "drop-shadow(0 0 12px hsl(var(--primary)/0.6)) drop-shadow(0 0 25px hsl(var(--accent)/0.3))",
+                      "drop-shadow(0 0 25px hsl(var(--primary)/0.8)) drop-shadow(0 0 40px hsl(var(--accent)/0.5))",
+                      "drop-shadow(0 0 12px hsl(var(--primary)/0.6)) drop-shadow(0 0 25px hsl(var(--accent)/0.3))"
                     ]
                   }}
                   transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
                 />
                 
-                {/* ORBIA text */}
+                {/* ORBIA text with matching glow pulse */}
                 <motion.div 
                   className="flex flex-col items-center relative z-10 mt-1"
                   initial={{ opacity: 0, y: 5 }}
@@ -383,15 +361,18 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                       "font-display text-lg font-bold tracking-[0.3em] uppercase",
                       isDark ? "text-white" : "text-slate-800"
                     )}
-                    style={{
-                      textShadow: isDark 
-                        ? '0 0 15px hsl(var(--primary)/0.5)'
-                        : '0 1px 3px rgba(0,0,0,0.12)'
-                    }}
                     animate={{ 
                       textShadow: isDark 
-                        ? ['0 0 12px hsl(var(--primary)/0.4)', '0 0 22px hsl(var(--primary)/0.6)', '0 0 12px hsl(var(--primary)/0.4)']
-                        : ['0 1px 2px rgba(0,0,0,0.1)', '0 1px 5px rgba(0,0,0,0.15)', '0 1px 2px rgba(0,0,0,0.1)']
+                        ? [
+                            '0 0 8px hsl(var(--primary)/0.4), 0 0 20px hsl(var(--primary)/0.2)',
+                            '0 0 20px hsl(var(--primary)/0.7), 0 0 40px hsl(var(--primary)/0.4)',
+                            '0 0 8px hsl(var(--primary)/0.4), 0 0 20px hsl(var(--primary)/0.2)'
+                          ]
+                        : [
+                            '0 1px 2px rgba(0,0,0,0.08)',
+                            '0 1px 6px rgba(0,0,0,0.12)',
+                            '0 1px 2px rgba(0,0,0,0.08)'
+                          ]
                     }}
                     transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
                   >
