@@ -35,8 +35,13 @@ const iconMap: Record<string, any> = {
   Heart, Bed, Sparkles, Music, Users, Home, Zap, Activity
 };
 
-function formatTime24h(time24: string): string {
-  return time24; // Keep 24-hour format as-is
+function formatTime24h(time24: string | null | undefined): string {
+  if (!time24 || !time24.includes(':')) return time24 || '';
+  const [hours, minutes] = time24.split(':').map(Number);
+  if (isNaN(hours) || isNaN(minutes)) return time24;
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12;
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
 }
 
 function getBlockIcon(name: string, storedIcon?: string | null) {

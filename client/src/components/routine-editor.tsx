@@ -3,7 +3,7 @@ import {
   Plus, Pencil, Trash2, Clock, Save, X, 
   Sunrise, Sun, Moon, Briefcase, Coffee, Utensils, 
   Dumbbell, BookOpen, Heart, Bed, Sparkles, Music, 
-  Users, Home, Zap, Activity,
+  Users, Home, Zap, Activity, Star, Calendar, Copy,
   type LucideIcon
 } from "lucide-react";
 
@@ -50,14 +50,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useRoutineBlocks, useRoutineActivities, useHabits, useCreateRoutineBlock, useUpdateRoutineBlock, useDeleteRoutineBlock, useCreateRoutineActivity, useUpdateRoutineActivity, useDeleteRoutineActivity } from "@/lib/api-hooks";
+import { useRoutineBlocks, useRoutineActivities, useHabits, useCreateRoutineBlock, useUpdateRoutineBlock, useDeleteRoutineBlock, useCreateRoutineActivity, useUpdateRoutineActivity, useDeleteRoutineActivity, useRoutineTemplates, useCreateRoutineTemplate, useSetDefaultRoutineTemplate, useDeleteRoutineTemplate } from "@/lib/api-hooks";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+function formatTimeAMPM(time24: string | null | undefined): string {
+  if (!time24 || !time24.includes(':')) return time24 || '';
+  const [hours, minutes] = time24.split(':').map(Number);
+  if (isNaN(hours) || isNaN(minutes)) return time24;
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12;
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+}
 
 export function RoutineEditor() {
   const { data: blocks } = useRoutineBlocks();
   const { data: activities } = useRoutineActivities();
   const { data: habits } = useHabits();
+  const { data: templates } = useRoutineTemplates();
   
   const createBlock = useCreateRoutineBlock();
   const updateBlock = useUpdateRoutineBlock();
@@ -65,12 +75,17 @@ export function RoutineEditor() {
   const createActivity = useCreateRoutineActivity();
   const updateActivity = useUpdateRoutineActivity();
   const deleteActivity = useDeleteRoutineActivity();
+  const createTemplate = useCreateRoutineTemplate();
+  const setDefaultTemplate = useSetDefaultRoutineTemplate();
+  const deleteTemplate = useDeleteRoutineTemplate();
 
   const [editingBlock, setEditingBlock] = useState<any>(null);
   const [editingActivity, setEditingActivity] = useState<any>(null);
   const [newBlockOpen, setNewBlockOpen] = useState(false);
   const [newActivityOpen, setNewActivityOpen] = useState(false);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [newTemplateName, setNewTemplateName] = useState("");
+  const [showNewTemplate, setShowNewTemplate] = useState(false);
 
   const [blockForm, setBlockForm] = useState({
     name: "",
@@ -234,6 +249,129 @@ export function RoutineEditor() {
         </SheetHeader>
 
         <div className="space-y-6">
+          {/* Template Selector */}
+          <div className="p-4 bg-muted/50 rounded-xl border border-border/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm">Routine Templates</h3>
+              </div>
+              {!showNewTemplate && (
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="h-7 text-xs gap-1"
+                  onClick={() => setShowNewTemplate(true)}
+                  data-testid="button-new-template"
+                >
+                  <Plus className="w-3 h-3" />
+                  New Template
+                </Button>
+              )}
+            </div>
+            
+            {showNewTemplate && (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Template name (e.g., Weekend, Holiday)"
+                  value={newTemplateName}
+                  onChange={(e) => setNewTemplateName(e.target.value)}
+                  className="h-8 text-sm flex-1"
+                  autoFocus
+                  data-testid="input-template-name"
+                />
+                <Button
+                  size="sm"
+                  className="h-8"
+                  disabled={!newTemplateName.trim()}
+                  onClick={() => {
+                    createTemplate.mutate({ name: newTemplateName.trim() }, {
+                      onSuccess: () => {
+                        toast.success("Template created!");
+                        setNewTemplateName("");
+                        setShowNewTemplate(false);
+                      }
+                    });
+                  }}
+                  data-testid="button-create-template"
+                >
+                  Create
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8"
+                  onClick={() => {
+                    setNewTemplateName("");
+                    setShowNewTemplate(false);
+                  }}
+                  data-testid="button-cancel-template"
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
+            
+            {templates && templates.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {templates.map((template) => (
+                  <div
+                    key={template.id}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors group",
+                      template.isDefault === 1 
+                        ? "bg-primary/10 border-primary/30" 
+                        : "bg-background border-border hover:border-primary/30"
+                    )}
+                    data-testid={`template-chip-${template.id}`}
+                  >
+                    {template.isDefault === 1 && (
+                      <Star className="w-3 h-3 text-primary fill-primary" />
+                    )}
+                    <span className="text-sm font-medium">{template.name}</span>
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {template.isDefault !== 1 && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-5 w-5"
+                          title="Set as default"
+                          data-testid={`button-set-default-${template.id}`}
+                          onClick={() => {
+                            setDefaultTemplate.mutate(template.id, {
+                              onSuccess: () => toast.success("Default template set!")
+                            });
+                          }}
+                        >
+                          <Star className="w-3 h-3 text-muted-foreground hover:text-primary" />
+                        </Button>
+                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-5 w-5"
+                        data-testid={`button-delete-template-${template.id}`}
+                        onClick={() => {
+                          if (window.confirm("Delete this template?")) {
+                            deleteTemplate.mutate(template.id, {
+                              onSuccess: () => toast.success("Template deleted!")
+                            });
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-3 h-3 text-muted-foreground hover:text-rose-500" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Create templates for different days (Weekday, Weekend, Holiday) to quickly switch your routine.
+              </p>
+            )}
+          </div>
+
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">Time Blocks</h3>
             <Dialog open={newBlockOpen} onOpenChange={(open) => { setNewBlockOpen(open); if (!open) resetBlockForm(); }}>
@@ -349,7 +487,7 @@ export function RoutineEditor() {
                       <BlockIcon className="w-4 h-4 text-muted-foreground" />
                       <span className="font-medium">{block.name}</span>
                       <span className="text-xs text-muted-foreground font-mono">
-                        {block.startTime} — {block.endTime}
+                        {formatTimeAMPM(block.startTime)} — {formatTimeAMPM(block.endTime)}
                       </span>
                     </div>
                     <div className="flex gap-1">
@@ -366,7 +504,7 @@ export function RoutineEditor() {
                     {blockActivities.map((activity) => (
                       <div key={activity.id} className="flex items-center justify-between text-sm py-1 border-l-2 pl-2" style={{ borderColor: block.color }}>
                         <div className="flex items-center gap-2">
-                          {activity.time && <span className="text-xs text-muted-foreground">{activity.time}</span>}
+                          {activity.time && <span className="text-xs text-muted-foreground">{formatTimeAMPM(activity.time)}</span>}
                           <span>{activity.name}</span>
                           {activity.habitId && <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">Linked</span>}
                         </div>

@@ -64,14 +64,16 @@ function CurrentTime() {
     return () => clearInterval(timer);
   }, []);
   
-  const hours = time.getHours().toString().padStart(2, '0');
+  const hours24 = time.getHours();
+  const hours12 = hours24 % 12 || 12;
   const minutes = time.getMinutes().toString().padStart(2, '0');
+  const ampm = hours24 >= 12 ? 'PM' : 'AM';
   
   return (
     <div className="flex items-center justify-center gap-2 py-2 -mt-4 mb-2">
       <Clock className="w-4 h-4 text-primary/70" />
       <span className="text-lg font-mono font-medium text-foreground/90">
-        {hours}:{minutes}
+        {hours12}:{minutes} <span className="text-sm">{ampm}</span>
       </span>
     </div>
   );
