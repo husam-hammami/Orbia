@@ -321,14 +321,14 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 {/* Unified aura glow - wraps entire logo+text as one element */}
                 <motion.div
                   animate={{ 
-                    opacity: [0.5, 0.9, 0.5],
-                    scale: [1, 1.2, 1]
+                    opacity: [0.4, 0.7, 0.4],
+                    scale: [1, 1.08, 1]
                   }}
                   transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute inset-0 -inset-x-8 -inset-y-4 pointer-events-none"
+                  className="absolute inset-0 -inset-x-4 -inset-y-2 pointer-events-none"
                   style={{
-                    background: 'radial-gradient(ellipse 80% 70% at 50% 40%, hsl(var(--primary)/0.35) 0%, hsl(var(--accent)/0.15) 50%, transparent 80%)',
-                    filter: 'blur(15px)'
+                    background: 'radial-gradient(ellipse 70% 60% at 50% 40%, hsl(var(--primary)/0.3) 0%, hsl(var(--accent)/0.1) 50%, transparent 75%)',
+                    filter: 'blur(12px)'
                   }}
                 />
                 
@@ -342,9 +342,9 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                     scale: [1, 1.25, 1],
                     rotate: [0, 3, 0, -3, 0],
                     filter: [
-                      "drop-shadow(0 0 10px hsl(var(--primary)/0.5)) drop-shadow(0 0 20px hsl(var(--accent)/0.25))",
-                      "drop-shadow(0 0 35px hsl(var(--primary)/0.9)) drop-shadow(0 0 55px hsl(var(--accent)/0.6))",
-                      "drop-shadow(0 0 10px hsl(var(--primary)/0.5)) drop-shadow(0 0 20px hsl(var(--accent)/0.25))"
+                      "drop-shadow(0 0 8px hsl(var(--primary)/0.4)) drop-shadow(0 0 15px hsl(var(--accent)/0.2))",
+                      "drop-shadow(0 0 18px hsl(var(--primary)/0.7)) drop-shadow(0 0 30px hsl(var(--accent)/0.4))",
+                      "drop-shadow(0 0 8px hsl(var(--primary)/0.4)) drop-shadow(0 0 15px hsl(var(--accent)/0.2))"
                     ]
                   }}
                   transition={{ 
