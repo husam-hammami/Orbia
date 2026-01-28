@@ -49,7 +49,7 @@ export function TodoList() {
       onSuccess: () => {
         setSubtaskText("");
         setAddingSubtaskFor(null);
-        setExpandedTasks(prev => new Set([...prev, parentId]));
+        setExpandedTasks(prev => new Set(Array.from(prev).concat(parentId)));
         toast.success("Subtask added");
       },
       onError: () => toast.error("Failed to add subtask"),
@@ -213,24 +213,24 @@ export function TodoList() {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary shrink-0"
+              className="h-11 w-11 min-h-[44px] min-w-[44px] opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary shrink-0"
               onClick={() => {
                 setAddingSubtaskFor(todo.id);
-                setExpandedTasks(prev => new Set([...prev, todo.id]));
+                setExpandedTasks(prev => new Set(Array.from(prev).concat(todo.id)));
               }}
               data-testid={`button-add-subtask-${todo.id}`}
             >
-              <ListPlus className="w-4 h-4" />
+              <ListPlus className="w-5 h-5" />
             </Button>
           )}
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-rose-500 shrink-0"
+            className="h-11 w-11 min-h-[44px] min-w-[44px] opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-rose-500 shrink-0"
             onClick={() => handleDelete(todo.id)}
             data-testid={`button-delete-todo-${todo.id}`}
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-5 h-5" />
           </Button>
         </motion.div>
         

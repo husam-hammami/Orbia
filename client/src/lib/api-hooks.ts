@@ -609,7 +609,7 @@ export function useTodos() {
 export function useCreateTodo() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { title: string; priority?: string; completed?: number; dueDate?: Date }) =>
+    mutationFn: (data: { title: string; priority?: string; completed?: number; dueDate?: Date; parentId?: string }) =>
       fetchAPI("/api/todos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

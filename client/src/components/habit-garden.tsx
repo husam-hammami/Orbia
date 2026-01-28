@@ -91,9 +91,9 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
     <div className="relative group flex flex-col items-center justify-center gap-1 md:gap-2 p-1 md:p-2">
        <button 
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="absolute top-0 right-0 md:top-2 md:right-2 p-1.5 md:p-2 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity z-20"
+          className="absolute top-0 right-0 md:top-2 md:right-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity z-20"
        >
-          <LucideIcons.Trash2 className="w-3 h-3 md:w-4 md:h-4" />
+          <LucideIcons.Trash2 className="w-4 h-4" />
        </button>
 
        <motion.button
@@ -101,7 +101,7 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.92 }}
           data-testid={`button-habit-garden-${habit.id}`}
-          className="relative w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center transition-all duration-300"
+          className="relative w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center transition-all duration-300"
        >
           {/* Main Circle */}
           <AnimatePresence mode="wait">
