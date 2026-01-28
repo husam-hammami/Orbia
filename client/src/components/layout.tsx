@@ -350,52 +350,7 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                   </>
                 )}
                 
-                {/* Light mode - elegant soft cloud/mist effect */}
-                {!isDark && (
-                  <>
-                    {/* Soft mist layer 1 - gentle drift */}
-                    <motion.div
-                      animate={{ 
-                        opacity: [0.5, 0.7, 0.5],
-                        scale: [1, 1.1, 1],
-                        x: [-8, 8, -8]
-                      }}
-                      transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute -inset-x-14 -inset-y-8 pointer-events-none -z-10"
-                      style={{
-                        background: 'radial-gradient(ellipse 85% 75% at 45% 45%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.5) 40%, transparent 75%)',
-                        filter: 'blur(18px)'
-                      }}
-                    />
-                    {/* Soft mist layer 2 - opposite drift */}
-                    <motion.div
-                      animate={{ 
-                        opacity: [0.4, 0.6, 0.4],
-                        scale: [1.05, 0.95, 1.05],
-                        x: [6, -6, 6]
-                      }}
-                      transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute -inset-x-16 -inset-y-10 pointer-events-none -z-20"
-                      style={{
-                        background: 'radial-gradient(ellipse 90% 80% at 55% 40%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.4) 50%, transparent 80%)',
-                        filter: 'blur(22px)'
-                      }}
-                    />
-                    {/* Subtle primary color accent */}
-                    <motion.div
-                      animate={{ 
-                        opacity: [0.15, 0.25, 0.15],
-                        scale: [1, 1.08, 1]
-                      }}
-                      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute -inset-x-6 -inset-y-4 pointer-events-none -z-5"
-                      style={{
-                        background: 'radial-gradient(ellipse 60% 50% at 50% 45%, hsl(var(--primary)/0.12) 0%, transparent 65%)',
-                        filter: 'blur(15px)'
-                      }}
-                    />
-                  </>
-                )}
+                {/* Light mode - clean minimal design, no fog */}
                 
                 {/* Mesmerizing orb with breathing scale + gentle rotation */}
                 <motion.img 
@@ -535,109 +490,132 @@ interface LayoutProps {
 }
 
 function AnimatedBackground() {
+  const { isDark } = useTheme();
+  
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 bg-background">
-      {/* Layer 1: Flowing gradient mesh - primary aurora wave */}
-      <motion.div
-        animate={{ 
-          x: [0, 30, 0],
-          y: [0, -20, 0],
-          rotate: [0, 3, 0],
-          scale: [1, 1.05, 1]
-        }}
-        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -top-1/4 -left-1/4 w-[150%] h-[80%]"
-        style={{
-          background: `
-            radial-gradient(ellipse 80% 60% at 20% 30%, hsl(var(--primary) / 0.35), transparent 60%),
-            radial-gradient(ellipse 60% 50% at 70% 20%, hsl(var(--accent) / 0.3), transparent 55%),
-            radial-gradient(ellipse 50% 40% at 40% 60%, hsl(var(--primary) / 0.2), transparent 50%)
-          `,
-          filter: 'blur(60px)',
-        }}
-      />
-      
-      {/* Layer 2: Secondary flowing wave - moves opposite direction */}
-      <motion.div
-        animate={{ 
-          x: [0, -25, 0],
-          y: [0, 15, 0],
-          rotate: [0, -2, 0]
-        }}
-        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-        className="absolute top-1/4 -right-1/4 w-[120%] h-[70%]"
-        style={{
-          background: `
-            radial-gradient(ellipse 70% 55% at 80% 40%, hsl(var(--accent) / 0.3), transparent 55%),
-            radial-gradient(ellipse 55% 45% at 30% 70%, hsl(var(--primary) / 0.25), transparent 50%)
-          `,
-          filter: 'blur(70px)',
-        }}
-      />
-      
-      {/* Layer 3: Center flowing aurora - gentle breathing */}
-      <motion.div
-        animate={{ 
-          opacity: [0.4, 0.6, 0.4],
-          scale: [1, 1.08, 1],
-          y: [-10, 10, -10]
-        }}
-        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 4 }}
-        className="absolute top-1/3 left-1/4 w-[80%] h-[60%]"
-        style={{
-          background: `
-            radial-gradient(ellipse 60% 50% at 50% 50%, hsl(var(--primary) / 0.2), transparent 60%),
-            radial-gradient(ellipse 40% 35% at 60% 40%, hsl(var(--accent) / 0.15), transparent 50%)
-          `,
-          filter: 'blur(80px)',
-        }}
-      />
-      
-      {/* Layer 4: Bottom accent wave */}
-      <motion.div
-        animate={{ 
-          x: [0, 20, 0],
-          opacity: [0.3, 0.5, 0.3]
-        }}
-        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 6 }}
-        className="absolute bottom-0 left-0 w-full h-[50%]"
-        style={{
-          background: `
-            radial-gradient(ellipse 90% 50% at 50% 100%, hsl(var(--primary) / 0.25), transparent 60%),
-            radial-gradient(ellipse 60% 40% at 20% 80%, hsl(var(--accent) / 0.2), transparent 55%)
-          `,
-          filter: 'blur(50px)',
-        }}
-      />
-      
-      {/* Layer 5: Subtle shimmer particles */}
-      <div className="absolute inset-0">
-        {[...Array(6)].map((_, i) => (
+      {/* Dark mode: Rich aurora effect */}
+      {isDark && (
+        <>
           <motion.div
-            key={i}
-            animate={{
-              opacity: [0.2, 0.5, 0.2],
-              scale: [1, 1.2, 1],
-              y: [0, -10, 0]
+            animate={{ 
+              x: [0, 30, 0],
+              y: [0, -20, 0],
+              rotate: [0, 3, 0],
+              scale: [1, 1.05, 1]
             }}
-            transition={{
-              duration: 8 + i * 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: i * 1.5
-            }}
-            className="absolute rounded-full"
+            transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -top-1/4 -left-1/4 w-[150%] h-[80%]"
             style={{
-              width: `${20 + i * 8}px`,
-              height: `${20 + i * 8}px`,
-              left: `${15 + i * 15}%`,
-              top: `${20 + (i % 3) * 25}%`,
-              background: `radial-gradient(circle, hsl(var(--primary) / 0.4), transparent 70%)`,
-              filter: 'blur(8px)',
+              background: `
+                radial-gradient(ellipse 80% 60% at 20% 30%, hsl(var(--primary) / 0.35), transparent 60%),
+                radial-gradient(ellipse 60% 50% at 70% 20%, hsl(var(--accent) / 0.3), transparent 55%),
+                radial-gradient(ellipse 50% 40% at 40% 60%, hsl(var(--primary) / 0.2), transparent 50%)
+              `,
+              filter: 'blur(60px)',
             }}
           />
-        ))}
-      </div>
+          
+          <motion.div
+            animate={{ 
+              x: [0, -25, 0],
+              y: [0, 15, 0],
+              rotate: [0, -2, 0]
+            }}
+            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            className="absolute top-1/4 -right-1/4 w-[120%] h-[70%]"
+            style={{
+              background: `
+                radial-gradient(ellipse 70% 55% at 80% 40%, hsl(var(--accent) / 0.3), transparent 55%),
+                radial-gradient(ellipse 55% 45% at 30% 70%, hsl(var(--primary) / 0.25), transparent 50%)
+              `,
+              filter: 'blur(70px)',
+            }}
+          />
+          
+          <motion.div
+            animate={{ 
+              opacity: [0.4, 0.6, 0.4],
+              scale: [1, 1.08, 1],
+              y: [-10, 10, -10]
+            }}
+            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+            className="absolute top-1/3 left-1/4 w-[80%] h-[60%]"
+            style={{
+              background: `
+                radial-gradient(ellipse 60% 50% at 50% 50%, hsl(var(--primary) / 0.2), transparent 60%),
+                radial-gradient(ellipse 40% 35% at 60% 40%, hsl(var(--accent) / 0.15), transparent 50%)
+              `,
+              filter: 'blur(80px)',
+            }}
+          />
+          
+          <motion.div
+            animate={{ 
+              x: [0, 20, 0],
+              opacity: [0.3, 0.5, 0.3]
+            }}
+            transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 6 }}
+            className="absolute bottom-0 left-0 w-full h-[50%]"
+            style={{
+              background: `
+                radial-gradient(ellipse 90% 50% at 50% 100%, hsl(var(--primary) / 0.25), transparent 60%),
+                radial-gradient(ellipse 60% 40% at 20% 80%, hsl(var(--accent) / 0.2), transparent 55%)
+              `,
+              filter: 'blur(50px)',
+            }}
+          />
+          
+          <div className="absolute inset-0">
+            {[...Array(6)].map((_, i) => (
+              <motion.div
+                key={i}
+                animate={{
+                  opacity: [0.2, 0.5, 0.2],
+                  scale: [1, 1.2, 1],
+                  y: [0, -10, 0]
+                }}
+                transition={{
+                  duration: 8 + i * 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: i * 1.5
+                }}
+                className="absolute rounded-full"
+                style={{
+                  width: `${20 + i * 8}px`,
+                  height: `${20 + i * 8}px`,
+                  left: `${15 + i * 15}%`,
+                  top: `${20 + (i % 3) * 25}%`,
+                  background: `radial-gradient(circle, hsl(var(--primary) / 0.4), transparent 70%)`,
+                  filter: 'blur(8px)',
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+      
+      {/* Light mode: Clean, elegant subtle gradient */}
+      {!isDark && (
+        <motion.div
+          animate={{ 
+            opacity: [0.4, 0.6, 0.4]
+          }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute inset-0"
+          style={{
+            background: `
+              linear-gradient(180deg, 
+                hsl(var(--primary) / 0.03) 0%, 
+                transparent 30%,
+                transparent 70%,
+                hsl(var(--primary) / 0.04) 100%
+              )
+            `,
+          }}
+        />
+      )}
       
       {/* Subtle grain overlay for texture */}
       <div 
