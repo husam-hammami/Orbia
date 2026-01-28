@@ -185,7 +185,9 @@ export default function TrackerPage() {
           <h1 className="text-xl md:text-4xl font-display font-bold text-foreground">
             Daily Tracker
           </h1>
-          <CurrentTimeDisplay />
+          <div className="hidden md:block">
+            <CurrentTimeDisplay />
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="w-full">

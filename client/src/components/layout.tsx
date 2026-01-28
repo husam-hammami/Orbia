@@ -79,6 +79,29 @@ function CurrentTime() {
   );
 }
 
+function MobileCurrentTime() {
+  const [time, setTime] = useState(new Date());
+  
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  
+  const hours24 = time.getHours();
+  const hours12 = hours24 % 12 || 12;
+  const minutes = time.getMinutes().toString().padStart(2, '0');
+  const ampm = hours24 >= 12 ? 'PM' : 'AM';
+  
+  return (
+    <div className="flex items-center justify-center gap-1 -mt-1">
+      <Clock className="w-3 h-3 text-primary/60" />
+      <span className="text-xs font-mono text-foreground/70">
+        {hours12}:{minutes} <span className="text-[10px]">{ampm}</span>
+      </span>
+    </div>
+  );
+}
+
 function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
 
@@ -381,6 +404,8 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 </Popover>
               </div>
             </div>
+            {/* Mobile time display under logo */}
+            <MobileCurrentTime />
           </div>
         </div>
       </header>
