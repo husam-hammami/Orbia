@@ -318,17 +318,19 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
                 className="relative flex flex-col justify-center items-center"
               >
-                {/* Unified aura glow - wraps entire logo+text as one element */}
+                {/* Unified aura glow - subtle background glow */}
                 <motion.div
                   animate={{ 
-                    opacity: [0.4, 0.7, 0.4],
-                    scale: [1, 1.08, 1]
+                    opacity: isDark ? [0.2, 0.35, 0.2] : [0.3, 0.5, 0.3],
+                    scale: [1, 1.05, 1]
                   }}
                   transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute inset-0 -inset-x-4 -inset-y-2 pointer-events-none"
+                  className="absolute inset-0 -inset-x-3 -inset-y-1 pointer-events-none -z-10"
                   style={{
-                    background: 'radial-gradient(ellipse 70% 60% at 50% 40%, hsl(var(--primary)/0.3) 0%, hsl(var(--accent)/0.1) 50%, transparent 75%)',
-                    filter: 'blur(12px)'
+                    background: isDark 
+                      ? 'radial-gradient(ellipse 60% 50% at 50% 40%, hsl(var(--primary)/0.2) 0%, hsl(var(--accent)/0.08) 50%, transparent 70%)'
+                      : 'radial-gradient(ellipse 60% 50% at 50% 40%, hsl(var(--primary)/0.25) 0%, hsl(var(--accent)/0.1) 50%, transparent 70%)',
+                    filter: 'blur(10px)'
                   }}
                 />
                 
