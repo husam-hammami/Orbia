@@ -18,6 +18,7 @@ interface SidebarProps {
 }
 
 import logoUrl from '@assets/ChatGPT_Image_Jan_10,_2026,_05_13_01_PM_1768050787078.png';
+import orbCleanUrl from '@assets/orbia_orb_clean.png';
 
 const AFFIRMATIONS = [
   "You're doing amazing, habibi! 💕",
@@ -317,66 +318,53 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
                 className="relative flex flex-col justify-center items-center"
               >
-                {/* Outer pulsing orb glow - focused on orb area */}
+                {/* Outer pulsing orb glow */}
                 <motion.div
                   animate={{ 
-                    scale: [1, 1.2, 1],
-                    opacity: [0.3, 0.55, 0.3]
+                    scale: [1, 1.15, 1],
+                    opacity: [0.4, 0.7, 0.4]
                   }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute top-4 left-1/2 -translate-x-1/2 w-24 h-24 rounded-full bg-gradient-to-r from-primary/60 via-accent/60 to-primary/60 blur-2xl"
+                  transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute top-6 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full bg-gradient-to-r from-primary/60 via-accent/60 to-primary/60 blur-2xl"
                 />
-                {/* Rotating inner glow ring */}
+                {/* Rotating glow ring */}
                 <motion.div
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                  className="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full bg-gradient-to-r from-primary/50 via-transparent to-accent/50 blur-xl"
+                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                  className="absolute top-6 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-gradient-to-r from-primary/50 via-transparent to-accent/50 blur-xl"
                 />
-                {/* Breathing inner glow */}
-                <motion.div
+                {/* Clean orb image - no text */}
+                <motion.img 
+                  src={orbCleanUrl} 
+                  alt="Orbia" 
+                  className="relative z-10 w-20 h-20 object-contain"
+                  whileTap={{ scale: 0.95 }}
                   animate={{ 
-                    scale: [1, 1.1, 1],
-                    opacity: [0.5, 0.8, 0.5]
+                    filter: ["drop-shadow(0 0 15px hsl(var(--primary)/0.5))", "drop-shadow(0 0 25px hsl(var(--primary)/0.7))", "drop-shadow(0 0 15px hsl(var(--primary)/0.5))"]
                   }}
                   transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute top-4 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-gradient-radial from-white/30 to-transparent blur-lg"
                 />
-                {/* Logo orb only - aggressively cropped to hide text completely */}
-                <div className="relative z-10 w-16 h-16 overflow-hidden rounded-full">
-                  <motion.img 
-                    src={logoUrl} 
-                    alt="Orbia" 
-                    className="w-[200%] h-auto object-cover absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%]" 
-                    whileTap={{ scale: 0.95 }}
-                    animate={{ 
-                      filter: ["drop-shadow(0 0 12px hsl(var(--primary)/0.5))", "drop-shadow(0 0 24px hsl(var(--primary)/0.7))", "drop-shadow(0 0 12px hsl(var(--primary)/0.5))"]
-                    }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                  />
-                </div>
-                {/* Creative ORBIA text styling */}
+                {/* ORBIA text and time */}
                 <motion.div 
-                  className="flex flex-col items-center relative z-10 mt-1"
+                  className="flex flex-col items-center relative z-10"
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15, duration: 0.4 }}
+                  transition={{ delay: 0.1, duration: 0.4 }}
                 >
                   <motion.span 
                     className={cn(
-                      "font-display text-2xl font-extrabold tracking-[0.4em] uppercase",
-                      isDark 
-                        ? "text-white" 
-                        : "text-slate-900"
+                      "font-display text-xl font-bold tracking-[0.35em] uppercase",
+                      isDark ? "text-white" : "text-slate-800"
                     )}
                     style={{
                       textShadow: isDark 
-                        ? '0 0 30px rgba(255,255,255,0.5), 0 0 60px rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.2)'
-                        : '0 2px 8px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.1)'
+                        ? '0 0 25px rgba(255,255,255,0.5), 0 0 50px rgba(255,255,255,0.25)'
+                        : '0 1px 4px rgba(0,0,0,0.15)'
                     }}
                     animate={{ 
                       textShadow: isDark 
-                        ? ['0 0 20px rgba(255,255,255,0.4), 0 0 40px rgba(255,255,255,0.2)', '0 0 40px rgba(255,255,255,0.6), 0 0 80px rgba(255,255,255,0.4)', '0 0 20px rgba(255,255,255,0.4), 0 0 40px rgba(255,255,255,0.2)']
-                        : ['0 2px 6px rgba(0,0,0,0.12)', '0 2px 10px rgba(0,0,0,0.18)', '0 2px 6px rgba(0,0,0,0.12)']
+                        ? ['0 0 20px rgba(255,255,255,0.4)', '0 0 35px rgba(255,255,255,0.6)', '0 0 20px rgba(255,255,255,0.4)']
+                        : ['0 1px 3px rgba(0,0,0,0.1)', '0 1px 6px rgba(0,0,0,0.15)', '0 1px 3px rgba(0,0,0,0.1)']
                     }}
                     transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                   >
