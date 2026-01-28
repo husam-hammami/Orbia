@@ -12,9 +12,9 @@ const feelings = [
     value: "lighter", 
     label: "Lighter than usual", 
     icon: CloudSun, 
-    color: "text-emerald-600",
-    bg: "bg-emerald-50 dark:bg-emerald-900/20",
-    border: "border-emerald-200 dark:border-emerald-800",
+    color: "text-emerald-500 dark:text-emerald-400",
+    bg: "bg-emerald-500/10 dark:bg-emerald-500/20",
+    border: "border-emerald-500/30 dark:border-emerald-400/30",
     selectedBg: "bg-gradient-to-br from-emerald-400 to-cyan-500",
     glowColor: "rgba(16, 185, 129, 0.5)",
   },
@@ -22,9 +22,9 @@ const feelings = [
     value: "average", 
     label: "About average", 
     icon: Cloud, 
-    color: "text-slate-600",
-    bg: "bg-slate-50 dark:bg-slate-900/20",
-    border: "border-slate-200 dark:border-slate-800",
+    color: "text-slate-500 dark:text-slate-300",
+    bg: "bg-slate-500/10 dark:bg-slate-500/20",
+    border: "border-slate-500/30 dark:border-slate-400/30",
     selectedBg: "bg-gradient-to-br from-slate-500 to-indigo-600",
     glowColor: "rgba(99, 102, 241, 0.4)",
   },
@@ -32,9 +32,9 @@ const feelings = [
     value: "heavier", 
     label: "Heavier than usual", 
     icon: CloudRain, 
-    color: "text-violet-600",
-    bg: "bg-violet-50 dark:bg-violet-900/20",
-    border: "border-violet-200 dark:border-violet-800",
+    color: "text-violet-500 dark:text-violet-400",
+    bg: "bg-violet-500/10 dark:bg-violet-500/20",
+    border: "border-violet-500/30 dark:border-violet-400/30",
     selectedBg: "bg-gradient-to-br from-violet-400 to-purple-500",
     glowColor: "rgba(139, 92, 246, 0.5)",
   },
@@ -78,7 +78,7 @@ export function DailySummary() {
 
   return (
     <Card 
-      className="relative overflow-hidden border-dashed border-primary/30 bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm" 
+      className="relative overflow-hidden border-dashed border-primary/30 bg-card/80 backdrop-blur-sm" 
       data-testid="card-daily-summary"
       style={{
         boxShadow: saved ? '0 0 30px -10px rgba(6, 182, 212, 0.3)' : undefined
