@@ -596,25 +596,57 @@ function AnimatedBackground() {
         </>
       )}
       
-      {/* Light mode: Clean, elegant subtle gradient */}
+      {/* Light mode: Elegant animated soft gradients */}
       {!isDark && (
-        <motion.div
-          animate={{ 
-            opacity: [0.4, 0.6, 0.4]
-          }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute inset-0"
-          style={{
-            background: `
-              linear-gradient(180deg, 
-                hsl(var(--primary) / 0.03) 0%, 
-                transparent 30%,
-                transparent 70%,
-                hsl(var(--primary) / 0.04) 100%
-              )
-            `,
-          }}
-        />
+        <>
+          <motion.div
+            animate={{ 
+              x: [0, 25, 0],
+              y: [0, -15, 0],
+              scale: [1, 1.03, 1]
+            }}
+            transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -top-1/4 -left-1/4 w-[150%] h-[80%]"
+            style={{
+              background: `
+                radial-gradient(ellipse 80% 60% at 20% 30%, hsl(var(--primary) / 0.08), transparent 60%),
+                radial-gradient(ellipse 60% 50% at 70% 20%, hsl(var(--accent) / 0.06), transparent 55%)
+              `,
+              filter: 'blur(80px)',
+            }}
+          />
+          
+          <motion.div
+            animate={{ 
+              x: [0, -20, 0],
+              y: [0, 12, 0]
+            }}
+            transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+            className="absolute top-1/4 -right-1/4 w-[120%] h-[70%]"
+            style={{
+              background: `
+                radial-gradient(ellipse 70% 55% at 80% 40%, hsl(var(--accent) / 0.07), transparent 55%),
+                radial-gradient(ellipse 55% 45% at 30% 70%, hsl(var(--primary) / 0.05), transparent 50%)
+              `,
+              filter: 'blur(90px)',
+            }}
+          />
+          
+          <motion.div
+            animate={{ 
+              opacity: [0.5, 0.8, 0.5],
+              scale: [1, 1.05, 1]
+            }}
+            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 5 }}
+            className="absolute bottom-0 left-0 w-full h-[50%]"
+            style={{
+              background: `
+                radial-gradient(ellipse 90% 50% at 50% 100%, hsl(var(--primary) / 0.06), transparent 60%)
+              `,
+              filter: 'blur(70px)',
+            }}
+          />
+        </>
       )}
       
       {/* Subtle grain overlay for texture */}
