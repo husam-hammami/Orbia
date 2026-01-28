@@ -219,7 +219,7 @@ export function RoutineTimeline() {
       </div>
 
       {/* Timeline Ribbon - Futuristic Glassmorphic */}
-      <div className="relative bg-gradient-to-br from-card/80 to-muted/30 rounded-xl border border-border/60 p-4 backdrop-blur-sm overflow-x-auto">
+      <div className="relative bg-gradient-to-br from-card/80 to-muted/30 rounded-xl border border-border/60 p-4 backdrop-blur-sm overflow-x-auto" data-swipe-ignore>
         {/* Orbit Thread Line - Gradient */}
         <div className="absolute top-1/2 left-8 right-8 h-0.5 bg-gradient-to-r from-primary/30 via-accent/30 to-primary/30 rounded-full -translate-y-1/2 z-0 hidden md:block" />
         

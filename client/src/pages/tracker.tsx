@@ -79,8 +79,20 @@ export default function TrackerPage() {
   }, [activeTab]);
 
   const swipeHandlers = useSwipeable({
-    onSwipedLeft: goToNextTab,
-    onSwipedRight: goToPrevTab,
+    onSwipedLeft: (eventData) => {
+      // Don't switch tabs if user is scrolling within a horizontally scrollable area
+      const target = eventData.event.target as HTMLElement;
+      const scrollableParent = target.closest('[data-swipe-ignore]');
+      if (scrollableParent) return;
+      goToNextTab();
+    },
+    onSwipedRight: (eventData) => {
+      // Don't switch tabs if user is scrolling within a horizontally scrollable area
+      const target = eventData.event.target as HTMLElement;
+      const scrollableParent = target.closest('[data-swipe-ignore]');
+      if (scrollableParent) return;
+      goToPrevTab();
+    },
     trackMouse: false,
     trackTouch: true,
     delta: 50,

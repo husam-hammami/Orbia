@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Habit, Category, Frequency } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { useAndroidBack } from "@/hooks/use-android-back";
 import {
   Dialog,
   DialogContent,
@@ -49,6 +50,9 @@ interface HabitEditFormProps {
 
 export function HabitEditForm({ habit, onSubmit, trigger }: HabitEditFormProps) {
   const [open, setOpen] = useState(false);
+  
+  const closeDialog = useCallback(() => setOpen(false), []);
+  useAndroidBack(open, closeDialog);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

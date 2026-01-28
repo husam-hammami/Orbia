@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useAndroidBack } from "@/hooks/use-android-back";
 import { 
-  Plus, Pencil, Trash2, Clock, Save, X, 
+  Plus, Pencil, Trash2, Clock, Save, X, ArrowLeft,
   Sunrise, Sun, Moon, Briefcase, Coffee, Utensils, 
   Dumbbell, BookOpen, Heart, Bed, Sparkles, Music, 
   Users, Home, Zap, Activity, Star, Calendar, Copy,
@@ -86,6 +87,15 @@ export function RoutineEditor() {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [newTemplateName, setNewTemplateName] = useState("");
   const [showNewTemplate, setShowNewTemplate] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
+  const closeBlockDialog = useCallback(() => { setNewBlockOpen(false); resetBlockForm(); }, []);
+  const closeActivityDialog = useCallback(() => { setNewActivityOpen(false); resetActivityForm(); setSelectedBlockId(null); }, []);
+  
+  useAndroidBack(sheetOpen, closeSheet);
+  useAndroidBack(newBlockOpen, closeBlockDialog);
+  useAndroidBack(newActivityOpen, closeActivityDialog);
 
   const [blockForm, setBlockForm] = useState({
     name: "",
@@ -235,18 +245,34 @@ export function RoutineEditor() {
   };
 
   return (
-    <Sheet>
+    <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
       <SheetTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2" data-testid="button-edit-routine">
           <Pencil className="w-4 h-4" />
           Edit Routine
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
-        <SheetHeader className="mb-4">
-          <SheetTitle>Edit Routine</SheetTitle>
-          <SheetDescription>Manage your daily routine blocks and activities</SheetDescription>
-        </SheetHeader>
+      <SheetContent className="w-full sm:w-[540px] overflow-y-auto p-0">
+        {/* Mobile-friendly header with back button */}
+        <div className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 border-b border-border bg-background/95 backdrop-blur-sm">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-9 w-9 shrink-0" 
+            onClick={() => setSheetOpen(false)}
+            data-testid="button-close-routine-editor"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <SheetHeader className="space-y-0">
+              <SheetTitle className="text-lg">Edit Routine</SheetTitle>
+              <SheetDescription className="text-xs">Manage your routine blocks and activities</SheetDescription>
+            </SheetHeader>
+          </div>
+        </div>
+        
+        <div className="p-4">
 
         <div className="space-y-6">
           {/* Template Selector */}
@@ -576,6 +602,7 @@ export function RoutineEditor() {
               );
             })}
           </div>
+        </div>
         </div>
       </SheetContent>
     </Sheet>
