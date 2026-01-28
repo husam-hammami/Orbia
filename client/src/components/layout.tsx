@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Settings, Briefcase, Wallet, ClipboardList, Orbit, Lock, Sun, Moon, Newspaper } from "lucide-react";
+import { LayoutDashboard, Settings, Briefcase, Wallet, ClipboardList, Orbit, Lock, Sun, Moon, Newspaper, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GardenTopBar } from "@/components/garden-top-bar";
 import { motion } from "framer-motion";
@@ -56,6 +56,27 @@ function getDailyQuote() {
   return PHILOSOPHER_QUOTES[dayOfYear % PHILOSOPHER_QUOTES.length];
 }
 
+function CurrentTime() {
+  const [time, setTime] = useState(new Date());
+  
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  
+  const hours = time.getHours().toString().padStart(2, '0');
+  const minutes = time.getMinutes().toString().padStart(2, '0');
+  
+  return (
+    <div className="flex items-center justify-center gap-2 py-2 -mt-4 mb-2">
+      <Clock className="w-4 h-4 text-primary/70" />
+      <span className="text-lg font-mono font-medium text-foreground/90">
+        {hours}:{minutes}
+      </span>
+    </div>
+  );
+}
+
 function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
 
@@ -81,6 +102,8 @@ function Sidebar({ className }: SidebarProps) {
           className="w-[160%] max-w-none h-auto object-contain -ml-[30%]" 
         />
       </div>
+      
+      <CurrentTime />
 
       <nav className="space-y-1 flex-1">
         {links.map((link) => {

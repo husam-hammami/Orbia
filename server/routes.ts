@@ -1986,8 +1986,11 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
       feeds: ["https://zenhabits.net/feed/", "https://www.psychologytoday.com/us/blog/feed"]
     },
     skincare: {
-      name: "Skincare",
-      feeds: ["https://www.allure.com/feed/rss"]
+      name: "Skincare & Dermatology",
+      feeds: [
+        "https://www.dermatologytimes.com/rss/feed",
+        "https://www.aad.org/rss/news"
+      ]
     },
     french: {
       name: "French",

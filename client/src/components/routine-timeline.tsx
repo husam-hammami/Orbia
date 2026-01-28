@@ -35,11 +35,8 @@ const iconMap: Record<string, any> = {
   Heart, Bed, Sparkles, Music, Users, Home, Zap, Activity
 };
 
-function formatTimeAmPm(time24: string): string {
-  const [hours, minutes] = time24.split(':').map(Number);
-  const period = hours >= 12 ? 'PM' : 'AM';
-  const hours12 = hours % 12 || 12;
-  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+function formatTime24h(time24: string): string {
+  return time24; // Keep 24-hour format as-is
 }
 
 function getBlockIcon(name: string, storedIcon?: string | null) {
@@ -304,11 +301,11 @@ export function RoutineTimeline() {
                     theme.iconColor,
                     theme.iconBg
                   )}>
-                    {formatTimeAmPm(block.startTime)}
+                    {formatTime24h(block.startTime)}
                   </span>
                   <span className="text-[10px] text-muted-foreground">→</span>
                   <span className="text-[10px] font-mono font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
-                    {formatTimeAmPm(block.endTime)}
+                    {formatTime24h(block.endTime)}
                   </span>
                 </div>
 
@@ -383,7 +380,7 @@ export function RoutineTimeline() {
                     <div>
                       <h3 className="font-semibold text-foreground">{block.name}</h3>
                       <p className="text-xs text-muted-foreground font-mono">
-                        {formatTimeAmPm(block.startTime)} — {formatTimeAmPm(block.endTime)}
+                        {formatTime24h(block.startTime)} — {formatTime24h(block.endTime)}
                         {block.purpose && <span className="mx-1.5 font-sans">•</span>}
                         {block.purpose && <span className="italic font-sans">{block.purpose}</span>}
                       </p>
