@@ -2,7 +2,7 @@ import { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { format, subDays, isSameDay, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Flame, Trophy, Trash2, Heart, Briefcase, Brain, Palette, Users, PiggyBank, Accessibility, Sparkles } from "lucide-react";
+import { Check, Flame, Trophy, Trash2, Heart, Briefcase, Brain, Palette, Users, PiggyBank, Accessibility, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HabitEditForm } from "./habit-edit-form";
 
@@ -29,9 +29,10 @@ interface HabitListCompactProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit?: (id: string, data: Partial<Omit<Habit, "id" | "streak" | "completedToday" | "history">>) => void;
+  togglingHabitId?: string | null;
 }
 
-export function HabitListCompact({ habits, onToggle, onDelete, onEdit }: HabitListCompactProps) {
+export function HabitListCompact({ habits, onToggle, onDelete, onEdit, togglingHabitId }: HabitListCompactProps) {
   const today = new Date();
   // Last 14 days for the mini heatmap
   const days = Array.from({ length: 14 }).map((_, i) => subDays(today, 13 - i));
@@ -94,15 +95,19 @@ export function HabitListCompact({ habits, onToggle, onDelete, onEdit }: HabitLi
           <div className="flex items-center gap-2">
             <button
                 onClick={() => onToggle(habit.id)}
+                disabled={togglingHabitId === habit.id}
                 className={cn(
-                  "relative h-12 px-6 rounded-xl flex items-center gap-2 transition-all duration-200 font-medium",
+                  "relative h-12 min-h-[44px] px-6 rounded-xl flex items-center gap-2 transition-all duration-200 font-medium",
                   habit.completedToday 
                     ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90" 
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+                  togglingHabitId === habit.id && "opacity-70"
                 )}
               >
                 <AnimatePresence mode="wait">
-                  {habit.completedToday ? (
+                  {togglingHabitId === habit.id ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : habit.completedToday ? (
                     <motion.div
                       key="checked"
                       initial={{ scale: 0.5, opacity: 0 }}

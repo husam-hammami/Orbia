@@ -164,9 +164,9 @@ export function TodoList() {
           {!isSubtask && subtasks.length > 0 && (
             <button 
               onClick={() => toggleExpanded(todo.id)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors -ml-2"
             >
-              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
             </button>
           )}
           <Checkbox

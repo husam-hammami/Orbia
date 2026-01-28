@@ -24,7 +24,8 @@ import {
   Pencil,
   SkipForward,
   Droplet,
-  CircleDot
+  CircleDot,
+  Loader2
 } from "lucide-react";
 import { useRoutineBlocks, useRoutineActivities, useRoutineLogs, useToggleRoutineActivity, useHabits } from "@/lib/api-hooks";
 import { cn } from "@/lib/utils";
@@ -89,6 +90,7 @@ export function RoutineTimeline() {
   const { data: habits } = useHabits();
   
   const toggleMutation = useToggleRoutineActivity();
+  const [togglingActivityId, setTogglingActivityId] = useState<string | null>(null);
 
   const completedActivityIds = useMemo(() => {
     return new Set(logs?.map(l => l.activityId) || []);
@@ -131,10 +133,13 @@ export function RoutineTimeline() {
   const handleToggleActivity = async (activityId: string, habitId: string | null) => {
     const isCompleted = completedActivityIds.has(activityId);
     const action = isCompleted ? "remove" : "add";
+    setTogglingActivityId(activityId);
     try {
       await toggleMutation.mutateAsync({ activityId, date: today, habitId, action });
     } catch (e) {
       console.error("Failed to toggle activity:", e);
+    } finally {
+      setTogglingActivityId(null);
     }
   };
 
@@ -410,6 +415,7 @@ export function RoutineTimeline() {
                       const isPast = isActivityPast(activity.time);
                       const shouldFade = isPast && !isActivityComplete;
                       const ActivityIcon = getActivityIcon(activity.name);
+                      const isToggling = togglingActivityId === activity.id;
 
                       return (
                         <motion.div
@@ -440,12 +446,12 @@ export function RoutineTimeline() {
                             <div className="relative">
                               <motion.button
                                 className={cn(
-                                  "relative z-10 w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 shrink-0",
+                                  "relative z-10 w-8 h-8 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center transition-all border-2 shrink-0",
                                   isActivityComplete 
                                     ? `${theme.nodeBg} border-card text-white shadow-sm` 
                                     : "bg-card border-border group-hover:border-muted-foreground group-hover:shadow-md"
                                 )}
-                                animate={isActivityComplete ? {
+                                animate={isActivityComplete && !isToggling ? {
                                   scale: [1, 1.2, 1],
                                   boxShadow: [
                                     "0 0 0 0 rgba(99, 102, 241, 0)",
@@ -456,7 +462,9 @@ export function RoutineTimeline() {
                                 transition={{ duration: 0.4 }}
                                 data-testid={`activity-checkbox-${activity.id}`}
                               >
-                                {isActivityComplete && (
+                                {isToggling ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : isActivityComplete ? (
                                   <motion.div
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
@@ -464,7 +472,7 @@ export function RoutineTimeline() {
                                   >
                                     <Check className="w-4 h-4" />
                                   </motion.div>
-                                )}
+                                ) : null}
                               </motion.button>
                             </div>
                             

@@ -2,7 +2,7 @@ import { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { format, subDays, isSameDay, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Flame, Trophy, Trash2, Heart, Briefcase, Brain, Palette, Users, PiggyBank, Accessibility, Sparkles } from "lucide-react";
+import { Check, Flame, Trophy, Trash2, Heart, Briefcase, Brain, Palette, Users, PiggyBank, Accessibility, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HabitEditForm } from "./habit-edit-form";
 
@@ -29,9 +29,10 @@ interface HabitGridProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit?: (id: string, data: Partial<Omit<Habit, "id" | "streak" | "completedToday" | "history">>) => void;
+  togglingHabitId?: string | null;
 }
 
-export function HabitGrid({ habits, onToggle, onDelete, onEdit }: HabitGridProps) {
+export function HabitGrid({ habits, onToggle, onDelete, onEdit, togglingHabitId }: HabitGridProps) {
   const today = new Date();
   const days = Array.from({ length: 5 }).map((_, i) => subDays(today, 4 - i));
 
@@ -125,9 +126,9 @@ export function HabitGrid({ habits, onToggle, onDelete, onEdit }: HabitGridProps
 
                     <button
                       onClick={() => isToday && onToggle(habit.id)}
-                      disabled={!isToday}
+                      disabled={!isToday || togglingHabitId === habit.id}
                       className={cn(
-                        "relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 group/btn",
+                        "relative w-10 h-10 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center transition-all duration-300 group/btn",
                         isCompleted 
                           ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-100" 
                           : "bg-secondary/30 text-transparent hover:bg-secondary/50",
@@ -136,7 +137,9 @@ export function HabitGrid({ habits, onToggle, onDelete, onEdit }: HabitGridProps
                       )}
                     >
                       <AnimatePresence mode="wait">
-                        {isCompleted ? (
+                        {isToday && togglingHabitId === habit.id ? (
+                          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                        ) : isCompleted ? (
                           <motion.div
                             initial={{ scale: 0.5, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}

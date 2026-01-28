@@ -4,12 +4,14 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import * as LucideIcons from "lucide-react";
 import { HabitEditForm } from "./habit-edit-form";
+import { Loader2 } from "lucide-react";
 
 interface HabitGardenProps {
   habits: Habit[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit?: (id: string, data: Partial<Omit<Habit, "id" | "streak" | "completedToday" | "history">>) => void;
+  togglingHabitId?: string | null;
 }
 
 // Convert Tailwind bg-color classes to actual CSS color values
@@ -61,7 +63,7 @@ function getCategoryIcon(category: string) {
 }
 
 // Procedural plant generator based on habit data
-const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () => void; onDelete: () => void }) => {
+const PlantNode = ({ habit, onToggle, onDelete, isToggling }: { habit: Habit; onToggle: () => void; onDelete: () => void; isToggling?: boolean }) => {
   const isCompleted = habit.completedToday;
   const streak = habit.streak;
   
@@ -130,7 +132,9 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
           </AnimatePresence>
 
           <div className="relative z-10">
-            {isCompleted ? (
+            {isToggling ? (
+              <Loader2 className="w-5 h-5 md:w-7 md:h-7 text-white animate-spin" />
+            ) : isCompleted ? (
               <motion.div
                 initial={{ scale: 0.5 }}
                 animate={{ scale: 1 }}
@@ -156,12 +160,17 @@ const PlantNode = ({ habit, onToggle, onDelete }: { habit: Habit; onToggle: () =
   );
 };
 
-export function HabitGarden({ habits, onToggle, onDelete, onEdit }: HabitGardenProps) {
+export function HabitGarden({ habits, onToggle, onDelete, onEdit, togglingHabitId }: HabitGardenProps) {
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 md:gap-3 py-2 md:py-3">
       {habits.map((habit) => (
         <div key={habit.id} className="relative group">
-          <PlantNode habit={habit} onToggle={() => onToggle(habit.id)} onDelete={() => onDelete(habit.id)} />
+          <PlantNode 
+            habit={habit} 
+            onToggle={() => onToggle(habit.id)} 
+            onDelete={() => onDelete(habit.id)} 
+            isToggling={togglingHabitId === habit.id}
+          />
           {onEdit && (
             <div className="absolute top-1 left-1 md:top-2 md:left-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <HabitEditForm habit={habit} onSubmit={onEdit} />

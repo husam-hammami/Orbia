@@ -117,6 +117,7 @@ export default function TrackerPage() {
   const updateHabitMutation = useUpdateHabit();
   const addCompletionMutation = useAddHabitCompletion();
   const removeCompletionMutation = useRemoveHabitCompletion();
+  const [togglingHabitId, setTogglingHabitId] = useState<string | null>(null);
 
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -142,15 +143,19 @@ export default function TrackerPage() {
   const handleToggle = (id: string) => {
     const habit = habits.find(h => h.id === id);
     if (!habit) return;
+    
+    setTogglingHabitId(id);
 
     if (habit.completedToday) {
       removeCompletionMutation.mutate({ habitId: id, date: today }, {
         onError: () => toast.error("Failed to update habit"),
+        onSettled: () => setTogglingHabitId(null),
       });
     } else {
       addCompletionMutation.mutate({ habitId: id, date: today }, {
         onSuccess: () => toast.success("Great job!"),
         onError: () => toast.error("Failed to update habit"),
+        onSettled: () => setTogglingHabitId(null),
       });
     }
   };
@@ -340,15 +345,15 @@ export default function TrackerPage() {
               ) : (
                 <>
                   {viewMode === "grid" && (
-                    <HabitGrid habits={habits} onToggle={handleToggle} onDelete={handleDelete} onEdit={handleUpdate} />
+                    <HabitGrid habits={habits} onToggle={handleToggle} onDelete={handleDelete} onEdit={handleUpdate} togglingHabitId={togglingHabitId} />
                   )}
                   
                   {viewMode === "list" && (
-                    <HabitListCompact habits={habits} onToggle={handleToggle} onDelete={handleDelete} onEdit={handleUpdate} />
+                    <HabitListCompact habits={habits} onToggle={handleToggle} onDelete={handleDelete} onEdit={handleUpdate} togglingHabitId={togglingHabitId} />
                   )}
 
                   {viewMode === "garden" && (
-                    <HabitGarden habits={habits} onToggle={handleToggle} onDelete={handleDelete} onEdit={handleUpdate} />
+                    <HabitGarden habits={habits} onToggle={handleToggle} onDelete={handleDelete} onEdit={handleUpdate} togglingHabitId={togglingHabitId} />
                   )}
                 </>
               )}
