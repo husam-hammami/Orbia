@@ -93,10 +93,10 @@ function MobileCurrentTime() {
   const ampm = hours24 >= 12 ? 'PM' : 'AM';
   
   return (
-    <div className="flex items-center justify-center gap-1 -mt-1">
-      <Clock className="w-3 h-3 text-primary/60" />
-      <span className="text-xs font-mono text-foreground/70">
-        {hours12}:{minutes} <span className="text-[10px]">{ampm}</span>
+    <div className="flex items-center gap-0.5 mt-0.5">
+      <Clock className="w-2.5 h-2.5 text-muted-foreground/50" />
+      <span className="text-[10px] font-mono text-muted-foreground/70">
+        {hours12}:{minutes} {ampm}
       </span>
     </div>
   );
@@ -317,95 +317,73 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
                 className="relative flex flex-col justify-center items-center"
               >
-                {/* Outer pulsing orb glow - compact */}
+                {/* Outer pulsing orb glow - focused on orb area */}
                 <motion.div
                   animate={{ 
-                    scale: [1, 1.25, 1],
-                    opacity: [0.25, 0.5, 0.25]
+                    scale: [1, 1.2, 1],
+                    opacity: [0.3, 0.55, 0.3]
                   }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full bg-gradient-to-r from-primary/50 via-accent/50 to-primary/50 blur-2xl"
+                  className="absolute top-4 left-1/2 -translate-x-1/2 w-24 h-24 rounded-full bg-gradient-to-r from-primary/60 via-accent/60 to-primary/60 blur-2xl"
                 />
                 {/* Rotating inner glow ring */}
                 <motion.div
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-                  className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-gradient-to-r from-primary/40 via-transparent to-accent/40 blur-xl"
+                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                  className="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full bg-gradient-to-r from-primary/50 via-transparent to-accent/50 blur-xl"
                 />
                 {/* Breathing inner glow */}
                 <motion.div
                   animate={{ 
-                    scale: [1, 1.15, 1],
-                    opacity: [0.4, 0.7, 0.4]
+                    scale: [1, 1.1, 1],
+                    opacity: [0.5, 0.8, 0.5]
                   }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-gradient-radial from-white/25 to-transparent blur-lg"
+                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute top-4 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-gradient-radial from-white/30 to-transparent blur-lg"
                 />
-                {/* Floating particles effect - compact */}
-                {[...Array(3)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    animate={{
-                      y: [0, -6, 0],
-                      x: [0, i % 2 === 0 ? 3 : -3, 0],
-                      opacity: [0.3, 0.7, 0.3],
-                      scale: [1, 1.15, 1]
-                    }}
-                    transition={{
-                      duration: 2 + i * 0.4,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                      delay: i * 0.25
-                    }}
-                    className="absolute rounded-full bg-white/50 blur-[2px]"
-                    style={{
-                      width: 3 + i,
-                      height: 3 + i,
-                      top: `${20 + (i * 12)}%`,
-                      left: `${30 + (i * 15)}%`,
-                    }}
-                  />
-                ))}
-                {/* Logo image - cropped more to only show orb, hide text in image */}
-                <div className="relative z-10 h-14 overflow-hidden">
+                {/* Logo orb only - aggressively cropped to hide text completely */}
+                <div className="relative z-10 w-16 h-16 overflow-hidden rounded-full">
                   <motion.img 
                     src={logoUrl} 
                     alt="Orbia" 
-                    className="h-20 w-auto object-cover object-top -mt-1" 
+                    className="w-[200%] h-auto object-cover absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%]" 
                     whileTap={{ scale: 0.95 }}
                     animate={{ 
-                      filter: ["drop-shadow(0 0 15px hsl(var(--primary)/0.4))", "drop-shadow(0 0 30px hsl(var(--primary)/0.6))", "drop-shadow(0 0 15px hsl(var(--primary)/0.4))"]
+                      filter: ["drop-shadow(0 0 12px hsl(var(--primary)/0.5))", "drop-shadow(0 0 24px hsl(var(--primary)/0.7))", "drop-shadow(0 0 12px hsl(var(--primary)/0.5))"]
                     }}
                     transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
                   />
                 </div>
-                {/* Styled ORBIA text and time - compact layout */}
-                <div className="flex flex-col items-center relative z-10 -mt-1">
+                {/* Creative ORBIA text styling */}
+                <motion.div 
+                  className="flex flex-col items-center relative z-10 mt-1"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15, duration: 0.4 }}
+                >
                   <motion.span 
                     className={cn(
-                      "font-display text-base font-bold tracking-[0.3em]",
+                      "font-display text-2xl font-extrabold tracking-[0.4em] uppercase",
                       isDark 
-                        ? "text-white/95 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" 
-                        : "text-slate-800 drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]"
+                        ? "text-white" 
+                        : "text-slate-900"
                     )}
-                    initial={{ opacity: 0, y: 3 }}
-                    animate={{ 
-                      opacity: 1, 
-                      y: 0,
+                    style={{
                       textShadow: isDark 
-                        ? ['0 0 15px rgba(255,255,255,0.3)', '0 0 25px rgba(255,255,255,0.5)', '0 0 15px rgba(255,255,255,0.3)']
-                        : ['0 1px 2px rgba(0,0,0,0.15)', '0 1px 4px rgba(0,0,0,0.2)', '0 1px 2px rgba(0,0,0,0.15)']
+                        ? '0 0 30px rgba(255,255,255,0.5), 0 0 60px rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.2)'
+                        : '0 2px 8px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.1)'
                     }}
-                    transition={{ 
-                      opacity: { delay: 0.1, duration: 0.4 },
-                      y: { delay: 0.1, duration: 0.4 },
-                      textShadow: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+                    animate={{ 
+                      textShadow: isDark 
+                        ? ['0 0 20px rgba(255,255,255,0.4), 0 0 40px rgba(255,255,255,0.2)', '0 0 40px rgba(255,255,255,0.6), 0 0 80px rgba(255,255,255,0.4)', '0 0 20px rgba(255,255,255,0.4), 0 0 40px rgba(255,255,255,0.2)']
+                        : ['0 2px 6px rgba(0,0,0,0.12)', '0 2px 10px rgba(0,0,0,0.18)', '0 2px 6px rgba(0,0,0,0.12)']
                     }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                   >
                     ORBIA
                   </motion.span>
                   <MobileCurrentTime />
-                </div>
+                </motion.div>
               </motion.div>
               
               <div className="flex items-center gap-1.5 w-16 justify-end">
