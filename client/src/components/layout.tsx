@@ -318,19 +318,33 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
                 className="relative flex flex-col justify-center items-center"
               >
-                {/* Unified aura glow - subtle background glow */}
+                {/* Animated fog layer 1 - slow drift */}
                 <motion.div
                   animate={{ 
-                    opacity: isDark ? [0.2, 0.35, 0.2] : [0.3, 0.5, 0.3],
-                    scale: [1, 1.05, 1]
+                    opacity: [0.4, 0.6, 0.4],
+                    scale: [1, 1.15, 1],
+                    x: [-5, 5, -5]
                   }}
-                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute inset-0 -inset-x-3 -inset-y-1 pointer-events-none -z-10"
+                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute -inset-x-10 -inset-y-6 pointer-events-none -z-10"
                   style={{
-                    background: isDark 
-                      ? 'radial-gradient(ellipse 60% 50% at 50% 40%, hsl(var(--primary)/0.2) 0%, hsl(var(--accent)/0.08) 50%, transparent 70%)'
-                      : 'radial-gradient(ellipse 60% 50% at 50% 40%, hsl(var(--primary)/0.25) 0%, hsl(var(--accent)/0.1) 50%, transparent 70%)',
-                    filter: 'blur(10px)'
+                    background: 'radial-gradient(ellipse 80% 70% at 50% 45%, hsl(var(--primary)/0.25) 0%, hsl(var(--accent)/0.12) 50%, transparent 80%)',
+                    filter: 'blur(20px)'
+                  }}
+                />
+                
+                {/* Animated fog layer 2 - opposite drift for depth */}
+                <motion.div
+                  animate={{ 
+                    opacity: [0.3, 0.5, 0.3],
+                    scale: [1.1, 1, 1.1],
+                    x: [5, -5, 5]
+                  }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute -inset-x-12 -inset-y-8 pointer-events-none -z-20"
+                  style={{
+                    background: 'radial-gradient(ellipse 90% 80% at 50% 40%, hsl(var(--accent)/0.2) 0%, hsl(var(--primary)/0.1) 60%, transparent 85%)',
+                    filter: 'blur(25px)'
                   }}
                 />
                 
