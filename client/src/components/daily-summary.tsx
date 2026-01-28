@@ -51,7 +51,7 @@ export function DailySummary() {
 
   return (
     <Card 
-      className="relative overflow-hidden border-dashed border-primary/30 bg-card/80 backdrop-blur-sm" 
+      className="relative overflow-hidden border-dashed border-primary/20 bg-background/50 backdrop-blur-xl" 
       data-testid="card-daily-summary"
       style={{
         boxShadow: saved ? '0 0 30px -10px rgba(6, 182, 212, 0.3)' : undefined

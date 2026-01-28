@@ -73,7 +73,7 @@ export function HabitGrid({ habits, onToggle, onDelete, onEdit, togglingHabitId 
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
             key={habit.id}
-            className="group relative bg-card hover:bg-card/80 transition-colors rounded-2xl p-4 shadow-sm hover:shadow-md border border-border/40"
+            className="group relative bg-background/50 hover:bg-background/70 backdrop-blur-xl transition-colors rounded-2xl p-4 shadow-sm hover:shadow-md border border-border/20"
           >
             <div className="grid grid-cols-[1.5fr_repeat(5,1fr)_auto] gap-4 items-center">
               {/* Habit Info */}

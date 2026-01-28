@@ -233,7 +233,7 @@ export function MoodTracker() {
 
   return (
     <>
-      <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm overflow-hidden">
+      <div className="bg-background/50 backdrop-blur-xl rounded-2xl border border-border/20 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-border/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

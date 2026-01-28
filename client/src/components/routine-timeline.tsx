@@ -206,7 +206,7 @@ export function RoutineTimeline() {
         </div>
 
         {currentBlock && (
-          <div className="flex items-center gap-2 bg-card/80 border border-primary/30 rounded-full px-3 py-1.5 backdrop-blur-sm shadow-sm">
+          <div className="flex items-center gap-2 bg-background/50 border border-primary/20 rounded-full px-3 py-1.5 backdrop-blur-xl shadow-sm">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>

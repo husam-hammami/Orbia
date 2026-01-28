@@ -208,8 +208,8 @@ export default function TrackerPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="w-full">
-          <div className="sticky top-0 z-30 -mx-3 px-3 py-2 backdrop-blur-md md:static md:mx-0 md:px-0 md:py-0 md:backdrop-blur-none">
-            <TabsList className="w-full grid grid-cols-6 md:flex h-auto md:h-12 items-center gap-0.5 md:gap-1 rounded-2xl md:rounded-xl bg-muted/50 md:bg-muted/60 p-1 md:p-1.5 border border-border/30 md:border-border/50 shadow-sm md:justify-center">
+          <div className="sticky top-0 z-30 -mx-3 px-3 py-2 md:static md:mx-0 md:px-0 md:py-0">
+            <TabsList className="w-full grid grid-cols-6 md:flex h-auto md:h-12 items-center gap-0.5 md:gap-1 rounded-2xl md:rounded-xl bg-background/60 backdrop-blur-xl p-1 md:p-1.5 border border-border/20 shadow-sm md:justify-center">
               <TabsTrigger 
                 value="habits" 
                 className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 whitespace-nowrap rounded-xl md:rounded-lg px-1 md:px-5 py-2 md:py-2.5 text-[10px] md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground" 

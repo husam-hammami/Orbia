@@ -297,7 +297,7 @@ export function TodoList() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/80 p-4 shadow-sm">
+      <div className="bg-background/50 backdrop-blur-xl rounded-2xl border border-border/20 p-4 shadow-sm">
         <div className="flex gap-2 mb-3">
           <Input
             placeholder="Add a new task..."
