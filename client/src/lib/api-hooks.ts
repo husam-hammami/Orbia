@@ -369,11 +369,78 @@ export function useRemoveHabitCompletion() {
   });
 }
 
+// Routine Template Hooks
+export function useRoutineTemplates() {
+  return useQuery<{ id: string; name: string; description: string | null; isDefault: number; createdAt: string }[]>({
+    queryKey: ["routineTemplates"],
+    queryFn: () => fetchAPI("/api/routine-templates"),
+  });
+}
+
+export function useDefaultRoutineTemplate() {
+  return useQuery<{ id: string; name: string; description: string | null; isDefault: number } | null>({
+    queryKey: ["routineTemplates", "default"],
+    queryFn: () => fetchAPI("/api/routine-templates/default"),
+  });
+}
+
+export function useCreateRoutineTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; description?: string; isDefault?: number }) =>
+      fetchAPI("/api/routine-templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["routineTemplates"] });
+    },
+  });
+}
+
+export function useUpdateRoutineTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; name?: string; description?: string }) =>
+      fetchAPI(`/api/routine-templates/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["routineTemplates"] });
+    },
+  });
+}
+
+export function useSetDefaultRoutineTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchAPI(`/api/routine-templates/${id}/set-default`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["routineTemplates"] });
+    },
+  });
+}
+
+export function useDeleteRoutineTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchAPI(`/api/routine-templates/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["routineTemplates"] });
+    },
+  });
+}
+
 // Routine Blocks Hooks
-export function useRoutineBlocks() {
+export function useRoutineBlocks(templateId?: string) {
   return useQuery<RoutineBlock[]>({
-    queryKey: ["routineBlocks"],
-    queryFn: () => fetchAPI("/api/routine-blocks"),
+    queryKey: ["routineBlocks", templateId],
+    queryFn: () => fetchAPI(templateId ? `/api/routine-blocks?templateId=${templateId}` : "/api/routine-blocks"),
   });
 }
 

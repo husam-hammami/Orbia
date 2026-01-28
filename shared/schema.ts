@@ -189,9 +189,27 @@ export const insertHabitCompletionSchema = createInsertSchema(habitCompletions).
 export type HabitCompletion = typeof habitCompletions.$inferSelect;
 export type InsertHabitCompletion = z.infer<typeof insertHabitCompletionSchema>;
 
+// Routine Templates (weekday, weekend, holiday, etc.)
+export const routineTemplates = pgTable("routine_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  isDefault: integer("is_default").notNull().default(0), // 0 = false, 1 = true
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertRoutineTemplateSchema = createInsertSchema(routineTemplates).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type RoutineTemplate = typeof routineTemplates.$inferSelect;
+export type InsertRoutineTemplate = z.infer<typeof insertRoutineTemplateSchema>;
+
 // Routine Blocks (time blocks in daily routine)
 export const routineBlocks = pgTable("routine_blocks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  templateId: varchar("template_id").references(() => routineTemplates.id),
   name: text("name").notNull(),
   emoji: text("emoji").notNull(),
   icon: text("icon").default("Sunrise"),
@@ -248,9 +266,10 @@ export const insertRoutineActivityLogSchema = createInsertSchema(routineActivity
 export type RoutineActivityLog = typeof routineActivityLogs.$inferSelect;
 export type InsertRoutineActivityLog = z.infer<typeof insertRoutineActivityLogSchema>;
 
-// Simple To-Do List
+// Simple To-Do List with subtasks support
 export const todos = pgTable("todos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentId: varchar("parent_id"), // null = top-level task, otherwise = subtask
   title: text("title").notNull(),
   completed: integer("completed").notNull().default(0), // 0 = false, 1 = true
   priority: text("priority").notNull().default("medium"), // "low" | "medium" | "high"

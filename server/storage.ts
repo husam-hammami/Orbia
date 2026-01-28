@@ -50,10 +50,13 @@ import {
   systemSettings,
   habits,
   habitCompletions,
+  routineTemplates,
   routineBlocks,
   routineActivities,
   routineActivityLogs,
   todos,
+  type RoutineTemplate,
+  type InsertRoutineTemplate,
   dailySummaries,
   careerProjects,
   careerTasks,
@@ -126,8 +129,18 @@ export interface IStorage {
   addHabitCompletion(completion: InsertHabitCompletion): Promise<HabitCompletion>;
   removeHabitCompletion(habitId: string, date: string): Promise<boolean>;
 
+  // Routine Templates
+  getAllRoutineTemplates(): Promise<RoutineTemplate[]>;
+  getRoutineTemplate(id: string): Promise<RoutineTemplate | undefined>;
+  getDefaultRoutineTemplate(): Promise<RoutineTemplate | undefined>;
+  createRoutineTemplate(template: InsertRoutineTemplate): Promise<RoutineTemplate>;
+  updateRoutineTemplate(id: string, template: Partial<InsertRoutineTemplate>): Promise<RoutineTemplate | undefined>;
+  deleteRoutineTemplate(id: string): Promise<boolean>;
+  setDefaultRoutineTemplate(id: string): Promise<RoutineTemplate | undefined>;
+
   // Routine Blocks
   getAllRoutineBlocks(): Promise<RoutineBlock[]>;
+  getRoutineBlocksByTemplate(templateId: string): Promise<RoutineBlock[]>;
   createRoutineBlock(block: InsertRoutineBlock): Promise<RoutineBlock>;
   updateRoutineBlock(id: string, block: Partial<InsertRoutineBlock>): Promise<RoutineBlock | undefined>;
   deleteRoutineBlock(id: string): Promise<boolean>;
@@ -416,9 +429,49 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
+  // Routine Templates
+  async getAllRoutineTemplates(): Promise<RoutineTemplate[]> {
+    return await db.select().from(routineTemplates).orderBy(routineTemplates.createdAt);
+  }
+
+  async getRoutineTemplate(id: string): Promise<RoutineTemplate | undefined> {
+    const result = await db.select().from(routineTemplates).where(eq(routineTemplates.id, id));
+    return result[0];
+  }
+
+  async getDefaultRoutineTemplate(): Promise<RoutineTemplate | undefined> {
+    const result = await db.select().from(routineTemplates).where(eq(routineTemplates.isDefault, 1));
+    return result[0];
+  }
+
+  async createRoutineTemplate(template: InsertRoutineTemplate): Promise<RoutineTemplate> {
+    const result = await db.insert(routineTemplates).values(template).returning();
+    return result[0];
+  }
+
+  async updateRoutineTemplate(id: string, template: Partial<InsertRoutineTemplate>): Promise<RoutineTemplate | undefined> {
+    const result = await db.update(routineTemplates).set(template).where(eq(routineTemplates.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteRoutineTemplate(id: string): Promise<boolean> {
+    const result = await db.delete(routineTemplates).where(eq(routineTemplates.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async setDefaultRoutineTemplate(id: string): Promise<RoutineTemplate | undefined> {
+    await db.update(routineTemplates).set({ isDefault: 0 });
+    const result = await db.update(routineTemplates).set({ isDefault: 1 }).where(eq(routineTemplates.id, id)).returning();
+    return result[0];
+  }
+
   // Routine Blocks
   async getAllRoutineBlocks(): Promise<RoutineBlock[]> {
     return await db.select().from(routineBlocks).orderBy(routineBlocks.order);
+  }
+
+  async getRoutineBlocksByTemplate(templateId: string): Promise<RoutineBlock[]> {
+    return await db.select().from(routineBlocks).where(eq(routineBlocks.templateId, templateId)).orderBy(routineBlocks.order);
   }
 
   async createRoutineBlock(block: InsertRoutineBlock): Promise<RoutineBlock> {

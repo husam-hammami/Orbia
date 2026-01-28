@@ -275,8 +275,6 @@ export function JournalTab() {
                 {entries?.map((entry, index) => {
                   const isExpanded = expandedEntry === entry.id;
                   const preview = entry.content.slice(0, 120);
-                  const driverInfo = entry.primaryDriver ? allDrivers.find(d => d.value === entry.primaryDriver) : null;
-                  
                   return (
                     <motion.div
                       key={entry.id}
@@ -297,9 +295,9 @@ export function JournalTab() {
                         <span 
                           className="text-lg shrink-0"
                           role="img" 
-                          aria-label={driverInfo?.label || "Journal"}
+                          aria-label="Journal"
                         >
-                          {driverInfo?.emoji || "📝"}
+                          📝
                         </span>
                         
                         <div className="flex-1 min-w-0">
@@ -320,15 +318,6 @@ export function JournalTab() {
                             )}
                           </div>
                           
-                          {entry.primaryDriver && !isExpanded && (
-                            <div className="flex gap-1 mt-2 flex-wrap">
-                              <span className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded flex items-center gap-1">
-                                <Zap className="w-2.5 h-2.5" />
-                                {allDrivers.find(d => d.value === entry.primaryDriver)?.label}
-                                {entry.secondaryDriver && ` → ${allDrivers.find(d => d.value === entry.secondaryDriver)?.label}`}
-                              </span>
-                            </div>
-                          )}
                         </div>
                         
                         <ChevronRight className={cn(
@@ -363,15 +352,6 @@ export function JournalTab() {
                                 </div>
                               )}
                               
-                              {entry.primaryDriver && (
-                                <div className="flex gap-1.5 flex-wrap items-center">
-                                  <Zap className="w-3.5 h-3.5 text-amber-500" />
-                                  <span className="text-xs text-muted-foreground">
-                                    {allDrivers.find(d => d.value === entry.primaryDriver)?.emoji} {allDrivers.find(d => d.value === entry.primaryDriver)?.label}
-                                    {entry.secondaryDriver && ` → ${allDrivers.find(d => d.value === entry.secondaryDriver)?.emoji} ${allDrivers.find(d => d.value === entry.secondaryDriver)?.label}`}
-                                  </span>
-                                </div>
-                              )}
                               
                               <div className="flex gap-2 pt-2">
                                 <Button
@@ -441,84 +421,6 @@ export function JournalTab() {
               <ChevronRight className="w-4 h-4 rotate-180" />
               <span className="text-sm font-medium">Back</span>
             </button>
-
-            {/* Drivers Section - always visible at top */}
-            <div className="bg-card/80 backdrop-blur-sm rounded-xl border border-border p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="w-4 h-4 text-amber-500" />
-                <span className="text-xs font-medium text-muted-foreground">What's driving this entry?</span>
-                {primaryDriver && (
-                  <span className="text-xs text-indigo-500 ml-auto">
-                    {allDrivers.find(d => d.value === primaryDriver)?.emoji} {allDrivers.find(d => d.value === primaryDriver)?.label}
-                    {secondaryDriver && ` → ${allDrivers.find(d => d.value === secondaryDriver)?.emoji}`}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {challengingDrivers.map((driver) => (
-                  <button
-                    key={driver.value}
-                    type="button"
-                    onClick={() => setPrimaryDriver(primaryDriver === driver.value ? null : driver.value)}
-                    className={cn(
-                      "px-2 py-1 rounded-lg text-[11px] font-medium transition-all flex items-center gap-1",
-                      primaryDriver === driver.value
-                        ? "text-white shadow-sm"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    )}
-                    style={primaryDriver === driver.value ? { backgroundColor: driver.color } : {}}
-                    data-testid={`driver-primary-${driver.value}`}
-                  >
-                    <span>{driver.emoji}</span>
-                    <span>{driver.label}</span>
-                  </button>
-                ))}
-                <div className="w-px h-5 bg-border mx-1 self-center" />
-                {positiveDrivers.map((driver) => (
-                  <button
-                    key={driver.value}
-                    type="button"
-                    onClick={() => setPrimaryDriver(primaryDriver === driver.value ? null : driver.value)}
-                    className={cn(
-                      "px-2 py-1 rounded-lg text-[11px] font-medium transition-all flex items-center gap-1",
-                      primaryDriver === driver.value
-                        ? "text-white shadow-sm"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    )}
-                    style={primaryDriver === driver.value ? { backgroundColor: driver.color } : {}}
-                    data-testid={`driver-primary-${driver.value}`}
-                  >
-                    <span>{driver.emoji}</span>
-                    <span>{driver.label}</span>
-                  </button>
-                ))}
-              </div>
-              {primaryDriver && !["none", "joy", "connection", "growth", "peace"].includes(primaryDriver) && (
-                <div className="pt-2 border-t border-border">
-                  <p className="text-[10px] text-muted-foreground/70 mb-2">Secondary driver? (e.g., Work → Urges)</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[...challengingDrivers.filter(d => d.value !== primaryDriver), ...positiveDrivers.filter(d => d.value !== "none")].map((driver) => (
-                      <button
-                        key={driver.value}
-                        type="button"
-                        onClick={() => setSecondaryDriver(secondaryDriver === driver.value ? null : driver.value)}
-                        className={cn(
-                          "px-2 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1",
-                          secondaryDriver === driver.value
-                            ? "text-white shadow-sm"
-                            : "bg-muted/60 text-muted-foreground hover:bg-muted"
-                        )}
-                        style={secondaryDriver === driver.value ? { backgroundColor: driver.color } : {}}
-                        data-testid={`driver-secondary-${driver.value}`}
-                      >
-                        <span>{driver.emoji}</span>
-                        <span>{driver.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
 
             <div className="bg-card/90 backdrop-blur-sm rounded-2xl border border-border shadow-sm overflow-hidden">
               <TooltipProvider>

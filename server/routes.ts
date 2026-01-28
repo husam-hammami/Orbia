@@ -629,10 +629,77 @@ export async function registerRoutes(
     }
   });
 
+  // Routine Templates Routes
+  app.get("/api/routine-templates", async (req, res) => {
+    try {
+      const templates = await storage.getAllRoutineTemplates();
+      res.json(templates);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch routine templates" });
+    }
+  });
+
+  app.get("/api/routine-templates/default", async (req, res) => {
+    try {
+      const template = await storage.getDefaultRoutineTemplate();
+      res.json(template || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch default template" });
+    }
+  });
+
+  app.post("/api/routine-templates", async (req, res) => {
+    try {
+      const template = await storage.createRoutineTemplate(req.body);
+      res.status(201).json(template);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create routine template" });
+    }
+  });
+
+  app.patch("/api/routine-templates/:id", async (req, res) => {
+    try {
+      const template = await storage.updateRoutineTemplate(req.params.id, req.body);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update routine template" });
+    }
+  });
+
+  app.post("/api/routine-templates/:id/set-default", async (req, res) => {
+    try {
+      const template = await storage.setDefaultRoutineTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to set default template" });
+    }
+  });
+
+  app.delete("/api/routine-templates/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteRoutineTemplate(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete routine template" });
+    }
+  });
+
   // Routine Blocks Routes
   app.get("/api/routine-blocks", async (req, res) => {
     try {
-      const blocks = await storage.getAllRoutineBlocks();
+      const templateId = req.query.templateId as string | undefined;
+      const blocks = templateId 
+        ? await storage.getRoutineBlocksByTemplate(templateId)
+        : await storage.getAllRoutineBlocks();
       res.json(blocks);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch routine blocks" });
