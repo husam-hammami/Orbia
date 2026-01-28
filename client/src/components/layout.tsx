@@ -332,21 +332,27 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                   }}
                 />
                 
-                {/* Clean orb image with strong pulsing glow */}
+                {/* Mesmerizing orb with breathing scale + gentle rotation */}
                 <motion.img 
                   src={orbCleanUrl} 
                   alt="Orbia" 
                   className="relative z-10 w-16 h-16 object-contain"
                   whileTap={{ scale: 0.95 }}
                   animate={{ 
-                    scale: [1, 1.05, 1],
+                    scale: [1, 1.12, 1],
+                    rotate: [0, 5, 0, -5, 0],
                     filter: [
-                      "drop-shadow(0 0 12px hsl(var(--primary)/0.6)) drop-shadow(0 0 25px hsl(var(--accent)/0.3))",
-                      "drop-shadow(0 0 25px hsl(var(--primary)/0.8)) drop-shadow(0 0 40px hsl(var(--accent)/0.5))",
-                      "drop-shadow(0 0 12px hsl(var(--primary)/0.6)) drop-shadow(0 0 25px hsl(var(--accent)/0.3))"
+                      "drop-shadow(0 0 10px hsl(var(--primary)/0.5)) drop-shadow(0 0 20px hsl(var(--accent)/0.25))",
+                      "drop-shadow(0 0 30px hsl(var(--primary)/0.9)) drop-shadow(0 0 50px hsl(var(--accent)/0.6))",
+                      "drop-shadow(0 0 10px hsl(var(--primary)/0.5)) drop-shadow(0 0 20px hsl(var(--accent)/0.25))"
                     ]
                   }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                  transition={{ 
+                    duration: 3,
+                    repeat: Infinity, 
+                    ease: "easeInOut",
+                    times: [0, 0.5, 1]
+                  }}
                 />
                 
                 {/* ORBIA text with matching glow pulse */}
