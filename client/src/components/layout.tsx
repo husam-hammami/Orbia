@@ -317,56 +317,147 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
                 className="relative flex flex-col justify-center items-center"
+                style={{ perspective: '500px' }}
               >
-                {/* Outer pulsing orb glow */}
+                {/* 3D Orbiting ring 1 - horizontal ellipse */}
+                <motion.div
+                  animate={{ rotateY: 360 }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 pointer-events-none"
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  <div 
+                    className="absolute inset-0 rounded-full border-2 border-primary/40"
+                    style={{ 
+                      transform: 'rotateX(75deg)',
+                      boxShadow: '0 0 15px hsl(var(--primary)/0.3), inset 0 0 15px hsl(var(--primary)/0.2)'
+                    }}
+                  />
+                </motion.div>
+                
+                {/* 3D Orbiting ring 2 - tilted */}
+                <motion.div
+                  animate={{ rotateY: -360, rotateZ: 15 }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 pointer-events-none"
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  <div 
+                    className="absolute inset-0 rounded-full border border-accent/30"
+                    style={{ 
+                      transform: 'rotateX(70deg) rotateZ(-20deg)',
+                      boxShadow: '0 0 12px hsl(var(--accent)/0.25)'
+                    }}
+                  />
+                </motion.div>
+                
+                {/* 3D Orbiting ring 3 - vertical */}
+                <motion.div
+                  animate={{ rotateZ: 360 }}
+                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 pointer-events-none"
+                >
+                  <div 
+                    className="absolute inset-0 rounded-full border border-primary/20"
+                    style={{ 
+                      transform: 'rotateY(80deg)',
+                      boxShadow: '0 0 10px hsl(var(--primary)/0.2)'
+                    }}
+                  />
+                </motion.div>
+                
+                {/* Floating particles */}
+                {[...Array(6)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    animate={{ 
+                      rotate: 360,
+                      scale: [1, 1.2, 1]
+                    }}
+                    transition={{ 
+                      rotate: { duration: 4 + i * 1.5, repeat: Infinity, ease: "linear" },
+                      scale: { duration: 2, repeat: Infinity, ease: "easeInOut", delay: i * 0.3 }
+                    }}
+                    className="absolute top-1/2 left-1/2 pointer-events-none"
+                    style={{ 
+                      width: `${70 + i * 12}px`, 
+                      height: `${70 + i * 12}px`,
+                      marginLeft: `-${35 + i * 6}px`,
+                      marginTop: `-${35 + i * 6}px`
+                    }}
+                  >
+                    <motion.div
+                      className="absolute w-1.5 h-1.5 rounded-full"
+                      style={{ 
+                        background: i % 2 === 0 ? 'hsl(var(--primary))' : 'hsl(var(--accent))',
+                        boxShadow: `0 0 8px ${i % 2 === 0 ? 'hsl(var(--primary))' : 'hsl(var(--accent))'}`,
+                        top: '0',
+                        left: '50%',
+                        transform: 'translateX(-50%)'
+                      }}
+                    />
+                  </motion.div>
+                ))}
+                
+                {/* Holographic shimmer base */}
                 <motion.div
                   animate={{ 
-                    scale: [1, 1.15, 1],
-                    opacity: [0.4, 0.7, 0.4]
+                    opacity: [0.3, 0.6, 0.3],
+                    scale: [1, 1.05, 1]
                   }}
-                  transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute top-6 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full bg-gradient-to-r from-primary/60 via-accent/60 to-primary/60 blur-2xl"
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full"
+                  style={{
+                    background: 'radial-gradient(circle, hsl(var(--primary)/0.4), hsl(var(--accent)/0.2), transparent 70%)',
+                    filter: 'blur(12px)'
+                  }}
                 />
-                {/* Rotating glow ring */}
+                
+                {/* Energy pulse ring */}
                 <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                  className="absolute top-6 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-gradient-to-r from-primary/50 via-transparent to-accent/50 blur-xl"
+                  animate={{ 
+                    scale: [1, 1.8, 1],
+                    opacity: [0.5, 0, 0.5]
+                  }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeOut" }}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border-2 border-primary/50 pointer-events-none"
                 />
-                {/* Clean orb image - no text */}
+                
+                {/* Clean orb image */}
                 <motion.img 
                   src={orbCleanUrl} 
                   alt="Orbia" 
-                  className="relative z-10 w-20 h-20 object-contain"
+                  className="relative z-10 w-16 h-16 object-contain"
                   whileTap={{ scale: 0.95 }}
                   animate={{ 
-                    filter: ["drop-shadow(0 0 15px hsl(var(--primary)/0.5))", "drop-shadow(0 0 25px hsl(var(--primary)/0.7))", "drop-shadow(0 0 15px hsl(var(--primary)/0.5))"]
+                    filter: ["drop-shadow(0 0 12px hsl(var(--primary)/0.6))", "drop-shadow(0 0 20px hsl(var(--primary)/0.8))", "drop-shadow(0 0 12px hsl(var(--primary)/0.6))"]
                   }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 />
-                {/* ORBIA text and time */}
+                
+                {/* ORBIA text with holographic effect */}
                 <motion.div 
-                  className="flex flex-col items-center relative z-10"
+                  className="flex flex-col items-center relative z-10 mt-1"
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1, duration: 0.4 }}
                 >
                   <motion.span 
                     className={cn(
-                      "font-display text-xl font-bold tracking-[0.35em] uppercase",
+                      "font-display text-lg font-bold tracking-[0.3em] uppercase",
                       isDark ? "text-white" : "text-slate-800"
                     )}
                     style={{
                       textShadow: isDark 
-                        ? '0 0 25px rgba(255,255,255,0.5), 0 0 50px rgba(255,255,255,0.25)'
+                        ? '0 0 20px hsl(var(--primary)/0.6), 0 0 40px hsl(var(--accent)/0.4)'
                         : '0 1px 4px rgba(0,0,0,0.15)'
                     }}
                     animate={{ 
                       textShadow: isDark 
-                        ? ['0 0 20px rgba(255,255,255,0.4)', '0 0 35px rgba(255,255,255,0.6)', '0 0 20px rgba(255,255,255,0.4)']
+                        ? ['0 0 15px hsl(var(--primary)/0.5), 0 0 30px hsl(var(--accent)/0.3)', '0 0 25px hsl(var(--primary)/0.7), 0 0 50px hsl(var(--accent)/0.5)', '0 0 15px hsl(var(--primary)/0.5), 0 0 30px hsl(var(--accent)/0.3)']
                         : ['0 1px 3px rgba(0,0,0,0.1)', '0 1px 6px rgba(0,0,0,0.15)', '0 1px 3px rgba(0,0,0,0.1)']
                     }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
                   >
                     ORBIA
                   </motion.span>
