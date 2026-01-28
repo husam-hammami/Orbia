@@ -315,7 +315,7 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                className="relative flex justify-center items-center"
+                className="relative flex flex-col justify-center items-center"
               >
                 {/* Multi-layer glow effect for hero logo */}
                 <motion.div
@@ -342,13 +342,21 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 <motion.img 
                   src={logoUrl} 
                   alt="Orbia" 
-                  className="h-32 w-auto object-contain relative z-10 drop-shadow-2xl" 
+                  className="h-28 w-auto object-contain relative z-10 drop-shadow-2xl" 
                   whileTap={{ scale: 0.95 }}
                   animate={{ 
                     filter: ["drop-shadow(0 0 20px hsl(var(--primary)/0.3))", "drop-shadow(0 0 40px hsl(var(--primary)/0.5))", "drop-shadow(0 0 20px hsl(var(--primary)/0.3))"]
                   }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 />
+                <motion.span 
+                  className="font-display text-lg font-bold tracking-[0.2em] relative z-10 mt-1 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent drop-shadow-sm"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                >
+                  ORBIA
+                </motion.span>
               </motion.div>
               
               <div className="flex items-center gap-1.5 w-16 justify-end">

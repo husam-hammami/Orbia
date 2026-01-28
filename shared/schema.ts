@@ -312,10 +312,11 @@ export const insertCareerProjectSchema = createInsertSchema(careerProjects).omit
 export type CareerProject = typeof careerProjects.$inferSelect;
 export type InsertCareerProject = z.infer<typeof insertCareerProjectSchema>;
 
-// Career Tasks (linked to projects)
+// Career Tasks (linked to projects, supports subtasks)
 export const careerTasks = pgTable("career_tasks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   projectId: varchar("project_id").references(() => careerProjects.id),
+  parentId: varchar("parent_id"), // null = top-level task, set = subtask of parent
   title: text("title").notNull(),
   description: text("description"),
   completed: integer("completed").notNull().default(0), // 0 = false, 1 = true

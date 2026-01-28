@@ -236,9 +236,32 @@ export default function CareerPage() {
   const [newProjectTask, setNewProjectTask] = useState("");
   const [editingProjectTasks, setEditingProjectTasks] = useState<EditingTask[]>([]);
   const [newEditingProjectTask, setNewEditingProjectTask] = useState("");
+  const [expandedParentTasks, setExpandedParentTasks] = useState<Set<string>>(new Set());
+  const [addingSubtaskTo, setAddingSubtaskTo] = useState<string | null>(null);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
 
   const getProjectTasks = (projectId: string) => {
     return tasks.filter(t => t.projectId === projectId);
+  };
+
+  const getParentTasks = (projectId: string) => {
+    return tasks.filter(t => t.projectId === projectId && !t.parentId);
+  };
+
+  const getSubtasks = (parentId: string) => {
+    return tasks.filter(t => t.parentId === parentId);
+  };
+
+  const toggleParentExpanded = (taskId: string) => {
+    setExpandedParentTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
+      return next;
+    });
   };
 
   const getProjectProgress = (projectId: string) => {
@@ -253,6 +276,7 @@ export default function CareerPage() {
     createTask.mutate({
       title: newProjectTask,
       projectId,
+      parentId: null,
       completed: 0,
       priority: "medium",
       due: null,
@@ -260,6 +284,26 @@ export default function CareerPage() {
       description: ""
     }, {
       onSuccess: () => setNewProjectTask("")
+    });
+  };
+
+  const handleAddSubtask = (parentId: string, projectId: string) => {
+    if (!newSubtaskTitle.trim()) return;
+    createTask.mutate({
+      title: newSubtaskTitle,
+      projectId,
+      parentId,
+      completed: 0,
+      priority: "medium",
+      due: null,
+      tags: [],
+      description: ""
+    }, {
+      onSuccess: () => {
+        setNewSubtaskTitle("");
+        setAddingSubtaskTo(null);
+        setExpandedParentTasks(prev => new Set([...prev, parentId]));
+      }
     });
   };
 
@@ -2058,13 +2102,13 @@ export default function CareerPage() {
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-semibold text-foreground">Sub-Tasks</h4>
+                      <h4 className="text-sm font-semibold text-foreground">Tasks</h4>
                       <span className="text-xs text-muted-foreground">{projectTasks.length} items</span>
                     </div>
                     
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Add a new sub-task..."
+                        placeholder="Add a new task..."
                         value={newProjectTask}
                         onChange={(e) => setNewProjectTask(e.target.value)}
                         onKeyDown={(e) => {
@@ -2085,53 +2129,169 @@ export default function CareerPage() {
                       </Button>
                     </div>
 
-                    <div className="space-y-1 max-h-[200px] overflow-y-auto">
-                      {projectTasks.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                          No tasks yet. Add your first sub-task above.
-                        </p>
-                      ) : (
-                        projectTasks.map((task, index) => (
-                          <motion.div
-                            key={task.id}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.03 }}
-                            className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 group"
-                          >
-                            <AnimatedCheckbox
-                              checked={task.completed === 1}
-                              onChange={() => toggleTask(task.id)}
-                            />
-                            <span className={cn(
-                              "flex-1 text-sm",
-                              task.completed === 1 && "line-through text-muted-foreground"
-                            )}>
-                              {task.title}
-                            </span>
-                            <Badge 
-                              variant="outline" 
-                              className={cn(
-                                "text-[10px] opacity-0 group-hover:opacity-100 transition-opacity",
-                                priorityBadge(task.priority)
-                              )}
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                      {(() => {
+                        const parentTasks = getParentTasks(selectedProject.id);
+                        if (parentTasks.length === 0) {
+                          return (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                              No tasks yet. Add your first task above.
+                            </p>
+                          );
+                        }
+                        return parentTasks.map((parentTask, index) => {
+                          const subtasks = getSubtasks(parentTask.id);
+                          const completedSubtasks = subtasks.filter(s => s.completed === 1).length;
+                          const isExpanded = expandedParentTasks.has(parentTask.id);
+                          const isAddingSubtask = addingSubtaskTo === parentTask.id;
+                          
+                          return (
+                            <motion.div
+                              key={parentTask.id}
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.03 }}
+                              className="rounded-xl border border-border/60 bg-card/50 overflow-hidden"
                             >
-                              {task.priority}
-                            </Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-50"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteTask.mutate(task.id);
-                              }}
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </motion.div>
-                        ))
-                      )}
+                              <div className="flex items-center gap-2 p-3 hover:bg-muted/30 transition-colors group">
+                                <motion.button
+                                  onClick={() => toggleParentExpanded(parentTask.id)}
+                                  className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors shrink-0"
+                                  whileTap={{ scale: 0.9 }}
+                                  data-testid={`button-expand-task-${parentTask.id}`}
+                                >
+                                  <ChevronDown className={cn(
+                                    "w-4 h-4 text-muted-foreground transition-transform",
+                                    isExpanded && "rotate-180"
+                                  )} />
+                                </motion.button>
+                                <AnimatedCheckbox
+                                  checked={parentTask.completed === 1}
+                                  onChange={() => toggleTask(parentTask.id)}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <span className={cn(
+                                    "text-sm font-medium",
+                                    parentTask.completed === 1 && "line-through text-muted-foreground"
+                                  )}>
+                                    {parentTask.title}
+                                  </span>
+                                  {subtasks.length > 0 && (
+                                    <span className="ml-2 text-xs text-muted-foreground">
+                                      {completedSubtasks}/{subtasks.length}
+                                    </span>
+                                  )}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-primary hover:text-primary hover:bg-primary/10"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setAddingSubtaskTo(isAddingSubtask ? null : parentTask.id);
+                                    setNewSubtaskTitle("");
+                                  }}
+                                  data-testid={`button-add-subtask-${parentTask.id}`}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-50"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteTask.mutate(parentTask.id);
+                                  }}
+                                  data-testid={`button-delete-task-${parentTask.id}`}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                              
+                              <AnimatePresence>
+                                {(isExpanded || isAddingSubtask || subtasks.length > 0) && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: "auto", opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="border-t border-border/40 bg-muted/20"
+                                  >
+                                    {isAddingSubtask && (
+                                      <div className="p-2 border-b border-border/40">
+                                        <div className="flex gap-2">
+                                          <Input
+                                            placeholder="Add subtask..."
+                                            value={newSubtaskTitle}
+                                            onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                handleAddSubtask(parentTask.id, selectedProject.id);
+                                              }
+                                              if (e.key === "Escape") {
+                                                setAddingSubtaskTo(null);
+                                                setNewSubtaskTitle("");
+                                              }
+                                            }}
+                                            className="flex-1 h-8 text-sm"
+                                            autoFocus
+                                          />
+                                          <Button
+                                            size="sm"
+                                            className="h-8 px-3 bg-primary hover:bg-primary/90 text-primary-foreground border-0"
+                                            onClick={() => handleAddSubtask(parentTask.id, selectedProject.id)}
+                                            disabled={!newSubtaskTitle.trim() || createTask.isPending}
+                                          >
+                                            {createTask.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Add"}
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    )}
+                                    
+                                    {subtasks.length > 0 && (
+                                      <div className="p-2 space-y-1">
+                                        {subtasks.map((subtask, sIdx) => (
+                                          <motion.div
+                                            key={subtask.id}
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: sIdx * 0.02 }}
+                                            className="flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-lg hover:bg-muted/50 group/subtask"
+                                          >
+                                            <AnimatedCheckbox
+                                              checked={subtask.completed === 1}
+                                              onChange={() => toggleTask(subtask.id)}
+                                            />
+                                            <span className={cn(
+                                              "flex-1 text-sm",
+                                              subtask.completed === 1 && "line-through text-muted-foreground"
+                                            )}>
+                                              {subtask.title}
+                                            </span>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-5 w-5 p-0 opacity-0 group-hover/subtask:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-50"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                deleteTask.mutate(subtask.id);
+                                              }}
+                                            >
+                                              <X className="w-3 h-3" />
+                                            </Button>
+                                          </motion.div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </motion.div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 </div>
