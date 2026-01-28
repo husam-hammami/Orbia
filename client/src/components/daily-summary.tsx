@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useDailySummary, useUpsertDailySummary } from "@/lib/api-hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,36 +8,9 @@ import { CloudSun, Cloud, CloudRain, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const feelings = [
-  { 
-    value: "lighter", 
-    label: "Lighter than usual", 
-    icon: CloudSun, 
-    color: "text-emerald-400",
-    bg: "bg-emerald-950/60",
-    border: "border-emerald-500/40",
-    selectedBg: "bg-gradient-to-br from-emerald-400 to-cyan-500",
-    glowColor: "rgba(16, 185, 129, 0.5)",
-  },
-  { 
-    value: "average", 
-    label: "About average", 
-    icon: Cloud, 
-    color: "text-slate-300",
-    bg: "bg-slate-800/60",
-    border: "border-slate-500/40",
-    selectedBg: "bg-gradient-to-br from-slate-500 to-indigo-600",
-    glowColor: "rgba(99, 102, 241, 0.4)",
-  },
-  { 
-    value: "heavier", 
-    label: "Heavier than usual", 
-    icon: CloudRain, 
-    color: "text-violet-400",
-    bg: "bg-violet-950/60",
-    border: "border-violet-500/40",
-    selectedBg: "bg-gradient-to-br from-violet-400 to-purple-500",
-    glowColor: "rgba(139, 92, 246, 0.5)",
-  },
+  { value: "lighter", label: "Lighter than usual", icon: CloudSun },
+  { value: "average", label: "About average", icon: Cloud },
+  { value: "heavier", label: "Heavier than usual", icon: CloudRain },
 ];
 
 export function DailySummary() {
@@ -127,32 +100,18 @@ export function DailySummary() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className={cn(
-                  "relative flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all duration-300",
+                  "relative flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200",
                   isSelected
-                    ? `${feeling.selectedBg} text-white border-transparent`
-                    : `${feeling.bg} ${feeling.border} ${feeling.color} hover:border-current`
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted/50 border-border text-foreground hover:border-primary/50 hover:bg-muted"
                 )}
-                style={{
-                  boxShadow: isSelected ? `0 0 25px -5px ${feeling.glowColor}` : undefined
-                }}
               >
-                <AnimatePresence>
-                  {isSelected && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      className="absolute inset-0 rounded-xl blur-xl opacity-30"
-                      style={{ backgroundColor: feeling.glowColor }}
-                    />
-                  )}
-                </AnimatePresence>
                 {isPending ? (
-                  <Loader2 className="w-5 h-5 animate-spin relative z-10" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  <Icon className="w-5 h-5 relative z-10" style={{ filter: isSelected ? 'drop-shadow(0 0 8px rgba(255,255,255,0.5))' : undefined }} />
+                  <Icon className="w-5 h-5" />
                 )}
-                <span className="text-sm font-medium relative z-10">{feeling.label}</span>
+                <span className="text-sm font-medium">{feeling.label}</span>
               </motion.button>
             );
           })}
