@@ -350,20 +350,51 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                   </>
                 )}
                 
-                {/* Light mode - clean subtle glow only */}
+                {/* Light mode - elegant soft cloud/mist effect */}
                 {!isDark && (
-                  <motion.div
-                    animate={{ 
-                      opacity: [0.15, 0.25, 0.15],
-                      scale: [1, 1.05, 1]
-                    }}
-                    transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute -inset-x-4 -inset-y-2 pointer-events-none -z-10"
-                    style={{
-                      background: 'radial-gradient(ellipse 60% 50% at 50% 45%, hsl(var(--primary)/0.1) 0%, transparent 70%)',
-                      filter: 'blur(12px)'
-                    }}
-                  />
+                  <>
+                    {/* Soft mist layer 1 - gentle drift */}
+                    <motion.div
+                      animate={{ 
+                        opacity: [0.5, 0.7, 0.5],
+                        scale: [1, 1.1, 1],
+                        x: [-8, 8, -8]
+                      }}
+                      transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute -inset-x-14 -inset-y-8 pointer-events-none -z-10"
+                      style={{
+                        background: 'radial-gradient(ellipse 85% 75% at 45% 45%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.5) 40%, transparent 75%)',
+                        filter: 'blur(18px)'
+                      }}
+                    />
+                    {/* Soft mist layer 2 - opposite drift */}
+                    <motion.div
+                      animate={{ 
+                        opacity: [0.4, 0.6, 0.4],
+                        scale: [1.05, 0.95, 1.05],
+                        x: [6, -6, 6]
+                      }}
+                      transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute -inset-x-16 -inset-y-10 pointer-events-none -z-20"
+                      style={{
+                        background: 'radial-gradient(ellipse 90% 80% at 55% 40%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.4) 50%, transparent 80%)',
+                        filter: 'blur(22px)'
+                      }}
+                    />
+                    {/* Subtle primary color accent */}
+                    <motion.div
+                      animate={{ 
+                        opacity: [0.15, 0.25, 0.15],
+                        scale: [1, 1.08, 1]
+                      }}
+                      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute -inset-x-6 -inset-y-4 pointer-events-none -z-5"
+                      style={{
+                        background: 'radial-gradient(ellipse 60% 50% at 50% 45%, hsl(var(--primary)/0.12) 0%, transparent 65%)',
+                        filter: 'blur(15px)'
+                      }}
+                    />
+                  </>
                 )}
                 
                 {/* Mesmerizing orb with breathing scale + gentle rotation */}
