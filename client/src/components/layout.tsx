@@ -317,61 +317,61 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
                 className="relative flex flex-col justify-center items-center"
               >
-                {/* Outer pulsing orb glow */}
+                {/* Outer pulsing orb glow - compact */}
                 <motion.div
                   animate={{ 
-                    scale: [1, 1.3, 1],
-                    opacity: [0.3, 0.6, 0.3]
+                    scale: [1, 1.25, 1],
+                    opacity: [0.25, 0.5, 0.25]
                   }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full bg-gradient-to-r from-primary/50 via-accent/50 to-primary/50 blur-3xl"
+                  className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full bg-gradient-to-r from-primary/50 via-accent/50 to-primary/50 blur-2xl"
                 />
                 {/* Rotating inner glow ring */}
                 <motion.div
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-gradient-to-r from-primary/40 via-transparent to-accent/40 blur-2xl"
+                  transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+                  className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-gradient-to-r from-primary/40 via-transparent to-accent/40 blur-xl"
                 />
                 {/* Breathing inner glow */}
                 <motion.div
                   animate={{ 
                     scale: [1, 1.15, 1],
-                    opacity: [0.5, 0.8, 0.5]
+                    opacity: [0.4, 0.7, 0.4]
                   }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-gradient-radial from-white/30 to-transparent blur-xl"
+                  className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-gradient-radial from-white/25 to-transparent blur-lg"
                 />
-                {/* Floating particles effect */}
-                {[...Array(4)].map((_, i) => (
+                {/* Floating particles effect - compact */}
+                {[...Array(3)].map((_, i) => (
                   <motion.div
                     key={i}
                     animate={{
-                      y: [0, -8, 0],
-                      x: [0, i % 2 === 0 ? 4 : -4, 0],
-                      opacity: [0.4, 0.8, 0.4],
-                      scale: [1, 1.2, 1]
+                      y: [0, -6, 0],
+                      x: [0, i % 2 === 0 ? 3 : -3, 0],
+                      opacity: [0.3, 0.7, 0.3],
+                      scale: [1, 1.15, 1]
                     }}
                     transition={{
-                      duration: 2 + i * 0.5,
+                      duration: 2 + i * 0.4,
                       repeat: Infinity,
                       ease: "easeInOut",
-                      delay: i * 0.3
+                      delay: i * 0.25
                     }}
-                    className="absolute rounded-full bg-white/60 blur-sm"
+                    className="absolute rounded-full bg-white/50 blur-[2px]"
                     style={{
-                      width: 4 + i * 2,
-                      height: 4 + i * 2,
-                      top: `${30 + (i * 15)}%`,
-                      left: `${20 + (i * 20)}%`,
+                      width: 3 + i,
+                      height: 3 + i,
+                      top: `${20 + (i * 12)}%`,
+                      left: `${30 + (i * 15)}%`,
                     }}
                   />
                 ))}
-                {/* Logo image - cropped to show only orb, hide text in image */}
-                <div className="relative z-10 h-20 overflow-hidden">
+                {/* Logo image - cropped more to only show orb, hide text in image */}
+                <div className="relative z-10 h-14 overflow-hidden">
                   <motion.img 
                     src={logoUrl} 
                     alt="Orbia" 
-                    className="h-24 w-auto object-cover object-top" 
+                    className="h-20 w-auto object-cover object-top -mt-1" 
                     whileTap={{ scale: 0.95 }}
                     animate={{ 
                       filter: ["drop-shadow(0 0 15px hsl(var(--primary)/0.4))", "drop-shadow(0 0 30px hsl(var(--primary)/0.6))", "drop-shadow(0 0 15px hsl(var(--primary)/0.4))"]
@@ -379,30 +379,33 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                     transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
                   />
                 </div>
-                {/* Styled ORBIA text - white in dark, dark in light */}
-                <motion.span 
-                  className={cn(
-                    "font-display text-xl font-bold tracking-[0.35em] relative z-10 mt-1",
-                    isDark 
-                      ? "text-white/95 drop-shadow-[0_0_12px_rgba(255,255,255,0.3)]" 
-                      : "text-slate-800 drop-shadow-[0_2px_8px_rgba(0,0,0,0.2)]"
-                  )}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ 
-                    opacity: 1, 
-                    y: 0,
-                    textShadow: isDark 
-                      ? ['0 0 20px rgba(255,255,255,0.4), 0 0 40px rgba(255,255,255,0.2)', '0 0 30px rgba(255,255,255,0.6), 0 0 60px rgba(255,255,255,0.3)', '0 0 20px rgba(255,255,255,0.4), 0 0 40px rgba(255,255,255,0.2)']
-                      : ['0 1px 3px rgba(0,0,0,0.2)', '0 2px 6px rgba(0,0,0,0.25)', '0 1px 3px rgba(0,0,0,0.2)']
-                  }}
-                  transition={{ 
-                    opacity: { delay: 0.2, duration: 0.5 },
-                    y: { delay: 0.2, duration: 0.5 },
-                    textShadow: { duration: 3, repeat: Infinity, ease: "easeInOut" }
-                  }}
-                >
-                  ORBIA
-                </motion.span>
+                {/* Styled ORBIA text and time - compact layout */}
+                <div className="flex flex-col items-center relative z-10 -mt-1">
+                  <motion.span 
+                    className={cn(
+                      "font-display text-base font-bold tracking-[0.3em]",
+                      isDark 
+                        ? "text-white/95 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" 
+                        : "text-slate-800 drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]"
+                    )}
+                    initial={{ opacity: 0, y: 3 }}
+                    animate={{ 
+                      opacity: 1, 
+                      y: 0,
+                      textShadow: isDark 
+                        ? ['0 0 15px rgba(255,255,255,0.3)', '0 0 25px rgba(255,255,255,0.5)', '0 0 15px rgba(255,255,255,0.3)']
+                        : ['0 1px 2px rgba(0,0,0,0.15)', '0 1px 4px rgba(0,0,0,0.2)', '0 1px 2px rgba(0,0,0,0.15)']
+                    }}
+                    transition={{ 
+                      opacity: { delay: 0.1, duration: 0.4 },
+                      y: { delay: 0.1, duration: 0.4 },
+                      textShadow: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+                    }}
+                  >
+                    ORBIA
+                  </motion.span>
+                  <MobileCurrentTime />
+                </div>
               </motion.div>
               
               <div className="flex items-center gap-1.5 w-16 justify-end">
@@ -458,8 +461,6 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 </Popover>
               </div>
             </div>
-            {/* Mobile time display under logo */}
-            <MobileCurrentTime />
           </div>
         </div>
       </header>
