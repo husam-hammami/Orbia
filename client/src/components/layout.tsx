@@ -318,35 +318,53 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
                 className="relative flex flex-col justify-center items-center"
               >
-                {/* Animated fog layer 1 - slow drift */}
-                <motion.div
-                  animate={{ 
-                    opacity: [0.4, 0.6, 0.4],
-                    scale: [1, 1.15, 1],
-                    x: [-5, 5, -5]
-                  }}
-                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute -inset-x-10 -inset-y-6 pointer-events-none -z-10"
-                  style={{
-                    background: 'radial-gradient(ellipse 80% 70% at 50% 45%, hsl(var(--primary)/0.25) 0%, hsl(var(--accent)/0.12) 50%, transparent 80%)',
-                    filter: 'blur(20px)'
-                  }}
-                />
+                {/* Animated fog - dark mode only */}
+                {isDark && (
+                  <>
+                    <motion.div
+                      animate={{ 
+                        opacity: [0.4, 0.6, 0.4],
+                        scale: [1, 1.15, 1],
+                        x: [-5, 5, -5]
+                      }}
+                      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute -inset-x-10 -inset-y-6 pointer-events-none -z-10"
+                      style={{
+                        background: 'radial-gradient(ellipse 80% 70% at 50% 45%, hsl(var(--primary)/0.25) 0%, hsl(var(--accent)/0.12) 50%, transparent 80%)',
+                        filter: 'blur(20px)'
+                      }}
+                    />
+                    <motion.div
+                      animate={{ 
+                        opacity: [0.3, 0.5, 0.3],
+                        scale: [1.1, 1, 1.1],
+                        x: [5, -5, 5]
+                      }}
+                      transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute -inset-x-12 -inset-y-8 pointer-events-none -z-20"
+                      style={{
+                        background: 'radial-gradient(ellipse 90% 80% at 50% 40%, hsl(var(--accent)/0.2) 0%, hsl(var(--primary)/0.1) 60%, transparent 85%)',
+                        filter: 'blur(25px)'
+                      }}
+                    />
+                  </>
+                )}
                 
-                {/* Animated fog layer 2 - opposite drift for depth */}
-                <motion.div
-                  animate={{ 
-                    opacity: [0.3, 0.5, 0.3],
-                    scale: [1.1, 1, 1.1],
-                    x: [5, -5, 5]
-                  }}
-                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute -inset-x-12 -inset-y-8 pointer-events-none -z-20"
-                  style={{
-                    background: 'radial-gradient(ellipse 90% 80% at 50% 40%, hsl(var(--accent)/0.2) 0%, hsl(var(--primary)/0.1) 60%, transparent 85%)',
-                    filter: 'blur(25px)'
-                  }}
-                />
+                {/* Light mode - clean subtle glow only */}
+                {!isDark && (
+                  <motion.div
+                    animate={{ 
+                      opacity: [0.15, 0.25, 0.15],
+                      scale: [1, 1.05, 1]
+                    }}
+                    transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute -inset-x-4 -inset-y-2 pointer-events-none -z-10"
+                    style={{
+                      background: 'radial-gradient(ellipse 60% 50% at 50% 45%, hsl(var(--primary)/0.1) 0%, transparent 70%)',
+                      filter: 'blur(12px)'
+                    }}
+                  />
+                )}
                 
                 {/* Mesmerizing orb with breathing scale + gentle rotation */}
                 <motion.img 
@@ -357,11 +375,17 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                   animate={{ 
                     scale: [1, 1.25, 1],
                     rotate: [0, 3, 0, -3, 0],
-                    filter: [
-                      "drop-shadow(0 0 8px hsl(var(--primary)/0.4)) drop-shadow(0 0 15px hsl(var(--accent)/0.2))",
-                      "drop-shadow(0 0 18px hsl(var(--primary)/0.7)) drop-shadow(0 0 30px hsl(var(--accent)/0.4))",
-                      "drop-shadow(0 0 8px hsl(var(--primary)/0.4)) drop-shadow(0 0 15px hsl(var(--accent)/0.2))"
-                    ]
+                    filter: isDark 
+                      ? [
+                          "drop-shadow(0 0 8px hsl(var(--primary)/0.4)) drop-shadow(0 0 15px hsl(var(--accent)/0.2))",
+                          "drop-shadow(0 0 18px hsl(var(--primary)/0.7)) drop-shadow(0 0 30px hsl(var(--accent)/0.4))",
+                          "drop-shadow(0 0 8px hsl(var(--primary)/0.4)) drop-shadow(0 0 15px hsl(var(--accent)/0.2))"
+                        ]
+                      : [
+                          "drop-shadow(0 0 4px hsl(var(--primary)/0.2))",
+                          "drop-shadow(0 0 10px hsl(var(--primary)/0.35))",
+                          "drop-shadow(0 0 4px hsl(var(--primary)/0.2))"
+                        ]
                   }}
                   transition={{ 
                     duration: 5,
