@@ -1272,10 +1272,6 @@ export default function CareerPage() {
                                   <Pencil className="w-3 h-3 mr-2" />
                                   Edit
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => regenerateMilestone(activePhaseIndex, milestone)}>
-                                  <RefreshCw className="w-3 h-3 mr-2" />
-                                  Regenerate
-                                </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   onClick={() => deleteMilestone(activePhaseIndex, milestone)}
                                   className="text-destructive focus:text-destructive"
@@ -1337,20 +1333,6 @@ export default function CareerPage() {
                     
                     {/* Quick Actions Row */}
                     <div className="flex gap-1.5 mt-2 pt-2 border-t border-border/50">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="flex-1 h-7 text-[10px] bg-muted/50"
-                        onClick={() => regeneratePhase(activePhaseIndex)}
-                        disabled={regeneratingPhase === activePhaseIndex}
-                      >
-                        {regeneratingPhase === activePhaseIndex ? (
-                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                        ) : (
-                          <RefreshCw className="w-3 h-3 mr-1" />
-                        )}
-                        Regen Phase
-                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
