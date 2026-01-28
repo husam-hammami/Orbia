@@ -197,12 +197,12 @@ export default function TrackerPage() {
   return (
     <Layout lockContext={lockContext}>
       <div className="space-y-4 md:space-y-6 animate-in fade-in duration-500">
-        <div className="flex flex-col md:items-center gap-0 md:gap-2 mb-0 md:mb-2">
-          <p className="text-[10px] md:text-sm text-muted-foreground/70 font-medium md:text-center">{format(new Date(), "EEEE, MMMM do")}</p>
-          <h1 className="text-lg md:text-4xl font-display font-bold text-foreground md:text-center -mt-0.5 md:mt-0">
+        <div className="flex items-center justify-between md:flex-col md:items-center gap-0 md:gap-2 mb-1 md:mb-2">
+          <p className="text-[10px] md:text-sm text-muted-foreground/70 font-medium md:order-1">{format(new Date(), "EEE, MMM do")}</p>
+          <h1 className="text-lg md:text-4xl font-display font-bold text-foreground md:order-2">
             Daily Tracker
           </h1>
-          <div className="hidden md:block">
+          <div className="hidden md:block md:order-3">
             <CurrentTimeDisplay />
           </div>
         </div>
