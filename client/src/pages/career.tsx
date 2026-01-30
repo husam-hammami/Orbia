@@ -302,7 +302,7 @@ export default function CareerPage() {
       onSuccess: () => {
         setNewSubtaskTitle("");
         setAddingSubtaskTo(null);
-        setExpandedParentTasks(prev => new Set([...prev, parentId]));
+        setExpandedParentTasks(prev => new Set(Array.from(prev).concat(parentId)));
       }
     });
   };
@@ -435,6 +435,7 @@ export default function CareerPage() {
       title: newMilestoneText.trim(),
       description: `Phase: ${phase.phase} | ${phase.timeframe}`,
       projectId: null,
+      parentId: null,
       completed: 0,
       priority: "medium",
       due: null,
@@ -709,6 +710,7 @@ export default function CareerPage() {
     createTask.mutate({
       title: newTask,
       projectId: null,
+      parentId: null,
       completed: 0,
       priority: "medium",
       due: format(new Date(), "yyyy-MM-dd"),
@@ -778,6 +780,7 @@ export default function CareerPage() {
           createTask.mutate({
             title: task.title,
             projectId: selectedProject.id,
+            parentId: null,
             completed: task.completed,
             priority: "medium",
             due: null,
@@ -799,6 +802,7 @@ export default function CareerPage() {
               createTask.mutate({
                 title: task.title,
                 projectId: newProject.id,
+                parentId: null,
                 completed: task.completed,
                 priority: "medium",
                 due: null,
@@ -2210,7 +2214,7 @@ export default function CareerPage() {
                               </div>
                               
                               <AnimatePresence>
-                                {(isExpanded || isAddingSubtask || subtasks.length > 0) && (
+                                {(isExpanded || isAddingSubtask) && (
                                   <motion.div
                                     initial={{ height: 0, opacity: 0 }}
                                     animate={{ height: "auto", opacity: 1 }}
