@@ -388,27 +388,29 @@ export function RoutineEditor() {
                         <span className="text-sm font-medium">{template.name}</span>
                         <span className="text-[10px] text-muted-foreground capitalize">{template.dayType}</span>
                       </div>
-                      <div className="flex items-center gap-0.5 ml-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                          data-testid={`button-delete-template-${template.id}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm("Delete this template and all its blocks?")) {
-                              deleteTemplate.mutate(template.id, {
-                                onSuccess: () => {
-                                  toast.success("Template deleted!");
-                                  if (editingTemplateId === template.id) setEditingTemplateId(null);
-                                }
-                              });
-                            }
-                          }}
-                        >
-                          <Trash2 className="w-3 h-3 text-muted-foreground hover:text-rose-500" />
-                        </Button>
-                      </div>
+                      {isSelected && (
+                        <div className="flex items-center ml-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 min-w-[28px] min-h-[28px]"
+                            data-testid={`button-delete-template-${template.id}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm("Delete this template and all its blocks?")) {
+                                deleteTemplate.mutate(template.id, {
+                                  onSuccess: () => {
+                                    toast.success("Template deleted!");
+                                    if (editingTemplateId === template.id) setEditingTemplateId(null);
+                                  }
+                                });
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 text-rose-400" />
+                          </Button>
+                        </div>
+                      )}
                     </button>
                   );
                 })}
