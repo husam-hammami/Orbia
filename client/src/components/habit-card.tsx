@@ -12,19 +12,51 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format, subDays, isSameDay, parseISO } from "date-fns";
 
+const TAILWIND_COLORS: Record<string, string> = {
+  'bg-red-500': 'hsl(0 84% 60%)',
+  'bg-orange-500': 'hsl(25 95% 53%)',
+  'bg-amber-500': 'hsl(38 92% 50%)',
+  'bg-yellow-500': 'hsl(48 96% 53%)',
+  'bg-lime-500': 'hsl(84 81% 44%)',
+  'bg-green-500': 'hsl(142 71% 45%)',
+  'bg-emerald-500': 'hsl(160 84% 39%)',
+  'bg-teal-500': 'hsl(173 80% 40%)',
+  'bg-cyan-500': 'hsl(189 94% 43%)',
+  'bg-sky-500': 'hsl(199 89% 48%)',
+  'bg-blue-500': 'hsl(217 91% 60%)',
+  'bg-indigo-500': 'hsl(239 84% 67%)',
+  'bg-violet-500': 'hsl(258 90% 66%)',
+  'bg-purple-500': 'hsl(271 91% 65%)',
+  'bg-fuchsia-500': 'hsl(292 84% 61%)',
+  'bg-pink-500': 'hsl(330 81% 60%)',
+  'bg-rose-500': 'hsl(350 89% 60%)',
+  'bg-slate-500': 'hsl(215 16% 47%)',
+  'bg-gray-500': 'hsl(220 9% 46%)',
+};
+
+function resolveColor(color: string): string {
+  if (!color) return 'hsl(217 91% 60%)';
+  if (TAILWIND_COLORS[color]) return TAILWIND_COLORS[color];
+  if (color.startsWith('hsl') || color.startsWith('#') || color.startsWith('rgb')) return color;
+  const match = color.match(/bg-(\w+)-(\d+)/);
+  if (match) return 'hsl(217 91% 60%)';
+  return color;
+}
+
 function withAlpha(color: string, alpha: number): string {
-  const match = color.match(/hsl\((\d+)\s+(\d+)%\s+(\d+)%\)/);
-  if (match) {
-    return `hsla(${match[1]}, ${match[2]}%, ${match[3]}%, ${alpha})`;
+  const resolved = resolveColor(color);
+  const hslMatch = resolved.match(/hsl\((\d+)\s+(\d+)%\s+(\d+)%\)/);
+  if (hslMatch) {
+    return `hsla(${hslMatch[1]}, ${hslMatch[2]}%, ${hslMatch[3]}%, ${alpha})`;
   }
-  if (color.startsWith('#')) {
-    const hex = color.replace('#', '');
+  if (resolved.startsWith('#')) {
+    const hex = resolved.replace('#', '');
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
-  return color;
+  return resolved;
 }
 
 interface HabitCardProps {
@@ -75,8 +107,8 @@ export function HabitCard({ habit, onToggle }: HabitCardProps) {
               : "hover:scale-105"
           )}
           style={completed
-            ? { backgroundColor: habit.color, boxShadow: `0 0 15px ${withAlpha(habit.color, 0.5)}, 0 0 30px ${withAlpha(habit.color, 0.25)}` }
-            : { backgroundColor: withAlpha(habit.color, 0.1), color: habit.color }
+            ? { backgroundColor: resolveColor(habit.color), boxShadow: `0 0 15px ${withAlpha(habit.color, 0.5)}, 0 0 30px ${withAlpha(habit.color, 0.25)}` }
+            : { backgroundColor: withAlpha(habit.color, 0.1), color: resolveColor(habit.color) }
           }
         >
           {completed && (
@@ -143,7 +175,7 @@ export function HabitCard({ habit, onToggle }: HabitCardProps) {
                     "w-2 h-2 rounded-full transition-colors",
                     !day.isCompleted && "bg-muted"
                   )}
-                  style={day.isCompleted ? { backgroundColor: habit.color } : undefined}
+                  style={day.isCompleted ? { backgroundColor: resolveColor(habit.color) } : undefined}
                   title={format(day.date, "MMM d")}
                 />
               ))}

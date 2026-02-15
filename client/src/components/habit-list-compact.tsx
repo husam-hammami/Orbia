@@ -6,10 +6,28 @@ import { Check, Flame, Trophy, Trash2, Heart, Briefcase, Brain, Palette, Users, 
 import { Button } from "@/components/ui/button";
 import { HabitEditForm } from "./habit-edit-form";
 
+const TAILWIND_COLORS: Record<string, string> = {
+  'bg-red-500': 'hsl(0 84% 60%)', 'bg-orange-500': 'hsl(25 95% 53%)', 'bg-amber-500': 'hsl(38 92% 50%)',
+  'bg-yellow-500': 'hsl(48 96% 53%)', 'bg-lime-500': 'hsl(84 81% 44%)', 'bg-green-500': 'hsl(142 71% 45%)',
+  'bg-emerald-500': 'hsl(160 84% 39%)', 'bg-teal-500': 'hsl(173 80% 40%)', 'bg-cyan-500': 'hsl(189 94% 43%)',
+  'bg-sky-500': 'hsl(199 89% 48%)', 'bg-blue-500': 'hsl(217 91% 60%)', 'bg-indigo-500': 'hsl(239 84% 67%)',
+  'bg-violet-500': 'hsl(258 90% 66%)', 'bg-purple-500': 'hsl(271 91% 65%)', 'bg-fuchsia-500': 'hsl(292 84% 61%)',
+  'bg-pink-500': 'hsl(330 81% 60%)', 'bg-rose-500': 'hsl(350 89% 60%)', 'bg-slate-500': 'hsl(215 16% 47%)',
+  'bg-gray-500': 'hsl(220 9% 46%)',
+};
+
+function resolveColor(color: string): string {
+  if (!color) return 'hsl(217 91% 60%)';
+  if (TAILWIND_COLORS[color]) return TAILWIND_COLORS[color];
+  if (color.startsWith('hsl') || color.startsWith('#') || color.startsWith('rgb')) return color;
+  return 'hsl(217 91% 60%)';
+}
+
 function withAlpha(color: string, alpha: number): string {
-  const match = color.match(/hsl\((\d+)\s+(\d+)%\s+(\d+)%\)/);
-  if (match) return `hsla(${match[1]}, ${match[2]}%, ${match[3]}%, ${alpha})`;
-  return color;
+  const resolved = resolveColor(color);
+  const hslMatch = resolved.match(/hsl\((\d+)\s+(\d+)%\s+(\d+)%\)/);
+  if (hslMatch) return `hsla(${hslMatch[1]}, ${hslMatch[2]}%, ${hslMatch[3]}%, ${alpha})`;
+  return resolved;
 }
 
 // Map categories to icons (case-insensitive)
@@ -58,7 +76,7 @@ export function HabitListCompact({ habits, onToggle, onDelete, onEdit, togglingH
           <div className="flex items-center gap-4 flex-1 min-w-0">
              <div 
                 className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold shadow-sm shrink-0"
-                style={{ backgroundColor: withAlpha(habit.color, 0.1), color: habit.color }}
+                style={{ backgroundColor: withAlpha(habit.color, 0.1), color: resolveColor(habit.color) }}
               >
                 {(() => {
                   const Icon = getCategoryIcon(habit.category);
