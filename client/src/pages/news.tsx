@@ -444,6 +444,73 @@ function ArticleCard({ article, index }: { article: NewsArticle; index: number }
   );
 }
 
+function SavedArticleCard({ article, index }: { article: SavedArticle; index: number }) {
+  const queryClient = useQueryClient();
+  const Icon = categoryIcons[article.category] || Globe;
+  const colorClass = categoryColors[article.category] || "bg-muted text-muted-foreground";
+
+  const removeMutation = useMutation({
+    mutationFn: async () => {
+      await fetch(`/api/news/saved/${article.id}`, { method: "DELETE" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["savedArticles"] });
+      queryClient.invalidateQueries({ queryKey: ["news"] });
+      toast.success("Removed from saved");
+    }
+  });
+
+  return (
+    <motion.div
+      key={article.id}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -100 }}
+      transition={{ delay: index * 0.03 }}
+      className="relative p-4 bg-card rounded-2xl border border-border hover:border-primary/30 hover:shadow-md transition-all group"
+      data-testid={`saved-article-${index}`}
+    >
+      <a
+        href={article.link}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block"
+      >
+        <div className="flex items-start gap-3 pr-8">
+          <div className={cn("p-2 rounded-xl border shrink-0", colorClass)}>
+            <Icon className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase", colorClass)} data-testid={`saved-category-${index}`}>
+                {categoryLabels[article.category] || article.category}
+              </span>
+              <span className="text-[10px] text-muted-foreground" data-testid={`saved-time-${index}`}>
+                Saved {formatTimeAgo(article.createdAt)}
+              </span>
+            </div>
+            <h3 className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors" data-testid={`saved-title-${index}`}>
+              {article.title}
+            </h3>
+          </div>
+          <ExternalLink className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary transition-colors shrink-0" />
+        </div>
+      </a>
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          removeMutation.mutate();
+        }}
+        className="absolute top-3 right-3 p-2 rounded-full bg-background/80 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+        data-testid={`saved-remove-${index}`}
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </motion.div>
+  );
+}
+
 export default function NewsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("feed");
@@ -658,44 +725,9 @@ export default function NewsPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {savedArticles?.map((article, idx) => {
-                  const Icon = categoryIcons[article.category] || Globe;
-                  const colorClass = categoryColors[article.category] || "bg-muted text-muted-foreground";
-                  
-                  return (
-                    <motion.a
-                      key={article.id}
-                      href={article.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.03 }}
-                      className="block p-4 bg-card rounded-2xl border border-border hover:border-primary/30 hover:shadow-md transition-all group"
-                      data-testid={`saved-article-${idx}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={cn("p-2 rounded-xl border shrink-0", colorClass)}>
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase", colorClass)} data-testid={`saved-category-${idx}`}>
-                              {article.category}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground" data-testid={`saved-time-${idx}`}>
-                              Saved {formatTimeAgo(article.createdAt)}
-                            </span>
-                          </div>
-                          <h3 className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors" data-testid={`saved-title-${idx}`}>
-                            {article.title}
-                          </h3>
-                        </div>
-                        <ExternalLink className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary transition-colors shrink-0" />
-                      </div>
-                    </motion.a>
-                  );
-                })}
+                {savedArticles?.map((article, idx) => (
+                  <SavedArticleCard key={article.id} article={article} index={idx} />
+                ))}
               </div>
             )}
           </TabsContent>

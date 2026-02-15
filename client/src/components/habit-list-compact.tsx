@@ -6,6 +6,12 @@ import { Check, Flame, Trophy, Trash2, Heart, Briefcase, Brain, Palette, Users, 
 import { Button } from "@/components/ui/button";
 import { HabitEditForm } from "./habit-edit-form";
 
+function withAlpha(color: string, alpha: number): string {
+  const match = color.match(/hsl\((\d+)\s+(\d+)%\s+(\d+)%\)/);
+  if (match) return `hsla(${match[1]}, ${match[2]}%, ${match[3]}%, ${alpha})`;
+  return color;
+}
+
 // Map categories to icons (case-insensitive)
 const CategoryIconsMap: Record<string, any> = {
   health: Heart,
@@ -52,7 +58,7 @@ export function HabitListCompact({ habits, onToggle, onDelete, onEdit, togglingH
           <div className="flex items-center gap-4 flex-1 min-w-0">
              <div 
                 className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold shadow-sm shrink-0"
-                style={{ backgroundColor: `${habit.color}15`, color: habit.color }}
+                style={{ backgroundColor: withAlpha(habit.color, 0.1), color: habit.color }}
               >
                 {(() => {
                   const Icon = getCategoryIcon(habit.category);

@@ -12,6 +12,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format, subDays, isSameDay, parseISO } from "date-fns";
 
+function withAlpha(color: string, alpha: number): string {
+  const match = color.match(/hsl\((\d+)\s+(\d+)%\s+(\d+)%\)/);
+  if (match) {
+    return `hsla(${match[1]}, ${match[2]}%, ${match[3]}%, ${alpha})`;
+  }
+  if (color.startsWith('#')) {
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  return color;
+}
+
 interface HabitCardProps {
   habit: Habit;
   onToggle: (id: string) => void;
@@ -40,26 +55,34 @@ export function HabitCard({ habit, onToggle }: HabitCardProps) {
       className={cn(
         "group relative bg-card rounded-2xl border shadow-sm hover:shadow-md transition-all duration-300",
         completed 
-          ? "border-primary/40 shadow-[0_0_20px_-5px_hsl(var(--primary)/0.4),0_0_40px_-10px_hsl(var(--accent)/0.3)] bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5" 
+          ? "border-transparent" 
           : "border-border"
       )}
+      style={completed ? { 
+        borderColor: withAlpha(habit.color, 0.25),
+        boxShadow: `0 0 20px -5px ${withAlpha(habit.color, 0.25)}, 0 0 40px -10px ${withAlpha(habit.color, 0.2)}`,
+        background: `linear-gradient(to right, ${withAlpha(habit.color, 0.05)}, ${withAlpha(habit.color, 0.03)}, ${withAlpha(habit.color, 0.05)})`
+      } : undefined}
     >
       <div className="p-5 flex items-center gap-4">
-        {/* Check Button with Glow */}
         <button
           onClick={handleToggle}
           data-testid={`button-habit-toggle-${habit.id}`}
           className={cn(
             "relative flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300",
             completed
-              ? "bg-gradient-to-br from-primary via-accent to-primary text-primary-foreground shadow-[0_0_15px_hsl(var(--primary)/0.5),0_0_30px_hsl(var(--accent)/0.3)] scale-110"
-              : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-secondary-foreground hover:scale-105"
+              ? "text-white shadow-lg scale-110"
+              : "hover:scale-105"
           )}
+          style={completed
+            ? { backgroundColor: habit.color, boxShadow: `0 0 15px ${withAlpha(habit.color, 0.5)}, 0 0 30px ${withAlpha(habit.color, 0.25)}` }
+            : { backgroundColor: withAlpha(habit.color, 0.1), color: habit.color }
+          }
         >
-          {/* Animated glow ring when completed */}
           {completed && (
             <motion.div
-              className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/30 via-accent/20 to-primary/30"
+              className="absolute inset-0 rounded-xl"
+              style={{ backgroundColor: withAlpha(habit.color, 0.2) }}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ 
                 opacity: [0.5, 0.8, 0.5], 
@@ -118,10 +141,9 @@ export function HabitCard({ habit, onToggle }: HabitCardProps) {
                   key={i}
                   className={cn(
                     "w-2 h-2 rounded-full transition-colors",
-                    day.isCompleted 
-                        ? "bg-primary" 
-                        : "bg-muted"
+                    !day.isCompleted && "bg-muted"
                   )}
+                  style={day.isCompleted ? { backgroundColor: habit.color } : undefined}
                   title={format(day.date, "MMM d")}
                 />
               ))}
