@@ -365,68 +365,94 @@ export function RoutineEditor() {
 
                 <div>
                   <label className="text-xs text-muted-foreground mb-2 block">Active on these days</label>
-                  <div className="flex gap-1.5">
-                    {DAY_LABELS.map((label, idx) => {
-                      const days = editingTemplateData?.activeDays || newTemplateDays;
-                      const isActive = days.includes(idx);
-                      const isWeekend = idx === 0 || idx === 6;
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => {
-                            const newDays = isActive ? days.filter(d => d !== idx) : [...days, idx].sort();
-                            if (editingTemplateData) {
-                              setEditingTemplateData({ ...editingTemplateData, activeDays: newDays });
-                            } else {
-                              setNewTemplateDays(newDays);
-                            }
-                          }}
-                          className={cn(
-                            "w-10 h-10 rounded-full text-xs font-semibold transition-all border-2 flex items-center justify-center",
-                            isActive 
-                              ? "bg-primary text-primary-foreground border-primary shadow-sm" 
-                              : isWeekend 
-                                ? "bg-muted/30 border-border text-muted-foreground hover:border-primary/40"
-                                : "bg-card border-border text-muted-foreground hover:border-primary/40"
-                          )}
-                          title={DAY_FULL_LABELS[idx]}
-                          data-testid={`template-day-${idx}`}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    <button 
-                      type="button"
-                      className="text-[10px] text-primary hover:underline"
-                      onClick={() => {
-                        const weekdays = [1,2,3,4,5];
-                        if (editingTemplateData) setEditingTemplateData({ ...editingTemplateData, activeDays: weekdays });
-                        else setNewTemplateDays(weekdays);
-                      }}
-                    >Weekdays</button>
-                    <button 
-                      type="button"
-                      className="text-[10px] text-primary hover:underline"
-                      onClick={() => {
-                        const weekend = [0,6];
-                        if (editingTemplateData) setEditingTemplateData({ ...editingTemplateData, activeDays: weekend });
-                        else setNewTemplateDays(weekend);
-                      }}
-                    >Weekend</button>
-                    <button 
-                      type="button"
-                      className="text-[10px] text-primary hover:underline"
-                      onClick={() => {
-                        const all = [0,1,2,3,4,5,6];
-                        if (editingTemplateData) setEditingTemplateData({ ...editingTemplateData, activeDays: all });
-                        else setNewTemplateDays(all);
-                      }}
-                    >Every day</button>
-                  </div>
+                  {(() => {
+                    const currentId = editingTemplateData?.id;
+                    const takenDays: Record<number, string> = {};
+                    templates?.forEach(t => {
+                      if (t.id === currentId) return;
+                      const tDays = t.activeDays && t.activeDays.length > 0 
+                        ? t.activeDays 
+                        : t.dayType === "weekend" ? [0,6] : t.dayType === "any" ? [0,1,2,3,4,5,6] : [1,2,3,4,5];
+                      tDays.forEach(d => { takenDays[d] = t.name; });
+                    });
+                    const days = editingTemplateData?.activeDays || newTemplateDays;
+                    return (
+                      <>
+                        <div className="flex gap-1.5">
+                          {DAY_LABELS.map((label, idx) => {
+                            const isActive = days.includes(idx);
+                            const takenBy = takenDays[idx];
+                            const isWeekend = idx === 0 || idx === 6;
+                            return (
+                              <div key={idx} className="flex flex-col items-center gap-0.5">
+                                <button
+                                  type="button"
+                                  disabled={!!takenBy}
+                                  onClick={() => {
+                                    if (takenBy) return;
+                                    const newDays = isActive ? days.filter(d => d !== idx) : [...days, idx].sort();
+                                    if (editingTemplateData) {
+                                      setEditingTemplateData({ ...editingTemplateData, activeDays: newDays });
+                                    } else {
+                                      setNewTemplateDays(newDays);
+                                    }
+                                  }}
+                                  className={cn(
+                                    "w-10 h-10 rounded-full text-xs font-semibold transition-all border-2 flex items-center justify-center",
+                                    takenBy
+                                      ? "bg-muted/20 border-border/30 text-muted-foreground/30 cursor-not-allowed"
+                                      : isActive 
+                                        ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                                        : isWeekend 
+                                          ? "bg-muted/30 border-border text-muted-foreground hover:border-primary/40"
+                                          : "bg-card border-border text-muted-foreground hover:border-primary/40"
+                                  )}
+                                  title={takenBy ? `Used by ${takenBy}` : DAY_FULL_LABELS[idx]}
+                                  data-testid={`template-day-${idx}`}
+                                >
+                                  {label}
+                                </button>
+                                {takenBy && (
+                                  <span className="text-[8px] text-muted-foreground/50 truncate max-w-[40px] text-center leading-tight">
+                                    {takenBy}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          <button 
+                            type="button"
+                            className="text-[10px] text-primary hover:underline"
+                            onClick={() => {
+                              const weekdays = [1,2,3,4,5].filter(d => !takenDays[d]);
+                              if (editingTemplateData) setEditingTemplateData({ ...editingTemplateData, activeDays: weekdays });
+                              else setNewTemplateDays(weekdays);
+                            }}
+                          >Weekdays</button>
+                          <button 
+                            type="button"
+                            className="text-[10px] text-primary hover:underline"
+                            onClick={() => {
+                              const weekend = [0,6].filter(d => !takenDays[d]);
+                              if (editingTemplateData) setEditingTemplateData({ ...editingTemplateData, activeDays: weekend });
+                              else setNewTemplateDays(weekend);
+                            }}
+                          >Weekend</button>
+                          <button 
+                            type="button"
+                            className="text-[10px] text-primary hover:underline"
+                            onClick={() => {
+                              const all = [0,1,2,3,4,5,6].filter(d => !takenDays[d]);
+                              if (editingTemplateData) setEditingTemplateData({ ...editingTemplateData, activeDays: all });
+                              else setNewTemplateDays(all);
+                            }}
+                          >Every day</button>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
                 
                 <div className="flex gap-2">

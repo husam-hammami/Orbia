@@ -677,8 +677,33 @@ export async function registerRoutes(
     }
   });
 
+  function getEffectiveDays(t: { activeDays: number[] | null; dayType: string }): number[] {
+    if (t.activeDays && t.activeDays.length > 0) return t.activeDays;
+    if (t.dayType === "weekend") return [0, 6];
+    if (t.dayType === "any") return [0, 1, 2, 3, 4, 5, 6];
+    return [1, 2, 3, 4, 5];
+  }
+
+  function checkDayConflicts(incomingDays: number[], existing: Array<{ id: string; name: string; activeDays: number[] | null; dayType: string }>, excludeId?: string): string | null {
+    for (const t of existing) {
+      if (t.id === excludeId) continue;
+      const tDays = getEffectiveDays(t);
+      const conflict = incomingDays.filter(d => tDays.includes(d));
+      if (conflict.length > 0) {
+        return `Day conflict with template "${t.name}"`;
+      }
+    }
+    return null;
+  }
+
   app.post("/api/routine-templates", async (req, res) => {
     try {
+      const incomingDays = getEffectiveDays({ activeDays: req.body.activeDays || null, dayType: req.body.dayType || "weekday" });
+      const existing = await storage.getAllRoutineTemplates();
+      const conflictMsg = checkDayConflicts(incomingDays, existing);
+      if (conflictMsg) {
+        return res.status(400).json({ error: conflictMsg });
+      }
       const template = await storage.createRoutineTemplate(req.body);
       res.status(201).json(template);
     } catch (error) {
@@ -688,6 +713,18 @@ export async function registerRoutes(
 
   app.patch("/api/routine-templates/:id", async (req, res) => {
     try {
+      const currentTemplate = (await storage.getAllRoutineTemplates()).find(t => t.id === req.params.id);
+      if (!currentTemplate) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      const mergedDays = req.body.activeDays !== undefined ? req.body.activeDays : currentTemplate.activeDays;
+      const mergedDayType = req.body.dayType !== undefined ? req.body.dayType : currentTemplate.dayType;
+      const incomingDays = getEffectiveDays({ activeDays: mergedDays, dayType: mergedDayType });
+      const existing = await storage.getAllRoutineTemplates();
+      const conflictMsg = checkDayConflicts(incomingDays, existing, req.params.id);
+      if (conflictMsg) {
+        return res.status(400).json({ error: conflictMsg });
+      }
       const template = await storage.updateRoutineTemplate(req.params.id, req.body);
       if (!template) {
         return res.status(404).json({ error: "Template not found" });
