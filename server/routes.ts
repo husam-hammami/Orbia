@@ -656,7 +656,11 @@ export async function registerRoutes(
       
       const templates = await storage.getAllRoutineTemplates();
       
-      let active = templates.find(t => t.dayType === (isWeekend ? "weekend" : "weekday"));
+      const dayType = isWeekend ? "weekend" : "weekday";
+      const matchingTemplates = templates.filter(t => t.dayType === dayType);
+      
+      let active = matchingTemplates.find(t => t.isDefault === 1) || matchingTemplates[0];
+      
       if (!active) {
         active = templates.find(t => t.dayType === "any");
       }

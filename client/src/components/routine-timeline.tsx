@@ -171,50 +171,54 @@ export function RoutineTimeline() {
     );
   }
 
+  const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
+
+  const templateSelector = templates && templates.length > 1 ? (
+    <div className="flex items-center gap-2 flex-wrap">
+      {templates.map((tmpl) => {
+        const isActive = tmpl.id === currentTemplateId;
+        const isAutoSelected = !overrideTemplateId && tmpl.id === activeTemplate?.id;
+        return (
+          <button
+            key={tmpl.id}
+            onClick={() => setOverrideTemplateId(isActive && overrideTemplateId ? null : tmpl.id)}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border",
+              isActive 
+                ? "bg-primary/15 border-primary/40 text-primary shadow-sm" 
+                : "bg-card/80 border-border hover:border-primary/30 text-muted-foreground hover:text-foreground"
+            )}
+            data-testid={`template-switch-${tmpl.id}`}
+          >
+            {tmpl.dayType === "weekend" ? "🌴" : tmpl.dayType === "holiday" ? "🎉" : "📅"}
+            <span>{tmpl.name}</span>
+            {isAutoSelected && (
+              <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">Auto</span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  ) : null;
+
   if (!blocks || blocks.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-card to-muted/30 rounded-2xl border border-border/50 backdrop-blur-sm p-8 text-center">
-        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-          <Clock className="w-8 h-8 text-muted-foreground" />
+      <div className="space-y-4">
+        {templateSelector}
+        <div className="bg-gradient-to-br from-card to-muted/30 rounded-2xl border border-border/50 backdrop-blur-sm p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+            <Clock className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <p className="text-muted-foreground font-medium">No routine configured</p>
+          <p className="text-muted-foreground/70 text-sm mt-1">Create time blocks to structure your day</p>
         </div>
-        <p className="text-muted-foreground font-medium">No routine configured</p>
-        <p className="text-muted-foreground/70 text-sm mt-1">Create time blocks to structure your day</p>
       </div>
     );
   }
 
-  const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
-
   return (
     <div className="space-y-4">
-      {/* Template Selector */}
-      {templates && templates.length > 1 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {templates.map((tmpl) => {
-            const isActive = tmpl.id === currentTemplateId;
-            const isAutoSelected = !overrideTemplateId && tmpl.id === activeTemplate?.id;
-            return (
-              <button
-                key={tmpl.id}
-                onClick={() => setOverrideTemplateId(isActive && overrideTemplateId ? null : tmpl.id)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border",
-                  isActive 
-                    ? "bg-primary/15 border-primary/40 text-primary shadow-sm" 
-                    : "bg-card/80 border-border hover:border-primary/30 text-muted-foreground hover:text-foreground"
-                )}
-                data-testid={`template-switch-${tmpl.id}`}
-              >
-                {tmpl.dayType === "weekend" ? "🌴" : tmpl.dayType === "holiday" ? "🎉" : "📅"}
-                <span>{tmpl.name}</span>
-                {isAutoSelected && (
-                  <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">Auto</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {templateSelector}
 
       {/* Summary Strip - Futuristic */}
       <div className="flex items-center gap-3 flex-wrap">
