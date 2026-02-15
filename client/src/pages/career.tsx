@@ -237,7 +237,6 @@ export default function CareerPage() {
   const [editingProjectTasks, setEditingProjectTasks] = useState<EditingTask[]>([]);
   const [newEditingProjectTask, setNewEditingProjectTask] = useState("");
   const [expandedParentTasks, setExpandedParentTasks] = useState<Set<string>>(new Set());
-  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [addingSubtaskTo, setAddingSubtaskTo] = useState<string | null>(null);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
 
@@ -260,18 +259,6 @@ export default function CareerPage() {
         next.delete(taskId);
       } else {
         next.add(taskId);
-      }
-      return next;
-    });
-  };
-
-  const toggleProjectExpanded = (projectId: string) => {
-    setExpandedProjects(prev => {
-      const next = new Set(prev);
-      if (next.has(projectId)) {
-        next.delete(projectId);
-      } else {
-        next.add(projectId);
       }
       return next;
     });
@@ -1062,321 +1049,82 @@ export default function CareerPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="projects" className="mt-4 space-y-3">
-            <div className="flex items-center justify-between mb-1">
-              <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                <Rocket className="w-4 h-4 text-primary" />
-                Active Goals
-              </h2>
-              <Button 
-                onClick={() => openProjectDialog(null)}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 h-7 text-xs px-2.5"
-                size="sm"
-                data-testid="button-add-goal"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1" /> Add
-              </Button>
-            </div>
-
-            {projects.map((project, index) => {
-              const projectTasks = getProjectTasks(project.id);
-              const parentTasks = getParentTasks(project.id);
-              const completedTasks = projectTasks.filter(t => t.completed === 1).length;
-              const progress = getProjectProgress(project.id);
-              const deadline = getDeadlineDisplay(project.deadline);
-              const isProjectOpen = expandedProjects.has(project.id);
-
-              return (
-                <motion.div
-                  key={project.id}
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.04 }}
-                  className={cn(glassCard, "overflow-hidden")}
-                  data-testid={`card-project-${project.id}`}
+          <TabsContent value="projects" className="mt-4 space-y-4">
+            {/* Active Goals - 2 Column Compact Grid */}
+            <section className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <Rocket className="w-4 h-4 text-primary" />
+                  Active Goals
+                </h2>
+                <Button 
+                  onClick={() => openProjectDialog(null)}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 h-7 text-xs px-2.5"
+                  size="sm"
                 >
-                  <button
-                    onClick={() => toggleProjectExpanded(project.id)}
-                    className="w-full flex items-center gap-3 p-3 hover:bg-muted/30 transition-colors text-left"
-                    data-testid={`button-toggle-project-${project.id}`}
-                  >
-                    <CircularProgress progress={progress} size={36} strokeWidth={3} />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-foreground text-sm leading-tight line-clamp-1">{project.title}</h3>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[10px] text-muted-foreground">
-                          {projectTasks.length > 0 ? `${completedTasks}/${projectTasks.length} tasks` : STATUS_DISPLAY[project.status] || project.status}
-                        </span>
-                        {deadline && (
-                          <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", deadline.className)}>
-                            {deadline.text}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                            onClick={(e) => e.stopPropagation()}
-                            data-testid={`button-project-menu-${project.id}`}
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-36">
-                          <DropdownMenuItem onClick={() => { setSelectedProject(project); openProjectDialog(project); }}>
-                            <Pencil className="w-3 h-3 mr-2" />
-                            Edit Goal
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => deleteProject.mutate(project.id)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="w-3 h-3 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <ChevronDown className={cn(
-                        "w-4 h-4 text-muted-foreground transition-transform duration-200",
-                        isProjectOpen && "rotate-180"
-                      )} />
-                    </div>
-                  </button>
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Add
+                </Button>
+              </div>
 
-                  <AnimatePresence>
-                    {isProjectOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="border-t border-border/40"
-                      >
-                        <div className="p-3 space-y-2">
-                          {project.description && (
-                            <p className="text-xs text-muted-foreground mb-2">{project.description}</p>
-                          )}
-
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="Add a task..."
-                              value={selectedProject?.id === project.id ? newProjectTask : ""}
-                              onChange={(e) => { setSelectedProject(project); setNewProjectTask(e.target.value); }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  setSelectedProject(project);
-                                  handleAddProjectTask(project.id);
-                                }
-                              }}
-                              onClick={(e) => { e.stopPropagation(); setSelectedProject(project); }}
-                              className="flex-1 h-8 text-sm"
-                              data-testid={`input-add-task-${project.id}`}
-                            />
-                            <Button 
-                              size="sm"
-                              className="h-8 bg-primary hover:bg-primary/90 text-primary-foreground border-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedProject(project);
-                                handleAddProjectTask(project.id);
-                              }}
-                              disabled={!(selectedProject?.id === project.id && newProjectTask.trim()) || createTask.isPending}
-                              data-testid={`button-add-task-${project.id}`}
-                            >
-                              {createTask.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                            </Button>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
+                {projects.map((project, index) => {
+                  const deadline = getDeadlineDisplay(project.deadline);
+                  const projectTasks = getProjectTasks(project.id);
+                  const completedTasks = projectTasks.filter(t => t.completed === 1).length;
+                  const progress = getProjectProgress(project.id);
+                  return (
+                    <motion.div
+                      key={project.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                      onClick={() => { setSelectedProject(project); setNewProjectTask(""); setIsProjectDetailsOpen(true); }}
+                      className={cn(glassCard, "p-2.5 md:p-3 cursor-pointer hover:border-primary/40 transition-all duration-200 active:scale-[0.98]")}
+                    >
+                      <div className="flex flex-col gap-1.5">
+                        {/* Progress ring and title */}
+                        <div className="flex items-start gap-2">
+                          <CircularProgress progress={progress} size={36} strokeWidth={3} />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-foreground text-xs leading-tight line-clamp-2">{project.title}</h3>
                           </div>
-
-                          {parentTasks.length === 0 ? (
-                            <p className="text-xs text-muted-foreground text-center py-3">No tasks yet</p>
-                          ) : (
-                            <div className="space-y-1.5">
-                              {parentTasks.map((parentTask, tIdx) => {
-                                const subtasks = getSubtasks(parentTask.id);
-                                const completedSubtasks = subtasks.filter(s => s.completed === 1).length;
-                                const isExpanded = expandedParentTasks.has(parentTask.id);
-                                const isAddingSubtask = addingSubtaskTo === parentTask.id;
-
-                                return (
-                                  <div
-                                    key={parentTask.id}
-                                    className="rounded-lg border border-border/40 bg-card/50 overflow-hidden"
-                                    data-testid={`task-item-${parentTask.id}`}
-                                  >
-                                    <div className="flex items-center gap-2 px-2.5 py-2 hover:bg-muted/30 transition-colors group">
-                                      {subtasks.length > 0 || true ? (
-                                        <motion.button
-                                          onClick={() => toggleParentExpanded(parentTask.id)}
-                                          className="w-5 h-5 flex items-center justify-center rounded hover:bg-muted transition-colors shrink-0"
-                                          whileTap={{ scale: 0.9 }}
-                                          data-testid={`button-expand-task-${parentTask.id}`}
-                                        >
-                                          <ChevronDown className={cn(
-                                            "w-3.5 h-3.5 text-muted-foreground transition-transform",
-                                            isExpanded && "rotate-180"
-                                          )} />
-                                        </motion.button>
-                                      ) : null}
-                                      <AnimatedCheckbox
-                                        checked={parentTask.completed === 1}
-                                        onChange={() => toggleTask(parentTask.id)}
-                                      />
-                                      <div className="flex-1 min-w-0">
-                                        <span className={cn(
-                                          "text-sm",
-                                          parentTask.completed === 1 && "line-through text-muted-foreground"
-                                        )}>
-                                          {parentTask.title}
-                                        </span>
-                                        {subtasks.length > 0 && (
-                                          <span className="ml-1.5 text-[10px] text-muted-foreground">
-                                            {completedSubtasks}/{subtasks.length}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-primary hover:bg-primary/10"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setAddingSubtaskTo(isAddingSubtask ? null : parentTask.id);
-                                          setNewSubtaskTitle("");
-                                          if (!isExpanded) toggleParentExpanded(parentTask.id);
-                                        }}
-                                        data-testid={`button-add-subtask-${parentTask.id}`}
-                                      >
-                                        <Plus className="w-3.5 h-3.5" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-50"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          deleteTask.mutate(parentTask.id);
-                                        }}
-                                        data-testid={`button-delete-task-${parentTask.id}`}
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </Button>
-                                    </div>
-
-                                    <AnimatePresence>
-                                      {(isExpanded || isAddingSubtask) && (
-                                        <motion.div
-                                          initial={{ height: 0, opacity: 0 }}
-                                          animate={{ height: "auto", opacity: 1 }}
-                                          exit={{ height: 0, opacity: 0 }}
-                                          transition={{ duration: 0.15 }}
-                                          className="border-t border-border/30 bg-muted/10"
-                                        >
-                                          {isAddingSubtask && (
-                                            <div className="px-2.5 py-1.5 border-b border-border/30">
-                                              <div className="flex gap-1.5 pl-5">
-                                                <Input
-                                                  placeholder="Add subtask..."
-                                                  value={newSubtaskTitle}
-                                                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                                                  onKeyDown={(e) => {
-                                                    if (e.key === "Enter") {
-                                                      e.preventDefault();
-                                                      handleAddSubtask(parentTask.id, project.id);
-                                                    }
-                                                    if (e.key === "Escape") {
-                                                      setAddingSubtaskTo(null);
-                                                      setNewSubtaskTitle("");
-                                                    }
-                                                  }}
-                                                  className="flex-1 h-7 text-xs"
-                                                  autoFocus
-                                                />
-                                                <Button
-                                                  size="sm"
-                                                  className="h-7 px-2 text-xs bg-primary hover:bg-primary/90 text-primary-foreground border-0"
-                                                  onClick={() => handleAddSubtask(parentTask.id, project.id)}
-                                                  disabled={!newSubtaskTitle.trim() || createTask.isPending}
-                                                >
-                                                  {createTask.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Add"}
-                                                </Button>
-                                              </div>
-                                            </div>
-                                          )}
-
-                                          {subtasks.length > 0 && (
-                                            <div className="px-2.5 py-1.5 space-y-0.5">
-                                              {subtasks.map((subtask) => (
-                                                <div
-                                                  key={subtask.id}
-                                                  className="flex items-center gap-2 pl-5 pr-1 py-1 rounded hover:bg-muted/40 group/subtask"
-                                                  data-testid={`subtask-item-${subtask.id}`}
-                                                >
-                                                  <AnimatedCheckbox
-                                                    checked={subtask.completed === 1}
-                                                    onChange={() => toggleTask(subtask.id)}
-                                                  />
-                                                  <span className={cn(
-                                                    "flex-1 text-xs",
-                                                    subtask.completed === 1 && "line-through text-muted-foreground"
-                                                  )}>
-                                                    {subtask.title}
-                                                  </span>
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-5 w-5 p-0 opacity-0 group-hover/subtask:opacity-100 transition-opacity text-red-500 hover:text-red-600"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      deleteTask.mutate(subtask.id);
-                                                    }}
-                                                  >
-                                                    <X className="w-3 h-3" />
-                                                  </Button>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          )}
-
-                                          {subtasks.length === 0 && !isAddingSubtask && (
-                                            <p className="text-[10px] text-muted-foreground text-center py-2">No subtasks</p>
-                                          )}
-                                        </motion.div>
-                                      )}
-                                    </AnimatePresence>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                        </div>
+                        
+                        {/* Status row */}
+                        <div className="flex items-center justify-between text-[9px] md:text-[10px]">
+                          <span className="text-muted-foreground">
+                            {projectTasks.length > 0 ? `${completedTasks}/${projectTasks.length}` : STATUS_DISPLAY[project.status] || project.status}
+                          </span>
+                          {deadline && (
+                            <span className={cn("px-1.5 py-0.5 rounded-full font-medium", deadline.className)}>
+                              {deadline.text}
+                            </span>
                           )}
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
+                      </div>
+                    </motion.div>
+                  );
+                })}
 
-            <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              onClick={() => openProjectDialog(null)}
-              className={cn(
-                glassCard,
-                "w-full p-3 border-dashed border-2 border-primary/20 flex items-center justify-center gap-2",
-                "text-muted-foreground hover:text-primary hover:border-primary/40 transition-all duration-200"
-              )}
-              data-testid="button-add-new-goal"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="text-xs font-medium">New Goal</span>
-            </motion.button>
-          </TabsContent>
+                {/* Add Goal Button - Same size as cards */}
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: projects.length * 0.05 }}
+                  onClick={() => openProjectDialog(null)}
+                  className={cn(
+                    glassCard,
+                    "p-2.5 md:p-3 border-dashed border-2 border-primary/20 flex flex-col items-center justify-center gap-1",
+                    "text-muted-foreground hover:text-primary hover:border-primary/40 transition-all duration-200 min-h-[80px]"
+                  )}
+                >
+                  <Plus className="w-5 h-5" />
+                  <span className="text-[10px] font-medium">New Goal</span>
+                </motion.button>
+              </div>
+            </section>
+
+            </TabsContent>
 
           <TabsContent value="coach" className="mt-4 space-y-3">
             {(isLoadingStoredCoach || coachLoading) && (
