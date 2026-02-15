@@ -81,7 +81,7 @@ import {
   savedArticles,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, asc } from "drizzle-orm";
+import { eq, desc, and, asc, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // System Members
@@ -455,6 +455,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteRoutineTemplate(id: string): Promise<boolean> {
+    const blocks = await db.select({ id: routineBlocks.id }).from(routineBlocks).where(eq(routineBlocks.templateId, id));
+    const blockIds = blocks.map(b => b.id);
+    if (blockIds.length > 0) {
+      await db.delete(routineActivities).where(inArray(routineActivities.blockId, blockIds));
+      await db.delete(routineBlocks).where(eq(routineBlocks.templateId, id));
+    }
     const result = await db.delete(routineTemplates).where(eq(routineTemplates.id, id)).returning();
     return result.length > 0;
   }
