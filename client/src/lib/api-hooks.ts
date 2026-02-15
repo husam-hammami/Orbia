@@ -370,7 +370,7 @@ export function useRemoveHabitCompletion() {
 }
 
 // Routine Template Hooks
-export type RoutineTemplateData = { id: string; name: string; description: string | null; isDefault: number; dayType: string; createdAt: string };
+export type RoutineTemplateData = { id: string; name: string; description: string | null; icon: string | null; isDefault: number; dayType: string; activeDays: number[] | null; createdAt: string };
 
 export function useRoutineTemplates() {
   return useQuery<RoutineTemplateData[]>({
@@ -396,7 +396,7 @@ export function useActiveRoutineTemplate() {
 export function useCreateRoutineTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string; description?: string; isDefault?: number; dayType?: string }) =>
+    mutationFn: (data: { name: string; description?: string; isDefault?: number; dayType?: string; icon?: string; activeDays?: number[] }) =>
       fetchAPI("/api/routine-templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -411,7 +411,7 @@ export function useCreateRoutineTemplate() {
 export function useUpdateRoutineTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string; name?: string; description?: string; dayType?: string }) =>
+    mutationFn: ({ id, ...data }: { id: string; name?: string; description?: string; dayType?: string; icon?: string; activeDays?: number[] }) =>
       fetchAPI(`/api/routine-templates/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

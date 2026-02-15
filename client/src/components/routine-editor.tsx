@@ -26,8 +26,23 @@ const ICON_OPTIONS: { name: string; icon: LucideIcon; label: string }[] = [
   { name: "Zap", icon: Zap, label: "Energy" },
 ];
 
+const TEMPLATE_ICON_OPTIONS: { name: string; icon: LucideIcon; label: string }[] = [
+  { name: "Briefcase", icon: Briefcase, label: "Work" },
+  { name: "Sun", icon: Sun, label: "Weekend" },
+  { name: "Coffee", icon: Coffee, label: "Rest" },
+  { name: "Dumbbell", icon: Dumbbell, label: "Active" },
+  { name: "Home", icon: Home, label: "Home" },
+  { name: "Sparkles", icon: Sparkles, label: "Special" },
+  { name: "Heart", icon: Heart, label: "Self-care" },
+  { name: "Star", icon: Star, label: "Custom" },
+  { name: "Zap", icon: Zap, label: "Power" },
+];
+
+const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+const DAY_FULL_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 const iconMap: Record<string, LucideIcon> = Object.fromEntries(
-  ICON_OPTIONS.map(opt => [opt.name, opt.icon])
+  [...ICON_OPTIONS, ...TEMPLATE_ICON_OPTIONS].map(opt => [opt.name, opt.icon])
 );
 
 function getBlockIcon(block: { name: string; icon?: string | null }): LucideIcon {
@@ -92,8 +107,10 @@ export function RoutineEditor() {
   const [newActivityOpen, setNewActivityOpen] = useState(false);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [newTemplateName, setNewTemplateName] = useState("");
-  const [newTemplateDayType, setNewTemplateDayType] = useState("weekday");
+  const [newTemplateIcon, setNewTemplateIcon] = useState("Briefcase");
+  const [newTemplateDays, setNewTemplateDays] = useState<number[]>([1,2,3,4,5]);
   const [showNewTemplate, setShowNewTemplate] = useState(false);
+  const [editingTemplateData, setEditingTemplateData] = useState<{ id: string; name: string; icon: string; activeDays: number[] } | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const closeSheet = useCallback(() => setSheetOpen(false), []);
@@ -283,80 +300,193 @@ export function RoutineEditor() {
 
         <div className="space-y-6">
           {/* Template Selector */}
-          <div className="p-4 bg-muted/50 rounded-xl border border-border/50 space-y-3">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-primary" />
-                <h3 className="font-semibold text-sm">Routine Templates</h3>
-              </div>
-              {!showNewTemplate && (
+              <h3 className="font-semibold text-sm">Your Templates</h3>
+              {!showNewTemplate && !editingTemplateData && (
                 <Button 
                   size="sm" 
-                  variant="ghost" 
-                  className="h-7 text-xs gap-1"
+                  variant="outline" 
+                  className="h-8 text-xs gap-1.5 rounded-full"
                   onClick={() => setShowNewTemplate(true)}
                   data-testid="button-new-template"
                 >
-                  <Plus className="w-3 h-3" />
-                  New Template
+                  <Plus className="w-3.5 h-3.5" />
+                  New
                 </Button>
               )}
             </div>
             
-            <p className="text-xs text-muted-foreground">
-              Select a template to edit its blocks. The app automatically switches between Weekday and Weekend templates.
-            </p>
-            
-            {showNewTemplate && (
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Template name (e.g., Weekend, Holiday)"
-                    value={newTemplateName}
-                    onChange={(e) => setNewTemplateName(e.target.value)}
-                    className="h-8 text-sm flex-1"
-                    autoFocus
-                    data-testid="input-template-name"
-                  />
-                  <Select value={newTemplateDayType} onValueChange={setNewTemplateDayType}>
-                    <SelectTrigger className="h-8 w-[120px] text-xs" data-testid="select-template-day-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="weekday">Weekday</SelectItem>
-                      <SelectItem value="weekend">Weekend</SelectItem>
-                      <SelectItem value="holiday">Holiday</SelectItem>
-                      <SelectItem value="any">Any day</SelectItem>
-                    </SelectContent>
-                  </Select>
+            {/* Create / Edit Template Form */}
+            {(showNewTemplate || editingTemplateData) && (
+              <div className="p-4 bg-card rounded-xl border border-primary/20 space-y-4">
+                <h4 className="text-sm font-medium">{editingTemplateData ? "Edit Template" : "New Template"}</h4>
+                <Input
+                  placeholder="Template name"
+                  value={editingTemplateData ? editingTemplateData.name : newTemplateName}
+                  onChange={(e) => editingTemplateData 
+                    ? setEditingTemplateData({ ...editingTemplateData, name: e.target.value })
+                    : setNewTemplateName(e.target.value)
+                  }
+                  className="h-9 text-sm"
+                  autoFocus
+                  data-testid="input-template-name"
+                />
+                
+                <div>
+                  <label className="text-xs text-muted-foreground mb-2 block">Icon</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {TEMPLATE_ICON_OPTIONS.map((opt) => {
+                      const IconComp = opt.icon;
+                      const isActive = (editingTemplateData?.icon || newTemplateIcon) === opt.name;
+                      return (
+                        <button
+                          key={opt.name}
+                          type="button"
+                          onClick={() => editingTemplateData 
+                            ? setEditingTemplateData({ ...editingTemplateData, icon: opt.name })
+                            : setNewTemplateIcon(opt.name)
+                          }
+                          className={cn(
+                            "w-9 h-9 rounded-lg flex items-center justify-center transition-all border",
+                            isActive 
+                              ? "bg-primary/15 border-primary/40 text-primary" 
+                              : "bg-muted/50 border-transparent text-muted-foreground hover:text-foreground hover:bg-muted"
+                          )}
+                          title={opt.label}
+                          data-testid={`template-icon-${opt.name}`}
+                        >
+                          <IconComp className="w-4 h-4" />
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="flex gap-2 justify-end">
+
+                <div>
+                  <label className="text-xs text-muted-foreground mb-2 block">Active on these days</label>
+                  <div className="flex gap-1.5">
+                    {DAY_LABELS.map((label, idx) => {
+                      const days = editingTemplateData?.activeDays || newTemplateDays;
+                      const isActive = days.includes(idx);
+                      const isWeekend = idx === 0 || idx === 6;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            const newDays = isActive ? days.filter(d => d !== idx) : [...days, idx].sort();
+                            if (editingTemplateData) {
+                              setEditingTemplateData({ ...editingTemplateData, activeDays: newDays });
+                            } else {
+                              setNewTemplateDays(newDays);
+                            }
+                          }}
+                          className={cn(
+                            "w-10 h-10 rounded-full text-xs font-semibold transition-all border-2 flex items-center justify-center",
+                            isActive 
+                              ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                              : isWeekend 
+                                ? "bg-muted/30 border-border text-muted-foreground hover:border-primary/40"
+                                : "bg-card border-border text-muted-foreground hover:border-primary/40"
+                          )}
+                          title={DAY_FULL_LABELS[idx]}
+                          data-testid={`template-day-${idx}`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <button 
+                      type="button"
+                      className="text-[10px] text-primary hover:underline"
+                      onClick={() => {
+                        const weekdays = [1,2,3,4,5];
+                        if (editingTemplateData) setEditingTemplateData({ ...editingTemplateData, activeDays: weekdays });
+                        else setNewTemplateDays(weekdays);
+                      }}
+                    >Weekdays</button>
+                    <button 
+                      type="button"
+                      className="text-[10px] text-primary hover:underline"
+                      onClick={() => {
+                        const weekend = [0,6];
+                        if (editingTemplateData) setEditingTemplateData({ ...editingTemplateData, activeDays: weekend });
+                        else setNewTemplateDays(weekend);
+                      }}
+                    >Weekend</button>
+                    <button 
+                      type="button"
+                      className="text-[10px] text-primary hover:underline"
+                      onClick={() => {
+                        const all = [0,1,2,3,4,5,6];
+                        if (editingTemplateData) setEditingTemplateData({ ...editingTemplateData, activeDays: all });
+                        else setNewTemplateDays(all);
+                      }}
+                    >Every day</button>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
                   <Button
                     size="sm"
-                    className="h-8"
-                    disabled={!newTemplateName.trim()}
+                    className="flex-1 h-9"
+                    disabled={editingTemplateData 
+                      ? !editingTemplateData.name.trim() || editingTemplateData.activeDays.length === 0
+                      : !newTemplateName.trim() || newTemplateDays.length === 0
+                    }
                     onClick={() => {
-                      createTemplate.mutate({ name: newTemplateName.trim(), dayType: newTemplateDayType }, {
-                        onSuccess: () => {
-                          toast.success("Template created!");
-                          setNewTemplateName("");
-                          setNewTemplateDayType("weekday");
-                          setShowNewTemplate(false);
-                        }
-                      });
+                      if (editingTemplateData) {
+                        const dayType = editingTemplateData.activeDays.length === 2 && editingTemplateData.activeDays.includes(0) && editingTemplateData.activeDays.includes(6)
+                          ? "weekend" : editingTemplateData.activeDays.length >= 5 ? "weekday" : "any";
+                        updateTemplate.mutate({ 
+                          id: editingTemplateData.id, 
+                          name: editingTemplateData.name.trim(), 
+                          icon: editingTemplateData.icon,
+                          activeDays: editingTemplateData.activeDays,
+                          dayType
+                        }, {
+                          onSuccess: () => {
+                            toast.success("Template updated!");
+                            setEditingTemplateData(null);
+                          }
+                        });
+                      } else {
+                        const dayType = newTemplateDays.length === 2 && newTemplateDays.includes(0) && newTemplateDays.includes(6)
+                          ? "weekend" : newTemplateDays.length >= 5 ? "weekday" : "any";
+                        createTemplate.mutate({ 
+                          name: newTemplateName.trim(), 
+                          dayType,
+                          icon: newTemplateIcon,
+                          activeDays: newTemplateDays
+                        }, {
+                          onSuccess: () => {
+                            toast.success("Template created!");
+                            setNewTemplateName("");
+                            setNewTemplateIcon("Briefcase");
+                            setNewTemplateDays([1,2,3,4,5]);
+                            setShowNewTemplate(false);
+                          }
+                        });
+                      }
                     }}
-                    data-testid="button-create-template"
+                    data-testid="button-save-template"
                   >
-                    Create
+                    <Save className="w-4 h-4 mr-1.5" />
+                    {editingTemplateData ? "Save Changes" : "Create Template"}
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-8"
+                    className="h-9"
                     onClick={() => {
-                      setNewTemplateName("");
-                      setNewTemplateDayType("weekday");
                       setShowNewTemplate(false);
+                      setEditingTemplateData(null);
+                      setNewTemplateName("");
+                      setNewTemplateIcon("Briefcase");
+                      setNewTemplateDays([1,2,3,4,5]);
                     }}
                     data-testid="button-cancel-template"
                   >
@@ -366,34 +496,90 @@ export function RoutineEditor() {
               </div>
             )}
             
+            {/* Template Cards */}
             {templates && templates.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
+              <div className="space-y-2">
                 {templates.map((template) => {
                   const isSelected = template.id === selectedTemplateId;
-                  const dayTypeEmoji = template.dayType === "weekend" ? "🌴" : template.dayType === "holiday" ? "🎉" : template.dayType === "any" ? "🔄" : "📅";
+                  const isActiveToday = template.id === activeTemplate?.id;
+                  const TemplateIcon = iconMap[template.icon || "Briefcase"] || Briefcase;
+                  const days: number[] = template.activeDays && template.activeDays.length > 0 
+                    ? template.activeDays 
+                    : template.dayType === "weekend" ? [0,6] 
+                    : template.dayType === "any" ? [0,1,2,3,4,5,6] 
+                    : [1,2,3,4,5];
+                  
                   return (
                     <button
                       key={template.id}
-                      onClick={() => setEditingTemplateId(template.id)}
+                      onClick={() => { setEditingTemplateId(template.id); setEditingTemplateData(null); }}
                       className={cn(
-                        "flex items-center gap-2 px-3 py-2 rounded-lg border transition-all group cursor-pointer",
+                        "w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left",
                         isSelected 
-                          ? "bg-primary/10 border-primary/30 ring-1 ring-primary/20" 
-                          : "bg-background border-border hover:border-primary/30"
+                          ? "bg-primary/5 border-primary/30 shadow-sm" 
+                          : "bg-card border-border/50 hover:border-primary/20"
                       )}
-                      data-testid={`template-chip-${template.id}`}
+                      data-testid={`template-card-${template.id}`}
                     >
-                      <span className="text-sm">{dayTypeEmoji}</span>
-                      <div className="flex flex-col items-start">
-                        <span className="text-sm font-medium">{template.name}</span>
-                        <span className="text-[10px] text-muted-foreground capitalize">{template.dayType}</span>
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                        isSelected ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                      )}>
+                        <TemplateIcon className="w-5 h-5" />
                       </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold truncate">{template.name}</span>
+                          {isActiveToday && (
+                            <span className="text-[10px] bg-emerald-500/15 text-emerald-600 px-2 py-0.5 rounded-full font-medium shrink-0">
+                              Today
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-0.5 mt-1.5">
+                          {DAY_LABELS.map((label, idx) => {
+                            const isOn = days.includes(idx);
+                            return (
+                              <span
+                                key={idx}
+                                className={cn(
+                                  "w-5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center",
+                                  isOn 
+                                    ? "bg-primary/15 text-primary" 
+                                    : "bg-muted/50 text-muted-foreground/40"
+                                )}
+                              >
+                                {label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
                       {isSelected && (
-                        <div className="flex items-center ml-1">
+                        <div className="flex items-center gap-1 shrink-0">
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-7 w-7 min-w-[28px] min-h-[28px]"
+                            className="h-8 w-8"
+                            data-testid={`button-edit-template-${template.id}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingTemplateData({
+                                id: template.id,
+                                name: template.name,
+                                icon: template.icon || "Briefcase",
+                                activeDays: days
+                              });
+                            }}
+                          >
+                            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
                             data-testid={`button-delete-template-${template.id}`}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -407,7 +593,7 @@ export function RoutineEditor() {
                               }
                             }}
                           >
-                            <Trash2 className="w-4 h-4 text-rose-400" />
+                            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
                           </Button>
                         </div>
                       )}
@@ -415,11 +601,12 @@ export function RoutineEditor() {
                   );
                 })}
               </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Create templates for different days (Weekday, Weekend, Holiday) to quickly switch your routine.
-              </p>
-            )}
+            ) : !showNewTemplate ? (
+              <div className="p-6 bg-muted/30 rounded-xl border border-dashed border-border text-center">
+                <p className="text-sm text-muted-foreground mb-2">No templates yet</p>
+                <p className="text-xs text-muted-foreground/70">Create templates for different days to organize your routine</p>
+              </div>
+            ) : null}
           </div>
 
           <div className="flex items-center justify-between">

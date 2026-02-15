@@ -651,18 +651,18 @@ export async function registerRoutes(
   app.get("/api/routine-templates/active", async (req, res) => {
     try {
       const today = new Date();
-      const dayOfWeek = today.getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
       
       const templates = await storage.getAllRoutineTemplates();
       
-      const dayType = isWeekend ? "weekend" : "weekday";
-      const matchingTemplates = templates.filter(t => t.dayType === dayType);
-      
-      let active = matchingTemplates.find(t => t.isDefault === 1) || matchingTemplates[0];
+      const matchByDays = templates.filter(t => t.activeDays && t.activeDays.includes(dayOfWeek));
+      let active = matchByDays.find(t => t.isDefault === 1) || matchByDays[0];
       
       if (!active) {
-        active = templates.find(t => t.dayType === "any");
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const dayType = isWeekend ? "weekend" : "weekday";
+        const matchByType = templates.filter(t => t.dayType === dayType);
+        active = matchByType.find(t => t.isDefault === 1) || matchByType[0];
       }
       if (!active) {
         active = templates.find(t => t.isDefault === 1);

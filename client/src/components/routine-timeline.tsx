@@ -25,7 +25,8 @@ import {
   SkipForward,
   Droplet,
   CircleDot,
-  Loader2
+  Loader2,
+  Star
 } from "lucide-react";
 import { useRoutineBlocks, useRoutineActivities, useRoutineLogs, useToggleRoutineActivity, useHabits, useActiveRoutineTemplate, useRoutineTemplates } from "@/lib/api-hooks";
 import { cn } from "@/lib/utils";
@@ -33,7 +34,7 @@ import { inferTimeSegment, getThemeBySegment, RoutineTheme } from "@/lib/routine
 
 const iconMap: Record<string, any> = {
   Sunrise, Sun, Moon, Briefcase, Coffee, Utensils, Dumbbell, BookOpen, 
-  Heart, Bed, Sparkles, Music, Users, Home, Zap, Activity
+  Heart, Bed, Sparkles, Music, Users, Home, Zap, Activity, Star
 };
 
 function formatTime24h(time24: string | null | undefined): string {
@@ -178,22 +179,23 @@ export function RoutineTimeline() {
       {templates.map((tmpl) => {
         const isActive = tmpl.id === currentTemplateId;
         const isAutoSelected = !overrideTemplateId && tmpl.id === activeTemplate?.id;
+        const TemplateIcon = iconMap[tmpl.icon || "Briefcase"] || Briefcase;
         return (
           <button
             key={tmpl.id}
             onClick={() => setOverrideTemplateId(isActive && overrideTemplateId ? null : tmpl.id)}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border",
+              "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all border-2",
               isActive 
-                ? "bg-primary/15 border-primary/40 text-primary shadow-sm" 
-                : "bg-card/80 border-border hover:border-primary/30 text-muted-foreground hover:text-foreground"
+                ? "bg-primary/10 border-primary/30 text-foreground shadow-sm" 
+                : "bg-card border-border/50 text-muted-foreground hover:border-primary/20"
             )}
             data-testid={`template-switch-${tmpl.id}`}
           >
-            {tmpl.dayType === "weekend" ? "🌴" : tmpl.dayType === "holiday" ? "🎉" : "📅"}
+            <TemplateIcon className={cn("w-4 h-4", isActive ? "text-primary" : "text-muted-foreground")} />
             <span>{tmpl.name}</span>
             {isAutoSelected && (
-              <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">Auto</span>
+              <span className="text-[10px] bg-emerald-500/15 text-emerald-600 px-1.5 py-0.5 rounded-full font-medium">Today</span>
             )}
           </button>
         );
