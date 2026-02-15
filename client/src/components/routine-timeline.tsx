@@ -27,7 +27,7 @@ import {
   CircleDot,
   Loader2
 } from "lucide-react";
-import { useRoutineBlocks, useRoutineActivities, useRoutineLogs, useToggleRoutineActivity, useHabits } from "@/lib/api-hooks";
+import { useRoutineBlocks, useRoutineActivities, useRoutineLogs, useToggleRoutineActivity, useHabits, useActiveRoutineTemplate, useRoutineTemplates } from "@/lib/api-hooks";
 import { cn } from "@/lib/utils";
 import { inferTimeSegment, getThemeBySegment, RoutineTheme } from "@/lib/routineThemes";
 
@@ -83,8 +83,13 @@ function isActivityPast(activityTime: string | null): boolean {
 export function RoutineTimeline() {
   const today = format(new Date(), "yyyy-MM-dd");
   const [expandedBlock, setExpandedBlock] = useState<string | null>(null);
+  const [overrideTemplateId, setOverrideTemplateId] = useState<string | null>(null);
   
-  const { data: blocks, isLoading: blocksLoading } = useRoutineBlocks();
+  const { data: activeTemplate } = useActiveRoutineTemplate();
+  const { data: templates } = useRoutineTemplates();
+  const currentTemplateId = overrideTemplateId || activeTemplate?.id;
+  
+  const { data: blocks, isLoading: blocksLoading } = useRoutineBlocks(currentTemplateId);
   const { data: activities, isLoading: activitiesLoading } = useRoutineActivities();
   const { data: logs } = useRoutineLogs(today);
   const { data: habits } = useHabits();
@@ -96,30 +101,39 @@ export function RoutineTimeline() {
     return new Set(logs?.map(l => l.activityId) || []);
   }, [logs]);
 
+  const blockIds = useMemo(() => {
+    return new Set(blocks?.map(b => b.id) || []);
+  }, [blocks]);
+
+  const templateActivities = useMemo(() => {
+    if (!activities || !blocks) return [];
+    return activities.filter(a => blockIds.has(a.blockId));
+  }, [activities, blocks, blockIds]);
+
   const blockProgress = useMemo(() => {
-    if (!blocks || !activities) return {};
+    if (!blocks) return {};
     const progress: Record<string, { completed: number; total: number }> = {};
     
     blocks.forEach(block => {
-      const blockActivities = activities.filter(a => a.blockId === block.id);
+      const blockActivities = templateActivities.filter(a => a.blockId === block.id);
       const completed = blockActivities.filter(a => completedActivityIds.has(a.id)).length;
       progress[block.id] = { completed, total: blockActivities.length };
     });
     
     return progress;
-  }, [blocks, activities, completedActivityIds]);
+  }, [blocks, templateActivities, completedActivityIds]);
 
   const totalProgress = useMemo(() => {
-    if (!activities) return 0;
-    const completed = activities.filter(a => completedActivityIds.has(a.id)).length;
-    return activities.length > 0 ? Math.round((completed / activities.length) * 100) : 0;
-  }, [activities, completedActivityIds]);
+    if (!templateActivities.length) return 0;
+    const completed = templateActivities.filter(a => completedActivityIds.has(a.id)).length;
+    return Math.round((completed / templateActivities.length) * 100);
+  }, [templateActivities, completedActivityIds]);
 
   const completedCount = useMemo(() => {
-    return activities?.filter(a => completedActivityIds.has(a.id)).length || 0;
-  }, [activities, completedActivityIds]);
+    return templateActivities.filter(a => completedActivityIds.has(a.id)).length;
+  }, [templateActivities, completedActivityIds]);
 
-  const totalCount = activities?.length || 0;
+  const totalCount = templateActivities.length;
 
   const getCurrentBlock = () => {
     if (!blocks) return null;
@@ -169,8 +183,39 @@ export function RoutineTimeline() {
     );
   }
 
+  const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
+
   return (
     <div className="space-y-4">
+      {/* Template Selector */}
+      {templates && templates.length > 1 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {templates.map((tmpl) => {
+            const isActive = tmpl.id === currentTemplateId;
+            const isAutoSelected = !overrideTemplateId && tmpl.id === activeTemplate?.id;
+            return (
+              <button
+                key={tmpl.id}
+                onClick={() => setOverrideTemplateId(isActive && overrideTemplateId ? null : tmpl.id)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border",
+                  isActive 
+                    ? "bg-primary/15 border-primary/40 text-primary shadow-sm" 
+                    : "bg-card/80 border-border hover:border-primary/30 text-muted-foreground hover:text-foreground"
+                )}
+                data-testid={`template-switch-${tmpl.id}`}
+              >
+                {tmpl.dayType === "weekend" ? "🌴" : tmpl.dayType === "holiday" ? "🎉" : "📅"}
+                <span>{tmpl.name}</span>
+                {isAutoSelected && (
+                  <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">Auto</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Summary Strip - Futuristic */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2 bg-gradient-to-r from-card to-muted/50 border border-border/60 rounded-full px-4 py-2 backdrop-blur-sm">

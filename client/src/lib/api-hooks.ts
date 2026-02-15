@@ -370,24 +370,33 @@ export function useRemoveHabitCompletion() {
 }
 
 // Routine Template Hooks
+export type RoutineTemplateData = { id: string; name: string; description: string | null; isDefault: number; dayType: string; createdAt: string };
+
 export function useRoutineTemplates() {
-  return useQuery<{ id: string; name: string; description: string | null; isDefault: number; createdAt: string }[]>({
+  return useQuery<RoutineTemplateData[]>({
     queryKey: ["routineTemplates"],
     queryFn: () => fetchAPI("/api/routine-templates"),
   });
 }
 
 export function useDefaultRoutineTemplate() {
-  return useQuery<{ id: string; name: string; description: string | null; isDefault: number } | null>({
+  return useQuery<RoutineTemplateData | null>({
     queryKey: ["routineTemplates", "default"],
     queryFn: () => fetchAPI("/api/routine-templates/default"),
+  });
+}
+
+export function useActiveRoutineTemplate() {
+  return useQuery<RoutineTemplateData | null>({
+    queryKey: ["routineTemplates", "active"],
+    queryFn: () => fetchAPI("/api/routine-templates/active"),
   });
 }
 
 export function useCreateRoutineTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string; description?: string; isDefault?: number }) =>
+    mutationFn: (data: { name: string; description?: string; isDefault?: number; dayType?: string }) =>
       fetchAPI("/api/routine-templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -402,7 +411,7 @@ export function useCreateRoutineTemplate() {
 export function useUpdateRoutineTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string; name?: string; description?: string }) =>
+    mutationFn: ({ id, ...data }: { id: string; name?: string; description?: string; dayType?: string }) =>
       fetchAPI(`/api/routine-templates/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -513,7 +522,7 @@ export function useToggleRoutineActivity() {
 export function useCreateRoutineBlock() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string; emoji: string; startTime: string; endTime: string; purpose: string; color: string; order: number }) =>
+    mutationFn: (data: { name: string; emoji: string; startTime: string; endTime: string; purpose: string; color: string; order: number; templateId?: string | null; icon?: string }) =>
       fetchAPI("/api/routine-blocks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

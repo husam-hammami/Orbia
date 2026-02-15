@@ -648,6 +648,31 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/routine-templates/active", async (req, res) => {
+    try {
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      
+      const templates = await storage.getAllRoutineTemplates();
+      
+      let active = templates.find(t => t.dayType === (isWeekend ? "weekend" : "weekday"));
+      if (!active) {
+        active = templates.find(t => t.dayType === "any");
+      }
+      if (!active) {
+        active = templates.find(t => t.isDefault === 1);
+      }
+      if (!active && templates.length > 0) {
+        active = templates[0];
+      }
+      
+      res.json(active || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch active template" });
+    }
+  });
+
   app.post("/api/routine-templates", async (req, res) => {
     try {
       const template = await storage.createRoutineTemplate(req.body);

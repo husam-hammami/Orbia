@@ -51,7 +51,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useRoutineBlocks, useRoutineActivities, useHabits, useCreateRoutineBlock, useUpdateRoutineBlock, useDeleteRoutineBlock, useCreateRoutineActivity, useUpdateRoutineActivity, useDeleteRoutineActivity, useRoutineTemplates, useCreateRoutineTemplate, useSetDefaultRoutineTemplate, useDeleteRoutineTemplate } from "@/lib/api-hooks";
+import { useRoutineBlocks, useRoutineActivities, useHabits, useCreateRoutineBlock, useUpdateRoutineBlock, useDeleteRoutineBlock, useCreateRoutineActivity, useUpdateRoutineActivity, useDeleteRoutineActivity, useRoutineTemplates, useCreateRoutineTemplate, useSetDefaultRoutineTemplate, useDeleteRoutineTemplate, useActiveRoutineTemplate, useUpdateRoutineTemplate } from "@/lib/api-hooks";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -65,10 +65,15 @@ function formatTimeAMPM(time24: string | null | undefined): string {
 }
 
 export function RoutineEditor() {
-  const { data: blocks } = useRoutineBlocks();
+  const { data: activeTemplate } = useActiveRoutineTemplate();
+  const { data: templates } = useRoutineTemplates();
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  
+  const selectedTemplateId = editingTemplateId || activeTemplate?.id || null;
+  
+  const { data: blocks } = useRoutineBlocks(selectedTemplateId || undefined);
   const { data: activities } = useRoutineActivities();
   const { data: habits } = useHabits();
-  const { data: templates } = useRoutineTemplates();
   
   const createBlock = useCreateRoutineBlock();
   const updateBlock = useUpdateRoutineBlock();
@@ -79,6 +84,7 @@ export function RoutineEditor() {
   const createTemplate = useCreateRoutineTemplate();
   const setDefaultTemplate = useSetDefaultRoutineTemplate();
   const deleteTemplate = useDeleteRoutineTemplate();
+  const updateTemplate = useUpdateRoutineTemplate();
 
   const [editingBlock, setEditingBlock] = useState<any>(null);
   const [editingActivity, setEditingActivity] = useState<any>(null);
@@ -86,6 +92,7 @@ export function RoutineEditor() {
   const [newActivityOpen, setNewActivityOpen] = useState(false);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [newTemplateName, setNewTemplateName] = useState("");
+  const [newTemplateDayType, setNewTemplateDayType] = useState("weekday");
   const [showNewTemplate, setShowNewTemplate] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -150,7 +157,7 @@ export function RoutineEditor() {
         toast.success("Block updated");
       } else {
         const maxOrder = blocks && blocks.length > 0 ? Math.max(...blocks.map(b => b.order)) : -1;
-        await createBlock.mutateAsync({ ...blockData, order: maxOrder + 1 });
+        await createBlock.mutateAsync({ ...blockData, order: maxOrder + 1, templateId: selectedTemplateId });
         toast.success("Block created");
       }
       resetBlockForm();
@@ -296,100 +303,115 @@ export function RoutineEditor() {
               )}
             </div>
             
+            <p className="text-xs text-muted-foreground">
+              Select a template to edit its blocks. The app automatically switches between Weekday and Weekend templates.
+            </p>
+            
             {showNewTemplate && (
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Template name (e.g., Weekend, Holiday)"
-                  value={newTemplateName}
-                  onChange={(e) => setNewTemplateName(e.target.value)}
-                  className="h-8 text-sm flex-1"
-                  autoFocus
-                  data-testid="input-template-name"
-                />
-                <Button
-                  size="sm"
-                  className="h-8"
-                  disabled={!newTemplateName.trim()}
-                  onClick={() => {
-                    createTemplate.mutate({ name: newTemplateName.trim() }, {
-                      onSuccess: () => {
-                        toast.success("Template created!");
-                        setNewTemplateName("");
-                        setShowNewTemplate(false);
-                      }
-                    });
-                  }}
-                  data-testid="button-create-template"
-                >
-                  Create
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8"
-                  onClick={() => {
-                    setNewTemplateName("");
-                    setShowNewTemplate(false);
-                  }}
-                  data-testid="button-cancel-template"
-                >
-                  Cancel
-                </Button>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Template name (e.g., Weekend, Holiday)"
+                    value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)}
+                    className="h-8 text-sm flex-1"
+                    autoFocus
+                    data-testid="input-template-name"
+                  />
+                  <Select value={newTemplateDayType} onValueChange={setNewTemplateDayType}>
+                    <SelectTrigger className="h-8 w-[120px] text-xs" data-testid="select-template-day-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="weekday">Weekday</SelectItem>
+                      <SelectItem value="weekend">Weekend</SelectItem>
+                      <SelectItem value="holiday">Holiday</SelectItem>
+                      <SelectItem value="any">Any day</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    size="sm"
+                    className="h-8"
+                    disabled={!newTemplateName.trim()}
+                    onClick={() => {
+                      createTemplate.mutate({ name: newTemplateName.trim(), dayType: newTemplateDayType }, {
+                        onSuccess: () => {
+                          toast.success("Template created!");
+                          setNewTemplateName("");
+                          setNewTemplateDayType("weekday");
+                          setShowNewTemplate(false);
+                        }
+                      });
+                    }}
+                    data-testid="button-create-template"
+                  >
+                    Create
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8"
+                    onClick={() => {
+                      setNewTemplateName("");
+                      setNewTemplateDayType("weekday");
+                      setShowNewTemplate(false);
+                    }}
+                    data-testid="button-cancel-template"
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
             )}
             
             {templates && templates.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {templates.map((template) => (
-                  <div
-                    key={template.id}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors group",
-                      template.isDefault === 1 
-                        ? "bg-primary/10 border-primary/30" 
-                        : "bg-background border-border hover:border-primary/30"
-                    )}
-                    data-testid={`template-chip-${template.id}`}
-                  >
-                    {template.isDefault === 1 && (
-                      <Star className="w-3 h-3 text-primary fill-primary" />
-                    )}
-                    <span className="text-sm font-medium">{template.name}</span>
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {template.isDefault !== 1 && (
+                {templates.map((template) => {
+                  const isSelected = template.id === selectedTemplateId;
+                  const dayTypeEmoji = template.dayType === "weekend" ? "🌴" : template.dayType === "holiday" ? "🎉" : template.dayType === "any" ? "🔄" : "📅";
+                  return (
+                    <button
+                      key={template.id}
+                      onClick={() => setEditingTemplateId(template.id)}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-2 rounded-lg border transition-all group cursor-pointer",
+                        isSelected 
+                          ? "bg-primary/10 border-primary/30 ring-1 ring-primary/20" 
+                          : "bg-background border-border hover:border-primary/30"
+                      )}
+                      data-testid={`template-chip-${template.id}`}
+                    >
+                      <span className="text-sm">{dayTypeEmoji}</span>
+                      <div className="flex flex-col items-start">
+                        <span className="text-sm font-medium">{template.name}</span>
+                        <span className="text-[10px] text-muted-foreground capitalize">{template.dayType}</span>
+                      </div>
+                      <div className="flex items-center gap-0.5 ml-1">
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-5 w-5"
-                          title="Set as default"
-                          data-testid={`button-set-default-${template.id}`}
-                          onClick={() => {
-                            setDefaultTemplate.mutate(template.id, {
-                              onSuccess: () => toast.success("Default template set!")
-                            });
+                          className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          data-testid={`button-delete-template-${template.id}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm("Delete this template and all its blocks?")) {
+                              deleteTemplate.mutate(template.id, {
+                                onSuccess: () => {
+                                  toast.success("Template deleted!");
+                                  if (editingTemplateId === template.id) setEditingTemplateId(null);
+                                }
+                              });
+                            }
                           }}
                         >
-                          <Star className="w-3 h-3 text-muted-foreground hover:text-primary" />
+                          <Trash2 className="w-3 h-3 text-muted-foreground hover:text-rose-500" />
                         </Button>
-                      )}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-5 w-5"
-                        data-testid={`button-delete-template-${template.id}`}
-                        onClick={() => {
-                          if (window.confirm("Delete this template?")) {
-                            deleteTemplate.mutate(template.id, {
-                              onSuccess: () => toast.success("Template deleted!")
-                            });
-                          }
-                        }}
-                      >
-                        <Trash2 className="w-3 h-3 text-muted-foreground hover:text-rose-500" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">
@@ -399,7 +421,14 @@ export function RoutineEditor() {
           </div>
 
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold">Time Blocks</h3>
+            <div>
+              <h3 className="font-semibold">Time Blocks</h3>
+              {selectedTemplateId && templates && (
+                <p className="text-xs text-muted-foreground">
+                  Editing: {templates.find(t => t.id === selectedTemplateId)?.name || "Unknown"} template
+                </p>
+              )}
+            </div>
             <Dialog open={newBlockOpen} onOpenChange={(open) => { setNewBlockOpen(open); if (!open) resetBlockForm(); }}>
               <DialogTrigger asChild>
                 <Button size="sm" className="gap-2" data-testid="button-add-block">

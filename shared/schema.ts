@@ -195,6 +195,7 @@ export const routineTemplates = pgTable("routine_templates", {
   name: text("name").notNull(),
   description: text("description"),
   isDefault: integer("is_default").notNull().default(0), // 0 = false, 1 = true
+  dayType: text("day_type").notNull().default("weekday"), // "weekday" | "weekend" | "holiday" | "any"
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
