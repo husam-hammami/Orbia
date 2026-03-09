@@ -4,6 +4,10 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { createSessionMiddleware, requireAuth, loginHandler, logoutHandler, meHandler } from "./auth";
+import { db } from "./db";
+import { users } from "@shared/schema";
+import { sql } from "drizzle-orm";
+import bcrypt from "bcrypt";
 
 const app = express();
 const httpServer = createServer(app);
@@ -101,7 +105,33 @@ app.use((req, res, next) => {
   next();
 });
 
+async function ensureDefaultUsers() {
+  try {
+    const dbInfo = await db.execute(sql`SELECT current_database()`);
+    console.log(`[startup] Connected to database: ${(dbInfo.rows[0] as any)?.current_database}`);
+
+    const existing = await db.execute(sql`SELECT id, display_name FROM users`);
+    console.log(`[startup] Found ${existing.rows.length} users in database`);
+
+    if (existing.rows.length === 0) {
+      console.log(`[startup] No users found — seeding default users`);
+      const fatimaHash = await bcrypt.hash("IwillBeBetter", 12);
+      const demoHash = await bcrypt.hash("Demo", 12);
+      await db.execute(sql`
+        INSERT INTO users (id, password_hash, display_name, created_at) VALUES
+        ('cfa63f09-8307-4759-bc52-8ac75f7cbf87', ${fatimaHash}, 'Fatima', NOW()),
+        ('91653702-7ee6-45a2-b493-9ac905ec3dbc', ${demoHash}, 'Demo User', NOW())
+        ON CONFLICT (id) DO UPDATE SET password_hash = EXCLUDED.password_hash
+      `);
+      console.log(`[startup] Seeded 2 default users`);
+    }
+  } catch (err: any) {
+    console.error(`[startup] Failed to ensure users:`, err.message);
+  }
+}
+
 (async () => {
+  await ensureDefaultUsers();
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
