@@ -95,6 +95,14 @@ function App() {
     } catch {
     }
     queryClient.clear();
+    const keysToKeep = ["orbia-theme", "orbia-dark-mode"];
+    const preserved: Record<string, string> = {};
+    keysToKeep.forEach(k => {
+      const v = localStorage.getItem(k);
+      if (v !== null) preserved[k] = v;
+    });
+    localStorage.clear();
+    Object.entries(preserved).forEach(([k, v]) => localStorage.setItem(k, v));
     setUser(null);
     setIsAuthenticated(false);
   }, []);
