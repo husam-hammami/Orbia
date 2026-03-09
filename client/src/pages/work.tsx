@@ -647,7 +647,10 @@ export default function WorkPage() {
   const chatMessages = chatMessagesData?.value || [];
 
   const todayEvents = calendarEvents.filter((e: any) => {
-    const eventDate = new Date(e.start.dateTime).toDateString();
+    const dt = e.start.dateTime;
+    const tz = e.start.timeZone;
+    const dateStr = tz === "UTC" ? dt + "Z" : dt;
+    const eventDate = new Date(dateStr).toDateString();
     return eventDate === new Date().toDateString();
   });
 

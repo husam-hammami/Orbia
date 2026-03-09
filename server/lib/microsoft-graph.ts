@@ -178,7 +178,7 @@ export async function getCalendarEvents(token: string, startDate: string, endDat
 }
 
 export async function getRecentChats(token: string) {
-  return graphRequest(token, "/me/chats?$top=20&$orderby=lastUpdatedDateTime desc&$expand=lastMessagePreview");
+  return graphRequest(token, "/me/chats?$top=20&$expand=lastMessagePreview");
 }
 
 export async function getChatMessages(token: string, chatId: string) {
