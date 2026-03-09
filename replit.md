@@ -40,6 +40,18 @@ Preferred communication style: Simple, everyday language.
 - **Frontend**: 3-column HUD layout — Left: "My Health" (profile, conditions, medications, tabs for History/Care Team), Center: AI Chat, Right: "Actions" (upload zone, action items, document vault). Pain Mechanisms and Health Overview sections removed. Priorities renamed to "Action Items." Mobile uses tab-based fallback.
 - **AI Medical Chat Tone**: Clinical precision with human warmth, leading with insights, connecting patterns, and referencing specific patient data.
 
+### Command Center (Work Module)
+- **Purpose**: Microsoft 365 integration for Outlook Calendar and Teams, with AI work assistant ("Nexus").
+- **Microsoft Graph API**: Direct OAuth 2.0 connection to Microsoft Graph API — no middleware.
+- **Env Secrets Required**: `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_REDIRECT_URI` (from Azure AD app registration).
+- **Key Table**: `microsoftConnections` — stores OAuth tokens (access, refresh), token expiry, Microsoft user ID, display name, email, connection status.
+- **Token Management**: Auto-refresh with 5-minute buffer; expired tokens trigger re-auth.
+- **API Endpoints**: `/api/work/microsoft/auth`, `/api/work/microsoft/callback`, `/api/work/microsoft/status`, `/api/work/microsoft/disconnect`, `/api/work/calendar`, `/api/work/teams/chats`, `/api/work/teams/chats/:chatId/messages`, `/api/work/chat` (streaming AI assistant).
+- **Frontend**: 3-column layout — Left: Microsoft connection card + today's calendar timeline + quick stats, Center: Nexus AI chat (streaming, quick chips), Right: Teams conversations with inline reply. Mobile: tab-based fallback (Today | Nexus | Comms).
+- **Design Identity**: Indigo/violet accent palette (`indigo-500`, `violet-500`) on dark glass panels, distinguishing from Medical module's cyan theme.
+- **Nexus AI**: Work intelligence assistant using Silent Context Protocol. Accesses calendar, Teams, and wellness data. Output format: "The Situation" + "Moves" for strategic questions.
+- **Files**: `server/lib/microsoft-graph.ts` (Graph API client), `client/src/pages/work.tsx` (frontend).
+
 ### AI Integration
 - **Provider**: OpenAI via Replit AI Integrations (GPT-5.1) - no API key required.
 - **Endpoints**:

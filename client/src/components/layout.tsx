@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Settings, Briefcase, Wallet, ClipboardList, Orbit, Lock, Sun, Moon, Newspaper, Clock, Stethoscope } from "lucide-react";
+import { LayoutDashboard, Settings, Briefcase, Wallet, ClipboardList, Orbit, Lock, Sun, Moon, Newspaper, Clock, Stethoscope, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GardenTopBar } from "@/components/garden-top-bar";
 import { motion } from "framer-motion";
@@ -111,6 +111,7 @@ function Sidebar({ className }: SidebarProps) {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/orbit", label: "Orbia", icon: Orbit },
     { href: "/career", label: "Goals & Vision", icon: Briefcase },
+    { href: "/work", label: "Command Center", icon: Monitor },
     { href: "/news", label: "Orbital News", icon: Newspaper },
     { href: "/finance", label: "Finance", icon: Wallet },
     { href: "/medical", label: "Medical", icon: Stethoscope },

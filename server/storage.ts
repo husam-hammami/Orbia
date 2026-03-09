@@ -103,6 +103,9 @@ import {
   type InsertMedMedicalNetworkEntry,
   type MedVaultDocument,
   type InsertMedVaultDocument,
+  microsoftConnections,
+  type MicrosoftConnection,
+  type InsertMicrosoftConnection,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, asc, inArray } from "drizzle-orm";
@@ -331,6 +334,10 @@ export interface IStorage {
   createMedVaultDocument(userId: string, data: InsertMedVaultDocument): Promise<MedVaultDocument>;
   updateMedVaultDocument(userId: string, id: number, data: Partial<InsertMedVaultDocument>): Promise<MedVaultDocument | undefined>;
   deleteMedVaultDocument(userId: string, id: number): Promise<boolean>;
+
+  getMicrosoftConnection(userId: string): Promise<MicrosoftConnection | undefined>;
+  upsertMicrosoftConnection(userId: string, data: InsertMicrosoftConnection): Promise<MicrosoftConnection>;
+  deleteMicrosoftConnection(userId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1218,6 +1225,23 @@ export class DatabaseStorage implements IStorage {
     await db.delete(medMedicalNetwork).where(eq(medMedicalNetwork.userId, userId));
     await db.delete(medVaultDocuments).where(eq(medVaultDocuments.userId, userId));
     await db.delete(medicalProfiles).where(eq(medicalProfiles.userId, userId));
+  }
+
+  async getMicrosoftConnection(userId: string): Promise<MicrosoftConnection | undefined> {
+    const [row] = await db.select().from(microsoftConnections)
+      .where(and(eq(microsoftConnections.userId, userId), eq(microsoftConnections.status, "active")));
+    return row;
+  }
+
+  async upsertMicrosoftConnection(userId: string, data: InsertMicrosoftConnection): Promise<MicrosoftConnection> {
+    await db.delete(microsoftConnections).where(eq(microsoftConnections.userId, userId));
+    const [row] = await db.insert(microsoftConnections).values({ ...data, userId }).returning();
+    return row;
+  }
+
+  async deleteMicrosoftConnection(userId: string): Promise<boolean> {
+    const result = await db.delete(microsoftConnections).where(eq(microsoftConnections.userId, userId)).returning();
+    return result.length > 0;
   }
 }
 

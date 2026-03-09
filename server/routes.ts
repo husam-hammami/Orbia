@@ -5432,5 +5432,275 @@ Keep responses focused, structured, and actionable. Use headers and bullet point
     }
   });
 
+  // ==================== COMMAND CENTER (WORK) ROUTES ====================
+
+  app.get("/api/work/microsoft/status", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const connection = await storage.getMicrosoftConnection(userId);
+      if (!connection) {
+        return res.json({ connected: false });
+      }
+      res.json({
+        connected: true,
+        displayName: connection.displayName,
+        email: connection.email,
+        connectedAt: connection.connectedAt,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/work/microsoft/auth", async (req, res) => {
+    try {
+      const { getAuthUrl } = await import("./lib/microsoft-graph");
+      const { randomBytes } = await import("crypto");
+      const oauthState = randomBytes(32).toString("hex");
+      (req.session as any).microsoftOAuthState = oauthState;
+      const authUrl = getAuthUrl(oauthState);
+      res.json({ authUrl });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to initiate authentication" });
+    }
+  });
+
+  app.get("/api/work/microsoft/callback", async (req, res) => {
+    try {
+      const { code, state } = req.query;
+      if (!code || !state) {
+        return res.status(400).send("Missing code or state");
+      }
+
+      const savedState = (req.session as any).microsoftOAuthState;
+      if (!savedState || savedState !== state) {
+        return res.status(403).send("Invalid OAuth state — possible CSRF attack");
+      }
+      delete (req.session as any).microsoftOAuthState;
+
+      const userId = req.session.userId!;
+      const { exchangeCodeForTokens, getProfile } = await import("./lib/microsoft-graph");
+      const tokens = await exchangeCodeForTokens(code as string);
+      const tokenExpiry = new Date(Date.now() + tokens.expiresIn * 1000);
+
+      const profile = await getProfile(tokens.accessToken);
+
+      await storage.upsertMicrosoftConnection(userId, {
+        userId,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        tokenExpiry,
+        microsoftUserId: profile.id,
+        displayName: profile.displayName || null,
+        email: profile.mail || profile.userPrincipalName || null,
+        status: "active",
+      });
+
+      res.redirect("/work");
+    } catch (error: any) {
+      console.error("Microsoft OAuth callback error:", error);
+      res.redirect("/work?error=auth_failed");
+    }
+  });
+
+  app.post("/api/work/microsoft/disconnect", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      await storage.deleteMicrosoftConnection(userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/work/calendar", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { getValidToken, getCalendarEvents } = await import("./lib/microsoft-graph");
+      const token = await getValidToken(userId);
+      if (!token) return res.status(401).json({ error: "Microsoft account not connected" });
+
+      const dateParam = req.query.date as string | undefined;
+      let startDate: string;
+      let endDate: string;
+
+      if (dateParam) {
+        startDate = new Date(dateParam + "T00:00:00Z").toISOString();
+        endDate = new Date(dateParam + "T23:59:59Z").toISOString();
+      } else {
+        const now = new Date();
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+        const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        endDate = weekLater.toISOString();
+      }
+
+      const events = await getCalendarEvents(token, startDate, endDate);
+      res.json(events);
+    } catch (error: any) {
+      console.error("Calendar fetch error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/work/teams/chats", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { getValidToken, getRecentChats } = await import("./lib/microsoft-graph");
+      const token = await getValidToken(userId);
+      if (!token) return res.status(401).json({ error: "Microsoft account not connected" });
+
+      const chats = await getRecentChats(token);
+      res.json(chats);
+    } catch (error: any) {
+      console.error("Teams chats fetch error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/work/teams/chats/:chatId/messages", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { getValidToken, getChatMessages } = await import("./lib/microsoft-graph");
+      const token = await getValidToken(userId);
+      if (!token) return res.status(401).json({ error: "Microsoft account not connected" });
+
+      const messages = await getChatMessages(token, req.params.chatId);
+      res.json(messages);
+    } catch (error: any) {
+      console.error("Teams messages fetch error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/work/teams/chats/:chatId/messages", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { getValidToken, sendChatMessage } = await import("./lib/microsoft-graph");
+      const token = await getValidToken(userId);
+      if (!token) return res.status(401).json({ error: "Microsoft account not connected" });
+
+      const { content } = req.body;
+      if (!content) return res.status(400).json({ error: "Message content required" });
+
+      const message = await sendChatMessage(token, req.params.chatId, content);
+      res.json(message);
+    } catch (error: any) {
+      console.error("Teams send message error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/work/chat", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { messages: chatMessages } = req.body;
+      if (!chatMessages || !Array.isArray(chatMessages)) {
+        return res.status(400).json({ error: "Messages array required" });
+      }
+
+      let calendarContext = "";
+      let teamsContext = "";
+
+      try {
+        const { getValidToken, getCalendarEvents, getRecentChats } = await import("./lib/microsoft-graph");
+        const token = await getValidToken(userId);
+        if (token) {
+          const now = new Date();
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+          const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
+          const tomorrowEnd = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
+
+          try {
+            const events = await getCalendarEvents(token, todayStart, tomorrowEnd);
+            if (events?.value?.length) {
+              calendarContext = `\n<CALENDAR_DATA>\n${events.value.map((e: any) => 
+                `- ${e.subject} | ${new Date(e.start.dateTime + 'Z').toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - ${new Date(e.end.dateTime + 'Z').toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}${e.location?.displayName ? ` | ${e.location.displayName}` : ''}${e.isOnlineMeeting ? ' | Online' : ''}`
+              ).join('\n')}\n</CALENDAR_DATA>`;
+            }
+          } catch (e) { /* calendar unavailable */ }
+
+          try {
+            const chats = await getRecentChats(token);
+            if (chats?.value?.length) {
+              teamsContext = `\n<TEAMS_RECENT>\n${chats.value.slice(0, 8).map((c: any) =>
+                `- ${c.topic || 'Direct message'}: "${c.lastMessagePreview?.body?.content?.substring(0, 100) || 'No preview'}"`
+              ).join('\n')}\n</TEAMS_RECENT>`;
+            }
+          } catch (e) { /* teams unavailable */ }
+        }
+      } catch (e) { /* Microsoft not connected */ }
+
+      let wellnessContext = "";
+      try {
+        const recentEntries = await storage.getRecentTrackerEntries(userId, 3);
+        if (recentEntries.length > 0) {
+          wellnessContext = `\n<WELLNESS_CONTEXT>\n${recentEntries.map(e =>
+            `- ${new Date(e.timestamp).toLocaleDateString()}: mood=${e.mood}/10, energy=${e.energy}/10, stress=${e.stress}/10${e.sleepHours ? `, sleep=${e.sleepHours}h` : ''}`
+          ).join('\n')}\n</WELLNESS_CONTEXT>`;
+        }
+      } catch (e) { /* wellness data unavailable */ }
+
+      const systemPrompt = `You are Nexus — the work intelligence layer inside Orbia, a personal wellness and productivity platform.
+
+## SILENT CONTEXT PROTOCOL
+You have access to the user's calendar, Teams conversations, and wellness data below. NEVER regurgitate this data. Use it silently to inform your responses. When the user asks "what's my day look like?", synthesize — don't list.
+
+## PERSONALITY
+- Direct, strategic, no fluff
+- Think like a sharp chief of staff who also cares about the human behind the work
+- When you see patterns (back-to-back meetings + low energy score), flag them proactively
+- Default format: brief and punchy. Only go long when complexity demands it
+
+## CAPABILITIES
+- Meeting prep: talking points, context, attendee notes
+- Schedule analysis: identify conflicts, overload, gaps
+- Message drafting: Teams messages in the user's voice
+- Day strategy: prioritize, batch, protect focus time
+- Wellness-work bridge: connect energy/mood data to work patterns
+
+## OUTPUT FORMAT
+For assessments/strategy questions, use:
+**The Situation** — 2-3 sentences max
+**Moves** — numbered action items
+
+For quick questions, just answer directly.
+
+## CONTEXT DATA (use silently)
+${calendarContext}${teamsContext}${wellnessContext}`;
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      const stream = await openai.chat.completions.create({
+        model: "gpt-5.1",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...chatMessages.map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content })),
+        ],
+        stream: true,
+        max_completion_tokens: 2048,
+      });
+
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || "";
+        if (content) {
+          res.write(`data: ${JSON.stringify({ content })}\n\n`);
+        }
+      }
+
+      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      res.end();
+    } catch (error: any) {
+      console.error("Work chat error:", error);
+      if (res.headersSent) {
+        res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+        res.end();
+      } else {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  });
+
   return httpServer;
 }

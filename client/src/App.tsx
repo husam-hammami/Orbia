@@ -18,6 +18,7 @@ import Settings from "@/pages/settings";
 import TrackerPage from "@/pages/tracker";
 import AdminSeed from "@/pages/admin-seed";
 import MedicalPage from "@/pages/medical";
+import WorkPage from "@/pages/work";
 
 interface LockContextType {
   isLocked: boolean;
@@ -60,6 +61,7 @@ function Router() {
       <Route path="/finance" component={FinancePage} />
       <Route path="/news" component={NewsPage} />
       <Route path="/medical" component={MedicalPage} />
+      <Route path="/work" component={WorkPage} />
       <Route path="/settings" component={Settings} />
       <Route path="/admin/seed" component={AdminSeed} />
       <Route component={NotFound} />

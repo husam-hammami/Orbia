@@ -729,3 +729,20 @@ export const medVaultDocuments = pgTable("med_vault_documents", {
 export const insertMedVaultDocumentSchema = createInsertSchema(medVaultDocuments).omit({ id: true });
 export type MedVaultDocument = typeof medVaultDocuments.$inferSelect;
 export type InsertMedVaultDocument = z.infer<typeof insertMedVaultDocumentSchema>;
+
+export const microsoftConnections = pgTable("microsoft_connections", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  tokenExpiry: timestamp("token_expiry").notNull(),
+  microsoftUserId: text("microsoft_user_id"),
+  displayName: text("display_name"),
+  email: text("email"),
+  connectedAt: timestamp("connected_at").defaultNow().notNull(),
+  status: text("status").notNull().default("active"),
+});
+
+export const insertMicrosoftConnectionSchema = createInsertSchema(microsoftConnections).omit({ id: true, connectedAt: true });
+export type MicrosoftConnection = typeof microsoftConnections.$inferSelect;
+export type InsertMicrosoftConnection = z.infer<typeof insertMicrosoftConnectionSchema>;
