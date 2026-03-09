@@ -5172,15 +5172,37 @@ Only include items you are confident about from the document. Do not guess or fa
 
       const userContent: any[] = [];
       const isTextFile = mimeType === "text/plain" || mimeType === "text/csv";
-      if (isImage || mimeType === "application/pdf") {
+      const isPdf = mimeType === "application/pdf";
+
+      if (isPdf) {
+        let pdfText = "";
+        try {
+          const { PDFParse } = await import("pdf-parse");
+          const pdfBuffer = Buffer.from(fileData, "base64");
+          const uint8 = new Uint8Array(pdfBuffer);
+          const parser = new PDFParse(uint8);
+          const result = await parser.getText();
+          pdfText = result.text || "";
+          parser.destroy();
+        } catch (pdfErr) {
+          console.error("PDF parse error:", pdfErr);
+          pdfText = "";
+        }
+
+        if (pdfText.trim().length > 100) {
+          userContent.push({ type: "text", text: `Analyze this medical PDF document: "${fileName}"\n\nFull document text (${pdfText.length} characters):\n\n${pdfText.slice(0, 30000)}` });
+        } else {
+          userContent.push({ type: "text", text: `A medical PDF file named "${fileName}" was uploaded but text could not be extracted (scanned/image PDF). Based on the filename, provide your best categorization. Summary: "PDF document uploaded — text extraction was not possible. Manual review recommended."` });
+        }
+      } else if (isImage) {
         userContent.push({
           type: "image_url",
           image_url: { url: `data:${mimeType};base64,${fileData}`, detail: "high" },
         });
-        userContent.push({ type: "text", text: `Analyze this medical ${isImage ? "image" : "document"}: "${fileName}"` });
+        userContent.push({ type: "text", text: `Analyze this medical image: "${fileName}"` });
       } else if (isTextFile) {
         const textContent = Buffer.from(fileData, "base64").toString("utf-8");
-        userContent.push({ type: "text", text: `Analyze this medical document: "${fileName}"\n\nDocument content:\n${textContent.slice(0, 12000)}` });
+        userContent.push({ type: "text", text: `Analyze this medical document: "${fileName}"\n\nDocument content:\n${textContent.slice(0, 30000)}` });
       } else {
         userContent.push({ type: "text", text: `A medical file named "${fileName}" (type: ${mimeType}) was uploaded. Based on the filename and type, provide your best categorization. Note that full content extraction is not available for this file format.` });
       }
@@ -5191,7 +5213,7 @@ Only include items you are confident about from the document. Do not guess or fa
           { role: "system", content: analysisPrompt },
           { role: "user", content: userContent },
         ],
-        max_completion_tokens: 4096,
+        max_completion_tokens: 8192,
         response_format: { type: "json_object" },
       });
 

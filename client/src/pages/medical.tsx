@@ -435,6 +435,7 @@ function UploadZone() {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "analyzing" | "done">("idle");
   const [result, setResult] = useState<any>(null);
+  const [uploadFileName, setUploadFileName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processFile = useCallback(async (file: File) => {
@@ -445,6 +446,7 @@ function UploadZone() {
     }
 
     setUploadState("uploading");
+    setUploadFileName(file.name);
 
     const reader = new FileReader();
     reader.onload = async () => {
@@ -464,7 +466,10 @@ function UploadZone() {
           }),
         });
 
-        if (!res.ok) throw new Error("Upload failed");
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.error || "Upload failed");
+        }
         const data = await res.json();
         setResult(data);
         setUploadState("done");
@@ -478,11 +483,11 @@ function UploadZone() {
         setTimeout(() => {
           setUploadState("idle");
           setResult(null);
-        }, 8000);
-      } catch (err) {
+        }, 12000);
+      } catch (err: any) {
         console.error("Upload error:", err);
         setUploadState("idle");
-        alert("Upload failed. Please try again.");
+        alert(err.message || "Upload failed. Please try again.");
       }
     };
     reader.readAsDataURL(file);
@@ -526,11 +531,21 @@ function UploadZone() {
   if (uploadState === "uploading" || uploadState === "analyzing") {
     return (
       <div className={cn(hudPanel, "p-6 flex flex-col items-center justify-center gap-3")}>
-        <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
+        <div className="relative">
+          <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+          <div className="absolute inset-0 w-8 h-8 rounded-full bg-cyan-400/5 animate-ping" />
+        </div>
         <span className="text-xs text-cyan-400/70" style={mono}>
-          {uploadState === "uploading" ? "UPLOADING..." : "AI ANALYZING DOCUMENT..."}
+          {uploadState === "uploading" ? "UPLOADING..." : "AI ANALYZING..."}
         </span>
-        <p className="text-[10px] text-muted-foreground/40 text-center">Orbia is reading and categorizing your document</p>
+        {uploadFileName && (
+          <p className="text-[10px] text-foreground/50 text-center truncate max-w-full px-2">{uploadFileName}</p>
+        )}
+        <p className="text-[10px] text-muted-foreground/40 text-center leading-relaxed">
+          {uploadState === "analyzing"
+            ? "Reading document, extracting clinical data, and categorizing findings"
+            : "Preparing document for analysis"}
+        </p>
       </div>
     );
   }
@@ -551,7 +566,7 @@ function UploadZone() {
         ref={fileInputRef}
         type="file"
         className="hidden"
-        accept="image/*,.pdf,.txt,.csv"
+        accept="image/*,.pdf,.txt,.csv,.doc,.docx"
         onChange={handleFileSelect}
       />
       <div className="flex flex-col items-center gap-2 py-2">
