@@ -5152,23 +5152,55 @@ RULES:
       if (diagnoses.length > 0) existingContext += `Existing diagnoses: ${diagnoses.map(d => d.label).join(", ")}\n`;
       if (medications.length > 0) existingContext += `Current medications: ${medications.map(m => m.name).join(", ")}\n`;
 
-      const analysisPrompt = `You are Orbia's medical intelligence engine. Analyze this uploaded medical document/image and extract structured clinical data.
+      const analysisPrompt = `You are a senior clinical analyst embedded in a personal health tracking system. Your job is NOT to parse documents — it is to UNDERSTAND them like a doctor would, then distill the clinically meaningful information for the patient.
 
-${existingContext ? `EXISTING PATIENT DATA (do not duplicate):\n${existingContext}` : ""}
+${existingContext ? `EXISTING PATIENT DATA (do not duplicate these):\n${existingContext}` : ""}
 
-TASK: Analyze the document and return a JSON object with:
-1. "summary": A 2-3 sentence plain-language summary of what this document contains
-2. "docType": Category (e.g. "Lab Report", "MRI Study", "Prescription", "Clinical Note", "Radiology", "Pathology", "Discharge Summary")
-3. "suggestedName": A clear document title
-4. "newDiagnoses": Array of {label, description, severity} for any NEW diagnoses found (skip if already in existing data)
-5. "newMedications": Array of {name, dosage, purpose} for any NEW medications found (skip if already in existing data)
-6. "timelineEvents": Array of {date, title, description, eventType} for significant clinical events
-7. "priorities": Array of {label, description, severity} for any actionable follow-ups or concerns
+CLINICAL ANALYSIS RULES — READ CAREFULLY:
+
+1. CONSOLIDATE, DON'T LIST EVERYTHING.
+   A document may describe 15 findings. Most are sub-findings of a single clinical picture. Your job is to identify the PRIMARY DIAGNOSES — the root conditions that a treating physician would put on a problem list. Sub-findings, supporting evidence, and imaging details are NOT separate diagnoses.
+   
+   Example: If a spine MRI report mentions disc herniation, foraminal stenosis, nerve root compression, epidural fibrosis, and neuritis — these are all part of ONE clinical picture (e.g., "Failed back surgery syndrome with L5-S1 disc herniation and S1 radiculopathy"). Do NOT create 5 separate conditions.
+
+2. MAXIMUM LIMITS — BE SELECTIVE.
+   - newDiagnoses: Maximum 3-4. Only PRIMARY clinical conditions. Consolidate related findings into one diagnosis. Use the "description" field (keep it to 1 concise sentence) to note the key supporting findings.
+   - priorities: Maximum 2-3. Only the MOST IMPORTANT next steps — things that would change patient outcomes. Not every recommendation in a document deserves to be an action item.
+   - timelineEvents: Maximum 3-4. Only major clinical milestones (surgeries, key scans, diagnosis dates). Not every mention of a date is an event.
+   - newMedications: Only medications explicitly prescribed or recommended. Not every drug mentioned in a document is a current medication.
+
+3. SEVERITY MUST REFLECT CLINICAL JUDGMENT.
+   - "critical": Immediate danger or urgent intervention needed
+   - "high": Significant active condition requiring treatment
+   - "medium": Condition present, being managed or monitored
+   - "low": Minor finding, stable, or resolved
+
+4. DESCRIPTIONS MUST BE CONCISE.
+   - Diagnosis descriptions: 1 sentence max. State the core finding, not the MRI interpretation.
+   - Priority descriptions: 1 sentence. What to do and why.
+   - Timeline descriptions: 1 sentence. What happened.
+   - Do NOT copy medical report language. Translate to clear, patient-friendly language.
+
+5. DOCUMENT CLASSIFICATION.
+   - "summary": 2 sentences maximum. What this document IS and what it MEANS for the patient.
+   - "docType": Use standard categories: "MRI Study", "Lab Report", "Surgical Report", "Prescription", "Clinical Note", "Radiology", "Pathology", "Discharge Summary", "Clinical Analysis"
+   - "suggestedName": Short, clear title (e.g., "Lumbar Spine MRI Analysis — Mar 2026")
+
+Return a JSON object with these fields:
+{
+  "summary": string,
+  "docType": string,
+  "suggestedName": string,
+  "newDiagnoses": [{label, description, severity}],
+  "newMedications": [{name, dosage, purpose}],
+  "timelineEvents": [{date, title, description, eventType}],
+  "priorities": [{label, description, severity}]
+}
 
 severity values: "low", "medium", "high", "critical"
 eventType values: "surgery", "appointment", "scan", "diagnosis"
 
-Only include items you are confident about from the document. Do not guess or fabricate. Return ONLY valid JSON.`;
+Think like a doctor building a patient's problem list — not like a text parser extracting every noun. Return ONLY valid JSON.`;
 
       const userContent: any[] = [];
       const isTextFile = mimeType === "text/plain" || mimeType === "text/csv";
