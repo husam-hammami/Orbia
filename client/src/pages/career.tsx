@@ -66,11 +66,7 @@ import {
 } from "@/lib/api-hooks";
 import type { CareerProject, CareerTask } from "@shared/schema";
 
-const DEFAULT_VISION = [
-  { id: "1", title: "Senior Frontend Engineer", timeframe: "2 Years", color: "text-primary", order: 0 },
-  { id: "2", title: "Launch SaaS Product", timeframe: "This Year", color: "text-primary", order: 1 },
-  { id: "3", title: "Deep Work Mastery", timeframe: "Ongoing", color: "text-violet-500", order: 2 },
-];
+const DEFAULT_VISION: { id: string; title: string; timeframe: string; color: string; order: number }[] = [];
 
 const VISION_ICONS = [Target, Rocket, Sparkles];
 
