@@ -606,18 +606,6 @@ function MedicalChatPanel() {
 
   return (
     <div className={cn(hudPanelGlow, "flex flex-col h-full overflow-hidden")}>
-      <div className="pt-6 pb-4 px-6 border-b border-cyan-500/10 flex flex-col items-center justify-center shrink-0">
-        <div className="relative mb-3">
-          <img src={logoUrl} alt="Orbia" className="w-16 h-16 rounded-2xl object-cover shadow-[0_0_25px_rgba(0,200,255,0.15)]" />
-          <div className="absolute inset-0 rounded-2xl border border-cyan-500/20"></div>
-        </div>
-        <h2 className="text-lg font-display font-bold tracking-[0.1em]">ORBIA CORE</h2>
-        <div className="flex items-center gap-2 mt-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_6px_rgba(0,200,255,0.6)]"></div>
-          <HudLabel>Medical AI Online</HudLabel>
-        </div>
-      </div>
-
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
