@@ -42,7 +42,10 @@ app.post("/api/auth/login", loginHandler);
 app.post("/api/auth/logout", logoutHandler);
 app.get("/api/auth/me", meHandler);
 
-app.use("/api", requireAuth);
+app.use("/api", (req, res, next) => {
+  if (req.path === "/work/microsoft/callback") return next();
+  return requireAuth(req, res, next);
+});
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

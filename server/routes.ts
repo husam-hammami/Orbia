@@ -5452,12 +5452,17 @@ Keep responses focused, structured, and actionable. Use headers and bullet point
     }
   });
 
+  const pendingOAuthStates = new Map<string, { userId: string; expiresAt: number }>();
+
   app.get("/api/work/microsoft/auth", async (req, res) => {
     try {
       const { getAuthUrl } = await import("./lib/microsoft-graph");
       const { randomBytes } = await import("crypto");
       const oauthState = randomBytes(32).toString("hex");
-      (req.session as any).microsoftOAuthState = oauthState;
+      pendingOAuthStates.set(oauthState, {
+        userId: req.session.userId!,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      });
       const authUrl = getAuthUrl(oauthState);
       res.json({ authUrl });
     } catch (error: any) {
@@ -5472,13 +5477,14 @@ Keep responses focused, structured, and actionable. Use headers and bullet point
         return res.status(400).send("Missing code or state");
       }
 
-      const savedState = (req.session as any).microsoftOAuthState;
-      if (!savedState || savedState !== state) {
-        return res.status(403).send("Invalid OAuth state — possible CSRF attack");
+      const pending = pendingOAuthStates.get(state as string);
+      if (!pending || Date.now() > pending.expiresAt) {
+        pendingOAuthStates.delete(state as string);
+        return res.status(403).send("Invalid or expired OAuth state");
       }
-      delete (req.session as any).microsoftOAuthState;
+      const userId = pending.userId;
+      pendingOAuthStates.delete(state as string);
 
-      const userId = req.session.userId!;
       const { exchangeCodeForTokens, getProfile } = await import("./lib/microsoft-graph");
       const tokens = await exchangeCodeForTokens(code as string);
       const tokenExpiry = new Date(Date.now() + tokens.expiresIn * 1000);
@@ -5496,10 +5502,10 @@ Keep responses focused, structured, and actionable. Use headers and bullet point
         status: "active",
       });
 
-      res.redirect("/work");
+      res.send(`<html><body><h2>Connected successfully!</h2><p>You can close this tab and return to Orbia.</p><script>window.close();</script></body></html>`);
     } catch (error: any) {
       console.error("Microsoft OAuth callback error:", error);
-      res.redirect("/work?error=auth_failed");
+      res.status(500).send(`<html><body><h2>Connection failed</h2><p>Please close this tab and try again in Orbia.</p></body></html>`);
     }
   });
 
