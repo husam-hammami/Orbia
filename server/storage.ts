@@ -79,6 +79,30 @@ import {
   type InsertLoanPayment,
   userNewsTopics,
   savedArticles,
+  medicalProfiles,
+  medDiagnoses,
+  medPriorities,
+  medPainMechanisms,
+  medMedications,
+  medTimelineEvents,
+  medMedicalNetwork,
+  medVaultDocuments,
+  type MedicalProfile,
+  type InsertMedicalProfile,
+  type MedDiagnosis,
+  type InsertMedDiagnosis,
+  type MedPriority,
+  type InsertMedPriority,
+  type MedPainMechanism,
+  type InsertMedPainMechanism,
+  type MedMedication,
+  type InsertMedMedication,
+  type MedTimelineEvent,
+  type InsertMedTimelineEvent,
+  type MedMedicalNetworkEntry,
+  type InsertMedMedicalNetworkEntry,
+  type MedVaultDocument,
+  type InsertMedVaultDocument,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, asc, inArray } from "drizzle-orm";
@@ -261,6 +285,52 @@ export interface IStorage {
   getSavedArticle(userId: string, link: string): Promise<SavedArticle | undefined>;
   createSavedArticle(userId: string, article: InsertSavedArticle): Promise<SavedArticle>;
   deleteSavedArticle(userId: string, id: string): Promise<boolean>;
+
+  // Medical Profile
+  getMedicalProfile(userId: string): Promise<MedicalProfile | undefined>;
+  upsertMedicalProfile(userId: string, profile: Partial<InsertMedicalProfile>): Promise<MedicalProfile>;
+
+  // Medical Diagnoses
+  getMedDiagnoses(userId: string): Promise<MedDiagnosis[]>;
+  createMedDiagnosis(userId: string, data: InsertMedDiagnosis): Promise<MedDiagnosis>;
+  updateMedDiagnosis(userId: string, id: number, data: Partial<InsertMedDiagnosis>): Promise<MedDiagnosis | undefined>;
+  deleteMedDiagnosis(userId: string, id: number): Promise<boolean>;
+
+  // Medical Priorities
+  getMedPriorities(userId: string): Promise<MedPriority[]>;
+  createMedPriority(userId: string, data: InsertMedPriority): Promise<MedPriority>;
+  updateMedPriority(userId: string, id: number, data: Partial<InsertMedPriority>): Promise<MedPriority | undefined>;
+  deleteMedPriority(userId: string, id: number): Promise<boolean>;
+
+  // Medical Pain Mechanisms
+  getMedPainMechanisms(userId: string): Promise<MedPainMechanism[]>;
+  createMedPainMechanism(userId: string, data: InsertMedPainMechanism): Promise<MedPainMechanism>;
+  updateMedPainMechanism(userId: string, id: number, data: Partial<InsertMedPainMechanism>): Promise<MedPainMechanism | undefined>;
+  deleteMedPainMechanism(userId: string, id: number): Promise<boolean>;
+
+  // Medical Medications
+  getMedMedications(userId: string): Promise<MedMedication[]>;
+  createMedMedication(userId: string, data: InsertMedMedication): Promise<MedMedication>;
+  updateMedMedication(userId: string, id: number, data: Partial<InsertMedMedication>): Promise<MedMedication | undefined>;
+  deleteMedMedication(userId: string, id: number): Promise<boolean>;
+
+  // Medical Timeline Events
+  getMedTimelineEvents(userId: string): Promise<MedTimelineEvent[]>;
+  createMedTimelineEvent(userId: string, data: InsertMedTimelineEvent): Promise<MedTimelineEvent>;
+  updateMedTimelineEvent(userId: string, id: number, data: Partial<InsertMedTimelineEvent>): Promise<MedTimelineEvent | undefined>;
+  deleteMedTimelineEvent(userId: string, id: number): Promise<boolean>;
+
+  // Medical Network
+  getMedMedicalNetwork(userId: string): Promise<MedMedicalNetworkEntry[]>;
+  createMedMedicalNetworkEntry(userId: string, data: InsertMedMedicalNetworkEntry): Promise<MedMedicalNetworkEntry>;
+  updateMedMedicalNetworkEntry(userId: string, id: number, data: Partial<InsertMedMedicalNetworkEntry>): Promise<MedMedicalNetworkEntry | undefined>;
+  deleteMedMedicalNetworkEntry(userId: string, id: number): Promise<boolean>;
+
+  // Medical Vault Documents
+  getMedVaultDocuments(userId: string): Promise<MedVaultDocument[]>;
+  createMedVaultDocument(userId: string, data: InsertMedVaultDocument): Promise<MedVaultDocument>;
+  updateMedVaultDocument(userId: string, id: number, data: Partial<InsertMedVaultDocument>): Promise<MedVaultDocument | undefined>;
+  deleteMedVaultDocument(userId: string, id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1010,6 +1080,133 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSavedArticle(userId: string, id: string): Promise<boolean> {
     const result = await db.delete(savedArticles).where(and(eq(savedArticles.id, id), eq(savedArticles.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  async getMedicalProfile(userId: string): Promise<MedicalProfile | undefined> {
+    const result = await db.select().from(medicalProfiles).where(eq(medicalProfiles.userId, userId));
+    return result[0];
+  }
+
+  async upsertMedicalProfile(userId: string, profile: Partial<InsertMedicalProfile>): Promise<MedicalProfile> {
+    const existing = await this.getMedicalProfile(userId);
+    if (existing) {
+      const [updated] = await db.update(medicalProfiles).set(profile).where(and(eq(medicalProfiles.id, existing.id), eq(medicalProfiles.userId, userId))).returning();
+      return updated;
+    }
+    const [created] = await db.insert(medicalProfiles).values({ ...profile, userId } as InsertMedicalProfile).returning();
+    return created;
+  }
+
+  async getMedDiagnoses(userId: string): Promise<MedDiagnosis[]> {
+    return db.select().from(medDiagnoses).where(eq(medDiagnoses.userId, userId)).orderBy(asc(medDiagnoses.sortOrder));
+  }
+  async createMedDiagnosis(userId: string, data: InsertMedDiagnosis): Promise<MedDiagnosis> {
+    const [row] = await db.insert(medDiagnoses).values({ ...data, userId }).returning();
+    return row;
+  }
+  async updateMedDiagnosis(userId: string, id: number, data: Partial<InsertMedDiagnosis>): Promise<MedDiagnosis | undefined> {
+    const [row] = await db.update(medDiagnoses).set(data).where(and(eq(medDiagnoses.id, id), eq(medDiagnoses.userId, userId))).returning();
+    return row;
+  }
+  async deleteMedDiagnosis(userId: string, id: number): Promise<boolean> {
+    const result = await db.delete(medDiagnoses).where(and(eq(medDiagnoses.id, id), eq(medDiagnoses.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  async getMedPriorities(userId: string): Promise<MedPriority[]> {
+    return db.select().from(medPriorities).where(eq(medPriorities.userId, userId)).orderBy(asc(medPriorities.sortOrder));
+  }
+  async createMedPriority(userId: string, data: InsertMedPriority): Promise<MedPriority> {
+    const [row] = await db.insert(medPriorities).values({ ...data, userId }).returning();
+    return row;
+  }
+  async updateMedPriority(userId: string, id: number, data: Partial<InsertMedPriority>): Promise<MedPriority | undefined> {
+    const [row] = await db.update(medPriorities).set(data).where(and(eq(medPriorities.id, id), eq(medPriorities.userId, userId))).returning();
+    return row;
+  }
+  async deleteMedPriority(userId: string, id: number): Promise<boolean> {
+    const result = await db.delete(medPriorities).where(and(eq(medPriorities.id, id), eq(medPriorities.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  async getMedPainMechanisms(userId: string): Promise<MedPainMechanism[]> {
+    return db.select().from(medPainMechanisms).where(eq(medPainMechanisms.userId, userId)).orderBy(asc(medPainMechanisms.sortOrder));
+  }
+  async createMedPainMechanism(userId: string, data: InsertMedPainMechanism): Promise<MedPainMechanism> {
+    const [row] = await db.insert(medPainMechanisms).values({ ...data, userId }).returning();
+    return row;
+  }
+  async updateMedPainMechanism(userId: string, id: number, data: Partial<InsertMedPainMechanism>): Promise<MedPainMechanism | undefined> {
+    const [row] = await db.update(medPainMechanisms).set(data).where(and(eq(medPainMechanisms.id, id), eq(medPainMechanisms.userId, userId))).returning();
+    return row;
+  }
+  async deleteMedPainMechanism(userId: string, id: number): Promise<boolean> {
+    const result = await db.delete(medPainMechanisms).where(and(eq(medPainMechanisms.id, id), eq(medPainMechanisms.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  async getMedMedications(userId: string): Promise<MedMedication[]> {
+    return db.select().from(medMedications).where(eq(medMedications.userId, userId));
+  }
+  async createMedMedication(userId: string, data: InsertMedMedication): Promise<MedMedication> {
+    const [row] = await db.insert(medMedications).values({ ...data, userId }).returning();
+    return row;
+  }
+  async updateMedMedication(userId: string, id: number, data: Partial<InsertMedMedication>): Promise<MedMedication | undefined> {
+    const [row] = await db.update(medMedications).set(data).where(and(eq(medMedications.id, id), eq(medMedications.userId, userId))).returning();
+    return row;
+  }
+  async deleteMedMedication(userId: string, id: number): Promise<boolean> {
+    const result = await db.delete(medMedications).where(and(eq(medMedications.id, id), eq(medMedications.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  async getMedTimelineEvents(userId: string): Promise<MedTimelineEvent[]> {
+    return db.select().from(medTimelineEvents).where(eq(medTimelineEvents.userId, userId)).orderBy(asc(medTimelineEvents.sortOrder));
+  }
+  async createMedTimelineEvent(userId: string, data: InsertMedTimelineEvent): Promise<MedTimelineEvent> {
+    const [row] = await db.insert(medTimelineEvents).values({ ...data, userId }).returning();
+    return row;
+  }
+  async updateMedTimelineEvent(userId: string, id: number, data: Partial<InsertMedTimelineEvent>): Promise<MedTimelineEvent | undefined> {
+    const [row] = await db.update(medTimelineEvents).set(data).where(and(eq(medTimelineEvents.id, id), eq(medTimelineEvents.userId, userId))).returning();
+    return row;
+  }
+  async deleteMedTimelineEvent(userId: string, id: number): Promise<boolean> {
+    const result = await db.delete(medTimelineEvents).where(and(eq(medTimelineEvents.id, id), eq(medTimelineEvents.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  async getMedMedicalNetwork(userId: string): Promise<MedMedicalNetworkEntry[]> {
+    return db.select().from(medMedicalNetwork).where(eq(medMedicalNetwork.userId, userId));
+  }
+  async createMedMedicalNetworkEntry(userId: string, data: InsertMedMedicalNetworkEntry): Promise<MedMedicalNetworkEntry> {
+    const [row] = await db.insert(medMedicalNetwork).values({ ...data, userId }).returning();
+    return row;
+  }
+  async updateMedMedicalNetworkEntry(userId: string, id: number, data: Partial<InsertMedMedicalNetworkEntry>): Promise<MedMedicalNetworkEntry | undefined> {
+    const [row] = await db.update(medMedicalNetwork).set(data).where(and(eq(medMedicalNetwork.id, id), eq(medMedicalNetwork.userId, userId))).returning();
+    return row;
+  }
+  async deleteMedMedicalNetworkEntry(userId: string, id: number): Promise<boolean> {
+    const result = await db.delete(medMedicalNetwork).where(and(eq(medMedicalNetwork.id, id), eq(medMedicalNetwork.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  async getMedVaultDocuments(userId: string): Promise<MedVaultDocument[]> {
+    return db.select().from(medVaultDocuments).where(eq(medVaultDocuments.userId, userId));
+  }
+  async createMedVaultDocument(userId: string, data: InsertMedVaultDocument): Promise<MedVaultDocument> {
+    const [row] = await db.insert(medVaultDocuments).values({ ...data, userId }).returning();
+    return row;
+  }
+  async updateMedVaultDocument(userId: string, id: number, data: Partial<InsertMedVaultDocument>): Promise<MedVaultDocument | undefined> {
+    const [row] = await db.update(medVaultDocuments).set(data).where(and(eq(medVaultDocuments.id, id), eq(medVaultDocuments.userId, userId))).returning();
+    return row;
+  }
+  async deleteMedVaultDocument(userId: string, id: number): Promise<boolean> {
+    const result = await db.delete(medVaultDocuments).where(and(eq(medVaultDocuments.id, id), eq(medVaultDocuments.userId, userId))).returning();
     return result.length > 0;
   }
 }

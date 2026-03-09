@@ -5064,5 +5064,148 @@ RULES:
     }
   });
 
+  // ==================== MEDICAL MODULE ROUTES ====================
+
+  const medResources = [
+    { path: "diagnoses", get: "getMedDiagnoses", create: "createMedDiagnosis", update: "updateMedDiagnosis", del: "deleteMedDiagnosis" },
+    { path: "priorities", get: "getMedPriorities", create: "createMedPriority", update: "updateMedPriority", del: "deleteMedPriority" },
+    { path: "pain-mechanisms", get: "getMedPainMechanisms", create: "createMedPainMechanism", update: "updateMedPainMechanism", del: "deleteMedPainMechanism" },
+    { path: "medications", get: "getMedMedications", create: "createMedMedication", update: "updateMedMedication", del: "deleteMedMedication" },
+    { path: "timeline-events", get: "getMedTimelineEvents", create: "createMedTimelineEvent", update: "updateMedTimelineEvent", del: "deleteMedTimelineEvent" },
+    { path: "medical-network", get: "getMedMedicalNetwork", create: "createMedMedicalNetworkEntry", update: "updateMedMedicalNetworkEntry", del: "deleteMedMedicalNetworkEntry" },
+    { path: "vault-documents", get: "getMedVaultDocuments", create: "createMedVaultDocument", update: "updateMedVaultDocument", del: "deleteMedVaultDocument" },
+  ] as const;
+
+  function sanitizeMedBody(body: any) {
+    const { userId, id, ...safe } = body || {};
+    return safe;
+  }
+
+  for (const r of medResources) {
+    app.get(`/api/medical/${r.path}`, async (req, res) => {
+      try {
+        const userId = req.session.userId!;
+        const data = await (storage as any)[r.get](userId);
+        res.json(data);
+      } catch (e: any) { res.status(500).json({ error: "Internal server error" }); }
+    });
+    app.post(`/api/medical/${r.path}`, async (req, res) => {
+      try {
+        const userId = req.session.userId!;
+        const row = await (storage as any)[r.create](userId, sanitizeMedBody(req.body));
+        res.status(201).json(row);
+      } catch (e: any) { res.status(400).json({ error: "Invalid data" }); }
+    });
+    app.patch(`/api/medical/${r.path}/:id`, async (req, res) => {
+      try {
+        const userId = req.session.userId!;
+        const row = await (storage as any)[r.update](userId, parseInt(req.params.id), sanitizeMedBody(req.body));
+        if (!row) return res.status(404).json({ error: "Not found" });
+        res.json(row);
+      } catch (e: any) { res.status(400).json({ error: "Invalid data" }); }
+    });
+    app.delete(`/api/medical/${r.path}/:id`, async (req, res) => {
+      try {
+        const userId = req.session.userId!;
+        const success = await (storage as any)[r.del](userId, parseInt(req.params.id));
+        if (!success) return res.status(404).json({ error: "Not found" });
+        res.status(204).send();
+      } catch (e: any) { res.status(500).json({ error: "Internal server error" }); }
+    });
+  }
+
+  app.get("/api/medical/profile", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const profile = await storage.getMedicalProfile(userId);
+      res.json(profile || {});
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.put("/api/medical/profile", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const profile = await storage.upsertMedicalProfile(userId, sanitizeMedBody(req.body));
+      res.json(profile);
+    } catch (e: any) { res.status(400).json({ error: "Invalid data" }); }
+  });
+
+  app.post("/api/medical/chat", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { messages: chatMessages } = req.body;
+
+      const [profile, diagnoses, medications, priorities] = await Promise.all([
+        storage.getMedicalProfile(userId),
+        storage.getMedDiagnoses(userId),
+        storage.getMedMedications(userId),
+        storage.getMedPriorities(userId),
+      ]);
+
+      let contextBlock = "";
+      if (profile?.patientName) {
+        contextBlock += `Patient: ${profile.patientName}`;
+        if (profile.dateOfBirth) contextBlock += `, DOB: ${profile.dateOfBirth}`;
+        if (profile.sex) contextBlock += `, Sex: ${profile.sex}`;
+        if (profile.bloodType) contextBlock += `, Blood Type: ${profile.bloodType}`;
+        if (profile.allergies) contextBlock += `\nAllergies: ${profile.allergies}`;
+        contextBlock += "\n";
+      }
+      if (diagnoses.length > 0) {
+        contextBlock += `\nActive Diagnoses:\n${diagnoses.map(d => `- ${d.label} (${d.severity}): ${d.description}`).join("\n")}\n`;
+      }
+      if (medications.length > 0) {
+        contextBlock += `\nCurrent Medications:\n${medications.map(m => `- ${m.name} ${m.dosage}: ${m.purpose}`).join("\n")}\n`;
+      }
+      if (priorities.length > 0) {
+        contextBlock += `\nMedical Priorities:\n${priorities.map(p => `- ${p.label}: ${p.description}`).join("\n")}\n`;
+      }
+
+      const systemPrompt = `You are a knowledgeable and empathetic medical AI assistant integrated into a personal wellness tracker. You help users understand their medical conditions, medications, and health data. You provide evidence-based information while always recommending they consult their healthcare providers for medical decisions.
+
+${contextBlock ? `PATIENT CONTEXT (use as background knowledge):\n${contextBlock}` : "No patient profile configured yet."}
+
+GUIDELINES:
+- Answer health and medical questions thoroughly but accessibly
+- Reference the patient's known conditions and medications when relevant
+- Be warm, direct, and supportive
+- Never fabricate medical data not provided in context
+- Always recommend consulting a doctor for treatment decisions
+- Keep responses focused and relevant to what was asked`;
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      const stream = await openai.chat.completions.create({
+        model: "gpt-5.1",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...chatMessages.map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content })),
+        ],
+        stream: true,
+        max_completion_tokens: 2048,
+      });
+
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || "";
+        if (content) {
+          res.write(`data: ${JSON.stringify({ content })}\n\n`);
+        }
+      }
+
+      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      res.end();
+    } catch (error: any) {
+      console.error("Medical chat error:", error);
+      if (res.headersSent) {
+        res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+        res.end();
+      } else {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  });
+
   return httpServer;
 }

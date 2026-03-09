@@ -88,6 +88,32 @@ Key data models:
 - `messages`: Individual messages within AI conversations
 - `journalEntries`: Rich journal entries with mood/energy tracking, alter attribution, custom entry dates, markdown content support, and driver-based categorization (primaryDriver/secondaryDriver) as the sole classification method (entry types and tags deprecated)
 
+### Medical Module
+
+Integrated from Mika-AI, adapted for multi-user support with all hardcoded patient data removed.
+
+**Tables** (all with `userId` column for data isolation):
+- `medicalProfiles`: Per-user patient profile (name, dob, sex, blood type, allergies, notes)
+- `medDiagnoses`: Diagnoses with severity levels (low/medium/high/critical)
+- `medPriorities`: Medical priorities with severity levels
+- `medPainMechanisms`: Pain mechanism descriptions
+- `medMedications`: Medications with name, dosage, purpose
+- `medTimelineEvents`: Medical timeline events with types (surgery/appointment/scan/diagnosis)
+- `medMedicalNetwork`: Healthcare providers with role, facility, status, category
+- `medVaultDocuments`: Document archive with type and date
+
+**API Endpoints**: `/api/medical/*` — GET/POST/PATCH/DELETE for each resource, plus:
+- `GET/PUT /api/medical/profile`: Patient profile management
+- `POST /api/medical/chat`: Streaming AI medical assistant (uses OpenAI with dynamic patient context)
+
+**Frontend**: `client/src/pages/medical.tsx` — 4 tabs (Overview, Records, Network, AI Chat)
+- Overview: Profile editor, timeline, diagnoses, medications
+- Records: Priorities, pain mechanisms, vault documents
+- Network: Healthcare providers
+- AI Chat: Streaming medical AI assistant with suggested prompts
+
+**Navigation**: Sidebar item with Stethoscope icon at `/medical`
+
 ### AI Integration
 
 - **Provider**: OpenAI via Replit AI Integrations (GPT-5.1 model)

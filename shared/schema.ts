@@ -616,3 +616,112 @@ export const insertSavedArticleSchema = createInsertSchema(savedArticles).omit({
 
 export type SavedArticle = typeof savedArticles.$inferSelect;
 export type InsertSavedArticle = z.infer<typeof insertSavedArticleSchema>;
+
+// ==================== MEDICAL MODULE ====================
+
+export const medicalProfiles = pgTable("medical_profiles", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  patientName: text("patient_name"),
+  dateOfBirth: text("date_of_birth"),
+  sex: text("sex"),
+  bloodType: text("blood_type"),
+  allergies: text("allergies"),
+  notes: text("notes"),
+});
+
+export const insertMedicalProfileSchema = createInsertSchema(medicalProfiles).omit({ id: true });
+export type MedicalProfile = typeof medicalProfiles.$inferSelect;
+export type InsertMedicalProfile = z.infer<typeof insertMedicalProfileSchema>;
+
+export const medDiagnoses = pgTable("med_diagnoses", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  label: text("label").notNull(),
+  description: text("description").notNull(),
+  severity: text("severity").notNull().default("medium"),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const insertMedDiagnosisSchema = createInsertSchema(medDiagnoses).omit({ id: true });
+export type MedDiagnosis = typeof medDiagnoses.$inferSelect;
+export type InsertMedDiagnosis = z.infer<typeof insertMedDiagnosisSchema>;
+
+export const medPriorities = pgTable("med_priorities", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  label: text("label").notNull(),
+  description: text("description").notNull(),
+  severity: text("severity").notNull().default("medium"),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const insertMedPrioritySchema = createInsertSchema(medPriorities).omit({ id: true });
+export type MedPriority = typeof medPriorities.$inferSelect;
+export type InsertMedPriority = z.infer<typeof insertMedPrioritySchema>;
+
+export const medPainMechanisms = pgTable("med_pain_mechanisms", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  label: text("label").notNull(),
+  description: text("description").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const insertMedPainMechanismSchema = createInsertSchema(medPainMechanisms).omit({ id: true });
+export type MedPainMechanism = typeof medPainMechanisms.$inferSelect;
+export type InsertMedPainMechanism = z.infer<typeof insertMedPainMechanismSchema>;
+
+export const medMedications = pgTable("med_medications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  name: text("name").notNull(),
+  purpose: text("purpose").notNull(),
+  dosage: text("dosage").notNull(),
+});
+
+export const insertMedMedicationSchema = createInsertSchema(medMedications).omit({ id: true });
+export type MedMedication = typeof medMedications.$inferSelect;
+export type InsertMedMedication = z.infer<typeof insertMedMedicationSchema>;
+
+export const medTimelineEvents = pgTable("med_timeline_events", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  date: text("date").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  eventType: text("event_type").notNull().default("standard"),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const insertMedTimelineEventSchema = createInsertSchema(medTimelineEvents).omit({ id: true });
+export type MedTimelineEvent = typeof medTimelineEvents.$inferSelect;
+export type InsertMedTimelineEvent = z.infer<typeof insertMedTimelineEventSchema>;
+
+export const medMedicalNetwork = pgTable("med_medical_network", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  name: text("name").notNull(),
+  role: text("role").notNull(),
+  facility: text("facility"),
+  status: text("status").notNull().default("current"),
+  category: text("category").notNull().default("treating"),
+});
+
+export const insertMedMedicalNetworkSchema = createInsertSchema(medMedicalNetwork).omit({ id: true });
+export type MedMedicalNetworkEntry = typeof medMedicalNetwork.$inferSelect;
+export type InsertMedMedicalNetworkEntry = z.infer<typeof insertMedMedicalNetworkSchema>;
+
+export const medVaultDocuments = pgTable("med_vault_documents", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  name: text("name").notNull(),
+  docType: text("doc_type").notNull(),
+  date: text("date").notNull(),
+  description: text("description"),
+  color: text("color").notNull().default("primary"),
+});
+
+export const insertMedVaultDocumentSchema = createInsertSchema(medVaultDocuments).omit({ id: true });
+export type MedVaultDocument = typeof medVaultDocuments.$inferSelect;
+export type InsertMedVaultDocument = z.infer<typeof insertMedVaultDocumentSchema>;

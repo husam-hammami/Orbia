@@ -17,6 +17,7 @@ import { LockScreen, useLockScreen } from "@/components/lock-screen";
 import Settings from "@/pages/settings";
 import TrackerPage from "@/pages/tracker";
 import AdminSeed from "@/pages/admin-seed";
+import MedicalPage from "@/pages/medical";
 
 interface LockContextType {
   isLocked: boolean;
@@ -58,6 +59,7 @@ function Router() {
       <Route path="/career" component={CareerPage} />
       <Route path="/finance" component={FinancePage} />
       <Route path="/news" component={NewsPage} />
+      <Route path="/medical" component={MedicalPage} />
       <Route path="/settings" component={Settings} />
       <Route path="/admin/seed" component={AdminSeed} />
       <Route component={NotFound} />
