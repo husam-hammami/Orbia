@@ -605,13 +605,24 @@ export default function WorkPage() {
     try {
       const data = await workApi("/api/work/microsoft/auth");
       if (data?.authUrl) {
-        window.location.href = data.authUrl;
+        window.open(data.authUrl, "_blank", "noopener,noreferrer");
+        setIsConnecting(false);
+        const pollInterval = setInterval(async () => {
+          try {
+            const status = await workApi("/api/work/microsoft/status");
+            if (status?.connected) {
+              clearInterval(pollInterval);
+              queryClient.invalidateQueries({ queryKey: ["/api/work/microsoft/status"] });
+            }
+          } catch {}
+        }, 3000);
+        setTimeout(() => clearInterval(pollInterval), 5 * 60 * 1000);
       }
     } catch (error) {
       console.error("Failed to initiate Microsoft auth:", error);
       setIsConnecting(false);
     }
-  }, []);
+  }, [queryClient]);
 
   const handleDisconnect = useCallback(() => {
     disconnectMutation.mutate();
