@@ -52,8 +52,10 @@ export async function loginHandler(req: Request, res: Response) {
   }
 
   const allUsers = await db.select().from(users);
+  console.log(`[auth] Login attempt, found ${allUsers.length} users, password length: ${password.length}`);
   for (const user of allUsers) {
     const match = await bcrypt.compare(password, user.passwordHash);
+    console.log(`[auth] Comparing against user ${user.displayName}: match=${match}`);
     if (match) {
       req.session.regenerate((err) => {
         if (err) {
