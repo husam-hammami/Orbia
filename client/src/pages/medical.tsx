@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Layout } from "@/components/layout";
 import { cn } from "@/lib/utils";
+import logoUrl from '@assets/ChatGPT_Image_Jan_10,_2026,_05_13_01_PM_1768050787078.png';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || "";
 
@@ -585,9 +586,7 @@ function MedicalChatPanel() {
   return (
     <div className={cn(card, "flex flex-col h-full overflow-hidden")}>
       <div className="pt-6 pb-4 px-6 border-b border-border/30 flex flex-col items-center justify-center shrink-0">
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-3 shadow-lg shadow-primary/10">
-          <Stethoscope className="w-8 h-8 text-primary" />
-        </div>
+        <img src={logoUrl} alt="Orbia" className="w-14 h-14 rounded-2xl object-cover mb-3 shadow-lg shadow-primary/10" />
         <h2 className="text-lg font-display font-bold tracking-tight">Orbia Medical</h2>
         <p className="text-xs text-muted-foreground mt-0.5">Your AI health assistant</p>
       </div>
@@ -595,7 +594,7 @@ function MedicalChatPanel() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
-            <Stethoscope className="w-10 h-10 text-primary/20 mb-3" />
+            <img src={logoUrl} alt="Orbia" className="w-12 h-12 rounded-2xl object-cover opacity-30 mb-3" />
             <p className="text-sm text-muted-foreground mb-4">Ask me about your health, medications, or conditions</p>
             <div className="flex flex-wrap gap-2 justify-center">
               {["Review my medications", "Summarize my conditions", "Prepare for my appointment"].map((q) => (
@@ -746,9 +745,7 @@ export default function MedicalPage() {
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-3 mb-4"
         >
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-            <Stethoscope className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <img src={logoUrl} alt="Orbia" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-primary/30" />
           <div>
             <h1 className="text-2xl font-display font-bold tracking-tight">Medical</h1>
             <p className="text-xs text-muted-foreground">Your health records and AI assistant</p>
