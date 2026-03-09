@@ -27,6 +27,7 @@ declare module "http" {
 
 app.use(
   express.json({
+    limit: "20mb",
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
@@ -54,6 +55,22 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
+function redactMedical(obj: any): any {
+  if (Array.isArray(obj)) return obj.map(redactMedical);
+  if (obj && typeof obj === "object") {
+    const out: any = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (["fileData", "aiAnalysis", "file_data", "ai_analysis"].includes(k)) {
+        out[k] = v ? "[REDACTED]" : v;
+      } else {
+        out[k] = redactMedical(v);
+      }
+    }
+    return out;
+  }
+  return obj;
+}
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -69,8 +86,9 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      if (capturedJsonResponse && !path.startsWith("/api/medical/upload")) {
+        const safe = path.startsWith("/api/medical/") ? redactMedical(capturedJsonResponse) : capturedJsonResponse;
+        logLine += ` :: ${JSON.stringify(safe)}`;
       }
 
       log(logLine);

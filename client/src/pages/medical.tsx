@@ -4,8 +4,8 @@ import {
   Stethoscope, Pill, FileText,
   Trash2, Edit, ChevronDown, Activity,
   AlertTriangle, Send, User, Save,
-  Clock, Brain, PlusCircle,
-  Database, ChevronRight, Users, ShieldAlert, ArrowLeft
+  Clock, Brain, PlusCircle, Upload, CheckCircle2, Loader2,
+  Database, ChevronRight, Users, ShieldAlert, ArrowLeft, Image
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -520,6 +520,145 @@ function PatientHud() {
   );
 }
 
+function UploadZone() {
+  const queryClient = useQueryClient();
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadState, setUploadState] = useState<"idle" | "uploading" | "analyzing" | "done">("idle");
+  const [result, setResult] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const processFile = useCallback(async (file: File) => {
+    const maxSize = 15 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert("File too large. Maximum 15MB.");
+      return;
+    }
+
+    setUploadState("uploading");
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = (reader.result as string).split(",")[1];
+      setUploadState("analyzing");
+
+      try {
+        const fullUrl = API_BASE_URL ? `${API_BASE_URL}/api/medical/upload` : "/api/medical/upload";
+        const res = await fetch(fullUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            fileName: file.name,
+            fileData: base64,
+            mimeType: file.type || "application/octet-stream",
+          }),
+        });
+
+        if (!res.ok) throw new Error("Upload failed");
+        const data = await res.json();
+        setResult(data);
+        setUploadState("done");
+
+        queryClient.invalidateQueries({ queryKey: ["/api/medical/vault-documents"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/medical/diagnoses"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/medical/medications"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/medical/timeline-events"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/medical/priorities"] });
+
+        setTimeout(() => {
+          setUploadState("idle");
+          setResult(null);
+        }, 8000);
+      } catch (err) {
+        console.error("Upload error:", err);
+        setUploadState("idle");
+        alert("Upload failed. Please try again.");
+      }
+    };
+    reader.readAsDataURL(file);
+  }, [queryClient]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  }, [processFile]);
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [processFile]);
+
+  if (uploadState === "done" && result) {
+    const ac = result.autoCreated || {};
+    const total = (ac.diagnoses || 0) + (ac.medications || 0) + (ac.timeline || 0) + (ac.priorities || 0);
+    return (
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={cn(hudPanel, "p-4")}>
+        <div className="flex items-center gap-2 mb-3">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <span className="text-xs font-medium text-emerald-400" style={mono}>ANALYSIS COMPLETE</span>
+        </div>
+        <p className="text-xs text-foreground/70 mb-3 leading-relaxed">{result.analysis}</p>
+        {total > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {ac.diagnoses > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-cyan-500/20 bg-cyan-500/5 text-cyan-400" style={mono}>{ac.diagnoses} diagnosis</span>}
+            {ac.medications > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-blue-500/20 bg-blue-500/5 text-blue-400" style={mono}>{ac.medications} medication</span>}
+            {ac.timeline > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-purple-500/20 bg-purple-500/5 text-purple-400" style={mono}>{ac.timeline} event</span>}
+            {ac.priorities > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-orange-500/20 bg-orange-500/5 text-orange-400" style={mono}>{ac.priorities} priority</span>}
+          </div>
+        )}
+      </motion.div>
+    );
+  }
+
+  if (uploadState === "uploading" || uploadState === "analyzing") {
+    return (
+      <div className={cn(hudPanel, "p-6 flex flex-col items-center justify-center gap-3")}>
+        <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
+        <span className="text-xs text-cyan-400/70" style={mono}>
+          {uploadState === "uploading" ? "UPLOADING..." : "AI ANALYZING DOCUMENT..."}
+        </span>
+        <p className="text-[10px] text-muted-foreground/40 text-center">Orbia is reading and categorizing your document</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        hudPanel, "p-4 transition-all cursor-pointer group",
+        isDragging && "border-cyan-500/40 bg-cyan-500/5 shadow-[0_0_20px_rgba(0,200,255,0.1)]"
+      )}
+      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+      onDragLeave={() => setIsDragging(false)}
+      onDrop={handleDrop}
+      onClick={() => fileInputRef.current?.click()}
+      data-testid="upload-zone"
+    >
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept="image/*,.pdf,.txt,.csv"
+        onChange={handleFileSelect}
+      />
+      <div className="flex flex-col items-center gap-2 py-2">
+        <div className="w-10 h-10 rounded-xl bg-cyan-500/5 border border-cyan-500/15 flex items-center justify-center group-hover:border-cyan-500/30 group-hover:bg-cyan-500/10 transition-all">
+          <Upload className="w-4 h-4 text-cyan-400/50 group-hover:text-cyan-400 transition-colors" />
+        </div>
+        <div className="text-center">
+          <p className="text-xs font-medium text-foreground/70">Upload medical document</p>
+          <p className="text-[10px] text-muted-foreground/40 mt-0.5" style={mono}>
+            Drop file or click — AI auto-categorizes
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MedicalChatPanel() {
   const [messages, setMessages] = useState<{ role: string; content: string; isStreaming?: boolean }[]>([]);
   const [input, setInput] = useState("");
@@ -698,6 +837,8 @@ function SummaryPanel() {
 
   return (
     <div className="flex flex-col gap-3 h-full min-h-0">
+      <UploadZone />
+
       <div className={cn(hudPanel, "p-4 shrink-0")}>
         <div className="flex items-center gap-2 mb-3">
           <Activity className="w-3.5 h-3.5 text-cyan-400/70" />

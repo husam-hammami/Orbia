@@ -720,6 +720,10 @@ export const medVaultDocuments = pgTable("med_vault_documents", {
   date: text("date").notNull(),
   description: text("description"),
   color: text("color").notNull().default("primary"),
+  fileData: text("file_data"),
+  mimeType: text("mime_type"),
+  aiAnalysis: text("ai_analysis"),
+  aiProcessed: integer("ai_processed").notNull().default(0),
 });
 
 export const insertMedVaultDocumentSchema = createInsertSchema(medVaultDocuments).omit({ id: true });

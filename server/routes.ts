@@ -5130,16 +5130,156 @@ RULES:
     } catch (e: any) { res.status(400).json({ error: "Invalid data" }); }
   });
 
+  app.post("/api/medical/upload", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { fileName, fileData, mimeType } = req.body;
+
+      if (!fileName || !fileData || !mimeType) {
+        return res.status(400).json({ error: "fileName, fileData, and mimeType are required" });
+      }
+
+      const isImage = mimeType.startsWith("image/");
+      const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+      const [profile, diagnoses, medications] = await Promise.all([
+        storage.getMedicalProfile(userId),
+        storage.getMedDiagnoses(userId),
+        storage.getMedMedications(userId),
+      ]);
+
+      let existingContext = "";
+      if (diagnoses.length > 0) existingContext += `Existing diagnoses: ${diagnoses.map(d => d.label).join(", ")}\n`;
+      if (medications.length > 0) existingContext += `Current medications: ${medications.map(m => m.name).join(", ")}\n`;
+
+      const analysisPrompt = `You are Orbia's medical intelligence engine. Analyze this uploaded medical document/image and extract structured clinical data.
+
+${existingContext ? `EXISTING PATIENT DATA (do not duplicate):\n${existingContext}` : ""}
+
+TASK: Analyze the document and return a JSON object with:
+1. "summary": A 2-3 sentence plain-language summary of what this document contains
+2. "docType": Category (e.g. "Lab Report", "MRI Study", "Prescription", "Clinical Note", "Radiology", "Pathology", "Discharge Summary")
+3. "suggestedName": A clear document title
+4. "newDiagnoses": Array of {label, description, severity} for any NEW diagnoses found (skip if already in existing data)
+5. "newMedications": Array of {name, dosage, purpose} for any NEW medications found (skip if already in existing data)
+6. "timelineEvents": Array of {date, title, description, eventType} for significant clinical events
+7. "priorities": Array of {label, description, severity} for any actionable follow-ups or concerns
+
+severity values: "low", "medium", "high", "critical"
+eventType values: "surgery", "appointment", "scan", "diagnosis"
+
+Only include items you are confident about from the document. Do not guess or fabricate. Return ONLY valid JSON.`;
+
+      const userContent: any[] = [];
+      const isTextFile = mimeType === "text/plain" || mimeType === "text/csv";
+      if (isImage || mimeType === "application/pdf") {
+        userContent.push({
+          type: "image_url",
+          image_url: { url: `data:${mimeType};base64,${fileData}`, detail: "high" },
+        });
+        userContent.push({ type: "text", text: `Analyze this medical ${isImage ? "image" : "document"}: "${fileName}"` });
+      } else if (isTextFile) {
+        const textContent = Buffer.from(fileData, "base64").toString("utf-8");
+        userContent.push({ type: "text", text: `Analyze this medical document: "${fileName}"\n\nDocument content:\n${textContent.slice(0, 12000)}` });
+      } else {
+        userContent.push({ type: "text", text: `A medical file named "${fileName}" (type: ${mimeType}) was uploaded. Based on the filename and type, provide your best categorization. Note that full content extraction is not available for this file format.` });
+      }
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-5.1",
+        messages: [
+          { role: "system", content: analysisPrompt },
+          { role: "user", content: userContent },
+        ],
+        max_completion_tokens: 4096,
+        response_format: { type: "json_object" },
+      });
+
+      const rawAnalysis = completion.choices[0]?.message?.content || "{}";
+      let analysis: any;
+      try {
+        analysis = JSON.parse(rawAnalysis);
+      } catch {
+        analysis = { summary: "Document uploaded but could not be fully analyzed.", docType: "Unknown", suggestedName: fileName };
+      }
+
+      const vaultDoc = await storage.createMedVaultDocument(userId, {
+        userId,
+        name: analysis.suggestedName || fileName,
+        docType: analysis.docType || "Document",
+        date: today,
+        description: analysis.summary || "",
+        fileData,
+        mimeType,
+        aiAnalysis: rawAnalysis,
+        aiProcessed: 1,
+      });
+
+      const created: any = { document: vaultDoc, diagnoses: [], medications: [], timeline: [], priorities: [] };
+
+      if (analysis.newDiagnoses?.length) {
+        for (const d of analysis.newDiagnoses) {
+          try {
+            const row = await storage.createMedDiagnosis(userId, { userId, label: d.label, description: d.description || "", severity: d.severity || "medium" });
+            created.diagnoses.push(row);
+          } catch {}
+        }
+      }
+      if (analysis.newMedications?.length) {
+        for (const m of analysis.newMedications) {
+          try {
+            const row = await storage.createMedMedication(userId, { userId, name: m.name, dosage: m.dosage || "", purpose: m.purpose || "" });
+            created.medications.push(row);
+          } catch {}
+        }
+      }
+      if (analysis.timelineEvents?.length) {
+        for (const t of analysis.timelineEvents) {
+          try {
+            const row = await storage.createMedTimelineEvent(userId, { userId, date: t.date || today, title: t.title, description: t.description || "", eventType: t.eventType || "appointment" });
+            created.timeline.push(row);
+          } catch {}
+        }
+      }
+      if (analysis.priorities?.length) {
+        for (const p of analysis.priorities) {
+          try {
+            const row = await storage.createMedPriority(userId, { userId, label: p.label, description: p.description || "", severity: p.severity || "medium" });
+            created.priorities.push(row);
+          } catch {}
+        }
+      }
+
+      res.json({
+        success: true,
+        analysis: analysis.summary,
+        document: vaultDoc,
+        autoCreated: {
+          diagnoses: created.diagnoses.length,
+          medications: created.medications.length,
+          timeline: created.timeline.length,
+          priorities: created.priorities.length,
+        },
+      });
+    } catch (error: any) {
+      console.error("Medical upload error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/medical/chat", async (req, res) => {
     try {
       const userId = req.session.userId!;
       const { messages: chatMessages } = req.body;
 
-      const [profile, diagnoses, medications, priorities] = await Promise.all([
+      const [profile, diagnoses, medications, priorities, painMechanisms, timelineEvents, vaultDocs] = await Promise.all([
         storage.getMedicalProfile(userId),
         storage.getMedDiagnoses(userId),
         storage.getMedMedications(userId),
         storage.getMedPriorities(userId),
+        storage.getMedPainMechanisms(userId),
+        storage.getMedTimelineEvents(userId),
+        storage.getMedVaultDocuments(userId),
       ]);
 
       let contextBlock = "";
@@ -5160,18 +5300,36 @@ RULES:
       if (priorities.length > 0) {
         contextBlock += `\nMedical Priorities:\n${priorities.map(p => `- ${p.label}: ${p.description}`).join("\n")}\n`;
       }
+      if (painMechanisms.length > 0) {
+        contextBlock += `\nPain Mechanisms:\n${painMechanisms.map(p => `- ${p.label}: ${p.description}`).join("\n")}\n`;
+      }
+      if (timelineEvents.length > 0) {
+        contextBlock += `\nClinical Timeline (recent):\n${timelineEvents.slice(0, 10).map(t => `- ${t.date}: ${t.title} — ${t.description}`).join("\n")}\n`;
+      }
+      if (vaultDocs.length > 0) {
+        const analyzed = vaultDocs.filter(d => d.aiAnalysis);
+        if (analyzed.length > 0) {
+          contextBlock += `\nUploaded Documents with AI Analysis:\n${analyzed.map(d => `- ${d.name} (${d.docType}, ${d.date}): ${d.description}`).join("\n")}\n`;
+        }
+      }
 
-      const systemPrompt = `You are a knowledgeable and empathetic medical AI assistant integrated into a personal wellness tracker. You help users understand their medical conditions, medications, and health data. You provide evidence-based information while always recommending they consult their healthcare providers for medical decisions.
+      const systemPrompt = `You are Orbia — a world-class personal health intelligence system. You combine the precision of a clinical analyst with the warmth of a trusted advisor.
 
-${contextBlock ? `PATIENT CONTEXT (use as background knowledge):\n${contextBlock}` : "No patient profile configured yet."}
+You have deep access to this patient's complete medical file. Use it to provide genuinely valuable, personalized guidance — not generic health advice.
 
-GUIDELINES:
-- Answer health and medical questions thoroughly but accessibly
-- Reference the patient's known conditions and medications when relevant
-- Be warm, direct, and supportive
-- Never fabricate medical data not provided in context
-- Always recommend consulting a doctor for treatment decisions
-- Keep responses focused and relevant to what was asked`;
+${contextBlock ? `PATIENT FILE:\n${contextBlock}` : "No patient profile configured yet. Ask the user to set up their profile for personalized support."}
+
+YOUR STANDARD:
+- Lead with insight. When you see patterns across diagnoses, medications, and timeline — connect them. The user deserves to understand how their conditions interact.
+- Be direct and clear. No filler. No "that's a great question." Get to the point.
+- Speak like a brilliant doctor who actually cares — clinical precision, human warmth.
+- When the data supports it, surface risks, interactions, or trends the user may not have noticed.
+- Reference specific data points from their file. "Given your [diagnosis] and current [medication], here's what matters..."
+- Always distinguish between what you know from their file vs. general medical knowledge.
+- For treatment decisions: be clear that their care team makes the final call, but don't hide behind disclaimers — give them the knowledge to have informed conversations with their doctors.
+- Orbia is a holistic platform — when relevant, connect medical insights to their broader wellness (sleep, mood, energy, stress) tracked elsewhere in the app.
+- Keep responses focused, structured, and actionable. Use headers and bullet points for complex answers.`;
+
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
