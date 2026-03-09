@@ -32,15 +32,27 @@ export default function WelcomePage({ onAuthenticated }: WelcomePageProps) {
     return () => clearInterval(interval);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === "IwillBeBetter") {
-      localStorage.setItem("orbia_authenticated", "true");
+    setIsLoading(true);
+    setError("");
+    try {
+      const { apiRequest } = await import("@/lib/queryClient");
+      await apiRequest("POST", "/api/auth/login", { password });
       onAuthenticated();
-    } else {
-      setError("That's not quite right. Remember your commitment!");
+    } catch (err: any) {
+      const message = err?.message || "";
+      if (message.includes("401")) {
+        setError("That's not quite right. Remember your commitment!");
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
       setIsShaking(true);
       setTimeout(() => setIsShaking(false), 500);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -149,11 +161,12 @@ export default function WelcomePage({ onAuthenticated }: WelcomePageProps) {
 
           <Button
             type="submit"
+            disabled={isLoading}
             className="w-full h-12 text-lg bg-primary hover:bg-primary/90 rounded-xl shadow-lg shadow-primary/25 transition-all"
             data-testid="button-enter"
           >
-            <span>Enter Orbia</span>
-            <ArrowRight className="w-5 h-5 ml-2" />
+            <span>{isLoading ? "Entering..." : "Enter Orbia"}</span>
+            {!isLoading && <ArrowRight className="w-5 h-5 ml-2" />}
           </Button>
         </motion.form>
 

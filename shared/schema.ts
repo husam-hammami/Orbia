@@ -5,9 +5,26 @@ import { z } from "zod";
 
 export * from "./models/chat";
 
+// Users (password-only auth, admin-assigned)
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  passwordHash: text("password_hash").notNull(),
+  displayName: text("display_name"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
 // System Members (Alters/Parts)
 export const systemMembers = pgTable("system_members", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   name: text("name").notNull(),
   role: text("role").notNull(),
   traits: jsonb("traits").notNull().$type<string[]>(),
@@ -29,20 +46,21 @@ export type InsertSystemMember = z.infer<typeof insertSystemMemberSchema>;
 // Daily Tracker Entries (mood, dissociation, stress, etc.)
 export const trackerEntries = pgTable("tracker_entries", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
-  mood: integer("mood").notNull(), // 1-10 scale
-  dissociation: integer("dissociation").notNull(), // 0-100
-  stress: integer("stress").notNull(), // 0-100
-  energy: integer("energy").notNull(), // 1-10 scale
-  sleepHours: real("sleep_hours"), // Hours of sleep (0-24, allows decimals like 7.5)
-  sleepQuality: integer("sleep_quality"), // 0-10 scale for sleep quality
-  capacity: integer("capacity"), // 0-5 scale (how much capacity do I have right now?)
-  pain: integer("pain"), // 0-10 scale for pain level
-  triggerTag: text("trigger_tag"), // "work" | "loneliness" | "pain" | "noise" | "sleep" | "body" | "unknown"
-  workLoad: integer("work_load"), // 0-10: How hostile/draining was work today?
-  workTag: text("work_tag"), // "deadlines" | "conflict" | "firefighting" | "unclear" | "blame" | "chaos"
-  timeOfDay: text("time_of_day"), // "morning" | "afternoon" | "evening" | "night" (auto-set)
-  frontingMemberId: varchar("fronting_member_id").references(() => systemMembers.id), // UI shows as "Current State"
+  mood: integer("mood").notNull(),
+  dissociation: integer("dissociation").notNull(),
+  stress: integer("stress").notNull(),
+  energy: integer("energy").notNull(),
+  sleepHours: real("sleep_hours"),
+  sleepQuality: integer("sleep_quality"),
+  capacity: integer("capacity"),
+  pain: integer("pain"),
+  triggerTag: text("trigger_tag"),
+  workLoad: integer("work_load"),
+  workTag: text("work_tag"),
+  timeOfDay: text("time_of_day"),
+  frontingMemberId: varchar("fronting_member_id").references(() => systemMembers.id),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -60,8 +78,9 @@ export type InsertTrackerEntry = z.infer<typeof insertTrackerEntrySchema>;
 // Daily Summary (end-of-day reflection)
 export const dailySummaries = pgTable("daily_summaries", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  date: text("date").notNull().unique(), // "2026-01-04" format
-  feeling: text("feeling").notNull(), // "lighter" | "average" | "heavier"
+  userId: varchar("user_id").notNull(),
+  date: text("date").notNull(),
+  feeling: text("feeling").notNull(),
   breakfast: text("breakfast").default(""),
   lunch: text("lunch").default(""),
   dinner: text("dinner").default(""),
@@ -71,8 +90,9 @@ export const dailySummaries = pgTable("daily_summaries", {
 // Food Options (pre-defined meals to select from)
 export const foodOptions = pgTable("food_options", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   name: text("name").notNull(),
-  mealType: text("meal_type").notNull(), // "breakfast" | "lunch" | "dinner"
+  mealType: text("meal_type").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -96,9 +116,10 @@ export type InsertDailySummary = z.infer<typeof insertDailySummarySchema>;
 // System Communication Messages (sticky notes)
 export const systemMessages = pgTable("system_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   authorId: varchar("author_id").notNull().references(() => systemMembers.id),
   content: text("content").notNull(),
-  type: text("type").notNull().default("note"), // "note" | "urgent"
+  type: text("type").notNull().default("note"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -113,6 +134,7 @@ export type InsertSystemMessage = z.infer<typeof insertSystemMessageSchema>;
 // Headspace Rooms Configuration
 export const headspaceRooms = pgTable("headspace_rooms", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   name: text("name").notNull(),
   icon: text("icon").notNull(),
   color: text("color").notNull(),
@@ -131,6 +153,7 @@ export type InsertHeadspaceRoom = z.infer<typeof insertHeadspaceRoomSchema>;
 // System Settings
 export const systemSettings = pgTable("system_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   systemName: text("system_name").notNull().default("My System"),
   theme: text("theme").notNull().default("dark"),
   terminology: jsonb("terminology").notNull().$type<{
@@ -138,7 +161,7 @@ export const systemSettings = pgTable("system_settings", {
     fronting: string;
     headspace: string;
   }>().default(sql`'{"member":"alters","fronting":"fronting","headspace":"headspace"}'::jsonb`),
-  privacyMode: integer("privacy_mode").notNull().default(0), // 0 = false, 1 = true (using integer for SQLite compatibility)
+  privacyMode: integer("privacy_mode").notNull().default(0),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -153,6 +176,7 @@ export type InsertSystemSettings = z.infer<typeof insertSystemSettingsSchema>;
 // Habits for daily tracking
 export const habits = pgTable("habits", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   title: text("title").notNull(),
   description: text("description"),
   category: text("category").notNull(),
@@ -161,7 +185,7 @@ export const habits = pgTable("habits", {
   color: text("color").notNull(),
   target: integer("target").notNull().default(1),
   unit: text("unit"),
-  icon: text("icon"), // AI-generated Lucide icon name
+  icon: text("icon"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -176,6 +200,7 @@ export type InsertHabit = z.infer<typeof insertHabitSchema>;
 // Habit completions (tracks which dates a habit was completed)
 export const habitCompletions = pgTable("habit_completions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   habitId: varchar("habit_id").notNull().references(() => habits.id),
   completedDate: text("completed_date").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -192,6 +217,7 @@ export type InsertHabitCompletion = z.infer<typeof insertHabitCompletionSchema>;
 // Routine Templates (weekday, weekend, holiday, etc.)
 export const routineTemplates = pgTable("routine_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   name: text("name").notNull(),
   description: text("description"),
   icon: text("icon").default("Briefcase"),
@@ -212,12 +238,13 @@ export type InsertRoutineTemplate = z.infer<typeof insertRoutineTemplateSchema>;
 // Routine Blocks (time blocks in daily routine)
 export const routineBlocks = pgTable("routine_blocks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   templateId: varchar("template_id").references(() => routineTemplates.id),
   name: text("name").notNull(),
   emoji: text("emoji").notNull(),
   icon: text("icon").default("Sunrise"),
-  startTime: text("start_time").notNull(), // "08:00"
-  endTime: text("end_time").notNull(), // "09:00"
+  startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
   purpose: text("purpose").notNull().default(""),
   order: integer("order").notNull(),
   color: text("color").notNull(),
@@ -235,11 +262,12 @@ export type InsertRoutineBlock = z.infer<typeof insertRoutineBlockSchema>;
 // Routine Activities (individual activities within blocks)
 export const routineActivities = pgTable("routine_activities", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   blockId: varchar("block_id").notNull().references(() => routineBlocks.id),
   name: text("name").notNull(),
-  time: text("time"), // "08:00" - optional specific time
+  time: text("time"),
   description: text("description"),
-  habitId: varchar("habit_id").references(() => habits.id), // link to habit for auto-completion
+  habitId: varchar("habit_id").references(() => habits.id),
   order: integer("order").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -255,8 +283,9 @@ export type InsertRoutineActivity = z.infer<typeof insertRoutineActivitySchema>;
 // Routine Activity Logs (daily completion tracking)
 export const routineActivityLogs = pgTable("routine_activity_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   activityId: varchar("activity_id").notNull().references(() => routineActivities.id),
-  completedDate: text("completed_date").notNull(), // "2026-01-03"
+  completedDate: text("completed_date").notNull(),
   completedAt: timestamp("completed_at").defaultNow().notNull(),
   notes: text("notes"),
 });
@@ -272,11 +301,12 @@ export type InsertRoutineActivityLog = z.infer<typeof insertRoutineActivityLogSc
 // Simple To-Do List with subtasks support
 export const todos = pgTable("todos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  parentId: varchar("parent_id"), // null = top-level task, otherwise = subtask
+  userId: varchar("user_id").notNull(),
+  parentId: varchar("parent_id"),
   title: text("title").notNull(),
-  completed: integer("completed").notNull().default(0), // 0 = false, 1 = true
-  priority: text("priority").notNull().default("medium"), // "low" | "medium" | "high"
-  dueDate: timestamp("due_date"), // optional due date for task
+  completed: integer("completed").notNull().default(0),
+  priority: text("priority").notNull().default("medium"),
+  dueDate: timestamp("due_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -296,11 +326,12 @@ export type InsertTodo = z.infer<typeof insertTodoSchema>;
 // Career Projects
 export const careerProjects = pgTable("career_projects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   title: text("title").notNull(),
   description: text("description"),
-  status: text("status").notNull().default("planning"), // "planning" | "in_progress" | "ongoing" | "completed"
-  progress: integer("progress").notNull().default(0), // 0-100
-  deadline: text("deadline"), // "2026-02-15" format or null
+  status: text("status").notNull().default("planning"),
+  progress: integer("progress").notNull().default(0),
+  deadline: text("deadline"),
   nextAction: text("next_action"),
   color: text("color").notNull().default("bg-indigo-500"),
   tags: jsonb("tags").$type<string[]>().default(sql`'[]'::jsonb`),
@@ -318,13 +349,14 @@ export type InsertCareerProject = z.infer<typeof insertCareerProjectSchema>;
 // Career Tasks (linked to projects, supports subtasks)
 export const careerTasks = pgTable("career_tasks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   projectId: varchar("project_id").references(() => careerProjects.id),
-  parentId: varchar("parent_id"), // null = top-level task, set = subtask of parent
+  parentId: varchar("parent_id"),
   title: text("title").notNull(),
   description: text("description"),
-  completed: integer("completed").notNull().default(0), // 0 = false, 1 = true
-  priority: text("priority").notNull().default("medium"), // "low" | "medium" | "high"
-  due: text("due"), // "Today", "Tomorrow", "2026-01-15", etc.
+  completed: integer("completed").notNull().default(0),
+  priority: text("priority").notNull().default("medium"),
+  due: text("due"),
   tags: jsonb("tags").$type<string[]>().default(sql`'[]'::jsonb`),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -340,13 +372,14 @@ export type InsertCareerTask = z.infer<typeof insertCareerTaskSchema>;
 // Finance Expenses (legacy - kept for backwards compatibility)
 export const expenses = pgTable("expenses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   name: text("name").notNull(),
-  amount: integer("amount").notNull(), // in cents or whole numbers
-  budget: integer("budget").notNull(), // budgeted amount
-  category: text("category").notNull().default("Variable"), // "Fixed" | "Variable" | "Savings" | "Debt"
-  status: text("status").notNull().default("pending"), // "paid" | "pending" | "variable"
-  date: text("date").notNull(), // "Jan 1", "Feb 5", etc.
-  month: text("month").notNull(), // "January", "February", etc.
+  amount: integer("amount").notNull(),
+  budget: integer("budget").notNull(),
+  category: text("category").notNull().default("Variable"),
+  status: text("status").notNull().default("pending"),
+  date: text("date").notNull(),
+  month: text("month").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -361,12 +394,13 @@ export type InsertExpense = z.infer<typeof insertExpenseSchema>;
 // Income Streams (salary, freelance, benefits, etc.)
 export const incomeStreams = pgTable("income_streams", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(), // "Monthly Salary", "Freelance", "Rental Income"
-  amount: integer("amount").notNull(), // amount per occurrence
-  frequency: text("frequency").notNull().default("monthly"), // "monthly" | "biweekly" | "weekly" | "one_time"
-  dayOfMonth: integer("day_of_month"), // 1-31 for monthly, null for others
-  isActive: integer("is_active").notNull().default(1), // 0 = false, 1 = true
-  category: text("category").notNull().default("salary"), // "salary" | "freelance" | "benefits" | "investment" | "other"
+  userId: varchar("user_id").notNull(),
+  name: text("name").notNull(),
+  amount: integer("amount").notNull(),
+  frequency: text("frequency").notNull().default("monthly"),
+  dayOfMonth: integer("day_of_month"),
+  isActive: integer("is_active").notNull().default(1),
+  category: text("category").notNull().default("salary"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -382,16 +416,17 @@ export type InsertIncomeStream = z.infer<typeof insertIncomeStreamSchema>;
 // Financial Transactions (unified income and expenses)
 export const transactions = pgTable("transactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  type: text("type").notNull(), // "income" | "expense"
+  userId: varchar("user_id").notNull(),
+  type: text("type").notNull(),
   name: text("name").notNull(),
-  amount: integer("amount").notNull(), // always positive, type determines direction
-  category: text("category").notNull(), // "salary" | "food" | "transport" | "utilities" | "entertainment" | "healthcare" | "shopping" | "debt_payment" | "savings" | "other"
-  date: timestamp("date").notNull(), // actual transaction date
-  month: text("month").notNull(), // "January 2026" for easy filtering
-  isRecurring: integer("is_recurring").notNull().default(0), // 0 = false, 1 = true
-  incomeStreamId: varchar("income_stream_id").references(() => incomeStreams.id), // if linked to income stream
+  amount: integer("amount").notNull(),
+  category: text("category").notNull(),
+  date: timestamp("date").notNull(),
+  month: text("month").notNull(),
+  isRecurring: integer("is_recurring").notNull().default(0),
+  incomeStreamId: varchar("income_stream_id").references(() => incomeStreams.id),
   notes: text("notes"),
-  importSource: text("import_source"), // "manual" | "ai_import" | "bank_statement"
+  importSource: text("import_source"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -408,6 +443,7 @@ export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 // Career Vision
 export const careerVision = pgTable("career_vision", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   title: text("title").notNull(),
   timeframe: text("timeframe").notNull(),
   color: text("color").notNull().default("text-blue-500"),
@@ -426,12 +462,13 @@ export type InsertCareerVision = z.infer<typeof insertCareerVisionSchema>;
 // Finance Settings (budget and debt tracking)
 export const financeSettings = pgTable("finance_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   monthlyBudget: integer("monthly_budget").notNull().default(15000),
   debtTotal: integer("debt_total").notNull().default(0),
   debtPaid: integer("debt_paid").notNull().default(0),
   debtMonthlyPayment: integer("debt_monthly_payment").notNull().default(0),
-  currency: text("currency").notNull().default("AED"), // "AED" | "USD" | "EUR" | "GBP" etc.
-  savingsGoal: integer("savings_goal").notNull().default(0), // monthly savings target
+  currency: text("currency").notNull().default("AED"),
+  savingsGoal: integer("savings_goal").notNull().default(0),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -446,17 +483,18 @@ export type InsertFinanceSettings = z.infer<typeof insertFinanceSettingsSchema>;
 // Journal Entries (rich journaling with mood, alter, time context)
 export const journalEntries = pgTable("journal_entries", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   content: text("content").notNull(),
-  entryType: text("entry_type").notNull().default("reflection"), // "reflection" | "vent" | "gratitude" | "grounding" | "memory" | "system_note"
-  mood: integer("mood"), // 1-10 scale (optional)
-  energy: integer("energy"), // 1-10 scale (optional)
-  authorId: varchar("author_id").references(() => systemMembers.id), // which alter wrote this
-  timeOfDay: text("time_of_day"), // "morning" | "afternoon" | "evening" | "night"
+  entryType: text("entry_type").notNull().default("reflection"),
+  mood: integer("mood"),
+  energy: integer("energy"),
+  authorId: varchar("author_id").references(() => systemMembers.id),
+  timeOfDay: text("time_of_day"),
   tags: jsonb("tags").$type<string[]>().default(sql`'[]'::jsonb`),
-  isPrivate: integer("is_private").notNull().default(0), // 0 = false, 1 = true
-  entryDate: timestamp("entry_date").defaultNow().notNull(), // user-selected date for when entry is about
-  primaryDriver: text("primary_driver"), // "sleep" | "work" | "relationships" | "body" | "anxiety" | "urges" | "shame" | "trauma" | "joy" | "connection" | "growth" | "peace" | "none"
-  secondaryDriver: text("secondary_driver"), // optional secondary driver (often: trigger → secondary like urges/shame)
+  isPrivate: integer("is_private").notNull().default(0),
+  entryDate: timestamp("entry_date").defaultNow().notNull(),
+  primaryDriver: text("primary_driver"),
+  secondaryDriver: text("secondary_driver"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -475,6 +513,7 @@ export type InsertJournalEntry = z.infer<typeof insertJournalEntrySchema>;
 // Career Coach Snapshots (persisted AI coaching data)
 export const careerCoachSnapshots = pgTable("career_coach_snapshots", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   payload: jsonb("payload").notNull(),
   generatedAt: timestamp("generated_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -491,15 +530,16 @@ export type InsertCareerCoachSnapshot = z.infer<typeof insertCareerCoachSnapshot
 // Loans (debt tracking with progress)
 export const loans = pgTable("loans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(), // "Car Loan", "Credit Card", "Student Loan"
-  lender: text("lender"), // "Bank ABC", "Credit Union"
-  principal: integer("principal").notNull(), // original loan amount
-  currentBalance: integer("current_balance").notNull(), // remaining balance
-  interestRate: integer("interest_rate"), // stored as basis points (e.g., 500 = 5.00%)
-  minimumPayment: integer("minimum_payment").notNull(), // monthly minimum
-  dueDay: integer("due_day"), // day of month payment is due (1-31)
-  startDate: timestamp("start_date"), // when loan was taken
-  status: text("status").notNull().default("active"), // "active" | "paid_off" | "deferred"
+  userId: varchar("user_id").notNull(),
+  name: text("name").notNull(),
+  lender: text("lender"),
+  principal: integer("principal").notNull(),
+  currentBalance: integer("current_balance").notNull(),
+  interestRate: integer("interest_rate"),
+  minimumPayment: integer("minimum_payment").notNull(),
+  dueDay: integer("due_day"),
+  startDate: timestamp("start_date"),
+  status: text("status").notNull().default("active"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -517,12 +557,13 @@ export type InsertLoan = z.infer<typeof insertLoanSchema>;
 // Loan Payments (individual payments toward a loan)
 export const loanPayments = pgTable("loan_payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   loanId: varchar("loan_id").references(() => loans.id).notNull(),
-  amount: integer("amount").notNull(), // total payment amount
-  principalPaid: integer("principal_paid"), // portion applied to principal
-  interestPaid: integer("interest_paid"), // portion applied to interest
+  amount: integer("amount").notNull(),
+  principalPaid: integer("principal_paid"),
+  interestPaid: integer("interest_paid"),
   paymentDate: timestamp("payment_date").notNull(),
-  transactionId: varchar("transaction_id").references(() => transactions.id), // linked transaction
+  transactionId: varchar("transaction_id").references(() => transactions.id),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -540,9 +581,10 @@ export type InsertLoanPayment = z.infer<typeof insertLoanPaymentSchema>;
 // User News Topics (user-selected topics to follow for news updates)
 export const userNewsTopics = pgTable("user_news_topics", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  topic: text("topic").notNull(), // "teaching", "cybersecurity", "tech", "wellness", etc.
-  isCustom: integer("is_custom").notNull().default(0), // 0 = suggested, 1 = user-added custom
-  isActive: integer("is_active").notNull().default(1), // 0 = disabled, 1 = active
+  userId: varchar("user_id").notNull(),
+  topic: text("topic").notNull(),
+  isCustom: integer("is_custom").notNull().default(0),
+  isActive: integer("is_active").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -557,6 +599,7 @@ export type InsertUserNewsTopic = z.infer<typeof insertUserNewsTopicSchema>;
 // Saved News Articles (bookmarked articles)
 export const savedArticles = pgTable("saved_articles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   title: text("title").notNull(),
   link: text("link").notNull(),
   description: text("description"),

@@ -8,6 +8,28 @@ Orbya is a holistic personal wellness and productivity tracker. It provides tool
 
 Preferred communication style: Simple, everyday language.
 
+## Multi-User System
+
+### Authentication Architecture
+- **Password-only login**: No username or signup flow. Admin assigns passwords manually.
+- **Session-based auth**: express-session with connect-pg-simple (PostgreSQL-backed sessions)
+- **Password hashing**: bcrypt with 12 rounds
+- **Auth flow**: Password → bcrypt compare against all users → session created with userId
+- **Auth middleware**: All `/api/*` routes (except `/api/auth/*`) require valid session
+- **Data isolation**: Every table has a `userId` column. Every storage query filters by userId.
+- **Admin routes**: `/api/admin/users` (GET/POST/DELETE) protected by ADMIN_PASSWORD env var
+
+### Key Files
+- `server/auth.ts`: Session middleware, requireAuth middleware, login/logout/me handlers
+- `server/index.ts`: Session setup, auth route registration, middleware ordering
+- `shared/schema.ts`: `users` table + `userId` column on all 27+ data tables
+- `server/storage.ts`: All methods take `userId` as first param for isolation
+- `client/src/App.tsx`: AuthContext with useAuth() hook, session-based login state
+
+### Environment Variables
+- `SESSION_SECRET`: Random secret for session signing
+- `ADMIN_PASSWORD`: Password for admin user management endpoints
+
 ## System Architecture
 
 ### Frontend Architecture

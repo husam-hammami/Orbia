@@ -1,6 +1,6 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, useCallback } from "react";
 import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
+import { queryClient, API_BASE_URL } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -35,6 +35,19 @@ export function useLock() {
   return context;
 }
 
+interface AuthContextType {
+  logout: () => Promise<void>;
+  user: { id: string; displayName?: string } | null;
+}
+
+export const AuthContext = createContext<AuthContextType | null>(null);
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
+  return context;
+}
+
 function Router() {
   return (
     <Switch>
@@ -53,17 +66,67 @@ function Router() {
 }
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem("orbia_authenticated") === "true";
-  });
-  
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [user, setUser] = useState<{ id: string; displayName?: string } | null>(null);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const url = API_BASE_URL ? `${API_BASE_URL}/api/auth/me` : "/api/auth/me";
+        const res = await fetch(url, { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+          setIsAuthenticated(true);
+        }
+      } catch {
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
+    checkSession();
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      const url = API_BASE_URL ? `${API_BASE_URL}/api/auth/logout` : "/api/auth/logout";
+      await fetch(url, { method: "POST", credentials: "include" });
+    } catch {
+    }
+    queryClient.clear();
+    setUser(null);
+    setIsAuthenticated(false);
+  }, []);
+
   const lockState = useLockScreen();
+
+  if (isCheckingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-primary text-lg">Loading...</div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <WelcomePage onAuthenticated={() => setIsAuthenticated(true)} />
+          <WelcomePage onAuthenticated={() => {
+            setIsAuthenticated(true);
+            const fetchUser = async () => {
+              try {
+                const url = API_BASE_URL ? `${API_BASE_URL}/api/auth/me` : "/api/auth/me";
+                const res = await fetch(url, { credentials: "include" });
+                if (res.ok) {
+                  const data = await res.json();
+                  setUser(data);
+                }
+              } catch {}
+            };
+            fetchUser();
+          }} />
         </TooltipProvider>
       </QueryClientProvider>
     );
@@ -72,16 +135,18 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <LockContext.Provider value={lockState}>
-          {lockState.isLocked && lockState.hasPassword ? (
-            <LockScreen onUnlock={lockState.unlock} />
-          ) : (
-            <>
-              <Toaster />
-              <Router />
-            </>
-          )}
-        </LockContext.Provider>
+        <AuthContext.Provider value={{ logout, user }}>
+          <LockContext.Provider value={lockState}>
+            {lockState.isLocked && lockState.hasPassword ? (
+              <LockScreen onUnlock={lockState.unlock} />
+            ) : (
+              <>
+                <Toaster />
+                <Router />
+              </>
+            )}
+          </LockContext.Provider>
+        </AuthContext.Provider>
       </TooltipProvider>
     </QueryClientProvider>
   );

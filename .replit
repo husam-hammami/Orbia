@@ -47,3 +47,4 @@ integrations = ["javascript_openai_ai_integrations:2.0.0"]
 
 [userenv.shared]
 ADMIN_SEED_KEY = "neurozen-seed-2026"
+ADMIN_PASSWORD = "eedcef207f284b8af1474b1dde51bca8"

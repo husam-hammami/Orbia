@@ -74,7 +74,8 @@ export async function registerRoutes(
   // System Members Routes
   app.get("/api/members", async (req, res) => {
     try {
-      const members = await storage.getAllMembers();
+      const userId = req.session.userId!;
+      const members = await storage.getAllMembers(userId);
       res.json(members);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch members" });
@@ -83,7 +84,8 @@ export async function registerRoutes(
 
   app.get("/api/members/:id", async (req, res) => {
     try {
-      const member = await storage.getMember(req.params.id);
+      const userId = req.session.userId!;
+      const member = await storage.getMember(userId, req.params.id);
       if (!member) {
         return res.status(404).json({ error: "Member not found" });
       }
@@ -95,8 +97,9 @@ export async function registerRoutes(
 
   app.post("/api/members", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertSystemMemberSchema.parse(req.body);
-      const member = await storage.createMember(validatedData);
+      const member = await storage.createMember(userId, validatedData);
       res.status(201).json(member);
     } catch (error) {
       const validationError = fromError(error);
@@ -106,8 +109,9 @@ export async function registerRoutes(
 
   app.patch("/api/members/:id", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertSystemMemberSchema.partial().parse(req.body);
-      const member = await storage.updateMember(req.params.id, validatedData);
+      const member = await storage.updateMember(userId, req.params.id, validatedData);
       if (!member) {
         return res.status(404).json({ error: "Member not found" });
       }
@@ -120,7 +124,8 @@ export async function registerRoutes(
 
   app.delete("/api/members/:id", async (req, res) => {
     try {
-      const success = await storage.deleteMember(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteMember(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Member not found" });
       }
@@ -133,10 +138,11 @@ export async function registerRoutes(
   // Tracker Entries Routes
   app.get("/api/tracker", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
       const entries = limit 
-        ? await storage.getRecentTrackerEntries(limit)
-        : await storage.getAllTrackerEntries();
+        ? await storage.getRecentTrackerEntries(userId, limit)
+        : await storage.getAllTrackerEntries(userId);
       res.json(entries);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch tracker entries" });
@@ -145,7 +151,8 @@ export async function registerRoutes(
 
   app.get("/api/tracker/:id", async (req, res) => {
     try {
-      const entry = await storage.getTrackerEntry(req.params.id);
+      const userId = req.session.userId!;
+      const entry = await storage.getTrackerEntry(userId, req.params.id);
       if (!entry) {
         return res.status(404).json({ error: "Tracker entry not found" });
       }
@@ -157,8 +164,9 @@ export async function registerRoutes(
 
   app.post("/api/tracker", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertTrackerEntrySchema.parse(req.body);
-      const entry = await storage.createTrackerEntry(validatedData);
+      const entry = await storage.createTrackerEntry(userId, validatedData);
       res.status(201).json(entry);
     } catch (error) {
       const validationError = fromError(error);
@@ -168,8 +176,9 @@ export async function registerRoutes(
 
   app.put("/api/tracker/:id", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertTrackerEntrySchema.partial().parse(req.body);
-      const entry = await storage.updateTrackerEntry(req.params.id, validatedData);
+      const entry = await storage.updateTrackerEntry(userId, req.params.id, validatedData);
       if (!entry) {
         return res.status(404).json({ error: "Tracker entry not found" });
       }
@@ -182,7 +191,8 @@ export async function registerRoutes(
 
   app.delete("/api/tracker/:id", async (req, res) => {
     try {
-      const success = await storage.deleteTrackerEntry(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteTrackerEntry(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Tracker entry not found" });
       }
@@ -195,7 +205,8 @@ export async function registerRoutes(
   // System Messages Routes
   app.get("/api/messages", async (req, res) => {
     try {
-      const messages = await storage.getAllMessages();
+      const userId = req.session.userId!;
+      const messages = await storage.getAllMessages(userId);
       res.json(messages);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch messages" });
@@ -204,7 +215,8 @@ export async function registerRoutes(
 
   app.get("/api/messages/:id", async (req, res) => {
     try {
-      const message = await storage.getMessage(req.params.id);
+      const userId = req.session.userId!;
+      const message = await storage.getMessage(userId, req.params.id);
       if (!message) {
         return res.status(404).json({ error: "Message not found" });
       }
@@ -216,8 +228,9 @@ export async function registerRoutes(
 
   app.post("/api/messages", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertSystemMessageSchema.parse(req.body);
-      const message = await storage.createMessage(validatedData);
+      const message = await storage.createMessage(userId, validatedData);
       res.status(201).json(message);
     } catch (error) {
       const validationError = fromError(error);
@@ -227,7 +240,8 @@ export async function registerRoutes(
 
   app.delete("/api/messages/:id", async (req, res) => {
     try {
-      const success = await storage.deleteMessage(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteMessage(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Message not found" });
       }
@@ -240,7 +254,8 @@ export async function registerRoutes(
   // Headspace Rooms Routes
   app.get("/api/rooms", async (req, res) => {
     try {
-      const rooms = await storage.getAllRooms();
+      const userId = req.session.userId!;
+      const rooms = await storage.getAllRooms(userId);
       res.json(rooms);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch rooms" });
@@ -249,7 +264,8 @@ export async function registerRoutes(
 
   app.get("/api/rooms/:id", async (req, res) => {
     try {
-      const room = await storage.getRoom(req.params.id);
+      const userId = req.session.userId!;
+      const room = await storage.getRoom(userId, req.params.id);
       if (!room) {
         return res.status(404).json({ error: "Room not found" });
       }
@@ -261,8 +277,9 @@ export async function registerRoutes(
 
   app.post("/api/rooms", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertHeadspaceRoomSchema.parse(req.body);
-      const room = await storage.createRoom(validatedData);
+      const room = await storage.createRoom(userId, validatedData);
       res.status(201).json(room);
     } catch (error) {
       const validationError = fromError(error);
@@ -272,8 +289,9 @@ export async function registerRoutes(
 
   app.patch("/api/rooms/:id", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertHeadspaceRoomSchema.partial().parse(req.body);
-      const room = await storage.updateRoom(req.params.id, validatedData);
+      const room = await storage.updateRoom(userId, req.params.id, validatedData);
       if (!room) {
         return res.status(404).json({ error: "Room not found" });
       }
@@ -286,7 +304,8 @@ export async function registerRoutes(
 
   app.delete("/api/rooms/:id", async (req, res) => {
     try {
-      const success = await storage.deleteRoom(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteRoom(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Room not found" });
       }
@@ -299,7 +318,8 @@ export async function registerRoutes(
   // System Settings Routes
   app.get("/api/settings", async (req, res) => {
     try {
-      const settings = await storage.getSettings();
+      const userId = req.session.userId!;
+      const settings = await storage.getSettings(userId);
       res.json(settings);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch settings" });
@@ -308,8 +328,9 @@ export async function registerRoutes(
 
   app.patch("/api/settings", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertSystemSettingsSchema.partial().parse(req.body);
-      const settings = await storage.updateSettings(validatedData);
+      const settings = await storage.updateSettings(userId, validatedData);
       res.json(settings);
     } catch (error) {
       const validationError = fromError(error);
@@ -319,22 +340,23 @@ export async function registerRoutes(
 
   app.get("/api/export", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const [settings, habits, habitCompletions, routineBlocks, routineActivities, 
              trackerEntries, journalEntries, todos, members, visionItems, 
              dailySummaries, expenses, transactions] = await Promise.all([
-        storage.getSettings(),
-        storage.getAllHabits(),
-        storage.getAllHabitCompletions(),
-        storage.getAllRoutineBlocks(),
-        storage.getAllRoutineActivities(),
-        storage.getRecentTrackerEntries(10000),
-        storage.getAllJournalEntries(),
-        storage.getAllTodos(),
-        storage.getAllMembers(),
-        storage.getVision(),
-        storage.getAllDailySummaries(),
-        storage.getAllExpenses(),
-        storage.getAllTransactions(),
+        storage.getSettings(userId),
+        storage.getAllHabits(userId),
+        storage.getAllHabitCompletions(userId),
+        storage.getAllRoutineBlocks(userId),
+        storage.getAllRoutineActivities(userId),
+        storage.getRecentTrackerEntries(userId, 10000),
+        storage.getAllJournalEntries(userId),
+        storage.getAllTodos(userId),
+        storage.getAllMembers(userId),
+        storage.getVision(userId),
+        storage.getAllDailySummaries(userId),
+        storage.getAllExpenses(userId),
+        storage.getAllTransactions(userId),
       ]);
       
       const exportData = {
@@ -369,7 +391,8 @@ export async function registerRoutes(
   // Habits Routes
   app.get("/api/habits", async (req, res) => {
     try {
-      const allHabits = await storage.getAllHabits();
+      const userId = req.session.userId!;
+      const allHabits = await storage.getAllHabits(userId);
       res.json(allHabits);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch habits" });
@@ -378,7 +401,8 @@ export async function registerRoutes(
 
   app.get("/api/habit-completions", async (req, res) => {
     try {
-      const allCompletions = await storage.getAllHabitCompletions();
+      const userId = req.session.userId!;
+      const allCompletions = await storage.getAllHabitCompletions(userId);
       res.json(allCompletions);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch habit completions" });
@@ -387,7 +411,8 @@ export async function registerRoutes(
 
   app.get("/api/habits/:id", async (req, res) => {
     try {
-      const habit = await storage.getHabit(req.params.id);
+      const userId = req.session.userId!;
+      const habit = await storage.getHabit(userId, req.params.id);
       if (!habit) {
         return res.status(404).json({ error: "Habit not found" });
       }
@@ -399,8 +424,9 @@ export async function registerRoutes(
 
   app.post("/api/habits", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertHabitSchema.parse(req.body);
-      const habit = await storage.createHabit(validatedData);
+      const habit = await storage.createHabit(userId, validatedData);
       res.status(201).json(habit);
     } catch (error) {
       const validationError = fromError(error);
@@ -410,8 +436,9 @@ export async function registerRoutes(
 
   app.patch("/api/habits/:id", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertHabitSchema.partial().parse(req.body);
-      const habit = await storage.updateHabit(req.params.id, validatedData);
+      const habit = await storage.updateHabit(userId, req.params.id, validatedData);
       if (!habit) {
         return res.status(404).json({ error: "Habit not found" });
       }
@@ -424,7 +451,8 @@ export async function registerRoutes(
 
   app.delete("/api/habits/:id", async (req, res) => {
     try {
-      const success = await storage.deleteHabit(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteHabit(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Habit not found" });
       }
@@ -437,7 +465,8 @@ export async function registerRoutes(
   // Habit Completions Routes
   app.get("/api/habits/:id/completions", async (req, res) => {
     try {
-      const completions = await storage.getHabitCompletions(req.params.id);
+      const userId = req.session.userId!;
+      const completions = await storage.getHabitCompletions(userId, req.params.id);
       res.json(completions);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch completions" });
@@ -446,11 +475,12 @@ export async function registerRoutes(
 
   app.post("/api/habits/:id/completions", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertHabitCompletionSchema.parse({
         ...req.body,
         habitId: req.params.id
       });
-      const completion = await storage.addHabitCompletion(validatedData);
+      const completion = await storage.addHabitCompletion(userId, validatedData);
       res.status(201).json(completion);
     } catch (error) {
       const validationError = fromError(error);
@@ -460,7 +490,8 @@ export async function registerRoutes(
 
   app.delete("/api/habits/:id/completions/:date", async (req, res) => {
     try {
-      const success = await storage.removeHabitCompletion(req.params.id, req.params.date);
+      const userId = req.session.userId!;
+      const success = await storage.removeHabitCompletion(userId, req.params.id, req.params.date);
       if (!success) {
         return res.status(404).json({ error: "Completion not found" });
       }
@@ -473,6 +504,7 @@ export async function registerRoutes(
   // Smart Icon Generation Endpoint (keyword-based for speed and reliability)
   app.post("/api/generate-icon", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { title, category } = req.body;
       if (!title) {
         return res.status(400).json({ error: "Title is required" });
@@ -550,7 +582,8 @@ export async function registerRoutes(
   // Regenerate icons for all habits that don't have one (keyword-based)
   app.post("/api/regenerate-all-icons", async (req, res) => {
     try {
-      const allHabits = await storage.getAllHabits();
+      const userId = req.session.userId!;
+      const allHabits = await storage.getAllHabits(userId);
       const habitsWithoutIcons = allHabits.filter(h => !h.icon);
       
       // Same keyword-to-icon mapping as generate-icon endpoint
@@ -618,7 +651,7 @@ export async function registerRoutes(
           icon = categoryIcons[habit.category.toLowerCase()] || "Sparkles";
         }
         
-        await storage.updateHabit(habit.id, { icon });
+        await storage.updateHabit(userId, habit.id, { icon });
         results.push({ id: habit.id, title: habit.title, icon });
       }
 
@@ -632,7 +665,8 @@ export async function registerRoutes(
   // Routine Templates Routes
   app.get("/api/routine-templates", async (req, res) => {
     try {
-      const templates = await storage.getAllRoutineTemplates();
+      const userId = req.session.userId!;
+      const templates = await storage.getAllRoutineTemplates(userId);
       res.json(templates);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch routine templates" });
@@ -641,7 +675,8 @@ export async function registerRoutes(
 
   app.get("/api/routine-templates/default", async (req, res) => {
     try {
-      const template = await storage.getDefaultRoutineTemplate();
+      const userId = req.session.userId!;
+      const template = await storage.getDefaultRoutineTemplate(userId);
       res.json(template || null);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch default template" });
@@ -650,10 +685,11 @@ export async function registerRoutes(
 
   app.get("/api/routine-templates/active", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const today = new Date();
       const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
       
-      const templates = await storage.getAllRoutineTemplates();
+      const templates = await storage.getAllRoutineTemplates(userId);
       
       const matchByDays = templates.filter(t => t.activeDays && t.activeDays.includes(dayOfWeek));
       let active = matchByDays.find(t => t.isDefault === 1) || matchByDays[0];
@@ -698,13 +734,14 @@ export async function registerRoutes(
 
   app.post("/api/routine-templates", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const incomingDays = getEffectiveDays({ activeDays: req.body.activeDays || null, dayType: req.body.dayType || "weekday" });
-      const existing = await storage.getAllRoutineTemplates();
+      const existing = await storage.getAllRoutineTemplates(userId);
       const conflictMsg = checkDayConflicts(incomingDays, existing);
       if (conflictMsg) {
         return res.status(400).json({ error: conflictMsg });
       }
-      const template = await storage.createRoutineTemplate(req.body);
+      const template = await storage.createRoutineTemplate(userId, req.body);
       res.status(201).json(template);
     } catch (error) {
       res.status(500).json({ error: "Failed to create routine template" });
@@ -713,19 +750,20 @@ export async function registerRoutes(
 
   app.patch("/api/routine-templates/:id", async (req, res) => {
     try {
-      const currentTemplate = (await storage.getAllRoutineTemplates()).find(t => t.id === req.params.id);
+      const userId = req.session.userId!;
+      const currentTemplate = (await storage.getAllRoutineTemplates(userId)).find(t => t.id === req.params.id);
       if (!currentTemplate) {
         return res.status(404).json({ error: "Template not found" });
       }
       const mergedDays = req.body.activeDays !== undefined ? req.body.activeDays : currentTemplate.activeDays;
       const mergedDayType = req.body.dayType !== undefined ? req.body.dayType : currentTemplate.dayType;
       const incomingDays = getEffectiveDays({ activeDays: mergedDays, dayType: mergedDayType });
-      const existing = await storage.getAllRoutineTemplates();
+      const existing = await storage.getAllRoutineTemplates(userId);
       const conflictMsg = checkDayConflicts(incomingDays, existing, req.params.id);
       if (conflictMsg) {
         return res.status(400).json({ error: conflictMsg });
       }
-      const template = await storage.updateRoutineTemplate(req.params.id, req.body);
+      const template = await storage.updateRoutineTemplate(userId, req.params.id, req.body);
       if (!template) {
         return res.status(404).json({ error: "Template not found" });
       }
@@ -737,7 +775,8 @@ export async function registerRoutes(
 
   app.post("/api/routine-templates/:id/set-default", async (req, res) => {
     try {
-      const template = await storage.setDefaultRoutineTemplate(req.params.id);
+      const userId = req.session.userId!;
+      const template = await storage.setDefaultRoutineTemplate(userId, req.params.id);
       if (!template) {
         return res.status(404).json({ error: "Template not found" });
       }
@@ -749,7 +788,8 @@ export async function registerRoutes(
 
   app.delete("/api/routine-templates/:id", async (req, res) => {
     try {
-      const success = await storage.deleteRoutineTemplate(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteRoutineTemplate(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Template not found" });
       }
@@ -762,10 +802,11 @@ export async function registerRoutes(
   // Routine Blocks Routes
   app.get("/api/routine-blocks", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const templateId = req.query.templateId as string | undefined;
       const blocks = templateId 
-        ? await storage.getRoutineBlocksByTemplate(templateId)
-        : await storage.getAllRoutineBlocks();
+        ? await storage.getRoutineBlocksByTemplate(userId, templateId)
+        : await storage.getAllRoutineBlocks(userId);
       res.json(blocks);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch routine blocks" });
@@ -774,8 +815,9 @@ export async function registerRoutes(
 
   app.post("/api/routine-blocks", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertRoutineBlockSchema.parse(req.body);
-      const block = await storage.createRoutineBlock(validatedData);
+      const block = await storage.createRoutineBlock(userId, validatedData);
       res.status(201).json(block);
     } catch (error) {
       const validationError = fromError(error);
@@ -785,8 +827,9 @@ export async function registerRoutes(
 
   app.patch("/api/routine-blocks/:id", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertRoutineBlockSchema.partial().parse(req.body);
-      const block = await storage.updateRoutineBlock(req.params.id, validatedData);
+      const block = await storage.updateRoutineBlock(userId, req.params.id, validatedData);
       if (!block) {
         return res.status(404).json({ error: "Routine block not found" });
       }
@@ -799,7 +842,8 @@ export async function registerRoutes(
 
   app.delete("/api/routine-blocks/:id", async (req, res) => {
     try {
-      const success = await storage.deleteRoutineBlock(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteRoutineBlock(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Routine block not found" });
       }
@@ -812,7 +856,8 @@ export async function registerRoutes(
   // Routine Activities Routes
   app.get("/api/routine-activities", async (req, res) => {
     try {
-      const activities = await storage.getAllRoutineActivities();
+      const userId = req.session.userId!;
+      const activities = await storage.getAllRoutineActivities(userId);
       res.json(activities);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch routine activities" });
@@ -821,7 +866,8 @@ export async function registerRoutes(
 
   app.get("/api/routine-blocks/:id/activities", async (req, res) => {
     try {
-      const activities = await storage.getActivitiesByBlock(req.params.id);
+      const userId = req.session.userId!;
+      const activities = await storage.getActivitiesByBlock(userId, req.params.id);
       res.json(activities);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch activities" });
@@ -830,8 +876,9 @@ export async function registerRoutes(
 
   app.post("/api/routine-activities", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertRoutineActivitySchema.parse(req.body);
-      const activity = await storage.createRoutineActivity(validatedData);
+      const activity = await storage.createRoutineActivity(userId, validatedData);
       res.status(201).json(activity);
     } catch (error) {
       const validationError = fromError(error);
@@ -841,8 +888,9 @@ export async function registerRoutes(
 
   app.patch("/api/routine-activities/:id", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertRoutineActivitySchema.partial().parse(req.body);
-      const activity = await storage.updateRoutineActivity(req.params.id, validatedData);
+      const activity = await storage.updateRoutineActivity(userId, req.params.id, validatedData);
       if (!activity) {
         return res.status(404).json({ error: "Activity not found" });
       }
@@ -855,7 +903,8 @@ export async function registerRoutes(
 
   app.delete("/api/routine-activities/:id", async (req, res) => {
     try {
-      const success = await storage.deleteRoutineActivity(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteRoutineActivity(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Activity not found" });
       }
@@ -868,7 +917,8 @@ export async function registerRoutes(
   // Routine Activity Logs Routes
   app.get("/api/routine-logs/:date", async (req, res) => {
     try {
-      const logs = await storage.getActivityLogsForDate(req.params.date);
+      const userId = req.session.userId!;
+      const logs = await storage.getActivityLogsForDate(userId, req.params.date);
       res.json(logs);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch routine logs" });
@@ -877,8 +927,9 @@ export async function registerRoutes(
 
   app.post("/api/routine-logs", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertRoutineActivityLogSchema.parse(req.body);
-      const log = await storage.addActivityLog(validatedData);
+      const log = await storage.addActivityLog(userId, validatedData);
       res.status(201).json(log);
     } catch (error) {
       const validationError = fromError(error);
@@ -888,7 +939,8 @@ export async function registerRoutes(
 
   app.delete("/api/routine-logs/:activityId/:date", async (req, res) => {
     try {
-      const success = await storage.removeActivityLog(req.params.activityId, req.params.date);
+      const userId = req.session.userId!;
+      const success = await storage.removeActivityLog(userId, req.params.activityId, req.params.date);
       if (!success) {
         return res.status(404).json({ error: "Log not found" });
       }
@@ -901,12 +953,13 @@ export async function registerRoutes(
   // Atomic routine + habit toggle endpoint
   app.post("/api/routine-toggle", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const parsed = toggleRoutineSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: fromError(parsed.error).toString() });
       }
       const { activityId, date, habitId, action } = parsed.data;
-      const result = await storage.toggleRoutineActivityWithHabit(activityId, date, habitId || null, action);
+      const result = await storage.toggleRoutineActivityWithHabit(userId, activityId, date, habitId || null, action);
       if (result.success) {
         res.json(result);
       } else {
@@ -920,19 +973,20 @@ export async function registerRoutes(
   // AI Insights endpoint - analyzes linked data from habits, mood, and routines
   app.get("/api/insights", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const days = parseInt(req.query.days as string) || 14;
       
       // Fetch all linked data for analysis
       const [entries, habits, completions, routineBlocks, routineActivities, routineLogs, members, dailySummaries, journalEntries] = await Promise.all([
-        storage.getAllTrackerEntries(),
-        storage.getAllHabits(),
-        storage.getAllHabitCompletions(),
-        storage.getAllRoutineBlocks(),
-        storage.getAllRoutineActivities(),
-        storage.getAllRoutineLogs(),
-        storage.getAllMembers(),
-        storage.getAllDailySummaries(),
-        storage.getAllJournalEntries()
+        storage.getAllTrackerEntries(userId),
+        storage.getAllHabits(userId),
+        storage.getAllHabitCompletions(userId),
+        storage.getAllRoutineBlocks(userId),
+        storage.getAllRoutineActivities(userId),
+        storage.getAllRoutineLogs(userId),
+        storage.getAllMembers(userId),
+        storage.getAllDailySummaries(userId),
+        storage.getAllJournalEntries(userId)
       ]);
       
       // Filter to recent data
@@ -1679,17 +1733,18 @@ Format as JSON:
   // AI pattern analysis endpoint - streaming version for real-time analysis
   app.post("/api/insights/analyze", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { question, days = 14 } = req.body;
       
       // Fetch all linked data
       const [entries, habits, completions, routineBlocks, routineActivities, routineLogs, members] = await Promise.all([
-        storage.getAllTrackerEntries(),
-        storage.getAllHabits(),
-        storage.getAllHabitCompletions(),
-        storage.getAllRoutineBlocks(),
-        storage.getAllRoutineActivities(),
-        storage.getAllRoutineLogs(),
-        storage.getAllMembers()
+        storage.getAllTrackerEntries(userId),
+        storage.getAllHabits(userId),
+        storage.getAllHabitCompletions(userId),
+        storage.getAllRoutineBlocks(userId),
+        storage.getAllRoutineActivities(userId),
+        storage.getAllRoutineLogs(userId),
+        storage.getAllMembers(userId)
       ]);
       
       // Filter to recent data
@@ -1836,7 +1891,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   // Todos Routes
   app.get("/api/todos", async (req, res) => {
     try {
-      const todos = await storage.getAllTodos();
+      const userId = req.session.userId!;
+      const todos = await storage.getAllTodos(userId);
       res.json(todos);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch todos" });
@@ -1845,8 +1901,9 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.post("/api/todos", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertTodoSchema.parse(req.body);
-      const todo = await storage.createTodo(validatedData);
+      const todo = await storage.createTodo(userId, validatedData);
       res.status(201).json(todo);
     } catch (error) {
       const validationError = fromError(error);
@@ -1856,8 +1913,9 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.patch("/api/todos/:id", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertTodoSchema.partial().parse(req.body);
-      const todo = await storage.updateTodo(req.params.id, validatedData);
+      const todo = await storage.updateTodo(userId, req.params.id, validatedData);
       if (!todo) {
         return res.status(404).json({ error: "Todo not found" });
       }
@@ -1870,7 +1928,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.delete("/api/todos/:id", async (req, res) => {
     try {
-      const success = await storage.deleteTodo(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteTodo(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Todo not found" });
       }
@@ -1883,7 +1942,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   // Career Projects Routes
   app.get("/api/career-projects", async (req, res) => {
     try {
-      const projects = await storage.getAllCareerProjects();
+      const userId = req.session.userId!;
+      const projects = await storage.getAllCareerProjects(userId);
       res.json(projects);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch career projects" });
@@ -1892,7 +1952,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.get("/api/career-projects/:id", async (req, res) => {
     try {
-      const project = await storage.getCareerProject(req.params.id);
+      const userId = req.session.userId!;
+      const project = await storage.getCareerProject(userId, req.params.id);
       if (!project) {
         return res.status(404).json({ error: "Project not found" });
       }
@@ -1904,8 +1965,9 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.post("/api/career-projects", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertCareerProjectSchema.parse(req.body);
-      const project = await storage.createCareerProject(validatedData);
+      const project = await storage.createCareerProject(userId, validatedData);
       res.status(201).json(project);
     } catch (error) {
       const validationError = fromError(error);
@@ -1915,8 +1977,9 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.patch("/api/career-projects/:id", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertCareerProjectSchema.partial().parse(req.body);
-      const project = await storage.updateCareerProject(req.params.id, validatedData);
+      const project = await storage.updateCareerProject(userId, req.params.id, validatedData);
       if (!project) {
         return res.status(404).json({ error: "Project not found" });
       }
@@ -1929,7 +1992,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.delete("/api/career-projects/:id", async (req, res) => {
     try {
-      const success = await storage.deleteCareerProject(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteCareerProject(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Project not found" });
       }
@@ -1942,10 +2006,11 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   // Career Tasks Routes
   app.get("/api/career-tasks", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const projectId = req.query.projectId as string | undefined;
       const tasks = projectId 
-        ? await storage.getCareerTasksByProject(projectId)
-        : await storage.getAllCareerTasks();
+        ? await storage.getCareerTasksByProject(userId, projectId)
+        : await storage.getAllCareerTasks(userId);
       res.json(tasks);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch career tasks" });
@@ -1954,8 +2019,9 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.post("/api/career-tasks", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertCareerTaskSchema.parse(req.body);
-      const task = await storage.createCareerTask(validatedData);
+      const task = await storage.createCareerTask(userId, validatedData);
       res.status(201).json(task);
     } catch (error) {
       const validationError = fromError(error);
@@ -1965,8 +2031,9 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.patch("/api/career-tasks/:id", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertCareerTaskSchema.partial().parse(req.body);
-      const task = await storage.updateCareerTask(req.params.id, validatedData);
+      const task = await storage.updateCareerTask(userId, req.params.id, validatedData);
       if (!task) {
         return res.status(404).json({ error: "Task not found" });
       }
@@ -1979,7 +2046,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.delete("/api/career-tasks/:id", async (req, res) => {
     try {
-      const success = await storage.deleteCareerTask(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteCareerTask(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Task not found" });
       }
@@ -1992,10 +2060,11 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   // Expenses Routes
   app.get("/api/expenses", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const month = req.query.month as string | undefined;
       const expenses = month
-        ? await storage.getExpensesByMonth(month)
-        : await storage.getAllExpenses();
+        ? await storage.getExpensesByMonth(userId, month)
+        : await storage.getAllExpenses(userId);
       res.json(expenses);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch expenses" });
@@ -2004,8 +2073,9 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.post("/api/expenses", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertExpenseSchema.parse(req.body);
-      const expense = await storage.createExpense(validatedData);
+      const expense = await storage.createExpense(userId, validatedData);
       res.status(201).json(expense);
     } catch (error) {
       const validationError = fromError(error);
@@ -2015,8 +2085,9 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.patch("/api/expenses/:id", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertExpenseSchema.partial().parse(req.body);
-      const expense = await storage.updateExpense(req.params.id, validatedData);
+      const expense = await storage.updateExpense(userId, req.params.id, validatedData);
       if (!expense) {
         return res.status(404).json({ error: "Expense not found" });
       }
@@ -2029,7 +2100,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.delete("/api/expenses/:id", async (req, res) => {
     try {
-      const success = await storage.deleteExpense(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteExpense(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Expense not found" });
       }
@@ -2042,7 +2114,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   // Career Vision Routes
   app.get("/api/vision", async (req, res) => {
     try {
-      const vision = await storage.getVision();
+      const userId = req.session.userId!;
+      const vision = await storage.getVision(userId);
       res.json(vision);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch vision" });
@@ -2051,8 +2124,9 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.post("/api/vision", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = z.array(insertCareerVisionSchema).parse(req.body);
-      const vision = await storage.updateVision(validatedData);
+      const vision = await storage.updateVision(userId, validatedData);
       res.json(vision);
     } catch (error) {
       const validationError = fromError(error);
@@ -2063,8 +2137,9 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   // Individual Vision CRUD routes (for Orbit actions)
   app.post("/api/vision/item", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertCareerVisionSchema.parse(req.body);
-      const vision = await storage.createVisionItem(validatedData);
+      const vision = await storage.createVisionItem(userId, validatedData);
       res.status(201).json(vision);
     } catch (error) {
       const validationError = fromError(error);
@@ -2074,7 +2149,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.patch("/api/vision/item/:id", async (req, res) => {
     try {
-      const vision = await storage.updateVisionItem(req.params.id, req.body);
+      const userId = req.session.userId!;
+      const vision = await storage.updateVisionItem(userId, req.params.id, req.body);
       if (!vision) {
         return res.status(404).json({ error: "Vision item not found" });
       }
@@ -2086,7 +2162,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.delete("/api/vision/item/:id", async (req, res) => {
     try {
-      const success = await storage.deleteVisionItem(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteVisionItem(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Vision item not found" });
       }
@@ -2146,10 +2223,11 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   // Get suggested topics based on user's goals, projects, and visions
   app.get("/api/news/suggested-topics", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const [vision, projects, habits] = await Promise.all([
-        storage.getVision(),
-        storage.getAllCareerProjects(),
-        storage.getAllHabits()
+        storage.getVision(userId),
+        storage.getAllCareerProjects(userId),
+        storage.getAllHabits(userId)
       ]);
 
       const suggestions: { topic: string; name: string; reason: string }[] = [];
@@ -2229,7 +2307,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   // User's saved topics CRUD
   app.get("/api/news/topics", async (req, res) => {
     try {
-      const topics = await storage.getAllNewsTopics();
+      const userId = req.session.userId!;
+      const topics = await storage.getAllNewsTopics(userId);
       res.json(topics);
     } catch (error) {
       res.status(500).json({ error: "Failed to get news topics" });
@@ -2238,11 +2317,12 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.post("/api/news/topics", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { topic, isCustom } = req.body;
       if (!topic) {
         return res.status(400).json({ error: "Topic is required" });
       }
-      const newTopic = await storage.createNewsTopic({ 
+      const newTopic = await storage.createNewsTopic(userId, { 
         topic: topic.toLowerCase(), 
         isCustom: isCustom ? 1 : 0,
         isActive: 1
@@ -2255,7 +2335,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.patch("/api/news/topics/:id", async (req, res) => {
     try {
-      const topic = await storage.updateNewsTopic(req.params.id, req.body);
+      const userId = req.session.userId!;
+      const topic = await storage.updateNewsTopic(userId, req.params.id, req.body);
       if (!topic) {
         return res.status(404).json({ error: "Topic not found" });
       }
@@ -2267,7 +2348,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.delete("/api/news/topics/:id", async (req, res) => {
     try {
-      const success = await storage.deleteNewsTopic(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteNewsTopic(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Topic not found" });
       }
@@ -2280,7 +2362,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   // Saved articles CRUD
   app.get("/api/news/saved", async (req, res) => {
     try {
-      const articles = await storage.getAllSavedArticles();
+      const userId = req.session.userId!;
+      const articles = await storage.getAllSavedArticles(userId);
       res.json(articles);
     } catch (error) {
       res.status(500).json({ error: "Failed to get saved articles" });
@@ -2289,18 +2372,19 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.post("/api/news/saved", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { title, link, description, category, source, pubDate } = req.body;
       if (!title || !link) {
         return res.status(400).json({ error: "Title and link are required" });
       }
       
       // Check if already saved
-      const existing = await storage.getSavedArticle(link);
+      const existing = await storage.getSavedArticle(userId, link);
       if (existing) {
         return res.status(400).json({ error: "Article already saved" });
       }
       
-      const article = await storage.createSavedArticle({
+      const article = await storage.createSavedArticle(userId, {
         title,
         link,
         description,
@@ -2316,7 +2400,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.delete("/api/news/saved/:id", async (req, res) => {
     try {
-      const success = await storage.deleteSavedArticle(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteSavedArticle(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Saved article not found" });
       }
@@ -2329,15 +2414,16 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   // News/Updates API - fetches and summarizes news based on user's selected topics
   app.get("/api/news", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       // Get user's active topics, or use suggestions if none selected
-      let userTopics = await storage.getActiveNewsTopics();
+      let userTopics = await storage.getActiveNewsTopics(userId);
       
       let activeTopics: string[];
       if (userTopics.length > 0) {
         activeTopics = userTopics.map(t => t.topic);
       } else {
         // Fallback: auto-detect from visions
-        const vision = await storage.getVision();
+        const vision = await storage.getVision(userId);
         const detectedInterests: string[] = [];
         
         vision.forEach(v => {
@@ -2439,7 +2525,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
       });
 
       // Get saved article links to mark which are saved
-      const savedArticles = await storage.getAllSavedArticles();
+      const savedArticles = await storage.getAllSavedArticles(userId);
       const savedLinks = new Set(savedArticles.map(a => a.link));
 
       // Add isSaved flag to articles
@@ -2452,7 +2538,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
       let aiSummary = null;
       if (articlesWithSaveStatus.length > 0 && process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
         try {
-          const vision = await storage.getVision();
+          const vision = await storage.getVision(userId);
           const visionSummary = vision.map(v => v.title).join(", ");
           const articlesList = articlesWithSaveStatus.slice(0, 8).map((a, i) => 
             `${i + 1}. [${a.category}] ${a.title}`
@@ -2495,6 +2581,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
   app.get("/api/career/ai-roadmap", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY || !process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {
         return res.json({
           roadmap: [],
@@ -2505,9 +2592,9 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
       }
 
       const [vision, projects, tasks] = await Promise.all([
-        storage.getVision(),
-        storage.getAllCareerProjects(),
-        storage.getAllCareerTasks(),
+        storage.getVision(userId),
+        storage.getAllCareerProjects(userId),
+        storage.getAllCareerTasks(userId),
       ]);
 
       if (vision.length === 0) {
@@ -2590,7 +2677,8 @@ Based on this vision and current project state, create a strategic roadmap and s
 
   app.get("/api/career/coach", async (req, res) => {
     try {
-      const snapshot = await storage.getLatestCoachSnapshot();
+      const userId = req.session.userId!;
+      const snapshot = await storage.getLatestCoachSnapshot(userId);
       if (!snapshot) {
         return res.json({ empty: true, message: "No coaching data yet. Click Refresh to generate." });
       }
@@ -2606,6 +2694,7 @@ Based on this vision and current project state, create a strategic roadmap and s
 
   app.post("/api/career/coach", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY || !process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {
         return res.json({
           error: "missing_credentials",
@@ -2614,9 +2703,9 @@ Based on this vision and current project state, create a strategic roadmap and s
       }
 
       const [vision, projects, tasks] = await Promise.all([
-        storage.getVision(),
-        storage.getAllCareerProjects(),
-        storage.getAllCareerTasks(),
+        storage.getVision(userId),
+        storage.getAllCareerProjects(userId),
+        storage.getAllCareerTasks(userId),
       ]);
 
       if (vision.length === 0) {
@@ -2700,16 +2789,16 @@ Based on my North Star vision, create a comprehensive career coaching plan. Be s
         vision: vision,
       };
 
-      const snapshot = await storage.upsertCoachSnapshot(coachData);
+      const snapshot = await storage.upsertCoachSnapshot(userId, coachData);
 
       const coachTasks = tasks.filter(t => t.tags?.includes("coach"));
       for (const task of coachTasks) {
-        await storage.deleteCareerTask(task.id);
+        await storage.deleteCareerTask(userId, task.id);
       }
 
       if (parsed.immediateActions) {
         for (const action of parsed.immediateActions) {
-          await storage.createCareerTask({
+          await storage.createCareerTask(userId, {
             title: action.title,
             description: action.why || "",
             projectId: null,
@@ -2726,7 +2815,7 @@ Based on my North Star vision, create a comprehensive career coaching plan. Be s
           const phase = parsed.roadmap[phaseIndex];
           if (phase.milestones) {
             for (const milestone of phase.milestones) {
-              await storage.createCareerTask({
+              await storage.createCareerTask(userId, {
                 title: milestone,
                 description: `Phase: ${phase.phase} | ${phase.timeframe}`,
                 projectId: null,
@@ -2752,12 +2841,13 @@ Based on my North Star vision, create a comprehensive career coaching plan. Be s
 
   app.patch("/api/career/coach/roadmap", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { roadmap } = req.body;
       if (!roadmap || !Array.isArray(roadmap)) {
         return res.status(400).json({ error: "Invalid roadmap format" });
       }
 
-      const currentSnapshot = await storage.getLatestCoachSnapshot();
+      const currentSnapshot = await storage.getLatestCoachSnapshot(userId);
       if (!currentSnapshot) {
         return res.status(404).json({ error: "No coach data found" });
       }
@@ -2768,19 +2858,19 @@ Based on my North Star vision, create a comprehensive career coaching plan. Be s
         roadmap,
       };
 
-      const snapshot = await storage.upsertCoachSnapshot(updatedPayload);
+      const snapshot = await storage.upsertCoachSnapshot(userId, updatedPayload);
 
-      const tasks = await storage.getAllCareerTasks();
+      const tasks = await storage.getAllCareerTasks(userId);
       const milestoneTasks = tasks.filter(t => t.tags?.includes("milestone"));
       for (const task of milestoneTasks) {
-        await storage.deleteCareerTask(task.id);
+        await storage.deleteCareerTask(userId, task.id);
       }
 
       for (let phaseIndex = 0; phaseIndex < roadmap.length; phaseIndex++) {
         const phase = roadmap[phaseIndex];
         if (phase.milestones) {
           for (const milestone of phase.milestones) {
-            await storage.createCareerTask({
+            await storage.createCareerTask(userId, {
               title: milestone,
               description: `Phase: ${phase.phase} | ${phase.timeframe}`,
               projectId: null,
@@ -2805,9 +2895,10 @@ Based on my North Star vision, create a comprehensive career coaching plan. Be s
 
   app.patch("/api/career/coach", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { learningPath, immediateActions, weeklyTheme, coachingNote } = req.body;
       
-      const currentSnapshot = await storage.getLatestCoachSnapshot();
+      const currentSnapshot = await storage.getLatestCoachSnapshot(userId);
       if (!currentSnapshot) {
         return res.status(404).json({ error: "No coach data found" });
       }
@@ -2828,7 +2919,7 @@ Based on my North Star vision, create a comprehensive career coaching plan. Be s
         updatedPayload.coachingNote = coachingNote;
       }
 
-      const snapshot = await storage.upsertCoachSnapshot(updatedPayload);
+      const snapshot = await storage.upsertCoachSnapshot(userId, updatedPayload);
 
       res.json({
         ...updatedPayload,
@@ -2842,6 +2933,7 @@ Based on my North Star vision, create a comprehensive career coaching plan. Be s
 
   app.post("/api/career/regenerate-phase", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { phaseIndex, currentPhase, vision } = req.body;
       
       if (phaseIndex === undefined || !currentPhase) {
@@ -2895,6 +2987,7 @@ Generate a fresh version of this phase with new, specific milestones that still 
 
   app.post("/api/career/regenerate-milestone", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { currentMilestone, phaseName, phaseGoal, vision } = req.body;
       
       if (!currentMilestone || !phaseName) {
@@ -2939,7 +3032,8 @@ Generate a different, equally specific milestone that serves the same purpose bu
   // Finance Settings Routes
   app.get("/api/finance-settings", async (req, res) => {
     try {
-      const settings = await storage.getFinanceSettings();
+      const userId = req.session.userId!;
+      const settings = await storage.getFinanceSettings(userId);
       res.json(settings || { monthlyBudget: 15000, debtTotal: 0, debtPaid: 0, debtMonthlyPayment: 0, currency: "AED", savingsGoal: 0 });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch finance settings" });
@@ -2948,7 +3042,8 @@ Generate a different, equally specific milestone that serves the same purpose bu
 
   app.patch("/api/finance-settings", async (req, res) => {
     try {
-      const settings = await storage.updateFinanceSettings(req.body);
+      const userId = req.session.userId!;
+      const settings = await storage.updateFinanceSettings(userId, req.body);
       res.json(settings);
     } catch (error) {
       res.status(500).json({ error: "Failed to update finance settings" });
@@ -2958,7 +3053,8 @@ Generate a different, equally specific milestone that serves the same purpose bu
   // Income Streams Routes
   app.get("/api/income-streams", async (req, res) => {
     try {
-      const streams = await storage.getAllIncomeStreams();
+      const userId = req.session.userId!;
+      const streams = await storage.getAllIncomeStreams(userId);
       res.json(streams);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch income streams" });
@@ -2967,8 +3063,9 @@ Generate a different, equally specific milestone that serves the same purpose bu
 
   app.post("/api/income-streams", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertIncomeStreamSchema.parse(req.body);
-      const stream = await storage.createIncomeStream(validatedData);
+      const stream = await storage.createIncomeStream(userId, validatedData);
       res.status(201).json(stream);
     } catch (error) {
       const validationError = fromError(error);
@@ -2978,8 +3075,9 @@ Generate a different, equally specific milestone that serves the same purpose bu
 
   app.patch("/api/income-streams/:id", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertIncomeStreamSchema.partial().parse(req.body);
-      const stream = await storage.updateIncomeStream(req.params.id, validatedData);
+      const stream = await storage.updateIncomeStream(userId, req.params.id, validatedData);
       if (!stream) {
         return res.status(404).json({ error: "Income stream not found" });
       }
@@ -2992,7 +3090,8 @@ Generate a different, equally specific milestone that serves the same purpose bu
 
   app.delete("/api/income-streams/:id", async (req, res) => {
     try {
-      const success = await storage.deleteIncomeStream(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteIncomeStream(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Income stream not found" });
       }
@@ -3005,10 +3104,11 @@ Generate a different, equally specific milestone that serves the same purpose bu
   // Transactions Routes
   app.get("/api/transactions", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const month = req.query.month as string | undefined;
       const txns = month
-        ? await storage.getTransactionsByMonth(month)
-        : await storage.getAllTransactions();
+        ? await storage.getTransactionsByMonth(userId, month)
+        : await storage.getAllTransactions(userId);
       res.json(txns);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch transactions" });
@@ -3017,8 +3117,9 @@ Generate a different, equally specific milestone that serves the same purpose bu
 
   app.post("/api/transactions", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertTransactionSchema.parse(req.body);
-      const txn = await storage.createTransaction(validatedData);
+      const txn = await storage.createTransaction(userId, validatedData);
       res.status(201).json(txn);
     } catch (error) {
       const validationError = fromError(error);
@@ -3028,8 +3129,9 @@ Generate a different, equally specific milestone that serves the same purpose bu
 
   app.post("/api/transactions/bulk", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = z.array(insertTransactionSchema).parse(req.body);
-      const txns = await storage.createManyTransactions(validatedData);
+      const txns = await storage.createManyTransactions(userId, validatedData);
       res.status(201).json(txns);
     } catch (error) {
       const validationError = fromError(error);
@@ -3039,8 +3141,9 @@ Generate a different, equally specific milestone that serves the same purpose bu
 
   app.patch("/api/transactions/:id", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertTransactionSchema.partial().parse(req.body);
-      const txn = await storage.updateTransaction(req.params.id, validatedData);
+      const txn = await storage.updateTransaction(userId, req.params.id, validatedData);
       if (!txn) {
         return res.status(404).json({ error: "Transaction not found" });
       }
@@ -3053,7 +3156,8 @@ Generate a different, equally specific milestone that serves the same purpose bu
 
   app.delete("/api/transactions/:id", async (req, res) => {
     try {
-      const success = await storage.deleteTransaction(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteTransaction(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Transaction not found" });
       }
@@ -3066,6 +3170,7 @@ Generate a different, equally specific milestone that serves the same purpose bu
   // AI-powered document import for bank statements
   app.post("/api/transactions/import", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { documentText, documentType } = req.body;
       
       if (!documentText) {
@@ -3181,6 +3286,7 @@ MERCHANT FIELD:
   // Orbit Chat Route - Enhanced with comprehensive data like Deep Mind
   app.post("/api/orbit/chat", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { message, context, history } = req.body;
       
       if (!message) {
@@ -3189,14 +3295,14 @@ MERCHANT FIELD:
 
       // Fetch comprehensive data like Deep Mind does
       const [entries, journalEntries, members, visionItems, allTransactions, loans, incomeStreams, financeSettings] = await Promise.all([
-        storage.getRecentTrackerEntries(200),
-        storage.getAllJournalEntries(),
-        storage.getAllMembers(),
-        storage.getVision(),
-        storage.getAllTransactions(),
-        storage.getAllLoans(),
-        storage.getAllIncomeStreams(),
-        storage.getFinanceSettings(),
+        storage.getRecentTrackerEntries(userId, 200),
+        storage.getAllJournalEntries(userId),
+        storage.getAllMembers(userId),
+        storage.getVision(userId),
+        storage.getAllTransactions(userId),
+        storage.getAllLoans(userId),
+        storage.getAllIncomeStreams(userId),
+        storage.getFinanceSettings(userId),
       ]);
       
       // Calculate facts for last 7 days
@@ -3708,7 +3814,8 @@ ${JSON.stringify(context, null, 2)}`;
   // Daily Summary Routes
   app.get("/api/daily-summaries", async (req, res) => {
     try {
-      const summaries = await storage.getAllDailySummaries();
+      const userId = req.session.userId!;
+      const summaries = await storage.getAllDailySummaries(userId);
       res.json(summaries);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch daily summaries" });
@@ -3717,7 +3824,8 @@ ${JSON.stringify(context, null, 2)}`;
 
   app.get("/api/daily-summaries/:date", async (req, res) => {
     try {
-      const summary = await storage.getDailySummary(req.params.date);
+      const userId = req.session.userId!;
+      const summary = await storage.getDailySummary(userId, req.params.date);
       res.json(summary || null);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch daily summary" });
@@ -3726,8 +3834,9 @@ ${JSON.stringify(context, null, 2)}`;
 
   app.post("/api/daily-summaries", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertDailySummarySchema.parse(req.body);
-      const summary = await storage.upsertDailySummary(validatedData);
+      const summary = await storage.upsertDailySummary(userId, validatedData);
       res.status(201).json(summary);
     } catch (error) {
       const validationError = fromError(error);
@@ -3738,7 +3847,8 @@ ${JSON.stringify(context, null, 2)}`;
   // Journal Entries Routes
   app.get("/api/journal", async (req, res) => {
     try {
-      const entries = await storage.getAllJournalEntries();
+      const userId = req.session.userId!;
+      const entries = await storage.getAllJournalEntries(userId);
       res.json(entries);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch journal entries" });
@@ -3747,7 +3857,8 @@ ${JSON.stringify(context, null, 2)}`;
 
   app.get("/api/journal/:id", async (req, res) => {
     try {
-      const entry = await storage.getJournalEntry(req.params.id);
+      const userId = req.session.userId!;
+      const entry = await storage.getJournalEntry(userId, req.params.id);
       if (!entry) {
         return res.status(404).json({ error: "Journal entry not found" });
       }
@@ -3759,8 +3870,9 @@ ${JSON.stringify(context, null, 2)}`;
 
   app.post("/api/journal", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertJournalEntrySchema.parse(req.body);
-      const entry = await storage.createJournalEntry(validatedData);
+      const entry = await storage.createJournalEntry(userId, validatedData);
       res.status(201).json(entry);
     } catch (error) {
       const validationError = fromError(error);
@@ -3770,8 +3882,9 @@ ${JSON.stringify(context, null, 2)}`;
 
   app.patch("/api/journal/:id", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertJournalEntrySchema.partial().parse(req.body);
-      const entry = await storage.updateJournalEntry(req.params.id, validatedData);
+      const entry = await storage.updateJournalEntry(userId, req.params.id, validatedData);
       if (!entry) {
         return res.status(404).json({ error: "Journal entry not found" });
       }
@@ -3784,7 +3897,8 @@ ${JSON.stringify(context, null, 2)}`;
 
   app.delete("/api/journal/:id", async (req, res) => {
     try {
-      const success = await storage.deleteJournalEntry(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteJournalEntry(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Journal entry not found" });
       }
@@ -3797,7 +3911,8 @@ ${JSON.stringify(context, null, 2)}`;
   // Food Options Routes
   app.get("/api/food-options", async (req, res) => {
     try {
-      const options = await storage.getAllFoodOptions();
+      const userId = req.session.userId!;
+      const options = await storage.getAllFoodOptions(userId);
       res.json(options);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch food options" });
@@ -3806,8 +3921,9 @@ ${JSON.stringify(context, null, 2)}`;
 
   app.post("/api/food-options", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertFoodOptionSchema.parse(req.body);
-      const option = await storage.createFoodOption(validatedData);
+      const option = await storage.createFoodOption(userId, validatedData);
       res.status(201).json(option);
     } catch (error) {
       const validationError = fromError(error);
@@ -3817,7 +3933,8 @@ ${JSON.stringify(context, null, 2)}`;
 
   app.patch("/api/food-options/:id", async (req, res) => {
     try {
-      const updated = await storage.updateFoodOption(req.params.id, req.body);
+      const userId = req.session.userId!;
+      const updated = await storage.updateFoodOption(userId, req.params.id, req.body);
       if (!updated) {
         return res.status(404).json({ error: "Food option not found" });
       }
@@ -3829,7 +3946,8 @@ ${JSON.stringify(context, null, 2)}`;
 
   app.delete("/api/food-options/:id", async (req, res) => {
     try {
-      const success = await storage.deleteFoodOption(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteFoodOption(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Food option not found" });
       }
@@ -3848,6 +3966,7 @@ ${JSON.stringify(context, null, 2)}`;
     }
 
     try {
+      const userId = req.session.userId!;
       const results: Record<string, number> = {};
 
       // Seed Habits
@@ -3869,7 +3988,7 @@ ${JSON.stringify(context, null, 2)}`;
       ];
       for (const habit of habits) {
         try {
-          await storage.createHabit(habit);
+          await storage.createHabit(userId, habit);
         } catch (e) { /* ignore duplicates */ }
       }
       results.habits = habits.length;
@@ -3885,7 +4004,7 @@ ${JSON.stringify(context, null, 2)}`;
       ];
       for (const block of blocks) {
         try {
-          await storage.createRoutineBlock(block);
+          await storage.createRoutineBlock(userId, block);
         } catch (e) { /* ignore duplicates */ }
       }
       results.routineBlocks = blocks.length;
@@ -3913,7 +4032,7 @@ ${JSON.stringify(context, null, 2)}`;
       ];
       for (const activity of activities) {
         try {
-          await storage.createRoutineActivity(activity);
+          await storage.createRoutineActivity(userId, activity);
         } catch (e) { /* ignore duplicates */ }
       }
       results.routineActivities = activities.length;
@@ -3927,7 +4046,7 @@ ${JSON.stringify(context, null, 2)}`;
       ];
       for (const member of members) {
         try {
-          await storage.createMember(member);
+          await storage.createMember(userId, member);
         } catch (e) { /* ignore duplicates */ }
       }
       results.systemMembers = members.length;
@@ -3946,7 +4065,7 @@ ${JSON.stringify(context, null, 2)}`;
       ];
       for (const project of projects) {
         try {
-          await storage.createCareerProject(project);
+          await storage.createCareerProject(userId, project);
         } catch (e) { /* ignore duplicates */ }
       }
       results.careerProjects = projects.length;
@@ -3962,7 +4081,7 @@ ${JSON.stringify(context, null, 2)}`;
       ];
       for (const task of tasks) {
         try {
-          await storage.createCareerTask(task);
+          await storage.createCareerTask(userId, task);
         } catch (e) { /* ignore duplicates */ }
       }
       results.careerTasks = tasks.length;
@@ -3977,10 +4096,11 @@ ${JSON.stringify(context, null, 2)}`;
   // Deep Mind Overview API - System intelligence dashboard
   app.get("/api/deep-mind/overview", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const days = parseInt(req.query.days as string) || 30;
       const [entries, members] = await Promise.all([
-        storage.getRecentTrackerEntries(500),
-        storage.getAllMembers(),
+        storage.getRecentTrackerEntries(userId, 500),
+        storage.getAllMembers(userId),
       ]);
       
       const cutoffDate = new Date();
@@ -4105,10 +4225,11 @@ ${JSON.stringify(context, null, 2)}`;
   // Deep Mind NOW API - Current snapshot for reworked Deep Mind page
   app.get("/api/deep-mind/now", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const [entries, journalEntries, members] = await Promise.all([
-        storage.getRecentTrackerEntries(50),
-        storage.getAllJournalEntries(),
-        storage.getAllMembers(),
+        storage.getRecentTrackerEntries(userId, 50),
+        storage.getAllJournalEntries(userId),
+        storage.getAllMembers(userId),
       ]);
 
       const sampleSize = entries.length;
@@ -4238,11 +4359,12 @@ ${JSON.stringify(context, null, 2)}`;
   // Deep Mind LOOPS API - Pattern data for last 30-90 days
   app.get("/api/deep-mind/loops", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const days = parseInt(req.query.days as string) || 60;
       const [entries, journalEntries, members] = await Promise.all([
-        storage.getRecentTrackerEntries(500),
-        storage.getAllJournalEntries(),
-        storage.getAllMembers(),
+        storage.getRecentTrackerEntries(userId, 500),
+        storage.getAllJournalEntries(userId),
+        storage.getAllMembers(userId),
       ]);
 
       const cutoffDate = new Date();
@@ -4406,9 +4528,10 @@ ${JSON.stringify(context, null, 2)}`;
   // Deep Mind Visualizations endpoint - Sleep impact and driver frequency charts
   app.get("/api/deep-mind/visualizations", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const [entries, journalEntries] = await Promise.all([
-        storage.getAllTrackerEntries(),
-        storage.getAllJournalEntries(),
+        storage.getAllTrackerEntries(userId),
+        storage.getAllJournalEntries(userId),
       ]);
 
       const now = new Date();
@@ -4543,10 +4666,11 @@ ${JSON.stringify(context, null, 2)}`;
   // Deep Mind AI Insights endpoint - Evidence-based analysis (with 24h caching)
   app.post("/api/deep-mind/insights", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const [entries, journalEntries, members] = await Promise.all([
-        storage.getRecentTrackerEntries(200),
-        storage.getAllJournalEntries(),
-        storage.getAllMembers(),
+        storage.getRecentTrackerEntries(userId, 200),
+        storage.getAllJournalEntries(userId),
+        storage.getAllMembers(userId),
       ]);
       
       // Calculate facts for last 7 days
@@ -4732,6 +4856,7 @@ RULES:
   // Dashboard Insights API
   app.get("/api/insights/dashboard", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const [
         trackerEntries,
         habits,
@@ -4744,16 +4869,16 @@ RULES:
         dailySummaries,
         foodOptions,
       ] = await Promise.all([
-        storage.getAllTrackerEntries(),
-        storage.getAllHabits(),
-        storage.getAllHabitCompletions(),
-        storage.getAllRoutineBlocks(),
-        storage.getAllRoutineActivities(),
-        storage.getAllRoutineLogs(),
-        storage.getAllTodos(),
-        storage.getAllJournalEntries(),
-        storage.getAllDailySummaries(),
-        storage.getAllFoodOptions(),
+        storage.getAllTrackerEntries(userId),
+        storage.getAllHabits(userId),
+        storage.getAllHabitCompletions(userId),
+        storage.getAllRoutineBlocks(userId),
+        storage.getAllRoutineActivities(userId),
+        storage.getAllRoutineLogs(userId),
+        storage.getAllTodos(userId),
+        storage.getAllJournalEntries(userId),
+        storage.getAllDailySummaries(userId),
+        storage.getAllFoodOptions(userId),
       ]);
 
       const insights = await computeDashboardInsights({
@@ -4780,7 +4905,8 @@ RULES:
   // Loans Routes
   app.get("/api/loans", async (req, res) => {
     try {
-      const loans = await storage.getAllLoans();
+      const userId = req.session.userId!;
+      const loans = await storage.getAllLoans(userId);
       res.json(loans);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch loans" });
@@ -4789,8 +4915,9 @@ RULES:
 
   app.post("/api/loans", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertLoanSchema.parse(req.body);
-      const loan = await storage.createLoan(validatedData);
+      const loan = await storage.createLoan(userId, validatedData);
       res.status(201).json(loan);
     } catch (error) {
       const validationError = fromError(error);
@@ -4800,8 +4927,9 @@ RULES:
 
   app.put("/api/loans/:id", async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const validatedData = insertLoanSchema.partial().parse(req.body);
-      const loan = await storage.updateLoan(req.params.id, validatedData);
+      const loan = await storage.updateLoan(userId, req.params.id, validatedData);
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
@@ -4814,7 +4942,8 @@ RULES:
 
   app.delete("/api/loans/:id", async (req, res) => {
     try {
-      const success = await storage.deleteLoan(req.params.id);
+      const userId = req.session.userId!;
+      const success = await storage.deleteLoan(userId, req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Loan not found" });
       }
@@ -4827,7 +4956,8 @@ RULES:
   // Loan Payments Routes
   app.get("/api/loans/:id/payments", async (req, res) => {
     try {
-      const payments = await storage.getLoanPayments(req.params.id);
+      const userId = req.session.userId!;
+      const payments = await storage.getLoanPayments(userId, req.params.id);
       res.json(payments);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch loan payments" });
@@ -4836,7 +4966,8 @@ RULES:
 
   app.post("/api/loans/:id/payments", async (req, res) => {
     try {
-      const loan = await storage.getLoan(req.params.id);
+      const userId = req.session.userId!;
+      const loan = await storage.getLoan(userId, req.params.id);
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
@@ -4850,7 +4981,7 @@ RULES:
       const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       const month = `${monthNames[paymentDate.getMonth()]} ${paymentDate.getFullYear()}`;
       
-      const transaction = await storage.createTransaction({
+      const transaction = await storage.createTransaction(userId, {
         type: "expense",
         category: "debt_payment",
         amount: validatedData.amount,
@@ -4860,7 +4991,7 @@ RULES:
         isRecurring: 0
       });
 
-      const payment = await storage.createLoanPayment({
+      const payment = await storage.createLoanPayment(userId, {
         ...validatedData,
         transactionId: transaction.id
       });
@@ -4869,6 +5000,67 @@ RULES:
     } catch (error) {
       const validationError = fromError(error);
       res.status(400).json({ error: validationError.toString() });
+    }
+  });
+
+  // Admin Routes (protected by admin password)
+  app.post("/api/admin/users", async (req, res) => {
+    try {
+      const { password, displayName, adminPassword } = req.body;
+      if (!adminPassword || adminPassword !== process.env.ADMIN_PASSWORD) {
+        return res.status(403).json({ error: "Invalid admin password" });
+      }
+      if (!password || typeof password !== "string" || password.length < 4) {
+        return res.status(400).json({ error: "Password must be at least 4 characters" });
+      }
+      const bcrypt = await import("bcrypt");
+      const passwordHash = await bcrypt.hash(password, 12);
+      const { users } = await import("@shared/schema");
+      const [user] = await (await import("./db")).db.insert(users).values({
+        passwordHash,
+        displayName: displayName || null,
+      }).returning();
+      res.status(201).json({ id: user.id, displayName: user.displayName });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
+  app.get("/api/admin/users", async (req, res) => {
+    try {
+      const adminPassword = req.query.adminPassword as string;
+      if (!adminPassword || adminPassword !== process.env.ADMIN_PASSWORD) {
+        return res.status(403).json({ error: "Invalid admin password" });
+      }
+      const { users } = await import("@shared/schema");
+      const { db } = await import("./db");
+      const allUsers = await db.select({
+        id: users.id,
+        displayName: users.displayName,
+        createdAt: users.createdAt,
+      }).from(users);
+      res.json(allUsers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", async (req, res) => {
+    try {
+      const { adminPassword } = req.body;
+      if (!adminPassword || adminPassword !== process.env.ADMIN_PASSWORD) {
+        return res.status(403).json({ error: "Invalid admin password" });
+      }
+      const { users } = await import("@shared/schema");
+      const { db } = await import("./db");
+      const { eq } = await import("drizzle-orm");
+      const result = await db.delete(users).where(eq(users.id, req.params.id)).returning();
+      if (result.length === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete user" });
     }
   });
 
