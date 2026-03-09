@@ -51,8 +51,14 @@ export async function loginHandler(req: Request, res: Response) {
     return res.status(400).json({ error: "Password is required" });
   }
 
-  const allUsers = await db.select().from(users);
-  console.log(`[auth] Login attempt, found ${allUsers.length} users, password length: ${password.length}`);
+  let allUsers: any[] = [];
+  try {
+    allUsers = await db.select().from(users);
+  } catch (dbErr: any) {
+    console.error(`[auth] DB query failed:`, dbErr.message);
+    return res.status(500).json({ error: "Database error" });
+  }
+  console.log(`[auth] Login attempt, found ${allUsers.length} users, password length: ${password.length}, db_url_set: ${!!process.env.DATABASE_URL}`);
   for (const user of allUsers) {
     const match = await bcrypt.compare(password, user.passwordHash);
     console.log(`[auth] Comparing against user ${user.displayName}: match=${match}`);
