@@ -4,7 +4,7 @@ import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcrypt";
 import { db } from "./db";
 import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 declare module "express-session" {
   interface SessionData {
@@ -54,14 +54,23 @@ export async function loginHandler(req: Request, res: Response) {
   let allUsers: any[] = [];
   try {
     allUsers = await db.select().from(users);
+    if (allUsers.length === 0) {
+      console.log(`[auth] Drizzle ORM returned 0 users, trying raw SQL fallback`);
+      const rawResult = await db.execute(sql`SELECT id, password_hash, display_name FROM users`);
+      allUsers = (rawResult.rows || []).map((r: any) => ({
+        id: r.id,
+        passwordHash: r.password_hash,
+        displayName: r.display_name,
+      }));
+      console.log(`[auth] Raw SQL found ${allUsers.length} users`);
+    }
   } catch (dbErr: any) {
     console.error(`[auth] DB query failed:`, dbErr.message);
     return res.status(500).json({ error: "Database error" });
   }
-  console.log(`[auth] Login attempt, found ${allUsers.length} users, password length: ${password.length}, db_url_set: ${!!process.env.DATABASE_URL}`);
+  console.log(`[auth] Login attempt, found ${allUsers.length} users, password length: ${password.length}`);
   for (const user of allUsers) {
     const match = await bcrypt.compare(password, user.passwordHash);
-    console.log(`[auth] Comparing against user ${user.displayName}: match=${match}`);
     if (match) {
       req.session.regenerate((err) => {
         if (err) {
