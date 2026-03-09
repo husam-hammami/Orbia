@@ -64,62 +64,51 @@
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
-/* Rose Quartz Theme - Soft, Friendly, Pastel */
+/* Starry Midnight Theme - Deep cosmic night sky */
 :root {
-  /* Warm Blush Background */
-  --background: 350 100% 98%;
-  --foreground: 350 20% 20%;
+  --background: 230 25% 96%;
+  --foreground: 230 25% 15%;
 
-  /* Soft Pink Cards */
-  --card: 350 50% 99%;
-  --card-foreground: 350 20% 20%;
+  --card: 230 20% 98%;
+  --card-foreground: 230 25% 15%;
 
-  --popover: 350 50% 99%;
-  --popover-foreground: 350 20% 20%;
+  --popover: 230 20% 98%;
+  --popover-foreground: 230 25% 15%;
 
-  /* Rose Primary - Warm & Friendly with dark text for contrast */
-  --primary: 340 75% 65%;
-  --primary-foreground: 340 30% 15%;
+  --primary: 230 45% 35%;
+  --primary-foreground: 0 0% 100%;
 
-  /* Peach Secondary */
-  --secondary: 30 80% 92%;
-  --secondary-foreground: 30 30% 25%;
+  --secondary: 220 30% 92%;
+  --secondary-foreground: 220 25% 25%;
 
-  /* Soft Pink Muted */
-  --muted: 340 30% 94%;
-  --muted-foreground: 340 15% 45%;
+  --muted: 230 20% 94%;
+  --muted-foreground: 230 15% 45%;
 
-  /* Lavender Accent */
-  --accent: 280 60% 85%;
-  --accent-foreground: 280 30% 25%;
+  --accent: 260 35% 85%;
+  --accent-foreground: 260 25% 25%;
 
-  /* Soft Red Destructive */
-  --destructive: 0 65% 60%;
+  --destructive: 0 62% 58%;
   --destructive-foreground: 0 0% 100%;
 
-  /* Blush Borders */
-  --border: 340 30% 88%;
-  --input: 340 30% 88%;
-  --ring: 340 75% 65%;
+  --border: 230 20% 88%;
+  --input: 230 20% 88%;
+  --ring: 230 45% 35%;
 
-  /* Pastel Chart Colors */
-  --chart-1: 340 75% 65%;
-  --chart-2: 280 60% 70%;
-  --chart-3: 30 80% 70%;
-  --chart-4: 200 70% 70%;
-  --chart-5: 160 50% 65%;
+  --chart-1: 230 45% 50%;
+  --chart-2: 260 40% 55%;
+  --chart-3: 200 50% 55%;
+  --chart-4: 280 40% 60%;
+  --chart-5: 180 35% 50%;
 
-  /* Sidebar - Blush Glass */
-  --sidebar-background: 340 40% 97%;
-  --sidebar-foreground: 350 20% 25%;
-  --sidebar-primary: 340 75% 65%;
+  --sidebar-background: 230 22% 95%;
+  --sidebar-foreground: 230 25% 20%;
+  --sidebar-primary: 230 45% 35%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 340 40% 92%;
-  --sidebar-accent-foreground: 340 30% 25%;
-  --sidebar-border: 340 30% 90%;
-  --sidebar-ring: 340 75% 65%;
+  --sidebar-accent: 230 20% 90%;
+  --sidebar-accent-foreground: 230 25% 20%;
+  --sidebar-border: 230 18% 88%;
+  --sidebar-ring: 230 45% 35%;
   
-  /* Semantic colors */
   --success: 150 60% 45%;
   --success-foreground: 0 0% 100%;
   --warning: 40 90% 50%;
@@ -129,52 +118,49 @@
 }
 
 .dark {
-  /* Dusky Rose Background */
-  --background: 340 25% 12%;
-  --foreground: 340 20% 95%;
+  --background: 230 30% 10%;
+  --foreground: 230 15% 95%;
 
-  --card: 340 25% 15%;
-  --card-foreground: 340 20% 95%;
+  --card: 230 28% 14%;
+  --card-foreground: 230 15% 95%;
 
-  --popover: 340 25% 15%;
-  --popover-foreground: 340 20% 95%;
+  --popover: 230 28% 14%;
+  --popover-foreground: 230 15% 95%;
 
-  /* Soft Rose Primary - WHITE text for dark mode buttons */
-  --primary: 340 70% 55%;
+  --primary: 230 50% 55%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 30 40% 25%;
-  --secondary-foreground: 30 30% 90%;
+  --secondary: 220 25% 22%;
+  --secondary-foreground: 220 15% 90%;
 
-  --muted: 340 20% 20%;
-  --muted-foreground: 340 15% 60%;
+  --muted: 230 22% 18%;
+  --muted-foreground: 230 12% 60%;
 
-  --accent: 280 40% 35%;
-  --accent-foreground: 280 20% 95%;
+  --accent: 260 30% 30%;
+  --accent-foreground: 260 15% 95%;
 
   --destructive: 0 55% 50%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 340 20% 22%;
-  --input: 340 20% 22%;
-  --ring: 340 70% 70%;
+  --border: 230 22% 20%;
+  --input: 230 22% 20%;
+  --ring: 230 50% 65%;
 
-  --chart-1: 340 70% 65%;
-  --chart-2: 280 50% 60%;
-  --chart-3: 30 60% 60%;
-  --chart-4: 200 60% 60%;
-  --chart-5: 160 40% 55%;
+  --chart-1: 230 50% 60%;
+  --chart-2: 260 40% 55%;
+  --chart-3: 200 45% 55%;
+  --chart-4: 280 35% 55%;
+  --chart-5: 180 30% 50%;
 
-  --sidebar-background: 340 25% 10%;
-  --sidebar-foreground: 340 20% 90%;
-  --sidebar-primary: 340 70% 70%;
+  --sidebar-background: 230 30% 8%;
+  --sidebar-foreground: 230 15% 90%;
+  --sidebar-primary: 230 50% 65%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 340 25% 18%;
-  --sidebar-accent-foreground: 340 20% 90%;
-  --sidebar-border: 340 20% 18%;
-  --sidebar-ring: 340 70% 70%;
+  --sidebar-accent: 230 25% 16%;
+  --sidebar-accent-foreground: 230 15% 90%;
+  --sidebar-border: 230 22% 16%;
+  --sidebar-ring: 230 50% 65%;
   
-  /* Semantic colors */
   --success: 150 50% 50%;
   --success-foreground: 0 0% 100%;
   --warning: 40 80% 55%;

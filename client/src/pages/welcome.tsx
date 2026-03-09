@@ -11,7 +11,7 @@ interface WelcomePageProps {
 
 const MOTIVATIONAL_MESSAGES = [
   "Every small step counts",
-  "You've got this, Fatima!",
+  "You've got this!",
   "Today is full of possibilities",
   "Be kind to yourself today",
   "Your dreams are within reach",
@@ -175,7 +175,7 @@ export default function WelcomePage({ onAuthenticated }: WelcomePageProps) {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
           className="text-slate-400 text-sm mt-8 text-center"
-        >Made with care for Fatima</motion.p>
+        >Made with care, for you</motion.p>
       </motion.div>
       <style>{`
         @keyframes shake {

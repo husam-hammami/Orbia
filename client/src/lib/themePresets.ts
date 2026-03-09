@@ -810,7 +810,7 @@ export const themePresets: ThemePreset[] = [
   },
 ];
 
-export const defaultThemeId = "rose-quartz";
+export const defaultThemeId = "starry-midnight";
 
 export function getThemeById(id: string): ThemePreset | undefined {
   return themePresets.find((t) => t.id === id);
