@@ -5130,6 +5130,17 @@ RULES:
     } catch (e: any) { res.status(400).json({ error: "Invalid data" }); }
   });
 
+  app.post("/api/medical/reset", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      await storage.resetMedicalData(userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Medical reset error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/medical/upload", async (req, res) => {
     try {
       const userId = req.session.userId!;

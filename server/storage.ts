@@ -1209,6 +1209,16 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(medVaultDocuments).where(and(eq(medVaultDocuments.id, id), eq(medVaultDocuments.userId, userId))).returning();
     return result.length > 0;
   }
+  async resetMedicalData(userId: string): Promise<void> {
+    await db.delete(medDiagnoses).where(eq(medDiagnoses.userId, userId));
+    await db.delete(medPriorities).where(eq(medPriorities.userId, userId));
+    await db.delete(medPainMechanisms).where(eq(medPainMechanisms.userId, userId));
+    await db.delete(medMedications).where(eq(medMedications.userId, userId));
+    await db.delete(medTimelineEvents).where(eq(medTimelineEvents.userId, userId));
+    await db.delete(medMedicalNetwork).where(eq(medMedicalNetwork.userId, userId));
+    await db.delete(medVaultDocuments).where(eq(medVaultDocuments.userId, userId));
+    await db.delete(medicalProfiles).where(eq(medicalProfiles.userId, userId));
+  }
 }
 
 export const storage = new DatabaseStorage();

@@ -5,7 +5,7 @@ import {
   Trash2, Edit, ChevronDown,
   Send, User, Save,
   Clock, PlusCircle, Upload, CheckCircle2, Loader2,
-  Database, Users, ShieldAlert, ArrowLeft, CalendarCheck
+  Database, Users, ShieldAlert, ArrowLeft, CalendarCheck, RotateCcw
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -853,6 +853,22 @@ function ActionItemsPanel() {
 
 export default function MedicalPage() {
   const [mobileTab, setMobileTab] = useState<"health" | "chat" | "actions">("chat");
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const queryClient = useQueryClient();
+
+  const resetMutation = useMutation({
+    mutationFn: () => medApi("/api/medical/reset", { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/medical/profile"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/medical/diagnoses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/medical/medications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/medical/priorities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/medical/timeline-events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/medical/medical-network"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/medical/vault-documents"] });
+      setShowResetConfirm(false);
+    },
+  });
 
   return (
     <Layout>
@@ -875,11 +891,61 @@ export default function MedicalPage() {
               <p className="text-[10px] text-cyan-400/40 tracking-wide" style={mono}>Health records & AI assistant</p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-2 text-[9px] text-cyan-400/50 border border-cyan-500/15 bg-black/20 px-3 py-1.5 rounded-lg backdrop-blur-md tracking-widest" style={mono}>
-            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_6px_rgba(0,200,255,0.6)]"></div>
-            SYSTEM NOMINAL
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              className="flex items-center gap-1.5 text-[9px] text-red-400/50 hover:text-red-400 border border-red-500/15 hover:border-red-500/30 bg-black/20 hover:bg-red-500/5 px-2.5 py-1.5 rounded-lg backdrop-blur-md tracking-widest transition-all"
+              style={mono}
+              data-testid="button-reset-medical"
+            >
+              <RotateCcw className="w-3 h-3" />
+              RESET
+            </button>
+            <div className="hidden md:flex items-center gap-2 text-[9px] text-cyan-400/50 border border-cyan-500/15 bg-black/20 px-3 py-1.5 rounded-lg backdrop-blur-md tracking-widest" style={mono}>
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_6px_rgba(0,200,255,0.6)]"></div>
+              SYSTEM NOMINAL
+            </div>
           </div>
         </motion.div>
+
+        <AnimatePresence>
+          {showResetConfirm && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-3 p-4 bg-red-500/5 border border-red-500/20 rounded-xl backdrop-blur-xl"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-red-400">Reset all medical data?</p>
+                  <p className="text-xs text-muted-foreground/50 mt-0.5">This will permanently delete your profile, conditions, medications, documents, and all records.</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 ml-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowResetConfirm(false)}
+                    className="text-xs text-muted-foreground/60 hover:text-foreground"
+                    data-testid="button-cancel-reset"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => resetMutation.mutate()}
+                    disabled={resetMutation.isPending}
+                    className="text-xs bg-red-600 hover:bg-red-700 text-white rounded-lg"
+                    data-testid="button-confirm-reset"
+                  >
+                    {resetMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Trash2 className="w-3 h-3 mr-1" />}
+                    Delete Everything
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="hidden md:flex flex-1 gap-3 min-h-0">
           <div className="w-[380px] shrink-0 min-h-0 overflow-hidden">
