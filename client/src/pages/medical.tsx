@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Stethoscope, Pill, FileText,
-  Trash2, Edit, ChevronDown, Activity,
-  AlertTriangle, Send, User, Save,
-  Clock, Brain, PlusCircle, Upload, CheckCircle2, Loader2,
-  Database, ChevronRight, Users, ShieldAlert, ArrowLeft, Image
+  Pill, FileText,
+  Trash2, Edit, ChevronDown,
+  Send, User, Save,
+  Clock, PlusCircle, Upload, CheckCircle2, Loader2,
+  Database, Users, ShieldAlert, ArrowLeft, CalendarCheck
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -46,20 +46,6 @@ function HudLabel({ children, className }: { children: React.ReactNode; classNam
   return (
     <span className={cn("text-[10px] uppercase tracking-[0.15em] text-cyan-400/60", className)} style={mono}>
       {children}
-    </span>
-  );
-}
-
-function StatusBadge({ severity }: { severity: string }) {
-  const colors: Record<string, string> = {
-    critical: "text-red-400 border-red-500/30 bg-red-500/10",
-    high: "text-orange-400 border-orange-500/30 bg-orange-500/10",
-    medium: "text-cyan-400 border-cyan-500/30 bg-cyan-500/10",
-    low: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
-  };
-  return (
-    <span className={cn("text-[9px] px-2 py-0.5 rounded border uppercase tracking-wider", colors[severity] || colors.medium)} style={mono}>
-      {severity}
     </span>
   );
 }
@@ -133,9 +119,9 @@ function AccordionSection({ label, count, icon: Icon, isOpen, onToggle, onAdd, a
   icon: any;
   isOpen: boolean;
   onToggle: () => void;
-  onAdd: { mutate: (data: any) => void };
-  addFields: { key: string; label: string; placeholder?: string; type?: string }[];
-  addTitle: string;
+  onAdd?: { mutate: (data: any) => void };
+  addFields?: { key: string; label: string; placeholder?: string; type?: string }[];
+  addTitle?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -146,24 +132,25 @@ function AccordionSection({ label, count, icon: Icon, isOpen, onToggle, onAdd, a
           <span className="text-xs font-medium tracking-wide" style={mono}>{count !== undefined ? `${count} ` : ""}{label.toUpperCase()}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <AddItemDialog
-            title={addTitle}
-            fields={addFields}
-            onSave={(data) => onAdd.mutate(data)}
-            trigger={
-              <button
-                className="p-1.5 hover:bg-cyan-500/10 rounded-lg text-cyan-400/40 hover:text-cyan-400 transition-colors"
-                onClick={(e) => e.stopPropagation()}
-                data-testid={`button-add-${addTitle.toLowerCase().replace(/\s+/g, '-')}`}
-              >
-                <PlusCircle className="w-3.5 h-3.5" />
-              </button>
-            }
-          />
+          {onAdd && addFields && addTitle && (
+            <AddItemDialog
+              title={addTitle}
+              fields={addFields}
+              onSave={(data) => onAdd.mutate(data)}
+              trigger={
+                <button
+                  className="p-1.5 hover:bg-cyan-500/10 rounded-lg text-cyan-400/40 hover:text-cyan-400 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                  data-testid={`button-add-${addTitle.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                </button>
+              }
+            />
+          )}
           <ChevronDown className={`w-3.5 h-3.5 text-cyan-400/40 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </div>
-
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -176,9 +163,7 @@ function AccordionSection({ label, count, icon: Icon, isOpen, onToggle, onAdd, a
             <div className="px-3.5 pb-3.5 flex flex-col gap-2">
               {children}
               {Array.isArray(children) && (children as any[]).length === 0 && (
-                <div className="text-center py-6 text-muted-foreground/30 text-xs" style={mono}>
-                  NO DATA
-                </div>
+                <div className="text-center py-6 text-muted-foreground/30 text-xs" style={mono}>NO DATA</div>
               )}
             </div>
           </motion.div>
@@ -188,21 +173,18 @@ function AccordionSection({ label, count, icon: Icon, isOpen, onToggle, onAdd, a
   );
 }
 
-function PatientHud() {
+function MyHealthPanel() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"overview" | "history" | "resources">("overview");
-  const [openSection, setOpenSection] = useState<string | null>("diagnosis");
+  const [activeTab, setActiveTab] = useState<"health" | "history" | "care-team">("health");
+  const [openSection, setOpenSection] = useState<string | null>("conditions");
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState<Record<string, string>>({});
 
   const { data: profile = {} } = useQuery({ queryKey: ["/api/medical/profile"], queryFn: () => medApi("/api/medical/profile") });
   const { data: diagnoses = [] } = useQuery({ queryKey: ["/api/medical/diagnoses"], queryFn: () => medApi("/api/medical/diagnoses") });
-  const { data: priorities = [] } = useQuery({ queryKey: ["/api/medical/priorities"], queryFn: () => medApi("/api/medical/priorities") });
-  const { data: painMechanisms = [] } = useQuery({ queryKey: ["/api/medical/pain-mechanisms"], queryFn: () => medApi("/api/medical/pain-mechanisms") });
   const { data: medications = [] } = useQuery({ queryKey: ["/api/medical/medications"], queryFn: () => medApi("/api/medical/medications") });
   const { data: timelineEvents = [] } = useQuery({ queryKey: ["/api/medical/timeline-events"], queryFn: () => medApi("/api/medical/timeline-events") });
   const { data: medicalNetwork = [] } = useQuery({ queryKey: ["/api/medical/medical-network"], queryFn: () => medApi("/api/medical/medical-network") });
-  const { data: vaultDocuments = [] } = useQuery({ queryKey: ["/api/medical/vault-documents"], queryFn: () => medApi("/api/medical/vault-documents") });
 
   useEffect(() => {
     if (profile && Object.keys(profile).length > 0) setProfileForm(profile);
@@ -223,20 +205,14 @@ function PatientHud() {
   });
 
   const delDiagnosis = useMutation(makeDel("diagnoses"));
-  const delPriority = useMutation(makeDel("priorities"));
-  const delPainMechanism = useMutation(makeDel("pain-mechanisms"));
   const delMedication = useMutation(makeDel("medications"));
   const delTimeline = useMutation(makeDel("timeline-events"));
   const delNetwork = useMutation(makeDel("medical-network"));
-  const delVault = useMutation(makeDel("vault-documents"));
 
   const addDiagnosis = useMutation(makeAdd("diagnoses"));
-  const addPriority = useMutation(makeAdd("priorities"));
-  const addPainMechanism = useMutation(makeAdd("pain-mechanisms"));
   const addMedication = useMutation(makeAdd("medications"));
   const addTimeline = useMutation(makeAdd("timeline-events"));
   const addNetwork = useMutation(makeAdd("medical-network"));
-  const addVault = useMutation(makeAdd("vault-documents"));
 
   const toggleSection = (section: string) => setOpenSection(openSection === section ? null : section);
 
@@ -304,7 +280,7 @@ function PatientHud() {
               {[
                 { label: "Blood Type", value: profile?.bloodType || "—" },
                 { label: "Medications", value: medications.length },
-                { label: "Diagnoses", value: diagnoses.length },
+                { label: "Conditions", value: diagnoses.length },
               ].map((stat) => (
                 <div key={stat.label} className="p-3 rounded-xl bg-black/30 border border-cyan-500/10">
                   <HudLabel className="mb-1 block">{stat.label}</HudLabel>
@@ -324,10 +300,10 @@ function PatientHud() {
       </div>
 
       <div className="flex gap-1.5 shrink-0">
-        {(["overview", "history", "resources"] as const).map(tab => (
+        {(["health", "history", "care-team"] as const).map(tab => (
           <button
             key={tab}
-            onClick={() => { setActiveTab(tab); setOpenSection(tab === "overview" ? "diagnosis" : tab === "history" ? "timeline" : "network"); }}
+            onClick={() => { setActiveTab(tab); setOpenSection(tab === "health" ? "conditions" : tab === "history" ? "timeline" : "network"); }}
             className={cn(
               "flex-1 py-2 text-[10px] font-medium rounded-lg transition-all uppercase tracking-wider",
               activeTab === tab
@@ -337,40 +313,17 @@ function PatientHud() {
             style={mono}
             data-testid={`tab-hud-${tab}`}
           >
-            {tab}
+            {tab === "care-team" ? "Care Team" : tab}
           </button>
         ))}
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6 space-y-3">
-        {activeTab === "overview" && (
+        {activeTab === "health" && (
           <>
-            <AccordionSection label="Proactive Priorities" count={priorities.length} icon={AlertTriangle} isOpen={openSection === "priorities"} onToggle={() => toggleSection("priorities")} onAdd={addPriority} addTitle="Add Priority" addFields={[
-              { key: "label", label: "Priority", placeholder: "e.g. Follow-up MRI" },
-              { key: "description", label: "Description", placeholder: "Details", type: "textarea" },
-              { key: "severity", label: "Severity", type: "select-severity" },
-            ]}>
-              {priorities.map((p: any) => {
-                const s = severityStyles[p.severity] || severityStyles.medium;
-                return (
-                  <div key={p.id} className={`p-3 ${s.bg} border ${s.border} rounded-xl group/item relative`}>
-                    <div className="absolute top-2 right-2 flex items-center gap-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                      <StatusBadge severity={p.severity} />
-                      <button className="p-1 hover:bg-red-500/10 rounded" onClick={() => delPriority.mutate(p.id)}><Trash2 className="w-3 h-3 text-red-400/50" /></button>
-                    </div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className={`w-1.5 h-1.5 rounded-full ${s.dot}`}></div>
-                      <span className="text-sm font-medium">{p.label}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground/60 pl-3.5">{p.description}</div>
-                  </div>
-                );
-              })}
-            </AccordionSection>
-
-            <AccordionSection label="Active Diagnoses" count={diagnoses.length} icon={ShieldAlert} isOpen={openSection === "diagnosis"} onToggle={() => toggleSection("diagnosis")} onAdd={addDiagnosis} addTitle="Add Diagnosis" addFields={[
-              { key: "label", label: "Diagnosis", placeholder: "e.g. Hypertension" },
-              { key: "description", label: "Description", placeholder: "Details", type: "textarea" },
+            <AccordionSection label="Conditions" count={diagnoses.length} icon={ShieldAlert} isOpen={openSection === "conditions"} onToggle={() => toggleSection("conditions")} onAdd={addDiagnosis} addTitle="Add Condition" addFields={[
+              { key: "label", label: "Condition", placeholder: "e.g. Type 2 Diabetes" },
+              { key: "description", label: "Details", placeholder: "How it affects you", type: "textarea" },
               { key: "severity", label: "Severity", type: "select-severity" },
             ]}>
               {diagnoses.map((d: any, idx: number) => {
@@ -385,21 +338,6 @@ function PatientHud() {
                   </div>
                 );
               })}
-            </AccordionSection>
-
-            <AccordionSection label="Pain Mechanisms" count={painMechanisms.length} icon={Brain} isOpen={openSection === "pain"} onToggle={() => toggleSection("pain")} onAdd={addPainMechanism} addTitle="Add Pain Mechanism" addFields={[
-              { key: "label", label: "Mechanism", placeholder: "e.g. Nerve compression" },
-              { key: "description", label: "Description", placeholder: "Details", type: "textarea" },
-            ]}>
-              {painMechanisms.map((pm: any, idx: number) => (
-                <div key={pm.id} className="p-3 bg-black/20 border-l-2 border-cyan-500/25 border border-white/5 rounded-xl group/item relative">
-                  <div className="absolute top-2 right-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                    <button className="p-1 hover:bg-red-500/10 rounded" onClick={() => delPainMechanism.mutate(pm.id)}><Trash2 className="w-3 h-3 text-red-400/50" /></button>
-                  </div>
-                  <div className="text-sm font-semibold text-cyan-400 mb-0.5">{idx + 1}. {pm.label}</div>
-                  <div className="text-xs text-muted-foreground/60">{pm.description}</div>
-                </div>
-              ))}
             </AccordionSection>
 
             <AccordionSection label="Medications" count={medications.length} icon={Pill} isOpen={openSection === "medications"} onToggle={() => toggleSection("medications")} onAdd={addMedication} addTitle="Add Medication" addFields={[
@@ -422,10 +360,10 @@ function PatientHud() {
         )}
 
         {activeTab === "history" && (
-          <AccordionSection label="Clinical Timeline" count={timelineEvents.length} icon={Clock} isOpen={openSection === "timeline"} onToggle={() => toggleSection("timeline")} onAdd={addTimeline} addTitle="Add Timeline Event" addFields={[
+          <AccordionSection label="Timeline" count={timelineEvents.length} icon={Clock} isOpen={openSection === "timeline"} onToggle={() => toggleSection("timeline")} onAdd={addTimeline} addTitle="Add Event" addFields={[
             { key: "date", label: "Date", placeholder: "e.g. Mar 8, 2026" },
-            { key: "title", label: "Title", placeholder: "Event title" },
-            { key: "description", label: "Description", placeholder: "Details", type: "textarea" },
+            { key: "title", label: "Title", placeholder: "What happened" },
+            { key: "description", label: "Details", placeholder: "More context", type: "textarea" },
             { key: "eventType", label: "Type", placeholder: "surgery / appointment / scan / diagnosis" },
           ]}>
             <div className="relative pl-5 border-l border-cyan-500/20 space-y-4">
@@ -454,66 +392,38 @@ function PatientHud() {
           </AccordionSection>
         )}
 
-        {activeTab === "resources" && (
-          <>
-            <AccordionSection label="Medical Network" count={medicalNetwork.length} icon={Users} isOpen={openSection === "network"} onToggle={() => toggleSection("network")} onAdd={addNetwork} addTitle="Add Doctor" addFields={[
-              { key: "name", label: "Name", placeholder: "e.g. Dr. Sarah Smith" },
-              { key: "role", label: "Role / Specialty", placeholder: "e.g. Orthopedic Surgeon" },
-              { key: "facility", label: "Facility", placeholder: "e.g. City Hospital" },
-              { key: "status", label: "Status", placeholder: "current / past / referred" },
-              { key: "category", label: "Category", placeholder: "treating / specialist / primary" },
-            ]}>
-              {medicalNetwork.map((doc: any) => (
-                <div key={doc.id} className={cn(
-                  "p-3 rounded-xl flex justify-between items-center group/item relative border",
-                  doc.status === "current" ? "bg-cyan-500/5 border-cyan-500/15" : "bg-black/20 border-white/5"
-                )}>
-                  <div className="absolute top-2 right-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                    <button className="p-1 hover:bg-red-500/10 rounded" onClick={() => delNetwork.mutate(doc.id)}><Trash2 className="w-3 h-3 text-red-400/50" /></button>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/15 flex items-center justify-center">
-                      <User className="w-4 h-4 text-cyan-400/50" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium">{doc.name}</div>
-                      <div className="text-xs text-muted-foreground/50">{doc.role}{doc.facility ? ` · ${doc.facility}` : ""}</div>
-                    </div>
-                  </div>
-                  <span className={cn(
-                    "text-[9px] font-medium px-2 py-0.5 rounded border uppercase tracking-wider",
-                    doc.status === "current" ? "text-cyan-400 border-cyan-500/30 bg-cyan-500/10" : "text-muted-foreground/50 bg-black/30 border-white/10"
-                  )} style={mono}>{doc.status}</span>
+        {activeTab === "care-team" && (
+          <AccordionSection label="Care Team" count={medicalNetwork.length} icon={Users} isOpen={openSection === "network"} onToggle={() => toggleSection("network")} onAdd={addNetwork} addTitle="Add Provider" addFields={[
+            { key: "name", label: "Name", placeholder: "e.g. Dr. Sarah Smith" },
+            { key: "role", label: "Specialty", placeholder: "e.g. Cardiologist" },
+            { key: "facility", label: "Facility", placeholder: "e.g. City Hospital" },
+            { key: "status", label: "Status", placeholder: "current / past / referred" },
+            { key: "category", label: "Category", placeholder: "treating / specialist / primary" },
+          ]}>
+            {medicalNetwork.map((doc: any) => (
+              <div key={doc.id} className={cn(
+                "p-3 rounded-xl flex justify-between items-center group/item relative border",
+                doc.status === "current" ? "bg-cyan-500/5 border-cyan-500/15" : "bg-black/20 border-white/5"
+              )}>
+                <div className="absolute top-2 right-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                  <button className="p-1 hover:bg-red-500/10 rounded" onClick={() => delNetwork.mutate(doc.id)}><Trash2 className="w-3 h-3 text-red-400/50" /></button>
                 </div>
-              ))}
-            </AccordionSection>
-
-            <AccordionSection label="Document Vault" count={vaultDocuments.length} icon={Database} isOpen={openSection === "vault"} onToggle={() => toggleSection("vault")} onAdd={addVault} addTitle="Add Document" addFields={[
-              { key: "name", label: "Document Name", placeholder: "e.g. MRI Report Feb 2026" },
-              { key: "docType", label: "Type", placeholder: "e.g. MRI Study / Lab Report / Prescription" },
-              { key: "date", label: "Date", placeholder: "e.g. Feb 21, 2026" },
-              { key: "description", label: "Description", placeholder: "Brief description" },
-            ]}>
-              {vaultDocuments.map((doc: any) => (
-                <div key={doc.id} className="p-3 bg-black/20 border border-white/5 rounded-xl flex items-start gap-3 group/item relative">
-                  <div className="absolute top-2 right-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                    <button className="p-1 hover:bg-red-500/10 rounded" onClick={() => delVault.mutate(doc.id)}><Trash2 className="w-3 h-3 text-red-400/50" /></button>
-                  </div>
-                  <div className="p-1.5 rounded-lg bg-cyan-500/5 text-cyan-400/50 mt-0.5">
-                    <FileText className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/15 flex items-center justify-center">
+                    <User className="w-4 h-4 text-cyan-400/50" />
                   </div>
                   <div>
                     <div className="text-sm font-medium">{doc.name}</div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <HudLabel className="text-cyan-400/50">{doc.docType}</HudLabel>
-                      <span className="text-[10px] text-muted-foreground/40" style={mono}>{doc.date}</span>
-                    </div>
-                    {doc.description && <div className="text-xs text-muted-foreground/60 mt-0.5">{doc.description}</div>}
+                    <div className="text-xs text-muted-foreground/50">{doc.role}{doc.facility ? ` · ${doc.facility}` : ""}</div>
                   </div>
                 </div>
-              ))}
-            </AccordionSection>
-          </>
+                <span className={cn(
+                  "text-[9px] font-medium px-2 py-0.5 rounded border uppercase tracking-wider",
+                  doc.status === "current" ? "text-cyan-400 border-cyan-500/30 bg-cyan-500/10" : "text-muted-foreground/50 bg-black/30 border-white/10"
+                )} style={mono}>{doc.status}</span>
+              </div>
+            ))}
+          </AccordionSection>
         )}
       </div>
     </div>
@@ -603,10 +513,10 @@ function UploadZone() {
         <p className="text-xs text-foreground/70 mb-3 leading-relaxed">{result.analysis}</p>
         {total > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {ac.diagnoses > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-cyan-500/20 bg-cyan-500/5 text-cyan-400" style={mono}>{ac.diagnoses} diagnosis</span>}
-            {ac.medications > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-blue-500/20 bg-blue-500/5 text-blue-400" style={mono}>{ac.medications} medication</span>}
-            {ac.timeline > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-purple-500/20 bg-purple-500/5 text-purple-400" style={mono}>{ac.timeline} event</span>}
-            {ac.priorities > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-orange-500/20 bg-orange-500/5 text-orange-400" style={mono}>{ac.priorities} priority</span>}
+            {ac.diagnoses > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-cyan-500/20 bg-cyan-500/5 text-cyan-400" style={mono}>{ac.diagnoses} condition{ac.diagnoses > 1 ? "s" : ""}</span>}
+            {ac.medications > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-blue-500/20 bg-blue-500/5 text-blue-400" style={mono}>{ac.medications} medication{ac.medications > 1 ? "s" : ""}</span>}
+            {ac.timeline > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-purple-500/20 bg-purple-500/5 text-purple-400" style={mono}>{ac.timeline} event{ac.timeline > 1 ? "s" : ""}</span>}
+            {ac.priorities > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-orange-500/20 bg-orange-500/5 text-orange-400" style={mono}>{ac.priorities} action{ac.priorities > 1 ? "s" : ""}</span>}
           </div>
         )}
       </motion.div>
@@ -679,7 +589,6 @@ function MedicalChatPanel() {
     setIsProcessing(true);
 
     const chatHistory = newMessages.map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content }));
-
     setMessages(prev => [...prev, { role: "assistant", content: "", isStreaming: true }]);
 
     try {
@@ -749,9 +658,10 @@ function MedicalChatPanel() {
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <img src={logoUrl} alt="Orbia" className="w-12 h-12 rounded-2xl object-cover opacity-20 mb-3" />
-            <p className="text-sm text-muted-foreground/50 mb-4">Ask me about your health, medications, or conditions</p>
+            <p className="text-sm text-muted-foreground/50 mb-1">Your health, understood.</p>
+            <p className="text-xs text-muted-foreground/30 mb-5 max-w-[280px]">Ask anything about your conditions, medications, or care plan.</p>
             <div className="flex flex-wrap gap-2 justify-center">
-              {["Review my medications", "Summarize my conditions", "Prepare for my appointment"].map((q) => (
+              {["What should I ask my doctor?", "Review my medications", "Summarize my health"].map((q) => (
                 <button
                   key={q}
                   className="text-[11px] px-3 py-1.5 rounded-lg bg-cyan-500/5 border border-cyan-500/15 text-cyan-400/70 hover:bg-cyan-500/10 hover:text-cyan-400 transition-colors"
@@ -820,71 +730,106 @@ function MedicalChatPanel() {
   );
 }
 
-function SummaryPanel() {
-  const { data: diagnoses = [] } = useQuery({ queryKey: ["/api/medical/diagnoses"], queryFn: () => medApi("/api/medical/diagnoses") });
-  const { data: medications = [] } = useQuery({ queryKey: ["/api/medical/medications"], queryFn: () => medApi("/api/medical/medications") });
-  const { data: vaultDocuments = [] } = useQuery({ queryKey: ["/api/medical/vault-documents"], queryFn: () => medApi("/api/medical/vault-documents") });
+function ActionItemsPanel() {
+  const queryClient = useQueryClient();
   const { data: priorities = [] } = useQuery({ queryKey: ["/api/medical/priorities"], queryFn: () => medApi("/api/medical/priorities") });
-  const { data: medicalNetwork = [] } = useQuery({ queryKey: ["/api/medical/medical-network"], queryFn: () => medApi("/api/medical/medical-network") });
+  const { data: vaultDocuments = [] } = useQuery({ queryKey: ["/api/medical/vault-documents"], queryFn: () => medApi("/api/medical/vault-documents") });
 
-  const stats = [
-    { label: "Diagnoses", value: diagnoses.length, icon: ShieldAlert, color: "text-cyan-400" },
-    { label: "Medications", value: medications.length, icon: Pill, color: "text-blue-400" },
-    { label: "Priorities", value: priorities.length, icon: AlertTriangle, color: "text-orange-400" },
-    { label: "Documents", value: vaultDocuments.length, icon: FileText, color: "text-purple-400" },
-    { label: "Providers", value: medicalNetwork.length, icon: Users, color: "text-emerald-400" },
-  ];
+  const delPriority = useMutation({
+    mutationFn: (id: number) => medApi(`/api/medical/priorities/${id}`, { method: "DELETE" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/medical/priorities"] }),
+  });
+  const addPriority = useMutation({
+    mutationFn: (data: Record<string, string>) => medApi("/api/medical/priorities", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/medical/priorities"] }),
+  });
+  const delVault = useMutation({
+    mutationFn: (id: number) => medApi(`/api/medical/vault-documents/${id}`, { method: "DELETE" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/medical/vault-documents"] }),
+  });
 
   return (
     <div className="flex flex-col gap-3 h-full min-h-0">
       <UploadZone />
 
-      <div className={cn(hudPanel, "p-4 shrink-0")}>
-        <div className="flex items-center gap-2 mb-3">
-          <Activity className="w-3.5 h-3.5 text-cyan-400/70" />
-          <HudLabel>Health Overview</HudLabel>
+      <div className={cn(hudPanel, "p-4 flex-1 min-h-0 flex flex-col overflow-hidden")}>
+        <div className="flex items-center justify-between mb-3 shrink-0">
+          <div className="flex items-center gap-2">
+            <CalendarCheck className="w-3.5 h-3.5 text-cyan-400/70" />
+            <HudLabel>Action Items</HudLabel>
+            {priorities.length > 0 && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20" style={mono}>{priorities.length}</span>
+            )}
+          </div>
+          <AddItemDialog
+            title="Add Action Item"
+            fields={[
+              { key: "label", label: "What needs to happen?", placeholder: "e.g. Schedule follow-up MRI" },
+              { key: "description", label: "Details", placeholder: "Any context", type: "textarea" },
+              { key: "severity", label: "Urgency", type: "select-severity" },
+            ]}
+            onSave={(data) => addPriority.mutate(data)}
+            trigger={
+              <button className="p-1.5 hover:bg-cyan-500/10 rounded-lg text-cyan-400/40 hover:text-cyan-400 transition-colors" data-testid="button-add-action-item">
+                <PlusCircle className="w-3.5 h-3.5" />
+              </button>
+            }
+          />
         </div>
 
-        <div className="space-y-1.5">
-          {stats.map((stat) => (
-            <div key={stat.label} className="flex items-center justify-between p-2.5 rounded-lg bg-black/20 border border-white/5">
-              <div className="flex items-center gap-2.5">
-                <stat.icon className={cn("w-3.5 h-3.5", stat.color)} />
-                <span className="text-xs text-muted-foreground/60" style={mono}>{stat.label.toUpperCase()}</span>
-              </div>
-              <span className="text-sm font-bold text-foreground">{stat.value}</span>
+        <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
+          {priorities.length === 0 && (
+            <div className="text-center py-4 text-muted-foreground/30 text-xs" style={mono}>
+              No action items — looking good
             </div>
-          ))}
+          )}
+          {priorities.map((p: any) => {
+            const s = severityStyles[p.severity] || severityStyles.medium;
+            return (
+              <div key={p.id} className={`p-3 ${s.bg} border ${s.border} rounded-xl group/item relative`}>
+                <div className="absolute top-2 right-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                  <button className="p-1 hover:bg-red-500/10 rounded" onClick={() => delPriority.mutate(p.id)}><Trash2 className="w-3 h-3 text-red-400/50" /></button>
+                </div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.dot}`}></div>
+                  <span className="text-xs font-medium">{p.label}</span>
+                </div>
+                {p.description && <div className="text-[11px] text-muted-foreground/50 pl-3.5">{p.description}</div>}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className={cn(hudPanel, "p-4 flex-1 min-h-0 flex flex-col")}>
-        <div className="flex items-center gap-2 mb-3">
-          <Stethoscope className="w-3.5 h-3.5 text-cyan-400/70" />
-          <HudLabel>Quick Prompts</HudLabel>
+      <div className={cn(hudPanel, "p-4 shrink-0 max-h-[200px] overflow-hidden flex flex-col")}>
+        <div className="flex items-center gap-2 mb-2 shrink-0">
+          <Database className="w-3.5 h-3.5 text-cyan-400/70" />
+          <HudLabel>Documents</HudLabel>
+          {vaultDocuments.length > 0 && (
+            <span className="text-[9px] text-muted-foreground/40" style={mono}>{vaultDocuments.length}</span>
+          )}
         </div>
-
-        <div className="space-y-1.5 flex-1 overflow-y-auto">
-          {[
-            { label: "Review medications", desc: "Check interactions and schedule" },
-            { label: "Summarize conditions", desc: "Get a clear health overview" },
-            { label: "Appointment prep", desc: "Prepare questions for your doctor" },
-            { label: "Explain diagnoses", desc: "Simple terms, day-to-day impact" },
-          ].map((action, idx) => (
-            <div
-              key={idx}
-              className="p-3 rounded-lg bg-black/20 border border-white/5 hover:border-cyan-500/15 hover:bg-cyan-500/5 transition-all cursor-pointer group"
-              data-testid={`action-${action.label.slice(0, 15)}`}
-            >
-              <div className="flex items-center gap-3">
-                <ChevronRight className="w-3 h-3 text-cyan-400/30 group-hover:text-cyan-400 transition-colors shrink-0" />
-                <div>
-                  <div className="text-xs font-medium">{action.label}</div>
-                  <div className="text-[10px] text-muted-foreground/40">{action.desc}</div>
-                </div>
-              </div>
+        <div className="space-y-1.5 overflow-y-auto min-h-0">
+          {vaultDocuments.length === 0 ? (
+            <div className="text-center py-3 text-muted-foreground/30 text-xs" style={mono}>
+              No documents yet — upload above
             </div>
-          ))}
+          ) : (
+            vaultDocuments.map((doc: any) => (
+              <div key={doc.id} className="flex items-center justify-between p-2 rounded-lg bg-black/20 border border-white/5 group/item">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="w-3 h-3 text-cyan-400/40 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-medium truncate">{doc.name}</div>
+                    <div className="text-[9px] text-muted-foreground/40" style={mono}>{doc.docType} · {doc.date}</div>
+                  </div>
+                </div>
+                <button className="opacity-0 group-hover/item:opacity-100 p-1 hover:bg-red-500/10 rounded shrink-0 transition-opacity" onClick={() => delVault.mutate(doc.id)}>
+                  <Trash2 className="w-2.5 h-2.5 text-red-400/50" />
+                </button>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -892,7 +837,7 @@ function SummaryPanel() {
 }
 
 export default function MedicalPage() {
-  const [mobileTab, setMobileTab] = useState<"profile" | "chat" | "summary">("chat");
+  const [mobileTab, setMobileTab] = useState<"health" | "chat" | "actions">("chat");
 
   return (
     <Layout>
@@ -923,19 +868,19 @@ export default function MedicalPage() {
 
         <div className="hidden md:flex flex-1 gap-3 min-h-0">
           <div className="w-[380px] shrink-0 min-h-0 overflow-hidden">
-            <PatientHud />
+            <MyHealthPanel />
           </div>
           <div className="flex-1 min-h-0 min-w-[350px]">
             <MedicalChatPanel />
           </div>
-          <div className="w-[260px] shrink-0 min-h-0 overflow-hidden">
-            <SummaryPanel />
+          <div className="w-[280px] shrink-0 min-h-0 overflow-hidden">
+            <ActionItemsPanel />
           </div>
         </div>
 
         <div className="flex md:hidden flex-col flex-1 min-h-0">
           <div className="flex gap-1.5 mb-3 shrink-0">
-            {(["profile", "chat", "summary"] as const).map(tab => (
+            {(["health", "chat", "actions"] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setMobileTab(tab)}
@@ -947,21 +892,21 @@ export default function MedicalPage() {
                 )}
                 style={mono}
               >
-                {tab === "profile" ? "Profile" : tab === "chat" ? "AI Chat" : "Summary"}
+                {tab === "health" ? "My Health" : tab === "chat" ? "AI Chat" : "Actions"}
               </button>
             ))}
           </div>
 
           <div className="flex-1 min-h-0 overflow-hidden">
-            {mobileTab === "profile" && (
+            {mobileTab === "health" && (
               <div className="h-full overflow-y-auto pb-4">
-                <PatientHud />
+                <MyHealthPanel />
               </div>
             )}
             {mobileTab === "chat" && <MedicalChatPanel />}
-            {mobileTab === "summary" && (
+            {mobileTab === "actions" && (
               <div className="h-full overflow-y-auto pb-4">
-                <SummaryPanel />
+                <ActionItemsPanel />
               </div>
             )}
           </div>

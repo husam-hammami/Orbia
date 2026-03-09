@@ -37,7 +37,7 @@ Preferred communication style: Simple, everyday language.
 - **Data Isolation**: All medical tables include a `userId` column.
 - **Key Tables**: `medicalProfiles`, `medDiagnoses`, `medPriorities`, `medPainMechanisms`, `medMedications`, `medTimelineEvents`, `medMedicalNetwork`, `medVaultDocuments`.
 - **API Endpoints**: Comprehensive `/api/medical/*` endpoints for CRUD operations, AI medical chat, and AI-powered document upload with clinical data extraction.
-- **Frontend**: A 3-column HUD layout with a patient profile, AI chat, and document upload/health overview.
+- **Frontend**: 3-column HUD layout — Left: "My Health" (profile, conditions, medications, tabs for History/Care Team), Center: AI Chat, Right: "Actions" (upload zone, action items, document vault). Pain Mechanisms and Health Overview sections removed. Priorities renamed to "Action Items." Mobile uses tab-based fallback.
 - **AI Medical Chat Tone**: Clinical precision with human warmth, leading with insights, connecting patterns, and referencing specific patient data.
 
 ### AI Integration
