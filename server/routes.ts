@@ -5178,7 +5178,7 @@ CLINICAL ANALYSIS RULES — READ CAREFULLY:
    - newDiagnoses: Maximum 3-4. Only PRIMARY clinical conditions. Consolidate related findings into one diagnosis. Use the "description" field (keep it to 1 concise sentence) to note the key supporting findings.
    - priorities: Maximum 2-3. Only the MOST IMPORTANT next steps — things that would change patient outcomes. Not every recommendation in a document deserves to be an action item.
    - timelineEvents: Maximum 3-4. Only major clinical milestones (surgeries, key scans, diagnosis dates). Not every mention of a date is an event.
-   - newMedications: Only medications explicitly prescribed or recommended. Not every drug mentioned in a document is a current medication.
+   - newMedications: ONLY medications the patient is CURRENTLY TAKING or has been formally PRESCRIBED. If a document merely suggests, recommends, or discusses a medication as a potential option, do NOT add it. A recommendation to "discuss pregabalin with your doctor" is NOT a prescription.
 
 3. SEVERITY MUST REFLECT CLINICAL JUDGMENT.
    - "critical": Immediate danger or urgent intervention needed
