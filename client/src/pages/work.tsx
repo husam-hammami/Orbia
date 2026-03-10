@@ -520,7 +520,7 @@ function NexusChat({ connected }: { connected: boolean }) {
               <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full scale-150" />
               <img src={logoUrl} alt="Orbia" className="w-16 h-16 rounded-2xl relative shadow-lg shadow-indigo-500/10" />
             </div>
-            <h3 className="text-lg font-display font-semibold text-foreground/90 mb-1">Nexus</h3>
+            <h3 className="text-lg font-display font-semibold text-foreground/90 mb-1">Orbia Professional</h3>
             <p className="text-xs text-muted-foreground text-center max-w-[260px] leading-relaxed">
               {connected
                 ? "Your work intelligence layer. I can see your calendar and Teams — just ask."
@@ -577,7 +577,7 @@ function NexusChat({ connected }: { connected: boolean }) {
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask Nexus anything..."
+          placeholder="Ask Orbia Professional anything..."
           className="text-sm bg-black/30 border-indigo-500/15 focus:border-indigo-500/30 placeholder:text-muted-foreground/40 rounded-xl"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -806,7 +806,7 @@ export default function WorkPage() {
 
   const mobileTabItems: { key: MobileTab; label: string; icon: typeof Calendar }[] = [
     { key: "today", label: "Today", icon: Calendar },
-    { key: "nexus", label: "Nexus", icon: Sparkles },
+    { key: "nexus", label: "Professional", icon: Sparkles },
     { key: "comms", label: "Comms", icon: MessageSquare },
   ];
 
@@ -934,7 +934,7 @@ export default function WorkPage() {
             <div className={cn(cmdPanelGlow, "p-5 flex flex-col min-h-[600px]")}>
               <div className="flex items-center gap-2 mb-4">
                 <Sparkles className="w-4 h-4 text-indigo-400" />
-                <CmdLabel>Nexus</CmdLabel>
+                <CmdLabel>Orbia Professional</CmdLabel>
               </div>
               <NexusChat connected={connected} />
             </div>
@@ -1028,7 +1028,7 @@ export default function WorkPage() {
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <Sparkles className="w-4 h-4 text-indigo-400" />
-                    <CmdLabel>Nexus</CmdLabel>
+                    <CmdLabel>Orbia Professional</CmdLabel>
                   </div>
                   <NexusChat connected={connected} />
                 </motion.div>

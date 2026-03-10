@@ -47,9 +47,9 @@ Preferred communication style: Simple, everyday language.
 - **Key Table**: `microsoftConnections` — stores OAuth tokens (access, refresh), token expiry, Microsoft user ID, display name, email, connection status.
 - **Token Management**: Auto-refresh with 5-minute buffer; expired tokens trigger re-auth.
 - **API Endpoints**: `/api/work/microsoft/auth`, `/api/work/microsoft/callback`, `/api/work/microsoft/status`, `/api/work/microsoft/disconnect`, `/api/work/calendar`, `/api/work/teams/chats`, `/api/work/teams/chats/:chatId/messages`, `/api/work/chat` (streaming AI assistant).
-- **Frontend**: 3-column layout — Left: Microsoft connection card + today's calendar timeline + quick stats, Center: Nexus AI chat (streaming, quick chips), Right: Teams conversations with inline reply. Mobile: tab-based fallback (Today | Nexus | Comms).
+- **Frontend**: 3-column layout — Left: Microsoft connection card + today's calendar timeline + quick stats, Center: Orbia Professional chat (streaming, quick chips), Right: Teams conversations with inline reply. Mobile: tab-based fallback (Today | Professional | Comms).
 - **Design Identity**: Indigo/violet accent palette (`indigo-500`, `violet-500`) on dark glass panels, distinguishing from Medical module's cyan theme.
-- **Nexus AI**: Work intelligence assistant using Silent Context Protocol. Accesses calendar, Teams, and wellness data. Output format: "The Situation" + "Moves" for strategic questions.
+- **Orbia Professional**: Work intelligence assistant using Silent Context Protocol. Accesses calendar, Teams, and wellness data. Output format: "The Situation" + "Moves" for strategic questions.
 - **Files**: `server/lib/microsoft-graph.ts` (Graph API client), `client/src/pages/work.tsx` (frontend).
 
 ### AI Integration
