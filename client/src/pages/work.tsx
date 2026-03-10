@@ -934,7 +934,7 @@ export default function WorkPage() {
             <div className={cn(cmdPanelGlow, "p-5 flex flex-col min-h-[600px]")}>
               <div className="flex items-center gap-2 mb-4">
                 <Sparkles className="w-4 h-4 text-indigo-400" />
-                <CmdLabel>Nexus AI</CmdLabel>
+                <CmdLabel>Nexus</CmdLabel>
               </div>
               <NexusChat connected={connected} />
             </div>
@@ -1028,7 +1028,7 @@ export default function WorkPage() {
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <Sparkles className="w-4 h-4 text-indigo-400" />
-                    <CmdLabel>Nexus AI</CmdLabel>
+                    <CmdLabel>Nexus</CmdLabel>
                   </div>
                   <NexusChat connected={connected} />
                 </motion.div>
