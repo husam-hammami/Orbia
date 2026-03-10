@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, jsonb, serial, real } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, jsonb, serial, real, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -746,3 +746,20 @@ export const microsoftConnections = pgTable("microsoft_connections", {
 export const insertMicrosoftConnectionSchema = createInsertSchema(microsoftConnections).omit({ id: true, connectedAt: true });
 export type MicrosoftConnection = typeof microsoftConnections.$inferSelect;
 export type InsertMicrosoftConnection = z.infer<typeof insertMicrosoftConnectionSchema>;
+
+export const scheduledMessages = pgTable("scheduled_messages", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  chatId: text("chat_id").notNull(),
+  recipientName: text("recipient_name").notNull(),
+  message: text("message").notNull(),
+  timeOfDay: text("time_of_day").notNull(),
+  recurrence: text("recurrence").notNull().default("daily"),
+  active: boolean("active").notNull().default(true),
+  lastSentAt: timestamp("last_sent_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertScheduledMessageSchema = createInsertSchema(scheduledMessages).omit({ id: true, createdAt: true, lastSentAt: true });
+export type ScheduledMessage = typeof scheduledMessages.$inferSelect;
+export type InsertScheduledMessage = z.infer<typeof insertScheduledMessageSchema>;

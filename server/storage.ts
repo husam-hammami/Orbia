@@ -106,6 +106,9 @@ import {
   microsoftConnections,
   type MicrosoftConnection,
   type InsertMicrosoftConnection,
+  scheduledMessages,
+  type ScheduledMessage,
+  type InsertScheduledMessage,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, asc, inArray } from "drizzle-orm";
@@ -338,6 +341,13 @@ export interface IStorage {
   getMicrosoftConnection(userId: string): Promise<MicrosoftConnection | undefined>;
   upsertMicrosoftConnection(userId: string, data: InsertMicrosoftConnection): Promise<MicrosoftConnection>;
   deleteMicrosoftConnection(userId: string): Promise<boolean>;
+
+  getScheduledMessages(userId: string): Promise<ScheduledMessage[]>;
+  createScheduledMessage(userId: string, data: InsertScheduledMessage): Promise<ScheduledMessage>;
+  updateScheduledMessage(userId: string, id: number, data: Partial<InsertScheduledMessage>): Promise<ScheduledMessage | undefined>;
+  deleteScheduledMessage(userId: string, id: number): Promise<boolean>;
+  getActiveScheduledMessages(): Promise<ScheduledMessage[]>;
+  markScheduledMessageSent(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1242,6 +1252,39 @@ export class DatabaseStorage implements IStorage {
   async deleteMicrosoftConnection(userId: string): Promise<boolean> {
     const result = await db.delete(microsoftConnections).where(eq(microsoftConnections.userId, userId)).returning();
     return result.length > 0;
+  }
+
+  async getScheduledMessages(userId: string): Promise<ScheduledMessage[]> {
+    return await db.select().from(scheduledMessages)
+      .where(eq(scheduledMessages.userId, userId))
+      .orderBy(desc(scheduledMessages.createdAt));
+  }
+
+  async createScheduledMessage(userId: string, data: InsertScheduledMessage): Promise<ScheduledMessage> {
+    const [row] = await db.insert(scheduledMessages).values({ ...data, userId }).returning();
+    return row;
+  }
+
+  async updateScheduledMessage(userId: string, id: number, data: Partial<InsertScheduledMessage>): Promise<ScheduledMessage | undefined> {
+    const [row] = await db.update(scheduledMessages).set(data)
+      .where(and(eq(scheduledMessages.id, id), eq(scheduledMessages.userId, userId))).returning();
+    return row;
+  }
+
+  async deleteScheduledMessage(userId: string, id: number): Promise<boolean> {
+    const result = await db.delete(scheduledMessages)
+      .where(and(eq(scheduledMessages.id, id), eq(scheduledMessages.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  async getActiveScheduledMessages(): Promise<ScheduledMessage[]> {
+    return await db.select().from(scheduledMessages)
+      .where(eq(scheduledMessages.active, true));
+  }
+
+  async markScheduledMessageSent(id: number): Promise<void> {
+    await db.update(scheduledMessages).set({ lastSentAt: new Date() })
+      .where(eq(scheduledMessages.id, id));
   }
 }
 

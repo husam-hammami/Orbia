@@ -682,6 +682,8 @@ function NexusChat({ connected }: { connected: boolean }) {
                   create_task_failed: `\n\n❌ **Failed to create task**: ${data.error || "Unknown error"}`,
                   email_sent: `\n\n📧 **Email sent** to ${data.to}: "${data.subject}"`,
                   send_email_failed: `\n\n❌ **Failed to send email**: ${data.error || "Unknown error"}`,
+                  message_scheduled: `\n\n🔁 **Scheduled message set up** — "${data.message}" will be sent to ${data.recipient} every ${data.recurrence === "weekdays" ? "weekday" : "day"} at ${data.time}`,
+                  schedule_message_failed: `\n\n❌ **Failed to schedule message**: ${data.error || "Unknown error"}`,
                 };
                 const confirm = actionConfirms[data.action];
                 if (confirm) {

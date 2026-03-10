@@ -8,6 +8,7 @@ import { db } from "./db";
 import { users } from "@shared/schema";
 import { sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
+import { storage } from "./storage";
 
 const app = express();
 const httpServer = createServer(app);
@@ -130,9 +131,55 @@ async function ensureDefaultUsers() {
   }
 }
 
+async function startMessageScheduler() {
+  const CHECK_INTERVAL = 60 * 1000;
+
+  setInterval(async () => {
+    try {
+      const activeMessages = await storage.getActiveScheduledMessages();
+      if (!activeMessages.length) return;
+
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const todayStr = now.toDateString();
+
+      for (const msg of activeMessages) {
+        const [targetHour, targetMinute] = msg.timeOfDay.split(":").map(Number);
+
+        if (currentHour !== targetHour || Math.abs(currentMinute - targetMinute) > 1) continue;
+
+        if (msg.lastSentAt && new Date(msg.lastSentAt).toDateString() === todayStr) continue;
+
+        if (msg.recurrence === "weekdays") {
+          const day = now.getDay();
+          if (day === 0 || day === 6) continue;
+        }
+
+        try {
+          const { getValidToken, sendChatMessage } = await import("./lib/microsoft-graph");
+          const token = await getValidToken(msg.userId);
+          if (!token) continue;
+
+          await sendChatMessage(token, msg.chatId, msg.message);
+          await storage.markScheduledMessageSent(msg.id);
+          console.log(`[scheduler] Sent scheduled message #${msg.id} to ${msg.recipientName}`);
+        } catch (err: any) {
+          console.error(`[scheduler] Failed to send message #${msg.id}:`, err.message);
+        }
+      }
+    } catch (err: any) {
+      console.error("[scheduler] Error:", err.message);
+    }
+  }, CHECK_INTERVAL);
+
+  console.log("[scheduler] Message scheduler started (checking every 60s)");
+}
+
 (async () => {
   await ensureDefaultUsers();
   await registerRoutes(httpServer, app);
+  startMessageScheduler();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

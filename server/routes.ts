@@ -5738,6 +5738,62 @@ Keep responses focused, structured, and actionable. Use headers and bullet point
     }
   });
 
+  app.get("/api/work/scheduled-messages", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const messages = await storage.getScheduledMessages(userId);
+      res.json(messages);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/work/scheduled-messages", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { chatId, recipientName, message, timeOfDay, recurrence } = req.body;
+      if (!chatId || !recipientName || !message || !timeOfDay) {
+        return res.status(400).json({ error: "chatId, recipientName, message, and timeOfDay are required" });
+      }
+      const scheduled = await storage.createScheduledMessage(userId, {
+        userId,
+        chatId,
+        recipientName,
+        message,
+        timeOfDay,
+        recurrence: recurrence || "daily",
+        active: true,
+      });
+      res.json(scheduled);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/work/scheduled-messages/:id", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateScheduledMessage(userId, id, req.body);
+      if (!updated) return res.status(404).json({ error: "Not found" });
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/work/scheduled-messages/:id", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteScheduledMessage(userId, id);
+      if (!deleted) return res.status(404).json({ error: "Not found" });
+      res.status(204).end();
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/work/chat", async (req, res) => {
     try {
       const userId = req.session.userId!;
@@ -5815,6 +5871,17 @@ Keep responses focused, structured, and actionable. Use headers and bullet point
         }
       } catch (e) { /* wellness data unavailable */ }
 
+      let scheduledContext = "";
+      try {
+        const schedules = await storage.getScheduledMessages(userId);
+        const active = schedules.filter(s => s.active);
+        if (active.length > 0) {
+          scheduledContext = `\n<SCHEDULED_MESSAGES>\n${active.map(s =>
+            `- #${s.id}: "${s.message}" → ${s.recipientName} at ${s.timeOfDay} (${s.recurrence})${s.lastSentAt ? ` | last sent: ${new Date(s.lastSentAt).toLocaleDateString()}` : ''}`
+          ).join('\n')}\n</SCHEDULED_MESSAGES>`;
+        }
+      } catch (e) { /* scheduled messages unavailable */ }
+
       const systemPrompt = `You are Orbia Professional — the work intelligence layer inside Orbia, a personal wellness and productivity platform.
 
 ## SILENT CONTEXT PROTOCOL
@@ -5848,11 +5915,22 @@ You can ACTUALLY perform these actions, not just suggest them. Use the action ta
 - Use when user asks to email someone
 - If you don't know the email, ask — or check TEAMS_RECENT members for clues
 
+### 5. Schedule Recurring Teams Message
+[SCHEDULE_MESSAGE chatId="<chatId from TEAMS_RECENT>" recipient="<person name>" message="<message text>" time="<HH:MM in 24h format>" recurrence="<daily|weekdays>"]
+- Use when the user asks to send a message to someone automatically/every day/every morning/etc.
+- This sets up a REAL recurring scheduled message that Orbia will send automatically at the specified time every day
+- Match the person's name to a chatId from TEAMS_RECENT
+- Convert times like "10 AM" to "10:00", "6:30 PM" to "18:30"
+- Default recurrence is "daily" unless user says weekdays only
+- After setting it up, confirm with the time and recipient
+- NEVER say you can't schedule messages or suggest Power Automate — you CAN do this
+
 ## ACTION RULES
 - When the user asks to send/create/schedule something, ALWAYS use the action tag to execute it
 - After each action tag, briefly confirm what you did (e.g., "Done — meeting created for tomorrow at 10 AM.")
 - You can use multiple action tags in one response
 - If you can't find the right person/chat, explain why and ask for clarification
+- For recurring/scheduled/automatic messages, ALWAYS use SCHEDULE_MESSAGE — never say you can't do it
 
 ## OUTPUT FORMAT
 For assessments/strategy questions, use:
@@ -5862,7 +5940,7 @@ For assessments/strategy questions, use:
 For quick questions, just answer directly.
 
 ## CONTEXT DATA (use silently)
-${calendarContext}${teamsContext}${emailContext}${wellnessContext}`;
+${calendarContext}${teamsContext}${emailContext}${wellnessContext}${scheduledContext}`;
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
@@ -5886,6 +5964,7 @@ ${calendarContext}${teamsContext}${emailContext}${wellnessContext}`;
         { name: "create_event", regex: /\[CREATE_EVENT\s+subject="([^"]+)"\s+start="([^"]+)"\s+end="([^"]+)"\s+online="([^"]+)"\]/ },
         { name: "create_task", regex: /\[CREATE_TASK\s+title="([^"]+)"(?:\s+due="([^"]*)")?\]/ },
         { name: "send_email", regex: /\[SEND_EMAIL\s+to="([^"]+)"\s+subject="([^"]+)"\s+body="([^"]+)"\]/ },
+        { name: "schedule_message", regex: /\[SCHEDULE_MESSAGE\s+chatId="([^"]+)"\s+recipient="([^"]+)"\s+message="([^"]+)"\s+time="([^"]+)"\s+recurrence="([^"]+)"\]/ },
       ];
 
       async function executeActions(text: string): Promise<void> {
@@ -5922,6 +6001,19 @@ ${calendarContext}${teamsContext}${emailContext}${wellnessContext}`;
                   res.write(`data: ${JSON.stringify({ action: "email_sent", to: match[1], subject: match[2] })}\n\n`);
                   break;
                 }
+                case "schedule_message": {
+                  await storage.createScheduledMessage(userId, {
+                    userId,
+                    chatId: match[1],
+                    recipientName: match[2],
+                    message: match[3],
+                    timeOfDay: match[4],
+                    recurrence: match[5] || "daily",
+                    active: true,
+                  });
+                  res.write(`data: ${JSON.stringify({ action: "message_scheduled", recipient: match[2], message: match[3], time: match[4], recurrence: match[5] })}\n\n`);
+                  break;
+                }
               }
             } catch (err: any) {
               console.error(`Action ${name} failed:`, err.message);
@@ -5931,7 +6023,7 @@ ${calendarContext}${teamsContext}${emailContext}${wellnessContext}`;
         }
       }
 
-      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL)\s[^\]]+\]/g;
+      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE)\s[^\]]+\]/g;
       let bufferedContent = "";
       let hasActionTag = false;
 
