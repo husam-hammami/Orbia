@@ -217,12 +217,31 @@ function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendM
   onSelectChat: (chatId: string) => void;
   selectedChatId: string | null;
   chatMessages: any[];
-  onSendMessage: (chatId: string, content: string) => void;
+  onSendMessage: (chatId: string, content: string) => Promise<void>;
   loadingMessages: boolean;
   loadingChats: boolean;
   error?: string | null;
 }) {
   const [replyText, setReplyText] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [sendStatus, setSendStatus] = useState<"sent" | "failed" | null>(null);
+
+  const handleSend = useCallback(async () => {
+    if (!replyText.trim() || !selectedChatId || isSending) return;
+    setIsSending(true);
+    setSendStatus(null);
+    try {
+      await onSendMessage(selectedChatId, replyText.trim());
+      setReplyText("");
+      setSendStatus("sent");
+      setTimeout(() => setSendStatus(null), 3000);
+    } catch {
+      setSendStatus("failed");
+      setTimeout(() => setSendStatus(null), 4000);
+    } finally {
+      setIsSending(false);
+    }
+  }, [replyText, selectedChatId, isSending, onSendMessage]);
 
   if (loadingChats) {
     return (
@@ -254,15 +273,21 @@ function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendM
   }
 
   if (selectedChatId) {
+    const selectedChat = chats.find((c: any) => c.id === selectedChatId);
+    const chatName = selectedChat?.topic || selectedChat?.resolvedName || "Conversation";
+
     return (
       <div className="flex flex-col h-full" data-testid="panel-chat-messages">
-        <button
-          onClick={() => onSelectChat("")}
-          className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 mb-3 transition-colors"
-          data-testid="button-back-to-chats"
-        >
-          <ChevronRight className="w-3 h-3 rotate-180" /> Back to chats
-        </button>
+        <div className="flex items-center gap-2 mb-3 pb-2 border-b border-indigo-500/10">
+          <button
+            onClick={() => onSelectChat("")}
+            className="flex items-center justify-center w-6 h-6 rounded-lg hover:bg-indigo-500/10 transition-colors"
+            data-testid="button-back-to-chats"
+          >
+            <ChevronRight className="w-3.5 h-3.5 rotate-180 text-indigo-400" />
+          </button>
+          <span className="text-sm font-medium text-foreground/85 truncate">{chatName}</span>
+        </div>
 
         <div className="flex-1 overflow-y-auto space-y-2 mb-3 max-h-[350px]">
           {loadingMessages ? (
@@ -294,32 +319,41 @@ function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendM
           )}
         </div>
 
-        <div className="flex gap-2">
+        {sendStatus && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(
+              "text-[11px] px-3 py-1.5 rounded-lg mb-2 text-center",
+              sendStatus === "sent" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"
+            )}
+          >
+            {sendStatus === "sent" ? "Message sent to Teams" : "Failed to send — try again"}
+          </motion.div>
+        )}
+
+        <div className="flex gap-2 pt-2 border-t border-indigo-500/10">
           <Input
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
-            placeholder="Type a reply..."
+            placeholder={`Reply to ${chatName}...`}
             className="text-xs bg-black/30 border-indigo-500/15 focus:border-indigo-500/30"
             onKeyDown={(e) => {
-              if (e.key === "Enter" && replyText.trim()) {
-                onSendMessage(selectedChatId, replyText.trim());
-                setReplyText("");
+              if (e.key === "Enter" && replyText.trim() && !isSending) {
+                handleSend();
               }
             }}
+            disabled={isSending}
             data-testid="input-teams-reply"
           />
           <Button
             size="sm"
             className="bg-indigo-600 hover:bg-indigo-500"
-            onClick={() => {
-              if (replyText.trim()) {
-                onSendMessage(selectedChatId, replyText.trim());
-                setReplyText("");
-              }
-            }}
+            onClick={handleSend}
+            disabled={!replyText.trim() || isSending}
             data-testid="button-send-teams-reply"
           >
-            <Send className="w-3.5 h-3.5" />
+            {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
           </Button>
         </div>
       </div>
@@ -717,15 +751,11 @@ export default function WorkPage() {
   });
 
   const sendTeamsMessage = useCallback(async (chatId: string, content: string) => {
-    try {
-      await workApi(`/api/work/teams/chats/${chatId}/messages`, {
-        method: "POST",
-        body: JSON.stringify({ content }),
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/work/teams/chats", chatId, "messages"] });
-    } catch (error) {
-      console.error("Failed to send Teams message:", error);
-    }
+    await workApi(`/api/work/teams/chats/${chatId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    });
+    queryClient.invalidateQueries({ queryKey: ["/api/work/teams/chats", chatId, "messages"] });
   }, [queryClient]);
 
   const handleConnect = useCallback(async () => {
