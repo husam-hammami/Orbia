@@ -5551,11 +5551,33 @@ Keep responses focused, structured, and actionable. Use headers and bullet point
   app.get("/api/work/teams/chats", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const { getValidToken, getRecentChats } = await import("./lib/microsoft-graph");
+      const { getValidToken, getRecentChats, getProfile } = await import("./lib/microsoft-graph");
       const token = await getValidToken(userId);
       if (!token) return res.status(401).json({ error: "Microsoft account not connected" });
 
-      const chats = await getRecentChats(token);
+      const [chats, profile] = await Promise.all([
+        getRecentChats(token),
+        getProfile(token),
+      ]);
+
+      const myEmail = profile?.mail || profile?.userPrincipalName || "";
+      const myId = profile?.id || "";
+
+      if (chats?.value) {
+        for (const chat of chats.value) {
+          if (chat.chatType === "oneOnOne" && chat.members?.length) {
+            const otherMember = chat.members.find((m: any) => {
+              const memberId = m.userId || m.id;
+              const memberEmail = m.email || "";
+              return memberId !== myId && memberEmail.toLowerCase() !== myEmail.toLowerCase();
+            });
+            if (otherMember) {
+              chat.resolvedName = otherMember.displayName || "Unknown";
+            }
+          }
+        }
+      }
+
       res.json(chats);
     } catch (error: any) {
       console.error("Teams chats fetch error:", error);

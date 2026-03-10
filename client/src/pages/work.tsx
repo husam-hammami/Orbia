@@ -329,10 +329,10 @@ function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendM
   return (
     <div className="space-y-1.5" data-testid="list-teams-chats">
       {chats.map((chat: any, i: number) => {
-        const preview = chat.lastMessagePreview?.body?.content?.replace(/<[^>]*>/g, "")?.substring(0, 80) || "No messages";
+        const rawPreview = chat.lastMessagePreview?.body?.content?.replace(/<[^>]*>/g, "")?.replace(/&nbsp;/g, " ")?.replace(/&amp;/g, "&")?.replace(/&lt;/g, "<")?.replace(/&gt;/g, ">")?.trim();
+        const preview = rawPreview?.substring(0, 80) || "No messages";
         const chatType = chat.chatType;
-        const members = chat.members || [];
-        const topic = chat.topic || (chatType === "oneOnOne" ? "Direct Message" : chatType === "group" ? "Group Chat" : "Chat");
+        const topic = chat.topic || chat.resolvedName || (chatType === "oneOnOne" ? "Direct Message" : chatType === "group" ? "Group Chat" : "Chat");
         const lastActive = chat.lastUpdatedDateTime
           ? new Date(chat.lastUpdatedDateTime)
           : null;
