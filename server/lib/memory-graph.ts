@@ -19,12 +19,7 @@ import type {
   MemoryConnection,
   MemoryNarrative,
 } from "@shared/schema";
-import OpenAI from "openai";
-
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+import { aiComplete, MODEL_PRIMARY } from "./ai-client";
 
 // ============================================================
 // TYPES
@@ -575,9 +570,8 @@ export async function extractFromJournalAI(
     .join(", ");
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-5.1",
-      messages: [
+    const responseText = await aiComplete(
+      [
         {
           role: "system",
           content: `You are a memory extraction engine for a personal intelligence system. Extract meaningful entities and connections from journal entries. Focus on what genuinely matters for understanding this person's life — not surface-level observations.
@@ -625,12 +619,10 @@ RULES:
 "${entry.content}"`,
         },
       ],
-      response_format: { type: "json_object" },
-      max_completion_tokens: 1024,
-      temperature: 0.3,
-    });
+      { maxTokens: 1024, temperature: 0.3 }
+    );
 
-    const parsed = JSON.parse(response.choices[0]?.message?.content || "{}");
+    const parsed = JSON.parse(responseText || "{}");
     return {
       entities: (parsed.entities || []).map((e: any) => ({
         ...e,
@@ -792,9 +784,8 @@ export async function consolidateMemories(userId: string): Promise<void> {
     .join("\n");
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-5.1",
-      messages: [
+    const responseText = await aiComplete(
+      [
         {
           role: "system",
           content: `You are a narrative synthesis engine for a personal intelligence system. Given the memory graph (entities and connections), generate deep understandings about this person.
@@ -826,12 +817,10 @@ RULES:
           content: `MEMORY GRAPH ENTITIES:\n${graphSummary}\n\nCONNECTIONS:\n${connectionSummary}`,
         },
       ],
-      response_format: { type: "json_object" },
-      max_completion_tokens: 2048,
-      temperature: 0.4,
-    });
+      { maxTokens: 2048, temperature: 0.4 }
+    );
 
-    const parsed = JSON.parse(response.choices[0]?.message?.content || "{}");
+    const parsed = JSON.parse(responseText || "{}");
     const narratives = parsed.narratives || [];
 
     // Upsert narratives

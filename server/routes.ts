@@ -30,12 +30,7 @@ import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerImageRoutes } from "./replit_integrations/image";
 import { parseTrackerNotes } from "./lib/parse-notes";
 import { computeDashboardInsights, DashboardInsightsSchema } from "./lib/dashboard-analytics";
-import OpenAI from "openai";
-
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+import { aiComplete, aiStream, MODEL_PRIMARY, MODEL_FAST } from "./lib/ai-client";
 
 // Simple in-memory cache for AI responses (cost optimization)
 const aiCache = new Map<string, { data: string; timestamp: number }>();
@@ -1711,18 +1706,14 @@ Format as JSON:
   "encouragement": "Brief encouraging message referencing a specific achievement"
 }`;
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-5.1",
-        messages: [
+      const responseText = await aiComplete(
+        [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        response_format: { type: "json_object" },
-        max_completion_tokens: 2500
-      });
-      
-      const responseText = completion.choices[0]?.message?.content || "{}";
-      const insights = JSON.parse(responseText);
+        { maxTokens: 2500 }
+      );
+      const insights = JSON.parse(responseText || "{}");
       
       res.json({
         ...insights,
@@ -1868,23 +1859,15 @@ You have access to the user's linked tracking data including:
 
 Provide trauma-informed, supportive analysis. Be specific about patterns you observe in the data. Use gentle, encouraging language.`;
 
-      const stream = await openai.chat.completions.create({
-        model: "gpt-5.1",
-        messages: [
+      await aiStream(
+        [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Here is my tracking data from the last ${days} days:\n\n${JSON.stringify(dataContext, null, 2)}\n\nMy question: ${question || "What patterns do you see in my data?"}` }
         ],
-        stream: true,
-        max_completion_tokens: 1500
-      });
-      
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || "";
-        if (content) {
-          res.write(`data: ${JSON.stringify({ content })}\n\n`);
-        }
-      }
-      
+        res,
+        { maxTokens: 1500 }
+      );
+
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
     } catch (error) {
@@ -2554,10 +2537,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
             `${i + 1}. [${a.category}] ${a.title}`
           ).join("\n");
 
-          const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            max_tokens: 400,
-            messages: [
+          aiSummary = await aiComplete(
+            [
               {
                 role: "system",
                 content: `You provide brief, actionable daily briefings. User's goals: ${visionSummary || "career growth and personal wellbeing"}. Be warm and concise.`
@@ -2566,10 +2547,9 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
                 role: "user",
                 content: `Give a 2-sentence summary of today's most relevant updates for my goals. Mention specific article topics that matter most.\n\nToday's articles:\n${articlesList}`
               }
-            ]
-          });
-
-          aiSummary = completion.choices[0]?.message?.content || null;
+            ],
+            { model: MODEL_FAST, maxTokens: 400 }
+          ) || null;
         } catch (e) {
           // AI summary is optional
         }
@@ -2662,18 +2642,14 @@ Description: ${p.description || 'No description'}
 
 Based on this vision and current project state, create a strategic roadmap and suggest the most impactful next actions to move toward these goals.`;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-5.1",
-        messages: [
+      const content = await aiComplete(
+        [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        response_format: { type: "json_object" },
-        max_completion_tokens: 2048,
-      });
-
-      const content = response.choices[0]?.message?.content || "{}";
-      const parsed = JSON.parse(content);
+        { maxTokens: 2048 }
+      );
+      const parsed = JSON.parse(content || "{}");
 
       res.json({
         ...parsed,
@@ -2767,17 +2743,13 @@ ${projectSummary}
 
 Based on my North Star vision, create a comprehensive career coaching plan. Be specific about what I should do, learn, and focus on to reach these goals. Include real course recommendations where possible.`;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-5.1",
-        messages: [
+      const content = await aiComplete(
+        [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        response_format: { type: "json_object" },
-        max_completion_tokens: 8192,
-      });
-
-      const content = response.choices[0]?.message?.content || "{}";
+        { maxTokens: 8192 }
+      );
       console.log("[Career Coach] Response length:", content.length, "chars");
       
       let parsed;
@@ -2952,9 +2924,8 @@ Based on my North Star vision, create a comprehensive career coaching plan. Be s
 
       const visionSummary = vision?.map((v: any) => v.title).filter(Boolean).join(", ") || "No vision set";
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-5.1",
-        messages: [
+      const content = await aiComplete(
+        [
           {
             role: "system",
             content: `You are a career coach. Regenerate a complete phase for a career roadmap with fresh, specific milestones. Return ONLY valid JSON matching this exact format:
@@ -2978,11 +2949,8 @@ Current Phase to Replace:
 Generate a fresh version of this phase with new, specific milestones that still serve the vision but offer alternative approaches.`
           }
         ],
-        response_format: { type: "json_object" },
-        max_completion_tokens: 500,
-      });
-
-      const content = response.choices[0]?.message?.content;
+        { maxTokens: 500 }
+      );
       if (!content) {
         return res.status(500).json({ error: "Failed to generate new phase" });
       }
@@ -3006,9 +2974,8 @@ Generate a fresh version of this phase with new, specific milestones that still 
 
       const visionSummary = vision?.map((v: any) => v.title).filter(Boolean).join(", ") || "No vision set";
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-5.1",
-        messages: [
+      const newMilestone = (await aiComplete(
+        [
           {
             role: "system",
             content: `You are a career coach. Generate ONE alternative milestone for a career roadmap phase. The milestone should be specific, measurable, and achievable. Return ONLY the new milestone text, nothing else.`
@@ -3023,10 +2990,8 @@ Current Milestone (to replace): ${currentMilestone}
 Generate a different, equally specific milestone that serves the same purpose but offers a fresh approach or alternative action.`
           }
         ],
-        max_completion_tokens: 200,
-      });
-
-      const newMilestone = response.choices[0]?.message?.content?.trim();
+        { maxTokens: 200 }
+      ))?.trim();
       
       if (!newMilestone) {
         return res.status(500).json({ error: "Failed to generate new milestone" });
@@ -3189,9 +3154,8 @@ Generate a different, equally specific milestone that serves the same purpose bu
 
       const today = new Date().toISOString().split('T')[0];
       
-      const response = await openai.chat.completions.create({
-        model: "gpt-5.1",
-        messages: [
+      const content = await aiComplete(
+        [
           {
             role: "system",
             content: `You are an expert financial document parser specializing in UAE bank statements.
@@ -3245,11 +3209,8 @@ MERCHANT FIELD:
             content: `Document type: ${documentType || "bank statement"}\n\nExtract ALL transactions with dates:\n${documentText}`
           }
         ],
-        response_format: { type: "json_object" },
-        max_completion_tokens: 4000,
-      });
-
-      const content = response.choices[0]?.message?.content;
+        { maxTokens: 4000 }
+      );
       if (!content) {
         return res.status(500).json({ error: "Failed to parse document" });
       }
@@ -3333,11 +3294,21 @@ ${JSON.stringify(context, null, 2)}`;
       
       messages.push({ role: "user", content: message });
 
-      const stream = await openai.chat.completions.create({
-        model: "gpt-5.1",
-        messages,
+      // Separate system message for Anthropic format
+      const systemContent = messages.filter(m => m.role === "system").map(m => m.content).join("\n\n");
+      const chatMessages = messages.filter(m => m.role !== "system").map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
+      if (chatMessages.length === 0 || chatMessages[0].role !== "user") {
+        chatMessages.unshift({ role: "user", content: "(continuing)" });
+      }
+
+      const { getAnthropicClient } = await import("./lib/ai-client");
+      const anthropic = getAnthropicClient();
+      const stream = await anthropic.messages.create({
+        model: MODEL_PRIMARY,
+        system: systemContent,
+        messages: chatMessages,
+        max_tokens: 800,
         stream: true,
-        max_completion_tokens: 800
       });
 
       let fullResponse = "";
@@ -3399,9 +3370,10 @@ ${JSON.stringify(context, null, 2)}`;
       const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE)\s[^\]]+\]/g;
       let bufferedContent = "";
       let hasActionTag = false;
-      
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || "";
+
+      for await (const event of stream) {
+        if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") continue;
+        const content = event.delta.text;
         if (content) {
           fullResponse += content;
           bufferedContent += content;
@@ -4474,20 +4446,22 @@ RULES:
         return;
       }
       
-      const stream = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+      const { getAnthropicClient } = await import("./lib/ai-client");
+      const anthropicClient = getAnthropicClient();
+      const stream = await anthropicClient.messages.create({
+        model: MODEL_FAST,
+        system: systemPrompt,
         messages: [
-          { role: "system", content: systemPrompt },
           { role: "user", content: "Analyze my data following the exact 4-section format." }
         ],
         stream: true,
         max_tokens: 500,
       });
-      
+
       let fullResponse = "";
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || "";
-        if (content) {
+      for await (const event of stream) {
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          const content = event.delta.text;
           res.write(content);
           fullResponse += content;
         }
@@ -4902,17 +4876,35 @@ Think like a doctor building a patient's problem list — not like a text parser
         userContent.push({ type: "text", text: `A medical file named "${fileName}" (type: ${mimeType}) was uploaded. Based on the filename and type, provide your best categorization. Note that full content extraction is not available for this file format.` });
       }
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-5.1",
-        messages: [
-          { role: "system", content: analysisPrompt },
-          { role: "user", content: userContent },
-        ],
-        max_completion_tokens: 8192,
-        response_format: { type: "json_object" },
+      // Convert OpenAI content blocks to Anthropic format
+      const anthropicContent: any[] = userContent.map((block: any) => {
+        if (block.type === "image_url") {
+          // Extract base64 data and media type from data URL
+          const dataUrl = block.image_url.url;
+          const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+          if (match) {
+            return { type: "image", source: { type: "base64", media_type: match[1], data: match[2] } };
+          }
+          return { type: "text", text: "[Image could not be processed]" };
+        }
+        return block; // text blocks stay the same
       });
 
-      const rawAnalysis = completion.choices[0]?.message?.content || "{}";
+      const { getAnthropicClient } = await import("./lib/ai-client");
+      const anthropicClient = getAnthropicClient();
+      const completion = await anthropicClient.messages.create({
+        model: MODEL_PRIMARY,
+        system: analysisPrompt,
+        messages: [
+          { role: "user", content: anthropicContent },
+        ],
+        max_tokens: 8192,
+      });
+
+      const rawAnalysis = completion.content
+        .filter((block) => block.type === "text")
+        .map((block) => block.type === "text" ? block.text : "")
+        .join("") || "{}";
       let analysis: any;
       try {
         analysis = JSON.parse(rawAnalysis);
@@ -5023,22 +5015,14 @@ ${unifiedContext}${extraMedContext}`;
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      const stream = await openai.chat.completions.create({
-        model: "gpt-5.1",
-        messages: [
+      await aiStream(
+        [
           { role: "system", content: systemPrompt },
           ...chatMessages.map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content })),
         ],
-        stream: true,
-        max_completion_tokens: 2048,
-      });
-
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || "";
-        if (content) {
-          res.write(`data: ${JSON.stringify({ content })}\n\n`);
-        }
-      }
+        res,
+        { maxTokens: 2048 }
+      );
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
@@ -5469,14 +5453,20 @@ ${unifiedContext}`;
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      const stream = await openai.chat.completions.create({
-        model: "gpt-5.1",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...chatMessages.map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content })),
-        ],
+      // Separate system message for Anthropic format
+      const workMsgs = chatMessages.map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content }));
+      if (workMsgs.length === 0 || workMsgs[0].role !== "user") {
+        workMsgs.unshift({ role: "user" as const, content: "(continuing)" });
+      }
+
+      const { getAnthropicClient } = await import("./lib/ai-client");
+      const anthropicClient = getAnthropicClient();
+      const stream = await anthropicClient.messages.create({
+        model: MODEL_PRIMARY,
+        system: systemPrompt,
+        messages: workMsgs,
+        max_tokens: 2048,
         stream: true,
-        max_completion_tokens: 2048,
       });
 
       let fullResponse = "";
@@ -5510,7 +5500,7 @@ ${unifiedContext}`;
                   break;
                 }
                 case "create_event": {
-                  const event = await graphLib.createCalendarEvent(msToken!, match[1], match[2], match[3], { isOnline: match[4] === "true" });
+                  await graphLib.createCalendarEvent(msToken!, match[1], match[2], match[3], { isOnline: match[4] === "true" });
                   res.write(`data: ${JSON.stringify({ action: "event_created", subject: match[1], start: match[2], end: match[3] })}\n\n`);
                   break;
                 }
@@ -5550,8 +5540,9 @@ ${unifiedContext}`;
       let bufferedContent = "";
       let hasActionTag = false;
 
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || "";
+      for await (const event of stream) {
+        if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") continue;
+        const content = event.delta.text;
         if (content) {
           fullResponse += content;
           bufferedContent += content;
