@@ -92,11 +92,12 @@ interface OrbitAction {
 }
 
 const QUICK_CHIPS = [
-  { label: "How's my day?", prompt: "Give me a quick summary of today" },
+  { label: "How's my day?", prompt: "What does my day look like? Include my schedule, tasks, and how I'm feeling" },
   { label: "What's next?", prompt: "What should I focus on next?" },
-  { label: "Job hunt help", prompt: "Help me with my teaching job search" },
-  { label: "Study plan", prompt: "Help me plan my learning for today" },
+  { label: "Am I meeting-ready?", prompt: "Am I ready for my next meeting? Check my energy and calendar" },
+  { label: "Send a Teams message", prompt: "I want to send a Teams message" },
   { label: "Motivate me!", prompt: "I need some encouragement today" },
+  { label: "Health + work check", prompt: "How's my health affecting my work lately?" },
 ];
 
 function formatMarkdown(text: string): React.ReactNode {
@@ -798,6 +799,8 @@ export default function OrbitPage() {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let fullContent = "";
+      let sseBuffer = "";
+      const workActionResults: string[] = [];
 
       const assistantMessage: OrbitMessage = {
         id: crypto.randomUUID(),
@@ -813,13 +816,46 @@ export default function OrbitPage() {
         if (done) break;
         
         const chunk = decoder.decode(value, { stream: true });
-        fullContent += chunk;
-        
+        sseBuffer += chunk;
+
+        const lines = sseBuffer.split("\n");
+        sseBuffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.content) {
+              fullContent += data.content;
+              setMessages(prev => prev.map(m => 
+                m.id === assistantMessage.id 
+                  ? { ...m, content: fullContent }
+                  : m
+              ));
+            }
+            if (data.action === "teams_sent") {
+              workActionResults.push(`Sent Teams message to chat`);
+            } else if (data.action === "event_created") {
+              workActionResults.push(`Created calendar event: ${data.subject}`);
+            } else if (data.action === "task_created") {
+              workActionResults.push(`Created task: ${data.title}`);
+            } else if (data.action === "email_sent") {
+              workActionResults.push(`Email sent to ${data.to}`);
+            } else if (data.action === "message_scheduled") {
+              workActionResults.push(`Scheduled message to ${data.recipient} at ${data.time}`);
+            }
+          } catch {}
+        }
+      }
+
+      if (workActionResults.length > 0) {
+        const suffix = "\n\n" + workActionResults.map(r => `✓ ${r}`).join("\n");
         setMessages(prev => prev.map(m => 
           m.id === assistantMessage.id 
-            ? { ...m, content: fullContent }
+            ? { ...m, content: fullContent + suffix }
             : m
         ));
+        queryClient.invalidateQueries();
       }
 
       const actionMatch = fullContent.match(/\{[\s\S]*"type"\s*:\s*"action"[\s\S]*\}/);

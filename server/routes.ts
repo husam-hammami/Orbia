@@ -3293,484 +3293,21 @@ MERCHANT FIELD:
         return res.status(400).json({ error: "Message is required" });
       }
 
-      // Fetch comprehensive data like Deep Mind does
-      const [entries, journalEntries, members, visionItems, allTransactions, loans, incomeStreams, financeSettings] = await Promise.all([
-        storage.getRecentTrackerEntries(userId, 200),
-        storage.getAllJournalEntries(userId),
-        storage.getAllMembers(userId),
-        storage.getVision(userId),
-        storage.getAllTransactions(userId),
-        storage.getAllLoans(userId),
-        storage.getAllIncomeStreams(userId),
-        storage.getFinanceSettings(userId),
-      ]);
-      
-      // Calculate facts for last 7 days
-      const now = new Date();
-      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const todayStr = now.toISOString().split('T')[0];
-      
-      const recentEntries = entries.filter(e => new Date(e.timestamp) >= sevenDaysAgo);
-      const todayEntries = entries.filter(e => new Date(e.timestamp).toISOString().split('T')[0] === todayStr);
-      
-      // Compute averages (7 days)
-      const avgSleep = recentEntries.filter(e => e.sleepHours != null).length > 0
-        ? (recentEntries.filter(e => e.sleepHours != null).reduce((s, e) => s + (e.sleepHours || 0), 0) / recentEntries.filter(e => e.sleepHours != null).length).toFixed(1)
-        : "N/A";
-      const avgMood = recentEntries.length > 0
-        ? (recentEntries.reduce((s, e) => s + e.mood, 0) / recentEntries.length).toFixed(1)
-        : "N/A";
-      const avgEnergy = recentEntries.length > 0
-        ? (recentEntries.reduce((s, e) => s + e.energy, 0) / recentEntries.length).toFixed(1)
-        : "N/A";
-      
-      // Today's values
-      const todaySleep = todayEntries.find(e => e.sleepHours != null)?.sleepHours ?? "N/A";
-      const todayMood = todayEntries.length > 0 ? todayEntries[0].mood : "N/A";
-      const todayEnergy = todayEntries.length > 0 ? todayEntries[0].energy : "N/A";
-      const todayCapacity = todayEntries.find(e => e.capacity != null)?.capacity ?? "N/A";
-      
-      // Daily notes from state entries (HIGH WEIGHT)
-      const recentTrackerNotes = recentEntries
-        .filter(e => e.notes && e.notes.trim().length > 0)
-        .slice(0, 15)
-        .map(e => {
-          const date = new Date(e.timestamp).toLocaleDateString();
-          const time = new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const notes = e.notes?.slice(0, 150) + (e.notes && e.notes.length > 150 ? "..." : "");
-          return `[${date} ${time}] sleep=${e.sleepHours || 'N/A'}h, mood=${e.mood}/10: "${notes}"`;
-        }).join("\n");
-      
-      // Journal excerpts with recency bias (HIGHEST WEIGHT) - include driver tags
-      const recentJournals = journalEntries
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 10);
-      const journalExcerpts = recentJournals.map(j => {
-        const date = new Date(j.createdAt).toLocaleDateString();
-        const content = j.content.slice(0, 200) + (j.content.length > 200 ? "..." : "");
-        const driverInfo = j.primaryDriver ? ` [Driver: ${j.primaryDriver}${j.secondaryDriver ? ` → ${j.secondaryDriver}` : ''}]` : '';
-        return `[${date}]${driverInfo} ${content}`;
-      }).join("\n\n");
-      
-      // Aggregate driver frequencies from journals (HIGH WEIGHT evidence)
-      const driverCounts: Record<string, number> = {};
-      journalEntries
-        .filter(j => new Date(j.createdAt) >= sevenDaysAgo && j.primaryDriver)
-        .forEach(j => {
-          if (j.primaryDriver) driverCounts[j.primaryDriver] = (driverCounts[j.primaryDriver] || 0) + 1;
-          if (j.secondaryDriver) driverCounts[j.secondaryDriver] = (driverCounts[j.secondaryDriver] || 0) + 0.5;
-        });
-      const topDrivers = Object.entries(driverCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(([driver, count]) => `${driver}(${count})`)
-        .join(", ") || "No drivers tagged";
-      
-      // Current state (from most recent entry)
-      const currentState = entries[0]?.frontingMemberId 
-        ? members.find(m => m.id === entries[0].frontingMemberId)?.name || "Unknown"
-        : "Unknown";
+      const { buildUnifiedContext, buildUnifiedSystemPrompt } = await import("./lib/unified-context");
+      const { context: unifiedContext, msToken } = await buildUnifiedContext(userId);
+      const systemPrompt = buildUnifiedSystemPrompt("orbit");
 
-      // Calculate additional metrics for genius-level analysis
-      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-      const last3DaysEntries = entries.filter(e => new Date(e.timestamp) >= threeDaysAgo);
-      const last3DaysJournals = journalEntries
-        .filter(j => new Date(j.createdAt) >= threeDaysAgo)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
-      // Detailed journal excerpts for last 3 days (HIGHEST WEIGHT with full content)
-      const criticalJournalExcerpts = last3DaysJournals.map(j => {
-        const date = new Date(j.createdAt);
-        const dateStr = date.toLocaleDateString();
-        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const content = j.content.slice(0, 400) + (j.content.length > 400 ? "..." : "");
-        const driverInfo = j.primaryDriver ? ` [Driver: ${j.primaryDriver}${j.secondaryDriver ? ` → ${j.secondaryDriver}` : ''}]` : '';
-        const moodInfo = j.mood ? ` (mood: ${j.mood}/10)` : '';
-        return `[${dateStr} ${timeStr}]${driverInfo}${moodInfo}\n"${content}"`;
-      }).join("\n\n");
-      
-      // Mood trajectory analysis (for pattern detection)
-      const moodTrajectory = last3DaysEntries
-        .filter(e => e.mood != null)
-        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-        .map(e => {
-          const date = new Date(e.timestamp).toLocaleDateString();
-          return `${date}: mood=${e.mood}, energy=${e.energy}, stress=${e.stress || 'N/A'}`;
-        }).join(" → ");
-      
-      // Driver frequency with recency weighting
-      const weightedDriverCounts: Record<string, number> = {};
-      journalEntries.forEach(j => {
-        if (!j.primaryDriver) return;
-        const entryDate = new Date(j.createdAt);
-        let weight = 0.5; // older than 7 days
-        if (entryDate >= threeDaysAgo) weight = 3; // last 3 days (HIGHEST)
-        else if (entryDate >= sevenDaysAgo) weight = 1; // 4-7 days ago
-        
-        weightedDriverCounts[j.primaryDriver] = (weightedDriverCounts[j.primaryDriver] || 0) + weight;
-        if (j.secondaryDriver) {
-          weightedDriverCounts[j.secondaryDriver] = (weightedDriverCounts[j.secondaryDriver] || 0) + (weight * 0.5);
-        }
-      });
-      const weightedTopDrivers = Object.entries(weightedDriverCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([driver, weight]) => `${driver}(${weight.toFixed(1)})`)
-        .join(", ") || "No drivers tagged";
+      const orbitSystemPrompt = `${systemPrompt}
 
-      // Build the comprehensive analytics context
-      const analyticsContext = `
-=== COMPREHENSIVE WELLNESS DATA ===
-
-METRICS SNAPSHOT:
-- 7-day averages: Sleep ${avgSleep}h | Mood ${avgMood}/10 | Energy ${avgEnergy}/10
-- Today: sleep=${todaySleep}h, mood=${todayMood}/10, energy=${todayEnergy}/10, capacity=${todayCapacity}/5
-- Current state: ${currentState}
-- Mood trajectory (last 3 days): ${moodTrajectory || "No data"}
-
-DRIVER ANALYSIS (recency-weighted, last 3 days = 3x weight):
-${weightedTopDrivers}
-
-=== CRITICAL: LAST 3 DAYS JOURNAL ENTRIES (HIGHEST WEIGHT - READ CAREFULLY) ===
-${criticalJournalExcerpts || "No journal entries in last 3 days"}
-
-=== DAILY NOTES FROM STATE ENTRIES (HIGH WEIGHT) ===
-${recentTrackerNotes || "No daily notes"}
-
-=== OLDER JOURNAL CONTEXT (7+ days, for pattern recognition) ===
-${journalExcerpts || "No older journal entries"}
-
-Note: [Driver: X → Y] means primary driver X with secondary Y. These are user-tagged and HIGH WEIGHT evidence.`;
-
-      // Build comprehensive finance context
-      const currency = financeSettings?.currency || "AED";
-      const savingsGoal = financeSettings?.savingsGoal || 0;
-      
-      // Get current month's transactions
-      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      const thisMonthTransactions = allTransactions.filter(t => {
-        const txDate = new Date(t.date);
-        return txDate >= currentMonthStart && txDate <= currentMonthEnd;
-      });
-      
-      // Calculate monthly totals
-      const monthlyIncome = thisMonthTransactions
-        .filter(t => t.type === "income")
-        .reduce((sum, t) => sum + Number(t.amount), 0);
-      const monthlyExpenses = thisMonthTransactions
-        .filter(t => t.type === "expense")
-        .reduce((sum, t) => sum + Number(t.amount), 0);
-      const netFlow = monthlyIncome - monthlyExpenses;
-      const savingsProgress = savingsGoal > 0 ? Math.round((netFlow / savingsGoal) * 100) : 0;
-      
-      // Spending by category this month
-      const categorySpending: Record<string, number> = {};
-      thisMonthTransactions.filter(t => t.type === "expense").forEach(t => {
-        const cat = t.category || "other";
-        categorySpending[cat] = (categorySpending[cat] || 0) + Number(t.amount);
-      });
-      const topCategories = Object.entries(categorySpending)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([cat, amt]) => `${cat}: ${currency} ${amt.toLocaleString()}`)
-        .join(", ") || "No spending recorded";
-      
-      // Recent transactions (last 10)
-      const recentTransactions = allTransactions
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 15)
-        .map(t => {
-          const date = new Date(t.date).toLocaleDateString();
-          const sign = t.type === "income" ? "+" : "-";
-          const merchant = t.notes ? ` (${t.notes.slice(0, 30)})` : "";
-          return `[${date}] ${sign}${currency} ${t.amount} ${t.name}${merchant} [${t.category}]`;
-        }).join("\n");
-      
-      // Active loans summary
-      const activeLoans = loans.filter(l => l.status === "active");
-      const totalDebt = activeLoans.reduce((sum, l) => sum + Number(l.currentBalance), 0);
-      const loansList = activeLoans.map(l => {
-        const interestStr = l.interestRate ? ` @ ${(l.interestRate / 100).toFixed(1)}%` : "";
-        return `- "${l.name}" (${l.lender || "Unknown lender"}): ${currency} ${Number(l.currentBalance).toLocaleString()} remaining${interestStr}, min payment: ${currency} ${l.minimumPayment}`;
-      }).join("\n") || "No active loans";
-      
-      // Income streams
-      const activeIncomeStreams = incomeStreams.filter(s => s.isActive === 1);
-      const expectedMonthlyIncome = activeIncomeStreams.reduce((sum, s) => {
-        if (s.frequency === "monthly") return sum + Number(s.amount);
-        if (s.frequency === "weekly") return sum + (Number(s.amount) * 4);
-        if (s.frequency === "biweekly") return sum + (Number(s.amount) * 2);
-        if (s.frequency === "yearly") return sum + (Number(s.amount) / 12);
-        return sum;
-      }, 0);
-      const incomeStreamsList = activeIncomeStreams.map(s => 
-        `- "${s.name}": ${currency} ${s.amount} (${s.frequency})`
-      ).join("\n") || "No income streams configured";
-      
-      const financeContext = `
-=== COMPREHENSIVE FINANCE DATA ===
-
-MONTHLY SNAPSHOT (${now.toLocaleString('en-US', { month: 'long', year: 'numeric' })}):
-- Income: ${currency} ${monthlyIncome.toLocaleString()}
-- Expenses: ${currency} ${monthlyExpenses.toLocaleString()}
-- Net Flow: ${currency} ${netFlow.toLocaleString()} (${netFlow >= 0 ? "surplus" : "deficit"})
-- Savings Goal: ${savingsGoal > 0 ? `${currency} ${savingsGoal.toLocaleString()} (${savingsProgress}% achieved)` : "Not set"}
-- Expected Monthly Income: ${currency} ${expectedMonthlyIncome.toLocaleString()}
-
-TOP SPENDING CATEGORIES:
-${topCategories}
-
-RECENT TRANSACTIONS:
-${recentTransactions || "No transactions recorded"}
-
-ACTIVE LOANS (Total Debt: ${currency} ${totalDebt.toLocaleString()}):
-${loansList}
-
-INCOME STREAMS:
-${incomeStreamsList}
-
-TRANSACTION IDs FOR REFERENCE (use for queries about specific transactions):
-${allTransactions.slice(0, 20).map(t => `ID: "${t.id}" | ${t.name} | ${t.type} | ${currency} ${t.amount} | ${t.category} | ${new Date(t.date).toLocaleDateString()}`).join("\n")}
-
-LOAN IDs FOR REFERENCE:
-${loans.map(l => `ID: "${l.id}" | ${l.name} | Balance: ${currency} ${l.currentBalance} | Status: ${l.status}`).join("\n") || "No loans"}
-
-INCOME STREAM IDs FOR REFERENCE:
-${incomeStreams.map(s => `ID: "${s.id}" | ${s.name} | ${currency} ${s.amount} ${s.frequency} | Active: ${s.isActive === 1 ? "Yes" : "No"}`).join("\n") || "No income streams"}`;
-
-      const orbitSystemPrompt = `You are Orbia, Fatima's personal companion and supportive friend.
-
-=== WHO IS FATIMA? ===
-Fatima is a Lebanese woman living in Ajman with her family. She studied engineering but is currently jobless and exploring career options. She's considering becoming a primary school teacher and is actively looking for teaching positions at schools. She's also taking a beginner cybersecurity course on Hack the Box.
-
-Her interests: Disney movies, Harry Potter, Stranger Things, reading books (uses Goodreads), skincare, and learning French. She's a bit tight on money but managing. She has ups and downs in her mood - that's totally normal and you're here to support her gently.
-
-She tutors someone named Yasmina and wants to create a skincare content account and start a blog. She's interested in AI tools like Gemini and Perplexity and wants to stay updated on tech.
-
-=== YOUR PERSONALITY ===
-You're like a warm, encouraging friend - think Baymax meets a supportive big sister. You're:
-- Playful and light-hearted (can reference Disney, HP, or Stranger Things when it fits!)
-- Encouraging without being pushy or preachy
-- Practical and helpful - you help her stay organized
-- Understanding about her moods - when she's down, you're gentle; when she's up, you celebrate with her
-- You occasionally use cute phrases or references she'd appreciate
-
-=== GLOBAL RULES ===
-- BREVITY: Keep responses 80-150 words. Be conversational, not essay-like.
-- NO MARKDOWN: No #, ##, *, -, \` symbols. Plain friendly text only.
-- WARM TONE: Sound like a supportive friend, not an assistant or therapist.
-- BE PRACTICAL: Help her tackle her actual goals and tasks.
-
-=== WHAT YOU DO ===
-- Help her organize her many interests and goals
-- Gently remind her of priorities without guilt-tripping
-- Celebrate small wins genuinely
-- When she's overwhelmed, help her pick ONE thing to focus on
-- Reference her data (habits, tasks, journal) to give personalized advice
-
-=== WHAT YOU NEVER DO ===
-- Be clinical or cold
-- Lecture or shame her
-- Give generic advice without knowing her context
-- Be overly dramatic about setbacks
-- Pretend to complete actions you didn't
-
-=== HER CURRENT PRIORITIES (from what she shared) ===
-1. Job hunting: Writing school emails, researching schools, scheduling emails for Monday mornings
-2. Learning: Finishing HTB cybersecurity course (do revision and quizzes first!), French, staying updated on AI/tech
-3. Content creation: Skincare account weekly plan, starting a blog
-4. Tutoring: Creating study plans for Yasmina
-5. Self-care: Finding time for Pilates, skincare routine
-6. Fun: Reading new books, finding quiet outdoor places with power outlets
-
-=== RESPONSE MODES ===
-
-**FRIENDLY CHAT** (default for questions and discussion)
-Just be a supportive friend. Reference her goals and data when relevant. Keep it warm and practical.
-
-**OPERATIONAL** (for task requests like "add", "mark", "create", "delete")
-Be brief and helpful. Output the action JSON when needed.
-
-=== EXAMPLE RESPONSES ===
-
-When she's overwhelmed:
-"Hey, I see you have a lot on your plate! That's totally okay - we don't need to tackle everything today. What if we just focused on ONE thing right now? Looking at your list, sending those school emails seems pretty important. Want to start there? We can worry about the rest later."
-
-When she completes something:
-"Yay! You finished a chapter of your cybersecurity course! That's awesome, Fatima. Slow progress is still progress. Hermione would be proud of your dedication to learning."
-
-Quick check-in:
-"Good morning! You got about 7 hours of sleep - not bad! Today looks manageable. You mentioned wanting to work on your skincare content plan. Is today a good day for that, or do you want to focus on job emails first?"
-
-=== HER HABITS/TASKS CONTEXT ===
-
-EVIDENCE WEIGHTING:
-- HIGHEST: What she wrote in journal entries or notes (quote her words!)
-- HIGH: Her completed habits and tasks
-- MEDIUM: Her mood and energy check-ins
-- MEDIUM: Sleep hours (interpret them: "5h sleep two nights in a row...")
-- CONTEXT: Mood/energy/stress scores (weave in naturally, don't list)
-- LOW: Habits/routines (never blame, just observe)
-
-RECENCY BIAS:
-- Today's entries are your primary focus
-- Last 3 days: Quote these directly
-- Last 7 days: Look for patterns
-- Older: Context for identifying loops
-
-ANALYTICAL DEPTH:
-- Find the STORY: What happened? What shifted? What's building?
-- Connect entries: "On Jan 8 you mentioned X... then Jan 9 shows a shift to Y"
-- Identify BEFORE/AFTER: What precedes crashes? What follows good days?
-- Language patterns: Notice repeated words, tone changes, what they avoid saying
-- Driver patterns: Which drivers keep appearing? What triggers them?
-
-RESPONSE QUALITY:
-- Lead with INSIGHT, not data. "Something shifted on the 8th..." not "Mood dropped from 6 to 3"
-- Quote their words - it shows you're listening and grounds the insight
-- Be revelatory: "What I notice across these entries is..."
-- Be warm but concise: acknowledge difficulty without dwelling
-- End with ONE tiny action that fits their current state
-
-=== MODE 1: QUICK INSIGHTS FORMAT ===
-
-HARD LIMITS: 80 words max. No markdown symbols. Plain text only. ONE metric max.
-
-Structure (use plain text, no headers):
-
-INSIGHT: 1-2 sentences. The "aha" - what's really happening beneath the surface. Lead with meaning, not data.
-
-SIGNAL: 1 sentence. The ONE thing from their recent entries that matters most. Quote their words if possible.
-
-MOVE: 1 sentence. One tiny action for the next hour. Match their capacity.
-
-EXAMPLE:
-"You're running on fumes but holding steady. The thread through your last few entries is body neglect - sleep's been short and meals are getting skipped. Your Jan 9 note said 'just tired of everything' - that's the signal. For now: eat something simple, then reassess."
-
-=== MODE 2: DEEP DISCUSSION FORMAT ===
-
-HARD LIMITS: 150 words max. No markdown symbols (no headers, asterisks, dashes, backticks). Plain flowing text only.
-
-When the user wants to explore or discuss:
-
-Write 2-3 short paragraphs in plain conversational text. Quote their actual journal words (with dates). Connect patterns across days. End with a question or one tiny action.
-
-EXAMPLE:
-"Something shifted around the 8th. You wrote 'just can't seem to get started' that morning, and by evening your note mentioned feeling 'hollow.' The next day follows the same thread.
-
-What I notice is this tends to happen after two or three short sleep nights in a row. It's not the tasks - you've handled bigger loads before. It's the foundation getting thin.
-
-What would help most right now - protecting sleep tonight, or getting one small win to break the stall?"
-
-RULES:
-- 2-3 paragraphs max, flowing text
-- Quote 1-2 specific journal passages
-- End with a question or tiny action
-- No lists, no headers, no bullet points
-
-=== MODE 3: OPERATIONAL FORMAT ===
-
-For operational queries, respond briefly and output a JSON action object:
-{"type":"action","name":"action_name","args":{...},"confirm":false}
-
-SUPPORTED ACTIONS:
-
-HABITS:
-- mark_habit: {"habit_id": "...", "date": "YYYY-MM-DD", "done": true/false}
-- create_habit: {"title": "...", "category": "health/movement/mental/work/mindfulness/creativity", "description": "...", "target": number, "unit": "times/minutes/ml/etc"}
-- update_habit: {"habit_id": "...", "title": "...", "category": "...", "description": "..."}
-- delete_habit: {"habit_id": "..."} - ALWAYS set confirm:true
-
-TASKS:
-- add_task: {"title": "...", "priority": "low/medium/high"}
-- mark_task: {"task_id": "...", "completed": true/false}
-- update_task: {"task_id": "...", "title": "...", "priority": "..."}
-- delete_task: {"task_id": "..."} - ALWAYS set confirm:true
-
-ROUTINE ACTIVITIES:
-- mark_routine_activity: {"activity_id": "...", "date": "YYYY-MM-DD", "done": true/false, "habit_id": "..." or null}
-- create_routine_activity: {"block_id": "...", "name": "...", "time": "HH:MM", "description": "...", "habit_id": "..."}
-- update_routine_activity: {"activity_id": "...", "name": "...", "time": "...", "description": "..."}
-- delete_routine_activity: {"activity_id": "..."} - ALWAYS set confirm:true
-
-CAREER PROJECTS:
-- create_career_project: {"title": "...", "description": "...", "status": "planning/in_progress/ongoing/completed", "deadline": "YYYY-MM-DD", "color": "bg-indigo-500/bg-rose-500/bg-emerald-500/etc"}
-- update_career_project: {"project_id": "...", "title": "...", "status": "...", "progress": 0-100, "description": "...", "nextAction": "..."}
-- delete_career_project: {"project_id": "..."} - ALWAYS set confirm:true
-
-CAREER TASKS:
-- create_career_task: {"title": "...", "project_id": "..." or null, "priority": "low/medium/high", "due": "Today/Tomorrow/YYYY-MM-DD", "description": "..."}
-- update_career_task: {"task_id": "...", "title": "...", "priority": "...", "completed": 0/1}
-- delete_career_task: {"task_id": "..."} - ALWAYS set confirm:true
-
-VISION & ROADMAP:
-- create_vision: {"title": "...", "timeframe": "6 months/1 year/3 years/5 years", "color": "text-blue-500/text-purple-500/text-amber-500/etc"}
-- update_vision: {"vision_id": "...", "title": "...", "timeframe": "...", "color": "..."}
-- delete_vision: {"vision_id": "..."} - ALWAYS set confirm:true
-- refresh_roadmap: {} - Regenerates the AI roadmap based on current vision. Use after updating vision!
-
-FINANCE TRANSACTIONS:
-- add_transaction: {"type": "income/expense", "name": "...", "amount": number, "category": "salary/freelance/groceries/food/transport/utilities/entertainment/shopping/health/subscriptions/travel/other", "notes": "..." (optional)}
-- delete_transaction: {"transaction_id": "..."} - ALWAYS set confirm:true
-- search_transactions: {"query": "..."} - Search transactions by name, merchant, or notes (read-only, returns matching results)
-
-LOANS:
-- add_loan_payment: {"loan_id": "...", "amount": number, "notes": "..." (optional)}
-- get_loan_status: {"loan_id": "..."} - Get detailed loan info including payment history
-
-INCOME STREAMS:
-- log_income_payment: {"income_stream_id": "...", "amount": number (optional, defaults to stream amount)}
-
-SPENDING ANALYSIS (read-only queries Orbit can answer):
-- "How much did I spend on [category] this month?"
-- "What's my biggest expense category?"
-- "Show me all [merchant] transactions"
-- "Am I on track for my savings goal?"
-- "When is my next loan payment due?"
-- "What subscriptions am I paying for?"
-
-LEGACY EXPENSES:
-- create_expense: {"name": "...", "amount": number, "budget": number, "category": "Fixed/Variable/Savings/Debt", "status": "paid/pending/variable", "date": "Jan 1", "month": "January"}
-- update_expense: {"expense_id": "...", "amount": number, "status": "paid/pending/variable", "name": "..."}
-- delete_expense: {"expense_id": "..."} - ALWAYS set confirm:true
-
-JOURNAL ENTRIES:
-- create_journal: {"content": "...", "entry_type": "reflection/vent/gratitude/grounding/memory/note", "mood": 1-10 (optional), "energy": 1-10 (optional), "tags": ["anxiety", "calm", etc] (optional), "is_private": true/false (optional)}
-- update_journal: {"entry_id": "...", "content": "...", "entry_type": "...", "mood": ..., "energy": ..., "tags": [...]}
-- delete_journal: {"entry_id": "..."} - ALWAYS set confirm:true
-
-MEALS/FOOD:
-- log_meal: {"date": "YYYY-MM-DD", "breakfast": "meal name" (optional), "lunch": "meal name" (optional), "dinner": "meal name" (optional)}
-- add_meal_option: {"name": "...", "meal_type": "breakfast/lunch/dinner", "recipe": "..." (optional)}
-- delete_meal_option: {"option_id": "..."} - ALWAYS set confirm:true
-
-TRACKER ENTRIES:
-- create_tracker_entry: {"mood": 1-10, "energy": 1-10, "stress": 0-100, "dissociation": 0-100, "sleepHours": 0-24 (optional), "capacity": 0-5 (optional), "pain": 0-10 (optional), "notes": "..." (optional)}
-
-CONFIRMATION RULES:
-- ALWAYS set confirm:true and confirm_text for all delete actions
-- confirm_text should briefly describe what will happen
-
-=== CRITICAL ACTION RULES ===
-- When user asks to ADD, CREATE, EDIT, UPDATE, CHANGE, DELETE, MARK, or TOGGLE something, you MUST output the action JSON. DO NOT give instructions to do it manually.
-- If you have the ID needed for an update/delete, use it. If you don't have the ID, ask which one they mean.
-- NEVER tell the user to "paste this" or "go to the page and..." - USE THE ACTION to do it for them.
-- Every analytical claim MUST include a journal quote or specific metric value
-- Never blame habits/routine. Say "low completion likely due to low capacity"
-
-${analyticsContext}
-
-${financeContext}
-
-NORTH STAR VISION ITEMS (use these IDs for vision actions):
-${visionItems.length > 0 ? visionItems.map(v => `- ID: "${v.id}" | Title: "${v.title}" | Timeframe: ${v.timeframe}`).join('\n') : 'No vision items yet'}
+## CONTEXT DATA (use silently)
+${unifiedContext}
 
 ADDITIONAL OPERATIONAL CONTEXT:
 ${JSON.stringify(context, null, 2)}`;
 
-      res.setHeader("Content-Type", "text/plain; charset=utf-8");
-      res.setHeader("Transfer-Encoding", "chunked");
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
       
       const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
         { role: "system", content: orbitSystemPrompt }
@@ -3790,22 +3327,118 @@ ${JSON.stringify(context, null, 2)}`;
         model: "gpt-5.1",
         messages,
         stream: true,
-        max_completion_tokens: 400
+        max_completion_tokens: 800
       });
+
+      let fullResponse = "";
+      const executedActions = new Set<string>();
+
+      const ACTION_PATTERNS = [
+        { name: "teams_send", regex: /\[TEAMS_SEND\s+chatId="([^"]+)"\s+message="([^"]+)"\]/ },
+        { name: "create_event", regex: /\[CREATE_EVENT\s+subject="([^"]+)"\s+start="([^"]+)"\s+end="([^"]+)"\s+online="([^"]+)"\]/ },
+        { name: "create_task", regex: /\[CREATE_TASK\s+title="([^"]+)"(?:\s+due="([^"]*)")?\]/ },
+        { name: "send_email", regex: /\[SEND_EMAIL\s+to="([^"]+)"\s+subject="([^"]+)"\s+body="([^"]+)"\]/ },
+        { name: "schedule_message", regex: /\[SCHEDULE_MESSAGE\s+chatId="([^"]+)"\s+recipient="([^"]+)"\s+message="([^"]+)"\s+time="([^"]+)"\s+recurrence="([^"]+)"\]/ },
+      ];
+
+      async function executeWorkActions(text: string): Promise<void> {
+        if (!msToken) return;
+        const graphLib = await import("./lib/microsoft-graph");
+        for (const { name, regex } of ACTION_PATTERNS) {
+          let match;
+          const globalRegex = new RegExp(regex.source, 'g');
+          while ((match = globalRegex.exec(text)) !== null) {
+            const actionKey = match[0];
+            if (executedActions.has(actionKey)) continue;
+            executedActions.add(actionKey);
+            try {
+              switch (name) {
+                case "teams_send":
+                  await graphLib.sendChatMessage(msToken!, match[1], match[2]);
+                  res.write(`data: ${JSON.stringify({ action: "teams_sent", chatId: match[1], message: match[2] })}\n\n`);
+                  break;
+                case "create_event":
+                  await graphLib.createCalendarEvent(msToken!, match[1], match[2], match[3], { isOnline: match[4] === "true" });
+                  res.write(`data: ${JSON.stringify({ action: "event_created", subject: match[1], start: match[2], end: match[3] })}\n\n`);
+                  break;
+                case "create_task":
+                  await graphLib.createTask(msToken!, match[1], match[2] || undefined);
+                  res.write(`data: ${JSON.stringify({ action: "task_created", title: match[1], due: match[2] || null })}\n\n`);
+                  break;
+                case "send_email":
+                  await graphLib.sendEmail(msToken!, match[1], match[2], match[3]);
+                  res.write(`data: ${JSON.stringify({ action: "email_sent", to: match[1], subject: match[2] })}\n\n`);
+                  break;
+                case "schedule_message":
+                  await storage.createScheduledMessage(userId, {
+                    userId, chatId: match[1], recipientName: match[2],
+                    message: match[3], timeOfDay: match[4],
+                    recurrence: match[5] || "daily", active: true,
+                  });
+                  res.write(`data: ${JSON.stringify({ action: "message_scheduled", recipient: match[2], message: match[3], time: match[4], recurrence: match[5] })}\n\n`);
+                  break;
+              }
+            } catch (err: any) {
+              console.error(`Orbit action ${name} failed:`, err.message);
+              res.write(`data: ${JSON.stringify({ action: `${name}_failed`, error: err.message })}\n\n`);
+            }
+          }
+        }
+      }
+
+      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE)\s[^\]]+\]/g;
+      let bufferedContent = "";
+      let hasActionTag = false;
       
       for await (const chunk of stream) {
         const content = chunk.choices[0]?.delta?.content || "";
         if (content) {
-          res.write(content);
+          fullResponse += content;
+          bufferedContent += content;
+
+          if (bufferedContent.includes("[") && !allActionRegex.test(bufferedContent)) {
+            allActionRegex.lastIndex = 0;
+            hasActionTag = true;
+            continue;
+          }
+          allActionRegex.lastIndex = 0;
+
+          if (hasActionTag && allActionRegex.test(bufferedContent)) {
+            allActionRegex.lastIndex = 0;
+            await executeWorkActions(bufferedContent);
+            const cleaned = bufferedContent.replace(allActionRegex, "");
+            allActionRegex.lastIndex = 0;
+            if (cleaned.trim()) {
+              res.write(`data: ${JSON.stringify({ content: cleaned })}\n\n`);
+            }
+            bufferedContent = "";
+            hasActionTag = false;
+          } else if (!hasActionTag) {
+            if (!bufferedContent.includes("[")) {
+              res.write(`data: ${JSON.stringify({ content: bufferedContent })}\n\n`);
+              bufferedContent = "";
+            }
+          }
         }
       }
-      
+
+      if (bufferedContent.trim()) {
+        await executeWorkActions(bufferedContent);
+        const cleaned = bufferedContent.replace(allActionRegex, "");
+        allActionRegex.lastIndex = 0;
+        if (cleaned.trim()) {
+          res.write(`data: ${JSON.stringify({ content: cleaned })}\n\n`);
+        }
+      }
+
+      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
     } catch (error) {
       console.error("Orbit chat error:", error);
       if (!res.headersSent) {
         res.status(500).json({ error: "Failed to process chat" });
       } else {
+        res.write(`data: ${JSON.stringify({ error: "Failed to process chat" })}\n\n`);
         res.end();
       }
     }
@@ -5337,65 +4970,34 @@ Think like a doctor building a patient's problem list — not like a text parser
       const userId = req.session.userId!;
       const { messages: chatMessages } = req.body;
 
-      const [profile, diagnoses, medications, priorities, painMechanisms, timelineEvents, vaultDocs] = await Promise.all([
-        storage.getMedicalProfile(userId),
-        storage.getMedDiagnoses(userId),
-        storage.getMedMedications(userId),
-        storage.getMedPriorities(userId),
+      const { buildUnifiedContext, buildUnifiedSystemPrompt } = await import("./lib/unified-context");
+      const { context: unifiedContext } = await buildUnifiedContext(userId);
+
+      const [painMechanisms, timelineEvents, vaultDocs] = await Promise.all([
         storage.getMedPainMechanisms(userId),
         storage.getMedTimelineEvents(userId),
         storage.getMedVaultDocuments(userId),
       ]);
 
-      let contextBlock = "";
-      if (profile?.patientName) {
-        contextBlock += `Patient: ${profile.patientName}`;
-        if (profile.dateOfBirth) contextBlock += `, DOB: ${profile.dateOfBirth}`;
-        if (profile.sex) contextBlock += `, Sex: ${profile.sex}`;
-        if (profile.bloodType) contextBlock += `, Blood Type: ${profile.bloodType}`;
-        if (profile.allergies) contextBlock += `\nAllergies: ${profile.allergies}`;
-        contextBlock += "\n";
-      }
-      if (diagnoses.length > 0) {
-        contextBlock += `\nActive Diagnoses:\n${diagnoses.map(d => `- ${d.label} (${d.severity}): ${d.description}`).join("\n")}\n`;
-      }
-      if (medications.length > 0) {
-        contextBlock += `\nCurrent Medications:\n${medications.map(m => `- ${m.name} ${m.dosage}: ${m.purpose}`).join("\n")}\n`;
-      }
-      if (priorities.length > 0) {
-        contextBlock += `\nMedical Priorities:\n${priorities.map(p => `- ${p.label}: ${p.description}`).join("\n")}\n`;
-      }
+      let extraMedContext = "";
       if (painMechanisms.length > 0) {
-        contextBlock += `\nPain Mechanisms:\n${painMechanisms.map(p => `- ${p.label}: ${p.description}`).join("\n")}\n`;
+        extraMedContext += `\n<PAIN_MECHANISMS>\n${painMechanisms.map(p => `- ${p.label}: ${p.description}`).join("\n")}\n</PAIN_MECHANISMS>`;
       }
       if (timelineEvents.length > 0) {
-        contextBlock += `\nClinical Timeline (recent):\n${timelineEvents.slice(0, 10).map(t => `- ${t.date}: ${t.title} — ${t.description}`).join("\n")}\n`;
+        extraMedContext += `\n<CLINICAL_TIMELINE>\n${timelineEvents.slice(0, 10).map(t => `- ${t.date}: ${t.title} — ${t.description}`).join("\n")}\n</CLINICAL_TIMELINE>`;
       }
       if (vaultDocs.length > 0) {
         const analyzed = vaultDocs.filter(d => d.aiAnalysis);
         if (analyzed.length > 0) {
-          contextBlock += `\nUploaded Documents with AI Analysis:\n${analyzed.map(d => `- ${d.name} (${d.docType}, ${d.date}): ${d.description}`).join("\n")}\n`;
+          extraMedContext += `\n<VAULT_DOCUMENTS>\n${analyzed.map(d => `- ${d.name} (${d.docType}, ${d.date}): ${d.description}`).join("\n")}\n</VAULT_DOCUMENTS>`;
         }
       }
 
-      const systemPrompt = `You are Orbia — a world-class personal health intelligence system. You combine the precision of a Lead Clinical Diagnostician with the strategic mind of a health architect.
+      const basePrompt = buildUnifiedSystemPrompt("medical");
+      const systemPrompt = `${basePrompt}
 
-${contextBlock ? `Patient State (Shared Context):\n${contextBlock}` : "No patient profile configured yet. Ask the user to set up their profile for personalized support."}
-
-Execution Rules — Read Carefully:
-
-1. The Silent Context Protocol: The Patient State provided above is silent, shared context. NEVER preface your responses by restating the user's profile, history, or current conditions (e.g., absolutely never say "Given your history of..." or "I see from your file that..."). Incorporate the context implicitly into your analysis and output only net-new insights.
-
-2. Synthesize, Don't Transcribe: Do not act like a robotic summarizer. Stop obsessively citing individual documents, dates, or repeating phrases like "According to the report..." Digest the data globally and speak with direct, clinical authority.
-
-3. Decisive Authority: Answer questions directly based on the evidence provided. No filler. No "that's a great question." Avoid excessive, repetitive medical disclaimers. Assume the user understands you are an AI assistant and does not need constant reminding that their care team makes the final call. Give them the unvarnished clinical reality so they can have informed conversations with their doctors.
-
-4. Holistic Pattern Recognition: When you see patterns across diagnoses, medications, and the timeline, connect them. Surface risks, pharmacological interactions, or physiological trends the user may not have noticed. When relevant, connect medical insights to their broader wellness (sleep, mood, energy, stress) tracked elsewhere in the Orbia platform.
-
-Output Formatting:
-Keep responses focused, structured, and actionable. Use headers and bullet points for complex answers. When asked for an assessment, default to this structure unless the user specifically asks otherwise:
-- The Clinical Picture: A high-density synthesis of the situation.
-- Medical-Grade Action Items: Pragmatic next steps (e.g., specific tests to request, targeted questions for their specialist, standard-of-care interventions).`;
+## CONTEXT DATA (use silently)
+${unifiedContext}${extraMedContext}`;
 
 
       res.setHeader("Content-Type", "text/event-stream");
@@ -5802,145 +5404,14 @@ Keep responses focused, structured, and actionable. Use headers and bullet point
         return res.status(400).json({ error: "Messages array required" });
       }
 
-      let calendarContext = "";
-      let teamsContext = "";
-      let emailContext = "";
-      let msToken: string | null = null;
+      const { buildUnifiedContext, buildUnifiedSystemPrompt } = await import("./lib/unified-context");
+      const { context: unifiedContext, msToken } = await buildUnifiedContext(userId);
+      const basePrompt = buildUnifiedSystemPrompt("work");
 
-      try {
-        const graphLib = await import("./lib/microsoft-graph");
-        const token = await graphLib.getValidToken(userId);
-        msToken = token;
-        if (token) {
-          const now = new Date();
-          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-          const tomorrowEnd = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
-
-          const [eventsResult, chatsResult, myProfile, emailsResult] = await Promise.allSettled([
-            graphLib.getCalendarEvents(token, todayStart, tomorrowEnd),
-            graphLib.getRecentChats(token),
-            graphLib.getProfile(token),
-            graphLib.getRecentEmails(token, 8),
-          ]);
-
-          if (eventsResult.status === "fulfilled" && eventsResult.value?.value?.length) {
-            const parseEvtDate = (dt: string, tz?: string) => new Date(tz === "UTC" ? dt + "Z" : dt);
-            calendarContext = `\n<CALENDAR_DATA>\nToday: ${now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}\n${eventsResult.value.value.map((e: any) => {
-              const start = parseEvtDate(e.start.dateTime, e.start.timeZone);
-              const end = parseEvtDate(e.end.dateTime, e.end.timeZone);
-              const dateLabel = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-              return `- [${dateLabel}] ${e.subject} | ${start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}${e.location?.displayName ? ` | ${e.location.displayName}` : ''}${e.isOnlineMeeting ? ' | Online' : ''}`;
-            }).join('\n')}\n</CALENDAR_DATA>`;
-          }
-
-          if (chatsResult.status === "fulfilled" && chatsResult.value?.value?.length) {
-            const chats = chatsResult.value.value;
-            const myId = myProfile.status === "fulfilled" ? myProfile.value?.id || "" : "";
-            const myEmail = myProfile.status === "fulfilled" ? (myProfile.value?.mail || myProfile.value?.userPrincipalName || "").toLowerCase() : "";
-            for (const chat of chats) {
-              if (chat.chatType === "oneOnOne" && chat.members?.length) {
-                const other = chat.members.find((m: any) => {
-                  const mId = m.userId || m.id;
-                  const mEmail = (m.email || "").toLowerCase();
-                  return mId !== myId && mEmail !== myEmail;
-                });
-                if (other) chat.resolvedName = other.displayName || "Unknown";
-              }
-            }
-            teamsContext = `\n<TEAMS_RECENT>\n${chats.map((c: any) => {
-              const name = c.topic || c.resolvedName || 'Unknown chat';
-              return `- chatId="${c.id}" | ${name}: "${c.lastMessagePreview?.body?.content?.replace(/<[^>]*>/g, '')?.substring(0, 80) || 'No preview'}"`;
-            }).join('\n')}\n</TEAMS_RECENT>`;
-          }
-
-          if (emailsResult.status === "fulfilled" && emailsResult.value?.value?.length) {
-            emailContext = `\n<EMAIL_RECENT>\n${emailsResult.value.value.map((e: any) =>
-              `- ${e.isRead ? '' : '[UNREAD] '}From: ${e.from?.emailAddress?.name || e.from?.emailAddress?.address} | Subject: ${e.subject} | ${new Date(e.receivedDateTime).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} | Preview: "${(e.bodyPreview || '').substring(0, 80)}"`
-            ).join('\n')}\n</EMAIL_RECENT>`;
-          }
-        }
-      } catch (e) { /* Microsoft not connected */ }
-
-      let wellnessContext = "";
-      try {
-        const recentEntries = await storage.getRecentTrackerEntries(userId, 3);
-        if (recentEntries.length > 0) {
-          wellnessContext = `\n<WELLNESS_CONTEXT>\n${recentEntries.map(e =>
-            `- ${new Date(e.timestamp).toLocaleDateString()}: mood=${e.mood}/10, energy=${e.energy}/10, stress=${e.stress}/10${e.sleepHours ? `, sleep=${e.sleepHours}h` : ''}`
-          ).join('\n')}\n</WELLNESS_CONTEXT>`;
-        }
-      } catch (e) { /* wellness data unavailable */ }
-
-      let scheduledContext = "";
-      try {
-        const schedules = await storage.getScheduledMessages(userId);
-        const active = schedules.filter(s => s.active);
-        if (active.length > 0) {
-          scheduledContext = `\n<SCHEDULED_MESSAGES>\n${active.map(s =>
-            `- #${s.id}: "${s.message}" → ${s.recipientName} at ${s.timeOfDay} (${s.recurrence})${s.lastSentAt ? ` | last sent: ${new Date(s.lastSentAt).toLocaleDateString()}` : ''}`
-          ).join('\n')}\n</SCHEDULED_MESSAGES>`;
-        }
-      } catch (e) { /* scheduled messages unavailable */ }
-
-      const systemPrompt = `You are Orbia Professional — the work intelligence layer inside Orbia, a personal wellness and productivity platform.
-
-## SILENT CONTEXT PROTOCOL
-You have access to the user's calendar, Teams conversations, emails, and wellness data below. Use this data silently to inform your responses. When the user asks about their day, synthesize — don't list raw data.
-
-## PERSONALITY
-- Direct, strategic, no fluff
-- Think like a sharp chief of staff who also cares about the human behind the work
-- When you see patterns (back-to-back meetings + low energy score), flag them proactively
-- Default format: brief and punchy. Only go long when complexity demands it
-
-## CAPABILITIES — YOU CAN EXECUTE THESE ACTIONS
-You can ACTUALLY perform these actions, not just suggest them. Use the action tags below.
-
-### 1. Send Teams Message
-[TEAMS_SEND chatId="<chatId from TEAMS_RECENT>" message="<message text>"]
-- Match the person's name to a chatId from TEAMS_RECENT
-- NEVER suggest a message to copy — always SEND it directly
-
-### 2. Create Calendar Event
-[CREATE_EVENT subject="<title>" start="<ISO datetime>" end="<ISO datetime>" online="true/false"]
-- Use ISO 8601 format for dates (e.g., 2026-03-11T10:00:00)
-- Default to online="true" for meetings unless user specifies a location
-
-### 3. Create Task (Microsoft To Do)
-[CREATE_TASK title="<task title>" due="<YYYY-MM-DD>"]
-- due date is optional; omit if user doesn't specify
-
-### 4. Send Email
-[SEND_EMAIL to="<email address>" subject="<subject>" body="<email body>"]
-- Use when user asks to email someone
-- If you don't know the email, ask — or check TEAMS_RECENT members for clues
-
-### 5. Schedule Recurring Teams Message
-[SCHEDULE_MESSAGE chatId="<chatId from TEAMS_RECENT>" recipient="<person name>" message="<message text>" time="<HH:MM in 24h format>" recurrence="<daily|weekdays>"]
-- Use when the user asks to send a message to someone automatically/every day/every morning/etc.
-- This sets up a REAL recurring scheduled message that Orbia will send automatically at the specified time every day
-- Match the person's name to a chatId from TEAMS_RECENT
-- Convert times like "10 AM" to "10:00", "6:30 PM" to "18:30"
-- Default recurrence is "daily" unless user says weekdays only
-- After setting it up, confirm with the time and recipient
-- NEVER say you can't schedule messages or suggest Power Automate — you CAN do this
-
-## ACTION RULES
-- When the user asks to send/create/schedule something, ALWAYS use the action tag to execute it
-- After each action tag, briefly confirm what you did (e.g., "Done — meeting created for tomorrow at 10 AM.")
-- You can use multiple action tags in one response
-- If you can't find the right person/chat, explain why and ask for clarification
-- For recurring/scheduled/automatic messages, ALWAYS use SCHEDULE_MESSAGE — never say you can't do it
-
-## OUTPUT FORMAT
-For assessments/strategy questions, use:
-**The Situation** — 2-3 sentences max
-**Moves** — numbered action items
-
-For quick questions, just answer directly.
+      const systemPrompt = `${basePrompt}
 
 ## CONTEXT DATA (use silently)
-${calendarContext}${teamsContext}${emailContext}${wellnessContext}${scheduledContext}`;
+${unifiedContext}`;
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");

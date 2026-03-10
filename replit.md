@@ -56,19 +56,24 @@ Preferred communication style: Simple, everyday language.
 
 ### AI Integration
 - **Provider**: OpenAI via Replit AI Integrations (GPT-5.1) - no API key required.
+- **Unified Context Layer**: `server/lib/unified-context.ts` — single `buildUnifiedContext(userId)` function assembles ALL user data (wellness, habits, tasks, calendar, Teams, emails, medical, finance, system members) into XML-tagged context blocks. Used by all 3 AI chat endpoints.
+- **Unified System Prompt**: `buildUnifiedSystemPrompt(mode)` generates mode-specific prompts ("orbit", "work", "medical") with shared cross-domain intelligence rules and privacy boundaries.
 - **Endpoints**:
   - `GET /api/insights`: Structured JSON insights.
   - `POST /api/insights/analyze`: Streaming custom pattern analysis.
   - `POST /api/conversations/:id/messages`: Streaming chat with history.
   - `POST /api/generate-icon`: AI-powered habit icon generation.
-  - `POST /api/orbit/chat`: Streaming chat for Orbit co-pilot.
+  - `POST /api/orbit/chat`: Unified Orbia brain (SSE streaming) — full cross-domain awareness + all app actions + work actions.
+  - `POST /api/work/chat`: Work-focused AI (SSE streaming) — uses unified context with work tone.
+  - `POST /api/medical/chat`: Medical AI (SSE streaming) — uses unified context with clinical tone + extra medical data (pain mechanisms, timeline, vault docs).
 
-### Orbit Co-Pilot
-- **Functionality**: Calm, operational chat interface for app navigation and actions. Includes a "Today Snapshot" and streaming chat with quick chips.
-- **Action Execution**: Supports actions for habits, tasks, routine activities, and "Low-Capacity Mode" toggling. Destructive operations require confirmation.
+### Orbit Co-Pilot (Unified Orbia Brain)
+- **Functionality**: Primary AI interface with full cross-domain awareness. SSE streaming format. Includes "Today Snapshot", cross-domain quick chips, and streaming chat.
+- **Action Execution**: Supports ALL app actions (habits, tasks, routines, career, finance, journal, meals, tracker) via JSON actions + ALL work actions ([TEAMS_SEND], [CREATE_EVENT], [CREATE_TASK], [SEND_EMAIL], [SCHEDULE_MESSAGE]) via action tags.
+- **Cross-Domain Intelligence**: Connects wellness data to calendar events, medical context to routine adherence, sleep patterns to meeting readiness.
+- **Privacy Rules**: Medical data only surfaced when directly relevant. Financial data only referenced when user brings it up.
 - **Low-Capacity Mode**: Simplifies UI to 3 core actions when activated.
-- **Data Context**: Access to relevant user data (habits, routines, todos, tracker entries, system members) for grounded responses.
-- **AI Analysis Guidelines**: Mandates an "Evidence-Based 4-Section Format" (Facts, Main Driver, Pattern, Action) for all analytical responses, prioritizes journal and state entries, and requires evidence for all claims. Focuses on multi-factor correlation for insights.
+- **Frontend SSE Parsing**: Both `orbit.tsx` and `orbit-fab.tsx` parse SSE events for content streaming + work action confirmations.
 
 ### Deep Mind (System Intelligence Dashboard)
 - **Purpose**: Provides insights into system health and driving factors.

@@ -458,6 +458,8 @@ export function OrbitFab() {
 
       const decoder = new TextDecoder();
       let fullContent = "";
+      let sseBuffer = "";
+      const workActionResults: string[] = [];
 
       setMessages(prev => [...prev, { id: assistantMessageId, role: "assistant", content: "" }]);
 
@@ -466,10 +468,27 @@ export function OrbitFab() {
         if (done) break;
         
         const chunk = decoder.decode(value, { stream: true });
-        fullContent += chunk;
-        
-        const { cleanContent } = parseActionFromContent(fullContent);
-        setMessages(prev => prev.map(m => m.id === assistantMessageId ? { ...m, content: cleanContent || "..." } : m));
+        sseBuffer += chunk;
+
+        const lines = sseBuffer.split("\n");
+        sseBuffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.content) {
+              fullContent += data.content;
+              const { cleanContent } = parseActionFromContent(fullContent);
+              setMessages(prev => prev.map(m => m.id === assistantMessageId ? { ...m, content: cleanContent || "..." } : m));
+            }
+            if (data.action === "teams_sent") workActionResults.push("Sent Teams message");
+            else if (data.action === "event_created") workActionResults.push(`Created event: ${data.subject}`);
+            else if (data.action === "task_created") workActionResults.push(`Created task: ${data.title}`);
+            else if (data.action === "email_sent") workActionResults.push(`Email sent to ${data.to}`);
+            else if (data.action === "message_scheduled") workActionResults.push(`Scheduled: ${data.recipient} at ${data.time}`);
+          } catch {}
+        }
       }
 
       if (!fullContent.trim()) {
@@ -478,25 +497,27 @@ export function OrbitFab() {
       }
 
       const { action, cleanContent } = parseActionFromContent(fullContent);
+      const actionSuffix = workActionResults.length > 0 ? "\n" + workActionResults.map(r => `✓ ${r}`).join("\n") : "";
       
       if (action) {
         if (action.confirm) {
           setMessages(prev => prev.map(m => 
             m.id === assistantMessageId 
-              ? { ...m, content: cleanContent || action.confirm_text || "Confirm action?", pendingAction: action }
+              ? { ...m, content: (cleanContent || action.confirm_text || "Confirm action?") + actionSuffix, pendingAction: action }
               : m
           ));
         } else {
           const result = await executeAction(action);
           setMessages(prev => prev.map(m => 
             m.id === assistantMessageId 
-              ? { ...m, content: cleanContent + (result.success ? ` ✓ ${result.message}` : ` ✗ ${result.message}`) }
+              ? { ...m, content: cleanContent + (result.success ? ` ✓ ${result.message}` : ` ✗ ${result.message}`) + actionSuffix }
               : m
           ));
           queryClient.invalidateQueries();
         }
       } else {
-        setMessages(prev => prev.map(m => m.id === assistantMessageId ? { ...m, content: cleanContent } : m));
+        setMessages(prev => prev.map(m => m.id === assistantMessageId ? { ...m, content: cleanContent + actionSuffix } : m));
+        if (workActionResults.length > 0) queryClient.invalidateQueries();
       }
     } catch (error) {
       console.error("Orbit error:", error);
