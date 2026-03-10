@@ -115,10 +115,28 @@ function ConnectionCard({ connected, displayName, email, onConnect, onDisconnect
   );
 }
 
-function CalendarTimeline({ events }: { events: any[] }) {
+function UpcomingMeetings({ events }: { events: any[] }) {
+  const now = new Date();
+
+  const categorized = useMemo(() => {
+    const upcoming: any[] = [];
+    const happening: any[] = [];
+    const past: any[] = [];
+
+    events.forEach((event: any) => {
+      const start = parseEventDate(event.start.dateTime, event.start.timeZone);
+      const end = parseEventDate(event.end.dateTime, event.end.timeZone);
+      if (end < now) past.push(event);
+      else if (start <= now && end > now) happening.push(event);
+      else upcoming.push(event);
+    });
+
+    return { upcoming, happening, past };
+  }, [events]);
+
   if (!events.length) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
+      <div className="flex flex-col items-center justify-center py-6 text-center">
         <div className="w-12 h-12 rounded-2xl bg-indigo-500/8 border border-indigo-500/10 flex items-center justify-center mb-3">
           <Coffee className="w-5 h-5 text-indigo-400/40" />
         </div>
@@ -128,86 +146,148 @@ function CalendarTimeline({ events }: { events: any[] }) {
     );
   }
 
-  return (
-    <div className="space-y-1.5" data-testid="list-calendar-events">
-      {events.map((event: any, i: number) => {
-        const start = parseEventDate(event.start.dateTime, event.start.timeZone);
-        const end = parseEventDate(event.end.dateTime, event.end.timeZone);
-        const startTime = start.toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        });
-        const endTime = end.toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        });
-        const durationMin = Math.round((end.getTime() - start.getTime()) / 60000);
-        const isOnline = event.isOnlineMeeting;
-        const location = event.location?.displayName;
-        const isPast = end < new Date();
-        const isNow = start <= new Date() && end > new Date();
+  const formatTimeRange = (event: any) => {
+    const start = parseEventDate(event.start.dateTime, event.start.timeZone);
+    const end = parseEventDate(event.end.dateTime, event.end.timeZone);
+    const s = start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+    const e = end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+    return `${s} – ${e}`;
+  };
 
-        return (
-          <motion.div
-            key={event.id}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.04 }}
-            className={cn(
-              "p-3 rounded-xl border transition-all relative overflow-hidden",
-              isNow
-                ? "bg-indigo-500/12 border-indigo-400/30 shadow-[0_0_12px_rgba(100,80,255,0.08)]"
-                : isPast
-                  ? "bg-zinc-500/5 border-zinc-500/10 opacity-60"
-                  : "bg-indigo-500/5 border-indigo-500/10 hover:border-indigo-500/25"
-            )}
-            data-testid={`card-calendar-event-${i}`}
-          >
-            {isNow && (
-              <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-indigo-400 rounded-full" />
-            )}
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 pt-0.5 min-w-[52px]">
-                <div className={cn(
-                  "text-[11px] font-mono",
-                  isNow ? "text-indigo-300" : "text-indigo-300/60"
-                )} style={mono}>
-                  {startTime}
-                </div>
-                <div className="text-[9px] text-muted-foreground/50 mt-0.5" style={mono}>
-                  {durationMin}m
-                </div>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className={cn(
-                  "text-[13px] font-medium truncate",
-                  isPast ? "text-foreground/50 line-through" : "text-foreground/90"
-                )}>{event.subject}</p>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  {isNow && (
-                    <span className="flex items-center gap-1 text-[9px] text-indigo-400 font-medium bg-indigo-500/15 px-1.5 py-0.5 rounded-full">
-                      <span className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse" />
-                      NOW
-                    </span>
-                  )}
-                  {isOnline && (
-                    <span className="flex items-center gap-0.5 text-[10px] text-violet-400/70">
-                      <Video className="w-2.5 h-2.5" /> Online
-                    </span>
-                  )}
-                  {location && !isOnline && (
-                    <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground truncate max-w-[120px]">
-                      <MapPin className="w-2.5 h-2.5" /> {location}
-                    </span>
-                  )}
-                </div>
-              </div>
+  const formatDuration = (event: any) => {
+    const start = parseEventDate(event.start.dateTime, event.start.timeZone);
+    const end = parseEventDate(event.end.dateTime, event.end.timeZone);
+    const mins = Math.round((end.getTime() - start.getTime()) / 60000);
+    if (mins >= 60) {
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    }
+    return `${mins}m`;
+  };
+
+  const formatDate = (event: any) => {
+    const start = parseEventDate(event.start.dateTime, event.start.timeZone);
+    const today = new Date();
+    if (start.toDateString() === today.toDateString()) return "Today";
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (start.toDateString() === tomorrow.toDateString()) return "Tomorrow";
+    return start.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  };
+
+  const timeUntil = (event: any) => {
+    const start = parseEventDate(event.start.dateTime, event.start.timeZone);
+    const diff = start.getTime() - now.getTime();
+    if (diff < 0) return null;
+    const mins = Math.round(diff / 60000);
+    if (mins < 60) return `in ${mins}m`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m > 0 ? `in ${h}h ${m}m` : `in ${h}h`;
+  };
+
+  const renderEvent = (event: any, i: number, status: "now" | "upcoming" | "past") => {
+    const isOnline = event.isOnlineMeeting;
+    const location = event.location?.displayName;
+    const attendees = event.attendees || [];
+    const organizer = event.organizer?.emailAddress?.name;
+
+    return (
+      <motion.div
+        key={event.id || i}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: i * 0.05 }}
+        className={cn(
+          "p-3.5 rounded-xl border transition-all relative overflow-hidden",
+          status === "now"
+            ? "bg-indigo-500/12 border-indigo-400/30 shadow-[0_0_15px_rgba(100,80,255,0.1)]"
+            : status === "past"
+              ? "bg-white/[0.02] border-white/5 opacity-50"
+              : "bg-indigo-500/5 border-indigo-500/12 hover:border-indigo-500/25"
+        )}
+        data-testid={`card-meeting-${i}`}
+      >
+        {status === "now" && (
+          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-indigo-400 to-violet-400 rounded-full" />
+        )}
+
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="min-w-0 flex-1">
+            <p className={cn(
+              "text-[13px] font-semibold leading-tight",
+              status === "past" ? "text-foreground/40 line-through" : "text-foreground/95"
+            )}>{event.subject || "Untitled Meeting"}</p>
+          </div>
+          {status === "now" && (
+            <span className="flex items-center gap-1 text-[9px] text-indigo-300 font-semibold bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+              Live
+            </span>
+          )}
+          {status === "upcoming" && timeUntil(event) && (
+            <span className="text-[10px] text-indigo-400/80 shrink-0 font-medium" style={mono}>
+              {timeUntil(event)}
+            </span>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <Clock className="w-3 h-3 text-indigo-400/60 shrink-0" />
+            <span className="text-[11px] text-foreground/70" style={mono}>
+              {formatDate(event)} · {formatTimeRange(event)}
+            </span>
+            <span className="text-[10px] text-muted-foreground/50" style={mono}>
+              ({formatDuration(event)})
+            </span>
+          </div>
+
+          {(isOnline || location) && (
+            <div className="flex items-center gap-2">
+              {isOnline ? (
+                <>
+                  <Video className="w-3 h-3 text-violet-400/60 shrink-0" />
+                  <span className="text-[11px] text-violet-400/70">Online Meeting</span>
+                </>
+              ) : (
+                <>
+                  <MapPin className="w-3 h-3 text-indigo-400/60 shrink-0" />
+                  <span className="text-[11px] text-foreground/60 truncate">{location}</span>
+                </>
+              )}
             </div>
-          </motion.div>
-        );
-      })}
+          )}
+
+          {organizer && (
+            <div className="flex items-center gap-2">
+              <Users className="w-3 h-3 text-indigo-400/60 shrink-0" />
+              <span className="text-[11px] text-foreground/60 truncate">
+                {organizer}
+                {attendees.length > 1 && ` + ${attendees.length - 1} other${attendees.length > 2 ? "s" : ""}`}
+              </span>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    );
+  };
+
+  return (
+    <div className="space-y-2" data-testid="list-calendar-events">
+      {categorized.happening.map((e, i) => renderEvent(e, i, "now"))}
+      {categorized.upcoming.map((e, i) => renderEvent(e, categorized.happening.length + i, "upcoming"))}
+      {categorized.past.length > 0 && (
+        <>
+          <div className="flex items-center gap-2 pt-1">
+            <div className="h-px flex-1 bg-white/5" />
+            <span className="text-[9px] text-muted-foreground/40 uppercase tracking-widest" style={mono}>Earlier</span>
+            <div className="h-px flex-1 bg-white/5" />
+          </div>
+          {categorized.past.map((e, i) => renderEvent(e, categorized.happening.length + categorized.upcoming.length + i, "past"))}
+        </>
+      )}
     </div>
   );
 }
@@ -915,11 +995,6 @@ export default function WorkPage() {
   }, 0);
   const freeHours = Math.max(0, 8 - totalMeetingHours);
 
-  const upcomingEvent = todayEvents.find((e: any) => {
-    const start = parseEventDate(e.start.dateTime, e.start.timeZone);
-    return start > new Date();
-  });
-
   const mobileTabItems: { key: MobileTab; label: string; icon: typeof Calendar }[] = [
     { key: "today", label: "Today", icon: Calendar },
     { key: "nexus", label: "Professional", icon: Sparkles },
@@ -956,24 +1031,6 @@ export default function WorkPage() {
             </Button>
           </div>
 
-          {upcomingEvent && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cn(cmdPanel, "p-3 mb-4 flex items-center gap-3 border-indigo-500/20")}
-            >
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/15 flex items-center justify-center flex-shrink-0">
-                <ArrowRight className="w-4 h-4 text-indigo-400" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] text-indigo-400/60 uppercase tracking-wider" style={mono}>Up Next</p>
-                <p className="text-sm font-medium text-foreground/90 truncate">{upcomingEvent.subject}</p>
-              </div>
-              <span className="text-xs text-indigo-300/70 flex-shrink-0" style={mono}>
-                {parseEventDate(upcomingEvent.start.dateTime, upcomingEvent.start.timeZone).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-              </span>
-            </motion.div>
-          )}
 
           <div className="lg:hidden flex gap-1 mb-4 p-1 bg-black/30 rounded-xl border border-indigo-500/10">
             {mobileTabItems.map((tab) => (
@@ -994,8 +1051,35 @@ export default function WorkPage() {
             ))}
           </div>
 
-          <div className="hidden lg:grid lg:grid-cols-[280px_1fr_300px] gap-4">
+          <div className="hidden lg:grid lg:grid-cols-[300px_1fr_300px] gap-4">
             <div className="space-y-4">
+              <div className={cn(cmdPanel, "p-4")}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+                    <CmdLabel>Meetings</CmdLabel>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400" style={mono}>
+                      {meetingCount} today
+                    </span>
+                    <span className="text-[10px] text-emerald-400/70" style={mono}>
+                      {freeHours.toFixed(1)}h free
+                    </span>
+                  </div>
+                </div>
+
+                {loadingCalendar ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-5 h-5 animate-spin text-indigo-400/40" />
+                  </div>
+                ) : (
+                  <UpcomingMeetings events={weekEvents} />
+                )}
+              </div>
+
+              {connected && <EmailInbox />}
+
               <ConnectionCard
                 connected={connected}
                 displayName={connectionStatus?.displayName}
@@ -1004,49 +1088,6 @@ export default function WorkPage() {
                 onDisconnect={handleDisconnect}
                 isConnecting={isConnecting}
               />
-
-              <div className={cn(cmdPanel, "p-4")}>
-                <div className="flex items-center justify-between mb-3">
-                  <CmdLabel>Today's Schedule</CmdLabel>
-                  <span className="text-[10px] text-muted-foreground" style={mono}>
-                    {meetingCount} meeting{meetingCount !== 1 ? "s" : ""}
-                  </span>
-                </div>
-
-                {loadingCalendar ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-5 h-5 animate-spin text-indigo-400/40" />
-                  </div>
-                ) : (
-                  <CalendarTimeline events={todayEvents} />
-                )}
-              </div>
-
-              <div className={cn(cmdPanel, "p-4")}>
-                <CmdLabel>Quick Stats</CmdLabel>
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <div className="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10 text-center">
-                    <p className="text-2xl font-display font-bold text-indigo-300" data-testid="stat-meetings">{meetingCount}</p>
-                    <p className="text-[10px] text-muted-foreground" style={mono}>Meetings</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-center">
-                    <p className="text-2xl font-display font-bold text-emerald-300" data-testid="stat-free-hours">{freeHours.toFixed(1)}</p>
-                    <p className="text-[10px] text-muted-foreground" style={mono}>Free hrs</p>
-                  </div>
-                </div>
-              </div>
-
-              {weekEvents.length > todayEvents.length && (
-                <div className={cn(cmdPanel, "p-4")}>
-                  <CmdLabel>This Week</CmdLabel>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    <span className="text-lg font-display font-bold text-indigo-300">{weekEvents.length}</span>
-                    <span className="ml-1.5">events across the week</span>
-                  </p>
-                </div>
-              )}
-
-              {connected && <EmailInbox />}
             </div>
 
             <div className={cn(cmdPanelGlow, "p-5 flex flex-col min-h-[600px]")}>
@@ -1095,6 +1136,32 @@ export default function WorkPage() {
                   exit={{ opacity: 0, x: 20 }}
                   className="space-y-4"
                 >
+                  <div className={cn(cmdPanel, "p-4")}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+                        <CmdLabel>Meetings</CmdLabel>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400" style={mono}>
+                          {meetingCount} today
+                        </span>
+                        <span className="text-[10px] text-emerald-400/70" style={mono}>
+                          {freeHours.toFixed(1)}h free
+                        </span>
+                      </div>
+                    </div>
+                    {loadingCalendar ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className="w-5 h-5 animate-spin text-indigo-400/40" />
+                      </div>
+                    ) : (
+                      <UpcomingMeetings events={weekEvents} />
+                    )}
+                  </div>
+
+                  {connected && <EmailInbox />}
+
                   <ConnectionCard
                     connected={connected}
                     displayName={connectionStatus?.displayName}
@@ -1103,38 +1170,6 @@ export default function WorkPage() {
                     onDisconnect={handleDisconnect}
                     isConnecting={isConnecting}
                   />
-
-                  <div className={cn(cmdPanel, "p-4")}>
-                    <div className="flex items-center justify-between mb-3">
-                      <CmdLabel>Today's Schedule</CmdLabel>
-                      <span className="text-[10px] text-muted-foreground" style={mono}>
-                        {meetingCount} meeting{meetingCount !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                    {loadingCalendar ? (
-                      <div className="flex items-center justify-center py-6">
-                        <Loader2 className="w-5 h-5 animate-spin text-indigo-400/40" />
-                      </div>
-                    ) : (
-                      <CalendarTimeline events={todayEvents} />
-                    )}
-                  </div>
-
-                  <div className={cn(cmdPanel, "p-4")}>
-                    <CmdLabel>Quick Stats</CmdLabel>
-                    <div className="grid grid-cols-2 gap-3 mt-3">
-                      <div className="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10 text-center">
-                        <p className="text-2xl font-display font-bold text-indigo-300">{meetingCount}</p>
-                        <p className="text-[10px] text-muted-foreground" style={mono}>Meetings</p>
-                      </div>
-                      <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-center">
-                        <p className="text-2xl font-display font-bold text-emerald-300">{freeHours.toFixed(1)}</p>
-                        <p className="text-[10px] text-muted-foreground" style={mono}>Free hrs</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {connected && <EmailInbox />}
                 </motion.div>
               )}
 
