@@ -1,4 +1,5 @@
 import { storage } from "../storage";
+import { buildMemoryContext } from "./memory-graph";
 
 export async function buildUnifiedContext(userId: string): Promise<{
   context: string;
@@ -374,6 +375,37 @@ ${visionItems.map((v: any) => `- ${v.title} (${v.timeframe}): ${v.description ||
   };
 }
 
+/**
+ * Build the full context including memory graph.
+ * The memory graph provides deep understanding that raw data cannot:
+ * - Synthesized narratives about the user's patterns
+ * - Causal connections between domains (sleep→mood→work performance)
+ * - Known triggers, preferences, and identity markers
+ * - People in their life with relationship context
+ */
+export async function buildUnifiedContextWithMemory(
+  userId: string,
+  mode: "orbit" | "work" | "medical" = "orbit"
+): Promise<{
+  context: string;
+  msToken: string | null;
+}> {
+  const [baseResult, memoryContext] = await Promise.all([
+    buildUnifiedContext(userId),
+    buildMemoryContext(userId, mode),
+  ]);
+
+  // Memory graph goes FIRST — it provides the lens through which to interpret the raw data
+  const fullContext = memoryContext
+    ? memoryContext + "\n\n" + baseResult.context
+    : baseResult.context;
+
+  return {
+    context: fullContext,
+    msToken: baseResult.msToken,
+  };
+}
+
 export function buildUnifiedSystemPrompt(mode: "orbit" | "work" | "medical"): string {
   const baseIdentity = `You are Orbia — a unified personal intelligence system. You have awareness across all domains of the user's life: wellness, work, health, habits, finances, and career.`;
 
@@ -414,7 +446,21 @@ You see EVERYTHING. Use it wisely:
 
   const silentProtocol = `
 ## SILENT CONTEXT PROTOCOL
-You have access to the user's complete data below. NEVER regurgitate raw data. Use it silently to inform every response. When the user asks about their day, synthesize — don't list. When they ask about patterns, connect dots across domains. Incorporate context implicitly.`;
+You have access to the user's complete data below. NEVER regurgitate raw data. Use it silently to inform every response. When the user asks about their day, synthesize — don't list. When they ask about patterns, connect dots across domains. Incorporate context implicitly.
+
+## MEMORY GRAPH PROTOCOL
+You have access to a MEMORY_GRAPH section containing deep, synthesized understanding of this user built over time. This is your most valuable context — it represents genuine understanding, not raw data.
+
+HOW TO USE THE MEMORY GRAPH:
+- "Deep Understanding" narratives are your PRIMARY lens. They tell you WHO this person is and HOW their life works. Let them shape every response.
+- "Detected Patterns" are statistically validated patterns. Reference them when relevant but don't recite them. When you see a pattern playing out in real-time data, name it and connect it.
+- "Causal Map" shows proven cause→effect chains. When the user reports a symptom, trace backwards through the causal map to identify root causes. When they ask about a problem, project forward through the map to predict consequences.
+- "Known Triggers" — be vigilant. If you detect a trigger in the current data, proactively surface it with the specific pattern it connects to.
+- "Key People" — when the user mentions someone, connect it to what you know about that person's role in their life.
+- "Goals & Aspirations" — frame suggestions in terms of their stated goals. Don't invent goals for them.
+- "Who They Are" — respect their identity, preferences, and values. Adapt your communication style accordingly.
+
+CRITICAL: The memory graph makes you SMARTER, not CHATTIER. Use it to give shorter, more precise, more personally relevant responses — not longer ones.`;
 
   const workActions = `
 ## WORK ACTIONS — YOU CAN EXECUTE THESE

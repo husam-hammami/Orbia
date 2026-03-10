@@ -763,3 +763,77 @@ export const scheduledMessages = pgTable("scheduled_messages", {
 export const insertScheduledMessageSchema = createInsertSchema(scheduledMessages).omit({ id: true, createdAt: true, lastSentAt: true });
 export type ScheduledMessage = typeof scheduledMessages.$inferSelect;
 export type InsertScheduledMessage = z.infer<typeof insertScheduledMessageSchema>;
+
+// ==================== UNIFIED MEMORY GRAPH ====================
+
+// Memory Entities — nodes in the understanding graph
+// Types: person, condition, pattern, preference, trigger, state, goal, medication, event, behavior, insight
+// Categories: wellness, work, medical, finance, career, system, social, identity
+export const memoryEntities = pgTable("memory_entities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  entityType: text("entity_type").notNull(), // person, condition, pattern, preference, trigger, state, goal, medication, event, behavior, insight
+  category: text("category").notNull(), // wellness, work, medical, finance, career, system, social, identity
+  name: text("name").notNull(), // human-readable identifier
+  content: jsonb("content").notNull().$type<Record<string, any>>(), // structured data about this entity
+  summary: text("summary").notNull(), // one-line description
+  importance: real("importance").notNull().default(0.5), // 0-1 how significant
+  confidence: real("confidence").notNull().default(0.5), // 0-1 how certain
+  accessCount: integer("access_count").notNull().default(0),
+  lastAccessed: timestamp("last_accessed"),
+  firstSeen: timestamp("first_seen").defaultNow().notNull(),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+  sourceRefs: jsonb("source_refs").notNull().$type<Array<{ type: string; id: string }>>().default(sql`'[]'::jsonb`),
+  active: integer("active").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertMemoryEntitySchema = createInsertSchema(memoryEntities).omit({ id: true, createdAt: true });
+export type MemoryEntity = typeof memoryEntities.$inferSelect;
+export type InsertMemoryEntity = z.infer<typeof insertMemoryEntitySchema>;
+
+// Memory Connections — edges between entities with typed relationships
+export const memoryConnections = pgTable("memory_connections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  sourceId: varchar("source_id").notNull().references(() => memoryEntities.id, { onDelete: "cascade" }),
+  targetId: varchar("target_id").notNull().references(() => memoryEntities.id, { onDelete: "cascade" }),
+  relationType: text("relation_type").notNull(), // causes, correlates_with, triggers, alleviates, belongs_to, influences, precedes, contradicts, worsens, improves
+  strength: real("strength").notNull().default(0.5), // 0-1 how strong
+  evidence: jsonb("evidence").notNull().$type<Array<{ observation: string; date: string }>>().default(sql`'[]'::jsonb`),
+  occurrences: integer("occurrences").notNull().default(1),
+  lastObserved: timestamp("last_observed").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertMemoryConnectionSchema = createInsertSchema(memoryConnections).omit({ id: true, createdAt: true });
+export type MemoryConnection = typeof memoryConnections.$inferSelect;
+export type InsertMemoryConnection = z.infer<typeof insertMemoryConnectionSchema>;
+
+// Memory Narratives — high-level synthesized understandings about the user
+export const memoryNarratives = pgTable("memory_narratives", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  domain: text("domain").notNull(), // wellness, work, medical, finance, career, identity, cross_domain
+  narrativeKey: text("narrative_key").notNull(), // unique identifier like "sleep_mood_pattern" or "career_direction"
+  narrative: text("narrative").notNull(), // the actual understanding
+  supportingEntityIds: jsonb("supporting_entity_ids").notNull().$type<string[]>().default(sql`'[]'::jsonb`),
+  confidence: real("confidence").notNull().default(0.5),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertMemoryNarrativeSchema = createInsertSchema(memoryNarratives).omit({ id: true, createdAt: true });
+export type MemoryNarrative = typeof memoryNarratives.$inferSelect;
+export type InsertMemoryNarrative = z.infer<typeof insertMemoryNarrativeSchema>;
+
+// Memory Processing Log — tracks what data has been processed into the memory graph
+export const memoryProcessingLog = pgTable("memory_processing_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  sourceType: text("source_type").notNull(), // tracker_entry, journal_entry, habit_completion, transaction, medical_doc, etc.
+  sourceId: text("source_id").notNull(),
+  processedAt: timestamp("processed_at").defaultNow().notNull(),
+});
+
+export type MemoryProcessingLogEntry = typeof memoryProcessingLog.$inferSelect;

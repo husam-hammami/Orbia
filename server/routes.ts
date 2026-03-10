@@ -168,6 +168,16 @@ export async function registerRoutes(
       const validatedData = insertTrackerEntrySchema.parse(req.body);
       const entry = await storage.createTrackerEntry(userId, validatedData);
       res.status(201).json(entry);
+
+      // Background: extract memories from this tracker entry
+      import("./lib/memory-graph").then(({ extractFromTracker, persistMemories }) => {
+        const result = extractFromTracker(entry);
+        if (result.entities.length > 0 || result.connections.length > 0) {
+          persistMemories(userId, result, "tracker_entry", entry.id).catch((err) =>
+            console.error("[MemoryGraph] Tracker extraction failed:", err)
+          );
+        }
+      }).catch(() => {});
     } catch (error) {
       const validationError = fromError(error);
       res.status(400).json({ error: validationError.toString() });
@@ -3293,8 +3303,8 @@ MERCHANT FIELD:
         return res.status(400).json({ error: "Message is required" });
       }
 
-      const { buildUnifiedContext, buildUnifiedSystemPrompt } = await import("./lib/unified-context");
-      const { context: unifiedContext, msToken } = await buildUnifiedContext(userId);
+      const { buildUnifiedContextWithMemory, buildUnifiedSystemPrompt } = await import("./lib/unified-context");
+      const { context: unifiedContext, msToken } = await buildUnifiedContextWithMemory(userId, "orbit");
       const systemPrompt = buildUnifiedSystemPrompt("orbit");
 
       const orbitSystemPrompt = `${systemPrompt}
@@ -3507,6 +3517,15 @@ ${JSON.stringify(context, null, 2)}`;
       const validatedData = insertJournalEntrySchema.parse(req.body);
       const entry = await storage.createJournalEntry(userId, validatedData);
       res.status(201).json(entry);
+
+      // Background: AI-extract memories from this journal entry
+      import("./lib/memory-graph").then(async ({ extractFromJournalAI, persistMemories }) => {
+        const existingEntities = await storage.getMemoryEntities(userId);
+        const result = await extractFromJournalAI(entry, existingEntities);
+        if (result.entities.length > 0 || result.connections.length > 0) {
+          await persistMemories(userId, result, "journal_entry", entry.id);
+        }
+      }).catch((err) => console.error("[MemoryGraph] Journal extraction failed:", err));
     } catch (error) {
       const validationError = fromError(error);
       res.status(400).json({ error: validationError.toString() });
@@ -4970,8 +4989,8 @@ Think like a doctor building a patient's problem list — not like a text parser
       const userId = req.session.userId!;
       const { messages: chatMessages } = req.body;
 
-      const { buildUnifiedContext, buildUnifiedSystemPrompt } = await import("./lib/unified-context");
-      const { context: unifiedContext } = await buildUnifiedContext(userId);
+      const { buildUnifiedContextWithMemory, buildUnifiedSystemPrompt } = await import("./lib/unified-context");
+      const { context: unifiedContext } = await buildUnifiedContextWithMemory(userId, "medical");
 
       const [painMechanisms, timelineEvents, vaultDocs] = await Promise.all([
         storage.getMedPainMechanisms(userId),
@@ -5437,8 +5456,8 @@ ${unifiedContext}${extraMedContext}`;
         return res.status(400).json({ error: "Messages array required" });
       }
 
-      const { buildUnifiedContext, buildUnifiedSystemPrompt } = await import("./lib/unified-context");
-      const { context: unifiedContext, msToken } = await buildUnifiedContext(userId);
+      const { buildUnifiedContextWithMemory, buildUnifiedSystemPrompt } = await import("./lib/unified-context");
+      const { context: unifiedContext, msToken } = await buildUnifiedContextWithMemory(userId, "work");
       const basePrompt = buildUnifiedSystemPrompt("work");
 
       const systemPrompt = `${basePrompt}
@@ -5582,6 +5601,121 @@ ${unifiedContext}`;
       } else {
         res.status(500).json({ error: error.message });
       }
+    }
+  });
+
+  // ==================== MEMORY GRAPH API ====================
+
+  // Get the full memory graph (entities, connections, narratives)
+  app.get("/api/memory/graph", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const [entities, connections, narratives] = await Promise.all([
+        storage.getMemoryEntities(userId),
+        storage.getMemoryConnections(userId),
+        storage.getMemoryNarratives(userId),
+      ]);
+      res.json({ entities, connections, narratives });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch memory graph" });
+    }
+  });
+
+  // Get just the narratives (synthesized understandings)
+  app.get("/api/memory/narratives", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const narratives = await storage.getMemoryNarratives(userId);
+      res.json(narratives);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch narratives" });
+    }
+  });
+
+  // Trigger full memory processing (process all unprocessed data + consolidate)
+  app.post("/api/memory/process", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { processUnprocessedData } = await import("./lib/memory-graph");
+      const result = await processUnprocessedData(userId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Memory processing failed" });
+    }
+  });
+
+  // Trigger consolidation only (re-synthesize narratives from existing entities)
+  app.post("/api/memory/consolidate", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { consolidateMemories } = await import("./lib/memory-graph");
+      await consolidateMemories(userId);
+      const narratives = await storage.getMemoryNarratives(userId);
+      res.json({ narratives });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Consolidation failed" });
+    }
+  });
+
+  // Get memory graph stats
+  app.get("/api/memory/stats", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const [entities, connections, narratives, processingLog] = await Promise.all([
+        storage.getMemoryEntities(userId),
+        storage.getMemoryConnections(userId),
+        storage.getMemoryNarratives(userId),
+        storage.getMemoryProcessingLog(userId),
+      ]);
+
+      const entityTypes: Record<string, number> = {};
+      const categories: Record<string, number> = {};
+      entities.forEach((e) => {
+        entityTypes[e.entityType] = (entityTypes[e.entityType] || 0) + 1;
+        categories[e.category] = (categories[e.category] || 0) + 1;
+      });
+
+      res.json({
+        totalEntities: entities.length,
+        totalConnections: connections.length,
+        totalNarratives: narratives.length,
+        sourcesProcessed: processingLog.length,
+        entityTypes,
+        categories,
+        strongestConnections: connections
+          .sort((a, b) => b.strength * b.occurrences - a.strength * a.occurrences)
+          .slice(0, 5)
+          .map((c) => {
+            const source = entities.find((e) => e.id === c.sourceId);
+            const target = entities.find((e) => e.id === c.targetId);
+            return { from: source?.name, to: target?.name, type: c.relationType, strength: c.strength, occurrences: c.occurrences };
+          }),
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch memory stats" });
+    }
+  });
+
+  // Clear the entire memory graph (reset)
+  app.delete("/api/memory/graph", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      await storage.clearMemoryGraph(userId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to clear memory graph" });
+    }
+  });
+
+  // Delete a specific memory entity
+  app.delete("/api/memory/entities/:id", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const deleted = await storage.deleteMemoryEntity(userId, req.params.id);
+      if (!deleted) return res.status(404).json({ error: "Entity not found" });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete entity" });
     }
   });
 
