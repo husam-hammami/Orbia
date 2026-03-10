@@ -46,10 +46,11 @@ Preferred communication style: Simple, everyday language.
 - **Env Secrets Required**: `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_REDIRECT_URI` (from Azure AD app registration).
 - **Key Table**: `microsoftConnections` — stores OAuth tokens (access, refresh), token expiry, Microsoft user ID, display name, email, connection status.
 - **Token Management**: Auto-refresh with 5-minute buffer; expired tokens trigger re-auth.
-- **API Endpoints**: `/api/work/microsoft/auth`, `/api/work/microsoft/callback`, `/api/work/microsoft/status`, `/api/work/microsoft/disconnect`, `/api/work/calendar`, `/api/work/teams/chats`, `/api/work/teams/chats/:chatId/messages`, `/api/work/chat` (streaming AI assistant).
-- **Frontend**: 3-column layout — Left: Microsoft connection card + today's calendar timeline + quick stats, Center: Orbia Professional chat (streaming, quick chips), Right: Teams conversations with inline reply. Mobile: tab-based fallback (Today | Professional | Comms).
+- **OAuth Scopes**: `Calendars.ReadWrite`, `Tasks.ReadWrite`, `Mail.Read`, `Mail.Send`, `Contacts.Read`, `OnlineMeetings.ReadWrite`, `Chat.ReadWrite`, `User.Read`.
+- **API Endpoints**: `/api/work/microsoft/auth`, `/api/work/microsoft/callback`, `/api/work/microsoft/status`, `/api/work/microsoft/disconnect`, `/api/work/calendar`, `/api/work/calendar/events` (POST create), `/api/work/emails` (GET), `/api/work/emails/send` (POST), `/api/work/tasks` (POST create), `/api/work/contacts/search` (GET), `/api/work/meetings` (POST create), `/api/work/teams/chats`, `/api/work/teams/chats/:chatId/messages`, `/api/work/chat` (streaming AI assistant).
+- **Frontend**: 3-column layout — Left: Microsoft connection card + today's calendar timeline + quick stats + email inbox widget, Center: Orbia Professional chat (streaming, quick chips), Right: Teams conversations with inline reply. Mobile: tab-based fallback (Today | Professional | Comms).
 - **Design Identity**: Indigo/violet accent palette (`indigo-500`, `violet-500`) on dark glass panels, distinguishing from Medical module's cyan theme.
-- **Orbia Professional**: Work intelligence assistant using Silent Context Protocol. Accesses calendar, Teams, and wellness data. Output format: "The Situation" + "Moves" for strategic questions.
+- **Orbia Professional**: Work intelligence assistant using Silent Context Protocol. Accesses calendar, Teams, emails, and wellness data. Can execute actions via AI: send Teams messages (`[TEAMS_SEND]`), create calendar events (`[CREATE_EVENT]`), create To Do tasks (`[CREATE_TASK]`), send emails (`[SEND_EMAIL]`). Output format: "The Situation" + "Moves" for strategic questions.
 - **Files**: `server/lib/microsoft-graph.ts` (Graph API client), `client/src/pages/work.tsx` (frontend).
 
 ### AI Integration

@@ -5,7 +5,7 @@ import {
   Link2, Unlink, ChevronRight, Clock, Video,
   MapPin, Users, Sparkles, ArrowRight, Zap,
   RefreshCw, ExternalLink, BarChart3, Coffee,
-  ChevronDown, AlertCircle
+  ChevronDown, AlertCircle, Mail, MailOpen
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -466,6 +466,73 @@ function MarkdownContent({ content }: { content: string }) {
   );
 }
 
+function EmailInbox() {
+  const { data: emails, isLoading } = useQuery({
+    queryKey: ["/api/work/emails"],
+    queryFn: () => workApi("/api/work/emails"),
+    refetchInterval: 120000,
+  });
+
+  const emailList = emails?.value || [];
+  const unreadCount = emailList.filter((e: any) => !e.isRead).length;
+
+  return (
+    <div className={cn(cmdPanel, "p-4")} data-testid="panel-email-inbox">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Mail className="w-3.5 h-3.5 text-indigo-400" />
+          <CmdLabel>Inbox</CmdLabel>
+        </div>
+        {unreadCount > 0 && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400" style={mono} data-testid="text-unread-count">
+            {unreadCount} new
+          </span>
+        )}
+      </div>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="w-4 h-4 animate-spin text-indigo-400/40" />
+        </div>
+      ) : emailList.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-3">No recent emails</p>
+      ) : (
+        <div className="space-y-1.5 max-h-[220px] overflow-y-auto">
+          {emailList.slice(0, 6).map((email: any, i: number) => (
+            <div
+              key={email.id || i}
+              className={cn(
+                "p-2.5 rounded-lg border transition-colors cursor-default",
+                email.isRead
+                  ? "bg-white/[0.02] border-white/5"
+                  : "bg-indigo-500/5 border-indigo-500/15"
+              )}
+              data-testid={`card-email-${i}`}
+            >
+              <div className="flex items-start gap-2">
+                {email.isRead ? (
+                  <MailOpen className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
+                ) : (
+                  <Mail className="w-3 h-3 text-indigo-400 mt-0.5 shrink-0" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className={cn("text-[11px] truncate", email.isRead ? "text-muted-foreground" : "text-foreground/90 font-medium")}>
+                    {email.from?.emailAddress?.name || email.from?.emailAddress?.address || "Unknown"}
+                  </p>
+                  <p className="text-[11px] text-foreground/70 truncate">{email.subject}</p>
+                  <p className="text-[10px] text-muted-foreground truncate mt-0.5">{(email.bodyPreview || "").substring(0, 60)}</p>
+                </div>
+                <span className="text-[9px] text-muted-foreground shrink-0 mt-0.5" style={mono}>
+                  {new Date(email.receivedDateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NexusChat({ connected }: { connected: boolean }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -525,20 +592,26 @@ function NexusChat({ connected }: { connected: boolean }) {
             try {
               const data = JSON.parse(line.slice(6));
               if (data.done) break;
-              if (data.action === "teams_sent") {
-                assistantContent += `\n\n✅ **Message sent to Teams**: "${data.message}"`;
-                setMessages(prev => {
-                  const updated = [...prev];
-                  updated[updated.length - 1] = { role: "assistant", content: assistantContent };
-                  return updated;
-                });
-              } else if (data.action === "teams_send_failed") {
-                assistantContent += `\n\n❌ **Failed to send**: ${data.error || "Unknown error"}`;
-                setMessages(prev => {
-                  const updated = [...prev];
-                  updated[updated.length - 1] = { role: "assistant", content: assistantContent };
-                  return updated;
-                });
+              if (data.action) {
+                const actionConfirms: Record<string, string> = {
+                  teams_sent: `\n\n✅ **Message sent to Teams**: "${data.message}"`,
+                  teams_send_failed: `\n\n❌ **Failed to send Teams message**: ${data.error || "Unknown error"}`,
+                  event_created: `\n\n📅 **Calendar event created**: ${data.subject}`,
+                  create_event_failed: `\n\n❌ **Failed to create event**: ${data.error || "Unknown error"}`,
+                  task_created: `\n\n✅ **Task created**: ${data.title}${data.due ? ` (due ${data.due})` : ""}`,
+                  create_task_failed: `\n\n❌ **Failed to create task**: ${data.error || "Unknown error"}`,
+                  email_sent: `\n\n📧 **Email sent** to ${data.to}: "${data.subject}"`,
+                  send_email_failed: `\n\n❌ **Failed to send email**: ${data.error || "Unknown error"}`,
+                };
+                const confirm = actionConfirms[data.action];
+                if (confirm) {
+                  assistantContent += confirm;
+                  setMessages(prev => {
+                    const updated = [...prev];
+                    updated[updated.length - 1] = { role: "assistant", content: assistantContent };
+                    return updated;
+                  });
+                }
               } else if (data.content) {
                 assistantContent += data.content;
                 setMessages(prev => {
@@ -972,6 +1045,8 @@ export default function WorkPage() {
                   </p>
                 </div>
               )}
+
+              {connected && <EmailInbox />}
             </div>
 
             <div className={cn(cmdPanelGlow, "p-5 flex flex-col min-h-[600px]")}>
@@ -1058,6 +1133,8 @@ export default function WorkPage() {
                       </div>
                     </div>
                   </div>
+
+                  {connected && <EmailInbox />}
                 </motion.div>
               )}
 

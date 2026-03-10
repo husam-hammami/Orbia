@@ -11,9 +11,15 @@ const SCOPES = [
   "email",
   "offline_access",
   "Calendars.Read",
+  "Calendars.ReadWrite",
   "Chat.Read",
   "Chat.ReadWrite",
   "User.Read",
+  "Tasks.ReadWrite",
+  "Mail.Read",
+  "Mail.Send",
+  "Contacts.Read",
+  "OnlineMeetings.ReadWrite",
 ];
 
 export function getAuthUrl(state: string): string {
@@ -158,7 +164,13 @@ async function graphRequest(token: string, endpoint: string, options?: RequestIn
     throw new Error(`Graph API error (${response.status}): ${error}`);
   }
 
-  return response.json();
+  if (response.status === 202 || response.status === 204) {
+    return null;
+  }
+
+  const text = await response.text();
+  if (!text) return null;
+  return JSON.parse(text);
 }
 
 export async function getProfile(token: string) {
@@ -191,6 +203,122 @@ export async function sendChatMessage(token: string, chatId: string, content: st
     method: "POST",
     body: JSON.stringify({
       body: { contentType: "text", content },
+    }),
+  });
+}
+
+export async function createCalendarEvent(
+  token: string,
+  subject: string,
+  start: string,
+  end: string,
+  options?: { isOnline?: boolean; attendees?: string[]; location?: string; body?: string }
+) {
+  const event: Record<string, any> = {
+    subject,
+    start: { dateTime: start, timeZone: "UTC" },
+    end: { dateTime: end, timeZone: "UTC" },
+  };
+
+  if (options?.isOnline) {
+    event.isOnlineMeeting = true;
+    event.onlineMeetingProvider = "teamsForBusiness";
+  }
+
+  if (options?.attendees?.length) {
+    event.attendees = options.attendees.map((email) => ({
+      emailAddress: { address: email },
+      type: "required",
+    }));
+  }
+
+  if (options?.location) {
+    event.location = { displayName: options.location };
+  }
+
+  if (options?.body) {
+    event.body = { contentType: "text", content: options.body };
+  }
+
+  return graphRequest(token, "/me/events", {
+    method: "POST",
+    body: JSON.stringify(event),
+  });
+}
+
+export async function createTask(
+  token: string,
+  title: string,
+  dueDate?: string,
+  body?: string
+) {
+  const lists = await graphRequest(token, "/me/todo/lists");
+  const defaultList = lists.value?.[0];
+  if (!defaultList) {
+    throw new Error("No To Do list found");
+  }
+
+  const task: Record<string, any> = { title };
+
+  if (dueDate) {
+    task.dueDateTime = { dateTime: `${dueDate}T00:00:00`, timeZone: "UTC" };
+  }
+
+  if (body) {
+    task.body = { contentType: "text", content: body };
+  }
+
+  return graphRequest(token, `/me/todo/lists/${defaultList.id}/tasks`, {
+    method: "POST",
+    body: JSON.stringify(task),
+  });
+}
+
+export async function getRecentEmails(token: string, top: number = 10) {
+  const params = new URLSearchParams({
+    $top: String(top),
+    $orderby: "receivedDateTime desc",
+    $select: "id,subject,from,receivedDateTime,bodyPreview,isRead",
+  });
+
+  return graphRequest(token, `/me/messages?${params.toString()}`);
+}
+
+export async function sendEmail(
+  token: string,
+  to: string,
+  subject: string,
+  body: string
+) {
+  return graphRequest(token, "/me/sendMail", {
+    method: "POST",
+    body: JSON.stringify({
+      message: {
+        subject,
+        body: { contentType: "text", content: body },
+        toRecipients: [{ emailAddress: { address: to } }],
+      },
+    }),
+  });
+}
+
+export async function searchContacts(token: string, query: string) {
+  const encoded = encodeURIComponent(`"${query}"`);
+  return graphRequest(token, `/me/people?$search=${encoded}&$top=5`);
+}
+
+export async function createOnlineMeeting(
+  token: string,
+  subject: string,
+  start: string,
+  end: string
+) {
+  return graphRequest(token, "/me/onlineMeetings", {
+    method: "POST",
+    body: JSON.stringify({
+      subject,
+      startDateTime: start,
+      endDateTime: end,
     }),
   });
 }

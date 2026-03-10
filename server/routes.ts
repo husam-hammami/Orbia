@@ -5618,6 +5618,126 @@ Keep responses focused, structured, and actionable. Use headers and bullet point
     }
   });
 
+  app.post("/api/work/calendar/events", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { getValidToken, createCalendarEvent } = await import("./lib/microsoft-graph");
+      const token = await getValidToken(userId);
+      if (!token) return res.status(401).json({ error: "Microsoft account not connected" });
+
+      const { subject, start, end, isOnline, attendees, location } = req.body;
+      if (!subject || !start || !end) {
+        return res.status(400).json({ error: "subject, start, and end are required" });
+      }
+
+      const event = await createCalendarEvent(token, subject, start, end, {
+        isOnline,
+        attendees,
+        location,
+      });
+      res.json(event);
+    } catch (error: any) {
+      console.error("Create calendar event error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/work/emails", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { getValidToken, getRecentEmails } = await import("./lib/microsoft-graph");
+      const token = await getValidToken(userId);
+      if (!token) return res.status(401).json({ error: "Microsoft account not connected" });
+
+      const top = req.query.top ? parseInt(req.query.top as string) : 10;
+      const emails = await getRecentEmails(token, top);
+      res.json(emails);
+    } catch (error: any) {
+      console.error("Emails fetch error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/work/emails/send", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { getValidToken, sendEmail } = await import("./lib/microsoft-graph");
+      const token = await getValidToken(userId);
+      if (!token) return res.status(401).json({ error: "Microsoft account not connected" });
+
+      const { to, subject, body } = req.body;
+      if (!to || !subject || !body) {
+        return res.status(400).json({ error: "to, subject, and body are required" });
+      }
+
+      await sendEmail(token, to, subject, body);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Send email error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/work/tasks", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { getValidToken, createTask } = await import("./lib/microsoft-graph");
+      const token = await getValidToken(userId);
+      if (!token) return res.status(401).json({ error: "Microsoft account not connected" });
+
+      const { title, dueDate, body } = req.body;
+      if (!title) {
+        return res.status(400).json({ error: "title is required" });
+      }
+
+      const task = await createTask(token, title, dueDate, body);
+      res.json(task);
+    } catch (error: any) {
+      console.error("Create task error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/work/contacts/search", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { getValidToken, searchContacts } = await import("./lib/microsoft-graph");
+      const token = await getValidToken(userId);
+      if (!token) return res.status(401).json({ error: "Microsoft account not connected" });
+
+      const q = req.query.q as string;
+      if (!q) {
+        return res.status(400).json({ error: "Search query (q) is required" });
+      }
+
+      const contacts = await searchContacts(token, q);
+      res.json(contacts);
+    } catch (error: any) {
+      console.error("Search contacts error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/work/meetings", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { getValidToken, createOnlineMeeting } = await import("./lib/microsoft-graph");
+      const token = await getValidToken(userId);
+      if (!token) return res.status(401).json({ error: "Microsoft account not connected" });
+
+      const { subject, start, end } = req.body;
+      if (!subject || !start || !end) {
+        return res.status(400).json({ error: "subject, start, and end are required" });
+      }
+
+      const meeting = await createOnlineMeeting(token, subject, start, end);
+      res.json(meeting);
+    } catch (error: any) {
+      console.error("Create meeting error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/work/chat", async (req, res) => {
     try {
       const userId = req.session.userId!;
@@ -5628,42 +5748,40 @@ Keep responses focused, structured, and actionable. Use headers and bullet point
 
       let calendarContext = "";
       let teamsContext = "";
-      let availableChats: any[] = [];
+      let emailContext = "";
       let msToken: string | null = null;
 
       try {
-        const { getValidToken, getCalendarEvents, getRecentChats } = await import("./lib/microsoft-graph");
-        const token = await getValidToken(userId);
+        const graphLib = await import("./lib/microsoft-graph");
+        const token = await graphLib.getValidToken(userId);
         msToken = token;
         if (token) {
           const now = new Date();
           const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-          const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
           const tomorrowEnd = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
 
-          try {
-            const events = await getCalendarEvents(token, todayStart, tomorrowEnd);
-            if (events?.value?.length) {
-              const parseEvtDate = (dt: string, tz?: string) => new Date(tz === "UTC" ? dt + "Z" : dt);
-              calendarContext = `\n<CALENDAR_DATA>\nToday: ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}\n${events.value.map((e: any) => {
-                const start = parseEvtDate(e.start.dateTime, e.start.timeZone);
-                const end = parseEvtDate(e.end.dateTime, e.end.timeZone);
-                const dateLabel = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                return `- [${dateLabel}] ${e.subject} | ${start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}${e.location?.displayName ? ` | ${e.location.displayName}` : ''}${e.isOnlineMeeting ? ' | Online' : ''}`;
-              }).join('\n')}\n</CALENDAR_DATA>`;
-            }
-          } catch (e) { /* calendar unavailable */ }
+          const [eventsResult, chatsResult, myProfile, emailsResult] = await Promise.allSettled([
+            graphLib.getCalendarEvents(token, todayStart, tomorrowEnd),
+            graphLib.getRecentChats(token),
+            graphLib.getProfile(token),
+            graphLib.getRecentEmails(token, 8),
+          ]);
 
-          try {
-            const { getProfile: getMyProfile } = await import("./lib/microsoft-graph");
-            const [chatsResult, myProfile] = await Promise.all([
-              getRecentChats(token),
-              getMyProfile(token),
-            ]);
-            availableChats = chatsResult?.value || [];
-            const myId = myProfile?.id || "";
-            const myEmail = (myProfile?.mail || myProfile?.userPrincipalName || "").toLowerCase();
-            for (const chat of availableChats) {
+          if (eventsResult.status === "fulfilled" && eventsResult.value?.value?.length) {
+            const parseEvtDate = (dt: string, tz?: string) => new Date(tz === "UTC" ? dt + "Z" : dt);
+            calendarContext = `\n<CALENDAR_DATA>\nToday: ${now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}\n${eventsResult.value.value.map((e: any) => {
+              const start = parseEvtDate(e.start.dateTime, e.start.timeZone);
+              const end = parseEvtDate(e.end.dateTime, e.end.timeZone);
+              const dateLabel = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+              return `- [${dateLabel}] ${e.subject} | ${start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}${e.location?.displayName ? ` | ${e.location.displayName}` : ''}${e.isOnlineMeeting ? ' | Online' : ''}`;
+            }).join('\n')}\n</CALENDAR_DATA>`;
+          }
+
+          if (chatsResult.status === "fulfilled" && chatsResult.value?.value?.length) {
+            const chats = chatsResult.value.value;
+            const myId = myProfile.status === "fulfilled" ? myProfile.value?.id || "" : "";
+            const myEmail = myProfile.status === "fulfilled" ? (myProfile.value?.mail || myProfile.value?.userPrincipalName || "").toLowerCase() : "";
+            for (const chat of chats) {
               if (chat.chatType === "oneOnOne" && chat.members?.length) {
                 const other = chat.members.find((m: any) => {
                   const mId = m.userId || m.id;
@@ -5673,13 +5791,17 @@ Keep responses focused, structured, and actionable. Use headers and bullet point
                 if (other) chat.resolvedName = other.displayName || "Unknown";
               }
             }
-            if (availableChats.length) {
-              teamsContext = `\n<TEAMS_RECENT>\n${availableChats.map((c: any) => {
-                const name = c.topic || c.resolvedName || 'Unknown chat';
-                return `- chatId="${c.id}" | ${name}: "${c.lastMessagePreview?.body?.content?.replace(/<[^>]*>/g, '')?.substring(0, 80) || 'No preview'}"`;
-              }).join('\n')}\n</TEAMS_RECENT>`;
-            }
-          } catch (e) { /* teams unavailable */ }
+            teamsContext = `\n<TEAMS_RECENT>\n${chats.map((c: any) => {
+              const name = c.topic || c.resolvedName || 'Unknown chat';
+              return `- chatId="${c.id}" | ${name}: "${c.lastMessagePreview?.body?.content?.replace(/<[^>]*>/g, '')?.substring(0, 80) || 'No preview'}"`;
+            }).join('\n')}\n</TEAMS_RECENT>`;
+          }
+
+          if (emailsResult.status === "fulfilled" && emailsResult.value?.value?.length) {
+            emailContext = `\n<EMAIL_RECENT>\n${emailsResult.value.value.map((e: any) =>
+              `- ${e.isRead ? '' : '[UNREAD] '}From: ${e.from?.emailAddress?.name || e.from?.emailAddress?.address} | Subject: ${e.subject} | ${new Date(e.receivedDateTime).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} | Preview: "${(e.bodyPreview || '').substring(0, 80)}"`
+            ).join('\n')}\n</EMAIL_RECENT>`;
+          }
         }
       } catch (e) { /* Microsoft not connected */ }
 
@@ -5696,7 +5818,7 @@ Keep responses focused, structured, and actionable. Use headers and bullet point
       const systemPrompt = `You are Orbia Professional — the work intelligence layer inside Orbia, a personal wellness and productivity platform.
 
 ## SILENT CONTEXT PROTOCOL
-You have access to the user's calendar, Teams conversations, and wellness data below. NEVER regurgitate this data. Use it silently to inform your responses. When the user asks "what's my day look like?", synthesize — don't list.
+You have access to the user's calendar, Teams conversations, emails, and wellness data below. Use this data silently to inform your responses. When the user asks about their day, synthesize — don't list raw data.
 
 ## PERSONALITY
 - Direct, strategic, no fluff
@@ -5704,23 +5826,33 @@ You have access to the user's calendar, Teams conversations, and wellness data b
 - When you see patterns (back-to-back meetings + low energy score), flag them proactively
 - Default format: brief and punchy. Only go long when complexity demands it
 
-## CAPABILITIES
-- Meeting prep: talking points, context, attendee notes
-- Schedule analysis: identify conflicts, overload, gaps
-- **SEND Teams messages**: You can ACTUALLY send messages on the user's behalf
-- Day strategy: prioritize, batch, protect focus time
-- Wellness-work bridge: connect energy/mood data to work patterns
+## CAPABILITIES — YOU CAN EXECUTE THESE ACTIONS
+You can ACTUALLY perform these actions, not just suggest them. Use the action tags below.
 
-## SENDING TEAMS MESSAGES
-When the user asks you to send/message someone on Teams, you MUST use this exact format to trigger the send action:
-\`\`\`
-[TEAMS_SEND chatId="<the chat ID from TEAMS_RECENT>" message="<the message text>"]
-\`\`\`
-- Match the person's name to a chatId from TEAMS_RECENT data below
-- If you find a matching chat, send the message immediately using the action tag above
-- After the action tag, briefly confirm: "Sent to [name]."
-- If no matching chat is found, tell the user you couldn't find that person in their recent Teams chats
-- NEVER just suggest a message to paste — always SEND it directly using the action tag
+### 1. Send Teams Message
+[TEAMS_SEND chatId="<chatId from TEAMS_RECENT>" message="<message text>"]
+- Match the person's name to a chatId from TEAMS_RECENT
+- NEVER suggest a message to copy — always SEND it directly
+
+### 2. Create Calendar Event
+[CREATE_EVENT subject="<title>" start="<ISO datetime>" end="<ISO datetime>" online="true/false"]
+- Use ISO 8601 format for dates (e.g., 2026-03-11T10:00:00)
+- Default to online="true" for meetings unless user specifies a location
+
+### 3. Create Task (Microsoft To Do)
+[CREATE_TASK title="<task title>" due="<YYYY-MM-DD>"]
+- due date is optional; omit if user doesn't specify
+
+### 4. Send Email
+[SEND_EMAIL to="<email address>" subject="<subject>" body="<email body>"]
+- Use when user asks to email someone
+- If you don't know the email, ask — or check TEAMS_RECENT members for clues
+
+## ACTION RULES
+- When the user asks to send/create/schedule something, ALWAYS use the action tag to execute it
+- After each action tag, briefly confirm what you did (e.g., "Done — meeting created for tomorrow at 10 AM.")
+- You can use multiple action tags in one response
+- If you can't find the right person/chat, explain why and ask for clarification
 
 ## OUTPUT FORMAT
 For assessments/strategy questions, use:
@@ -5730,7 +5862,7 @@ For assessments/strategy questions, use:
 For quick questions, just answer directly.
 
 ## CONTEXT DATA (use silently)
-${calendarContext}${teamsContext}${wellnessContext}`;
+${calendarContext}${teamsContext}${emailContext}${wellnessContext}`;
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
@@ -5747,52 +5879,100 @@ ${calendarContext}${teamsContext}${wellnessContext}`;
       });
 
       let fullResponse = "";
-      const actionPattern = /\[TEAMS_SEND\s+chatId="([^"]+)"\s+message="([^"]+)"\]/;
-      let actionExecuted = false;
+      const executedActions = new Set<string>();
 
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || "";
-        if (content) {
-          fullResponse += content;
+      const ACTION_PATTERNS = [
+        { name: "teams_send", regex: /\[TEAMS_SEND\s+chatId="([^"]+)"\s+message="([^"]+)"\]/ },
+        { name: "create_event", regex: /\[CREATE_EVENT\s+subject="([^"]+)"\s+start="([^"]+)"\s+end="([^"]+)"\s+online="([^"]+)"\]/ },
+        { name: "create_task", regex: /\[CREATE_TASK\s+title="([^"]+)"(?:\s+due="([^"]*)")?\]/ },
+        { name: "send_email", regex: /\[SEND_EMAIL\s+to="([^"]+)"\s+subject="([^"]+)"\s+body="([^"]+)"\]/ },
+      ];
 
-          if (!actionExecuted && actionPattern.test(fullResponse)) {
-            const match = fullResponse.match(actionPattern)!;
-            const targetChatId = match[1];
-            const messageText = match[2];
+      async function executeActions(text: string): Promise<void> {
+        if (!msToken) return;
+        const graphLib = await import("./lib/microsoft-graph");
 
-            if (msToken && targetChatId && messageText) {
-              try {
-                const { sendChatMessage } = await import("./lib/microsoft-graph");
-                await sendChatMessage(msToken, targetChatId, messageText);
-                res.write(`data: ${JSON.stringify({ action: "teams_sent", chatId: targetChatId, message: messageText })}\n\n`);
-              } catch (sendErr: any) {
-                console.error("Teams send failed:", sendErr.message);
-                res.write(`data: ${JSON.stringify({ action: "teams_send_failed", error: sendErr.message })}\n\n`);
+        for (const { name, regex } of ACTION_PATTERNS) {
+          let match;
+          const globalRegex = new RegExp(regex.source, 'g');
+          while ((match = globalRegex.exec(text)) !== null) {
+            const actionKey = match[0];
+            if (executedActions.has(actionKey)) continue;
+            executedActions.add(actionKey);
+
+            try {
+              switch (name) {
+                case "teams_send": {
+                  await graphLib.sendChatMessage(msToken!, match[1], match[2]);
+                  res.write(`data: ${JSON.stringify({ action: "teams_sent", chatId: match[1], message: match[2] })}\n\n`);
+                  break;
+                }
+                case "create_event": {
+                  const event = await graphLib.createCalendarEvent(msToken!, match[1], match[2], match[3], { isOnline: match[4] === "true" });
+                  res.write(`data: ${JSON.stringify({ action: "event_created", subject: match[1], start: match[2], end: match[3] })}\n\n`);
+                  break;
+                }
+                case "create_task": {
+                  await graphLib.createTask(msToken!, match[1], match[2] || undefined);
+                  res.write(`data: ${JSON.stringify({ action: "task_created", title: match[1], due: match[2] || null })}\n\n`);
+                  break;
+                }
+                case "send_email": {
+                  await graphLib.sendEmail(msToken!, match[1], match[2], match[3]);
+                  res.write(`data: ${JSON.stringify({ action: "email_sent", to: match[1], subject: match[2] })}\n\n`);
+                  break;
+                }
               }
-            }
-            actionExecuted = true;
-
-            const cleanedContent = content.replace(actionPattern, "");
-            if (cleanedContent.trim()) {
-              res.write(`data: ${JSON.stringify({ content: cleanedContent })}\n\n`);
-            }
-          } else if (actionExecuted) {
-            const cleanedContent = content.replace(actionPattern, "");
-            if (cleanedContent.trim()) {
-              res.write(`data: ${JSON.stringify({ content: cleanedContent })}\n\n`);
-            }
-          } else {
-            if (!fullResponse.includes("[TEAMS_SEND")) {
-              res.write(`data: ${JSON.stringify({ content })}\n\n`);
+            } catch (err: any) {
+              console.error(`Action ${name} failed:`, err.message);
+              res.write(`data: ${JSON.stringify({ action: `${name}_failed`, error: err.message })}\n\n`);
             }
           }
         }
       }
 
-      if (!actionExecuted && fullResponse.includes("[TEAMS_SEND")) {
-        const remaining = fullResponse.replace(actionPattern, "");
-        if (remaining.trim()) {
-          res.write(`data: ${JSON.stringify({ content: remaining })}\n\n`);
+      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL)\s[^\]]+\]/g;
+      let bufferedContent = "";
+      let hasActionTag = false;
+
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || "";
+        if (content) {
+          fullResponse += content;
+          bufferedContent += content;
+
+          if (bufferedContent.includes("[") && !allActionRegex.test(bufferedContent)) {
+            allActionRegex.lastIndex = 0;
+            hasActionTag = true;
+            continue;
+          }
+          allActionRegex.lastIndex = 0;
+
+          if (hasActionTag && allActionRegex.test(bufferedContent)) {
+            allActionRegex.lastIndex = 0;
+            await executeActions(bufferedContent);
+            const cleaned = bufferedContent.replace(allActionRegex, "");
+            allActionRegex.lastIndex = 0;
+            if (cleaned.trim()) {
+              res.write(`data: ${JSON.stringify({ content: cleaned })}\n\n`);
+            }
+            bufferedContent = "";
+            hasActionTag = false;
+          } else if (!hasActionTag) {
+            if (!bufferedContent.includes("[")) {
+              res.write(`data: ${JSON.stringify({ content: bufferedContent })}\n\n`);
+              bufferedContent = "";
+            }
+          }
+        }
+      }
+
+      if (bufferedContent.trim()) {
+        await executeActions(bufferedContent);
+        const cleaned = bufferedContent.replace(allActionRegex, "");
+        allActionRegex.lastIndex = 0;
+        if (cleaned.trim()) {
+          res.write(`data: ${JSON.stringify({ content: cleaned })}\n\n`);
         }
       }
 
