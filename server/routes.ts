@@ -5619,9 +5619,13 @@ Keep responses focused, structured, and actionable. Use headers and bullet point
           try {
             const events = await getCalendarEvents(token, todayStart, tomorrowEnd);
             if (events?.value?.length) {
-              calendarContext = `\n<CALENDAR_DATA>\n${events.value.map((e: any) => 
-                `- ${e.subject} | ${new Date(e.start.dateTime + 'Z').toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - ${new Date(e.end.dateTime + 'Z').toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}${e.location?.displayName ? ` | ${e.location.displayName}` : ''}${e.isOnlineMeeting ? ' | Online' : ''}`
-              ).join('\n')}\n</CALENDAR_DATA>`;
+              const parseEvtDate = (dt: string, tz?: string) => new Date(tz === "UTC" ? dt + "Z" : dt);
+              calendarContext = `\n<CALENDAR_DATA>\nToday: ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}\n${events.value.map((e: any) => {
+                const start = parseEvtDate(e.start.dateTime, e.start.timeZone);
+                const end = parseEvtDate(e.end.dateTime, e.end.timeZone);
+                const dateLabel = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                return `- [${dateLabel}] ${e.subject} | ${start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}${e.location?.displayName ? ` | ${e.location.displayName}` : ''}${e.isOnlineMeeting ? ' | Online' : ''}`;
+              }).join('\n')}\n</CALENDAR_DATA>`;
             }
           } catch (e) { /* calendar unavailable */ }
 
