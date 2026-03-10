@@ -641,12 +641,6 @@ function NexusChat({ connected }: { connected: boolean }) {
       <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-0 scroll-smooth">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-12">
-            <div className="relative mb-5">
-              <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full scale-150" />
-              <div className="w-16 h-16 rounded-full relative bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                <Sparkles className="w-7 h-7 text-indigo-400" />
-              </div>
-            </div>
             <h3 className="text-lg font-display font-semibold text-foreground/90 mb-1">Orbia Professional</h3>
             <p className="text-xs text-muted-foreground text-center max-w-[260px] leading-relaxed">
               {connected
