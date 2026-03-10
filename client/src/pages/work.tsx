@@ -333,9 +333,8 @@ function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendM
         const preview = rawPreview?.substring(0, 80) || "No messages";
         const chatType = chat.chatType;
         const topic = chat.topic || chat.resolvedName || (chatType === "oneOnOne" ? "Direct Message" : chatType === "group" ? "Group Chat" : "Chat");
-        const lastActive = chat.lastUpdatedDateTime
-          ? new Date(chat.lastUpdatedDateTime)
-          : null;
+        const msgDate = chat.lastMessagePreview?.createdDateTime || chat.lastUpdatedDateTime;
+        const lastActive = msgDate ? new Date(msgDate) : null;
         const timeStr = lastActive
           ? lastActive.toLocaleDateString() === new Date().toLocaleDateString()
             ? lastActive.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
