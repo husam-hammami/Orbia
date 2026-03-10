@@ -525,7 +525,21 @@ function NexusChat({ connected }: { connected: boolean }) {
             try {
               const data = JSON.parse(line.slice(6));
               if (data.done) break;
-              if (data.content) {
+              if (data.action === "teams_sent") {
+                assistantContent += `\n\n✅ **Message sent to Teams**: "${data.message}"`;
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = { role: "assistant", content: assistantContent };
+                  return updated;
+                });
+              } else if (data.action === "teams_send_failed") {
+                assistantContent += `\n\n❌ **Failed to send**: ${data.error || "Unknown error"}`;
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = { role: "assistant", content: assistantContent };
+                  return updated;
+                });
+              } else if (data.content) {
                 assistantContent += data.content;
                 setMessages(prev => {
                   const updated = [...prev];

@@ -5628,10 +5628,13 @@ Keep responses focused, structured, and actionable. Use headers and bullet point
 
       let calendarContext = "";
       let teamsContext = "";
+      let availableChats: any[] = [];
+      let msToken: string | null = null;
 
       try {
         const { getValidToken, getCalendarEvents, getRecentChats } = await import("./lib/microsoft-graph");
         const token = await getValidToken(userId);
+        msToken = token;
         if (token) {
           const now = new Date();
           const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
@@ -5652,11 +5655,29 @@ Keep responses focused, structured, and actionable. Use headers and bullet point
           } catch (e) { /* calendar unavailable */ }
 
           try {
-            const chats = await getRecentChats(token);
-            if (chats?.value?.length) {
-              teamsContext = `\n<TEAMS_RECENT>\n${chats.value.slice(0, 8).map((c: any) =>
-                `- ${c.topic || 'Direct message'}: "${c.lastMessagePreview?.body?.content?.substring(0, 100) || 'No preview'}"`
-              ).join('\n')}\n</TEAMS_RECENT>`;
+            const { getProfile: getMyProfile } = await import("./lib/microsoft-graph");
+            const [chatsResult, myProfile] = await Promise.all([
+              getRecentChats(token),
+              getMyProfile(token),
+            ]);
+            availableChats = chatsResult?.value || [];
+            const myId = myProfile?.id || "";
+            const myEmail = (myProfile?.mail || myProfile?.userPrincipalName || "").toLowerCase();
+            for (const chat of availableChats) {
+              if (chat.chatType === "oneOnOne" && chat.members?.length) {
+                const other = chat.members.find((m: any) => {
+                  const mId = m.userId || m.id;
+                  const mEmail = (m.email || "").toLowerCase();
+                  return mId !== myId && mEmail !== myEmail;
+                });
+                if (other) chat.resolvedName = other.displayName || "Unknown";
+              }
+            }
+            if (availableChats.length) {
+              teamsContext = `\n<TEAMS_RECENT>\n${availableChats.map((c: any) => {
+                const name = c.topic || c.resolvedName || 'Unknown chat';
+                return `- chatId="${c.id}" | ${name}: "${c.lastMessagePreview?.body?.content?.replace(/<[^>]*>/g, '')?.substring(0, 80) || 'No preview'}"`;
+              }).join('\n')}\n</TEAMS_RECENT>`;
             }
           } catch (e) { /* teams unavailable */ }
         }
@@ -5686,9 +5707,20 @@ You have access to the user's calendar, Teams conversations, and wellness data b
 ## CAPABILITIES
 - Meeting prep: talking points, context, attendee notes
 - Schedule analysis: identify conflicts, overload, gaps
-- Message drafting: Teams messages in the user's voice
+- **SEND Teams messages**: You can ACTUALLY send messages on the user's behalf
 - Day strategy: prioritize, batch, protect focus time
 - Wellness-work bridge: connect energy/mood data to work patterns
+
+## SENDING TEAMS MESSAGES
+When the user asks you to send/message someone on Teams, you MUST use this exact format to trigger the send action:
+\`\`\`
+[TEAMS_SEND chatId="<the chat ID from TEAMS_RECENT>" message="<the message text>"]
+\`\`\`
+- Match the person's name to a chatId from TEAMS_RECENT data below
+- If you find a matching chat, send the message immediately using the action tag above
+- After the action tag, briefly confirm: "Sent to [name]."
+- If no matching chat is found, tell the user you couldn't find that person in their recent Teams chats
+- NEVER just suggest a message to paste — always SEND it directly using the action tag
 
 ## OUTPUT FORMAT
 For assessments/strategy questions, use:
@@ -5714,10 +5746,53 @@ ${calendarContext}${teamsContext}${wellnessContext}`;
         max_completion_tokens: 2048,
       });
 
+      let fullResponse = "";
+      const actionPattern = /\[TEAMS_SEND\s+chatId="([^"]+)"\s+message="([^"]+)"\]/;
+      let actionExecuted = false;
+
       for await (const chunk of stream) {
         const content = chunk.choices[0]?.delta?.content || "";
         if (content) {
-          res.write(`data: ${JSON.stringify({ content })}\n\n`);
+          fullResponse += content;
+
+          if (!actionExecuted && actionPattern.test(fullResponse)) {
+            const match = fullResponse.match(actionPattern)!;
+            const targetChatId = match[1];
+            const messageText = match[2];
+
+            if (msToken && targetChatId && messageText) {
+              try {
+                const { sendChatMessage } = await import("./lib/microsoft-graph");
+                await sendChatMessage(msToken, targetChatId, messageText);
+                res.write(`data: ${JSON.stringify({ action: "teams_sent", chatId: targetChatId, message: messageText })}\n\n`);
+              } catch (sendErr: any) {
+                console.error("Teams send failed:", sendErr.message);
+                res.write(`data: ${JSON.stringify({ action: "teams_send_failed", error: sendErr.message })}\n\n`);
+              }
+            }
+            actionExecuted = true;
+
+            const cleanedContent = content.replace(actionPattern, "");
+            if (cleanedContent.trim()) {
+              res.write(`data: ${JSON.stringify({ content: cleanedContent })}\n\n`);
+            }
+          } else if (actionExecuted) {
+            const cleanedContent = content.replace(actionPattern, "");
+            if (cleanedContent.trim()) {
+              res.write(`data: ${JSON.stringify({ content: cleanedContent })}\n\n`);
+            }
+          } else {
+            if (!fullResponse.includes("[TEAMS_SEND")) {
+              res.write(`data: ${JSON.stringify({ content })}\n\n`);
+            }
+          }
+        }
+      }
+
+      if (!actionExecuted && fullResponse.includes("[TEAMS_SEND")) {
+        const remaining = fullResponse.replace(actionPattern, "");
+        if (remaining.trim()) {
+          res.write(`data: ${JSON.stringify({ content: remaining })}\n\n`);
         }
       }
 
