@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Layout } from "@/components/layout";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
-import logoUrl from '@assets/ChatGPT_Image_Jan_10,_2026,_05_13_01_PM_1768050787078.png';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || "";
 
@@ -644,7 +643,9 @@ function NexusChat({ connected }: { connected: boolean }) {
           <div className="flex flex-col items-center justify-center h-full py-12">
             <div className="relative mb-5">
               <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full scale-150" />
-              <img src={logoUrl} alt="Orbia" className="w-16 h-16 rounded-2xl relative shadow-lg shadow-indigo-500/10" />
+              <div className="w-16 h-16 rounded-full relative bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                <Sparkles className="w-7 h-7 text-indigo-400" />
+              </div>
             </div>
             <h3 className="text-lg font-display font-semibold text-foreground/90 mb-1">Orbia Professional</h3>
             <p className="text-xs text-muted-foreground text-center max-w-[260px] leading-relaxed">
