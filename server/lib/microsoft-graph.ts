@@ -284,6 +284,17 @@ export async function getRecentEmails(token: string, top: number = 10) {
   return graphRequest(token, `/me/messages?${params.toString()}`);
 }
 
+export async function getEmailById(token: string, messageId: string) {
+  return graphRequest(token, `/me/messages/${messageId}?$select=id,subject,from,toRecipients,ccRecipients,receivedDateTime,body,bodyPreview,isRead,hasAttachments,importance`);
+}
+
+export async function replyToEmail(token: string, messageId: string, comment: string) {
+  return graphRequest(token, `/me/messages/${messageId}/reply`, {
+    method: "POST",
+    body: JSON.stringify({ comment }),
+  });
+}
+
 export async function sendEmail(
   token: string,
   to: string,

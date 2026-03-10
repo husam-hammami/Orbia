@@ -5,7 +5,8 @@ import {
   Link2, Unlink, ChevronRight, Clock, Video,
   MapPin, Users, Sparkles, ArrowRight, Zap,
   RefreshCw, ExternalLink, BarChart3, Coffee,
-  ChevronDown, AlertCircle, Mail, MailOpen
+  ChevronDown, AlertCircle, Mail, MailOpen,
+  Reply, ArrowLeft, Paperclip
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -368,7 +369,148 @@ function MarkdownContent({ content }: { content: string }) {
   );
 }
 
+function EmailDetail({ emailId, onBack }: { emailId: string; onBack: () => void }) {
+  const queryClient = useQueryClient();
+  const { data: email, isLoading } = useQuery({
+    queryKey: ["/api/work/emails", emailId],
+    queryFn: () => workApi(`/api/work/emails/${emailId}`),
+  });
+
+  const [replyText, setReplyText] = useState("");
+  const [showReply, setShowReply] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const handleReply = async () => {
+    if (!replyText.trim() || sending) return;
+    setSending(true);
+    try {
+      const fullUrl = API_BASE_URL ? `${API_BASE_URL}/api/work/emails/${emailId}/reply` : `/api/work/emails/${emailId}/reply`;
+      const res = await fetch(fullUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ comment: replyText.trim() }),
+      });
+      if (!res.ok) throw new Error("Reply failed");
+      setReplyText("");
+      setShowReply(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/work/emails"] });
+      onBack();
+    } catch (err) {
+      console.error("Reply error:", err);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className={cn(cmdPanel, "p-4")} data-testid="panel-email-detail">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-[11px] text-indigo-400 hover:text-indigo-300 mb-3 transition-colors" data-testid="button-email-back">
+          <ArrowLeft className="w-3 h-3" /> Back
+        </button>
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-4 h-4 animate-spin text-indigo-400/40" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!email) return null;
+
+  const senderName = email.from?.emailAddress?.name || email.from?.emailAddress?.address || "Unknown";
+  const senderEmail = email.from?.emailAddress?.address || "";
+  const receivedDate = new Date(email.receivedDateTime);
+  const bodyHtml = email.body?.content || "";
+  const isHtml = email.body?.contentType === "html";
+
+  return (
+    <div className={cn(cmdPanel, "p-4 flex flex-col")} data-testid="panel-email-detail">
+      <button onClick={onBack} className="flex items-center gap-1.5 text-[11px] text-indigo-400 hover:text-indigo-300 mb-3 transition-colors" data-testid="button-email-back">
+        <ArrowLeft className="w-3 h-3" /> Back to Inbox
+      </button>
+
+      <div className="mb-3">
+        <h4 className="text-[13px] font-semibold text-foreground/90 leading-tight mb-2">{email.subject}</h4>
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-6 h-6 rounded-full bg-indigo-500/15 border border-indigo-500/20 flex items-center justify-center shrink-0">
+            <span className="text-[10px] font-bold text-indigo-400">{senderName.charAt(0).toUpperCase()}</span>
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium text-foreground/80">{senderName}</p>
+            <p className="text-[9px] text-muted-foreground truncate">{senderEmail}</p>
+          </div>
+          <span className="text-[9px] text-muted-foreground ml-auto shrink-0" style={mono}>
+            {receivedDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })} {receivedDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+          </span>
+        </div>
+        {email.hasAttachments && (
+          <div className="flex items-center gap-1 text-[9px] text-muted-foreground mt-1">
+            <Paperclip className="w-2.5 h-2.5" /> Has attachments
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto max-h-[200px] mb-3 rounded-lg bg-black/20 border border-white/5 p-3">
+        {isHtml ? (
+          <div
+            className="text-[11px] text-foreground/70 leading-relaxed [&_a]:text-indigo-400 [&_a]:underline [&_img]:max-w-full [&_img]:h-auto [&_table]:text-[10px] [&_*]:max-w-full"
+            dangerouslySetInnerHTML={{ __html: bodyHtml }}
+          />
+        ) : (
+          <p className="text-[11px] text-foreground/70 leading-relaxed whitespace-pre-wrap">{bodyHtml}</p>
+        )}
+      </div>
+
+      {!showReply ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 self-start"
+          onClick={() => setShowReply(true)}
+          data-testid="button-email-reply"
+        >
+          <Reply className="w-3 h-3 mr-1.5" /> Reply
+        </Button>
+      ) : (
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+          <textarea
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            placeholder="Write your reply..."
+            className="w-full text-[11px] bg-black/30 border border-indigo-500/15 focus:border-indigo-500/30 rounded-lg p-2.5 text-foreground/80 placeholder:text-muted-foreground/40 resize-none outline-none min-h-[80px]"
+            data-testid="input-email-reply"
+            autoFocus
+          />
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              className="text-[11px] bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/20"
+              onClick={handleReply}
+              disabled={!replyText.trim() || sending}
+              data-testid="button-send-reply"
+            >
+              {sending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Send className="w-3 h-3 mr-1" />}
+              {sending ? "Sending..." : "Send Reply"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[11px] text-muted-foreground hover:text-foreground"
+              onClick={() => { setShowReply(false); setReplyText(""); }}
+              data-testid="button-cancel-reply"
+            >
+              Cancel
+            </Button>
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
 function EmailInbox({ userEmail }: { userEmail?: string }) {
+  const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
   const { data: emails, isLoading } = useQuery({
     queryKey: ["/api/work/emails"],
     queryFn: () => workApi("/api/work/emails?top=20"),
@@ -388,6 +530,10 @@ function EmailInbox({ userEmail }: { userEmail?: string }) {
   }, [emails, userEmail]);
 
   const unreadCount = directEmails.filter((e: any) => !e.isRead).length;
+
+  if (selectedEmailId) {
+    return <EmailDetail emailId={selectedEmailId} onBack={() => setSelectedEmailId(null)} />;
+  }
 
   return (
     <div className={cn(cmdPanel, "p-4")} data-testid="panel-email-inbox">
@@ -409,15 +555,16 @@ function EmailInbox({ userEmail }: { userEmail?: string }) {
       ) : directEmails.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-3">No direct emails</p>
       ) : (
-        <div className="space-y-1.5 max-h-[220px] overflow-y-auto">
-          {directEmails.slice(0, 6).map((email: any, i: number) => (
+        <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+          {directEmails.slice(0, 8).map((email: any, i: number) => (
             <div
               key={email.id || i}
+              onClick={() => setSelectedEmailId(email.id)}
               className={cn(
-                "p-2.5 rounded-lg border transition-colors cursor-default",
+                "p-2.5 rounded-lg border transition-all cursor-pointer",
                 email.isRead
-                  ? "bg-white/[0.02] border-white/5"
-                  : "bg-indigo-500/5 border-indigo-500/15"
+                  ? "bg-white/[0.02] border-white/5 hover:border-white/15 hover:bg-white/[0.04]"
+                  : "bg-indigo-500/5 border-indigo-500/15 hover:border-indigo-500/30 hover:bg-indigo-500/10"
               )}
               data-testid={`card-email-${i}`}
             >
@@ -434,9 +581,12 @@ function EmailInbox({ userEmail }: { userEmail?: string }) {
                   <p className="text-[11px] text-foreground/70 truncate">{email.subject}</p>
                   <p className="text-[10px] text-muted-foreground truncate mt-0.5">{(email.bodyPreview || "").substring(0, 60)}</p>
                 </div>
-                <span className="text-[9px] text-muted-foreground shrink-0 mt-0.5" style={mono}>
-                  {new Date(email.receivedDateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                </span>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <span className="text-[9px] text-muted-foreground" style={mono}>
+                    {new Date(email.receivedDateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                  <ChevronRight className="w-2.5 h-2.5 text-muted-foreground/40" />
+                </div>
               </div>
             </div>
           ))}

@@ -5260,6 +5260,39 @@ ${unifiedContext}${extraMedContext}`;
     }
   });
 
+  app.get("/api/work/emails/:id", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { getValidToken, getEmailById } = await import("./lib/microsoft-graph");
+      const token = await getValidToken(userId);
+      if (!token) return res.status(401).json({ error: "Microsoft account not connected" });
+
+      const email = await getEmailById(token, req.params.id);
+      res.json(email);
+    } catch (error: any) {
+      console.error("Email fetch error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/work/emails/:id/reply", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { getValidToken, replyToEmail } = await import("./lib/microsoft-graph");
+      const token = await getValidToken(userId);
+      if (!token) return res.status(401).json({ error: "Microsoft account not connected" });
+
+      const { comment } = req.body;
+      if (!comment) return res.status(400).json({ error: "comment is required" });
+
+      await replyToEmail(token, req.params.id, comment);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Reply email error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/work/emails/send", async (req, res) => {
     try {
       const userId = req.session.userId!;
