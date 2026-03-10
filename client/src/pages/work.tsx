@@ -115,6 +115,8 @@ function ConnectionCard({ connected, displayName, email, onConnect, onDisconnect
   );
 }
 
+const EMOJI_LIST = ["👍","❤️","😂","🎉","🙏","🔥","👀","✅","💯","👋","😊","🤝","⭐","💪","🚀","😅","🤔","👏","😎","💡"];
+
 function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendMessage, loadingMessages, loadingChats, error }: {
   chats: any[];
   onSelectChat: (chatId: string) => void;
@@ -128,6 +130,15 @@ function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendM
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [sendStatus, setSendStatus] = useState<"sent" | "failed" | null>(null);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (messagesEndRef.current && !loadingMessages && chatMessages.length > 0) {
+      messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+    }
+  }, [chatMessages, loadingMessages, selectedChatId]);
 
   const handleSend = useCallback(async () => {
     if (!replyText.trim() || !selectedChatId || isSending) return;
@@ -192,7 +203,7 @@ function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendM
           <span className="text-sm font-medium text-foreground/85 truncate">{chatName}</span>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-2 mb-3 max-h-[350px]">
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto space-y-2 mb-3 max-h-[350px]">
           {loadingMessages ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-5 h-5 animate-spin text-indigo-400/50" />
@@ -220,6 +231,7 @@ function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendM
               </div>
             ))
           )}
+          <div ref={messagesEndRef} />
         </div>
 
         {sendStatus && (
@@ -235,29 +247,67 @@ function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendM
           </motion.div>
         )}
 
-        <div className="flex gap-2 pt-2 border-t border-indigo-500/10">
-          <Input
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
-            placeholder={`Reply to ${chatName}...`}
-            className="text-xs bg-black/30 border-indigo-500/15 focus:border-indigo-500/30"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && replyText.trim() && !isSending) {
-                handleSend();
-              }
-            }}
-            disabled={isSending}
-            data-testid="input-teams-reply"
-          />
-          <Button
-            size="sm"
-            className="bg-indigo-600 hover:bg-indigo-500"
-            onClick={handleSend}
-            disabled={!replyText.trim() || isSending}
-            data-testid="button-send-teams-reply"
-          >
-            {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-          </Button>
+        <div className="relative pt-2 border-t border-indigo-500/10">
+          <AnimatePresence>
+            {showEmoji && (
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute bottom-full mb-2 left-0 right-0 p-2 rounded-xl bg-black/80 backdrop-blur-lg border border-indigo-500/20 shadow-xl z-10"
+                data-testid="panel-emoji-picker"
+              >
+                <div className="grid grid-cols-10 gap-0.5">
+                  {EMOJI_LIST.map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => { setReplyText(prev => prev + emoji); setShowEmoji(false); }}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-indigo-500/20 transition-colors text-sm"
+                      data-testid={`button-emoji-${emoji}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowEmoji(prev => !prev)}
+              className={cn(
+                "flex items-center justify-center w-9 h-9 rounded-lg border transition-colors shrink-0",
+                showEmoji ? "bg-indigo-500/15 border-indigo-500/25 text-indigo-300" : "bg-black/30 border-indigo-500/15 text-muted-foreground hover:text-indigo-400 hover:border-indigo-500/25"
+              )}
+              data-testid="button-toggle-emoji"
+            >
+              <span className="text-sm">😊</span>
+            </button>
+            <Input
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder={`Reply to ${chatName}...`}
+              className="text-xs bg-black/30 border-indigo-500/15 focus:border-indigo-500/30"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && replyText.trim() && !isSending) {
+                  handleSend();
+                }
+              }}
+              onFocus={() => setShowEmoji(false)}
+              disabled={isSending}
+              data-testid="input-teams-reply"
+            />
+            <Button
+              size="sm"
+              className="bg-indigo-600 hover:bg-indigo-500"
+              onClick={handleSend}
+              disabled={!replyText.trim() || isSending}
+              data-testid="button-send-teams-reply"
+            >
+              {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+            </Button>
+          </div>
         </div>
       </div>
     );
