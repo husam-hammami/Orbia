@@ -115,183 +115,6 @@ function ConnectionCard({ connected, displayName, email, onConnect, onDisconnect
   );
 }
 
-function UpcomingMeetings({ events }: { events: any[] }) {
-  const now = new Date();
-
-  const categorized = useMemo(() => {
-    const upcoming: any[] = [];
-    const happening: any[] = [];
-    const past: any[] = [];
-
-    events.forEach((event: any) => {
-      const start = parseEventDate(event.start.dateTime, event.start.timeZone);
-      const end = parseEventDate(event.end.dateTime, event.end.timeZone);
-      if (end < now) past.push(event);
-      else if (start <= now && end > now) happening.push(event);
-      else upcoming.push(event);
-    });
-
-    return { upcoming, happening, past };
-  }, [events]);
-
-  if (!events.length) {
-    return (
-      <div className="flex flex-col items-center justify-center py-6 text-center">
-        <div className="w-12 h-12 rounded-2xl bg-indigo-500/8 border border-indigo-500/10 flex items-center justify-center mb-3">
-          <Coffee className="w-5 h-5 text-indigo-400/40" />
-        </div>
-        <p className="text-xs text-muted-foreground">No meetings today</p>
-        <p className="text-[10px] text-muted-foreground/50 mt-0.5">Enjoy the open space</p>
-      </div>
-    );
-  }
-
-  const formatTimeRange = (event: any) => {
-    const start = parseEventDate(event.start.dateTime, event.start.timeZone);
-    const end = parseEventDate(event.end.dateTime, event.end.timeZone);
-    const s = start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-    const e = end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-    return `${s} – ${e}`;
-  };
-
-  const formatDuration = (event: any) => {
-    const start = parseEventDate(event.start.dateTime, event.start.timeZone);
-    const end = parseEventDate(event.end.dateTime, event.end.timeZone);
-    const mins = Math.round((end.getTime() - start.getTime()) / 60000);
-    if (mins >= 60) {
-      const h = Math.floor(mins / 60);
-      const m = mins % 60;
-      return m > 0 ? `${h}h ${m}m` : `${h}h`;
-    }
-    return `${mins}m`;
-  };
-
-  const formatDate = (event: any) => {
-    const start = parseEventDate(event.start.dateTime, event.start.timeZone);
-    const today = new Date();
-    if (start.toDateString() === today.toDateString()) return "Today";
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    if (start.toDateString() === tomorrow.toDateString()) return "Tomorrow";
-    return start.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-  };
-
-  const timeUntil = (event: any) => {
-    const start = parseEventDate(event.start.dateTime, event.start.timeZone);
-    const diff = start.getTime() - now.getTime();
-    if (diff < 0) return null;
-    const mins = Math.round(diff / 60000);
-    if (mins < 60) return `in ${mins}m`;
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return m > 0 ? `in ${h}h ${m}m` : `in ${h}h`;
-  };
-
-  const renderEvent = (event: any, i: number, status: "now" | "upcoming" | "past") => {
-    const isOnline = event.isOnlineMeeting;
-    const location = event.location?.displayName;
-    const attendees = event.attendees || [];
-    const organizer = event.organizer?.emailAddress?.name;
-
-    return (
-      <motion.div
-        key={event.id || i}
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: i * 0.05 }}
-        className={cn(
-          "p-3.5 rounded-xl border transition-all relative overflow-hidden",
-          status === "now"
-            ? "bg-indigo-500/12 border-indigo-400/30 shadow-[0_0_15px_rgba(100,80,255,0.1)]"
-            : status === "past"
-              ? "bg-white/[0.02] border-white/5 opacity-50"
-              : "bg-indigo-500/5 border-indigo-500/12 hover:border-indigo-500/25"
-        )}
-        data-testid={`card-meeting-${i}`}
-      >
-        {status === "now" && (
-          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-indigo-400 to-violet-400 rounded-full" />
-        )}
-
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="min-w-0 flex-1">
-            <p className={cn(
-              "text-[13px] font-semibold leading-tight",
-              status === "past" ? "text-foreground/40 line-through" : "text-foreground/95"
-            )}>{event.subject || "Untitled Meeting"}</p>
-          </div>
-          {status === "now" && (
-            <span className="flex items-center gap-1 text-[9px] text-indigo-300 font-semibold bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-              Live
-            </span>
-          )}
-          {status === "upcoming" && timeUntil(event) && (
-            <span className="text-[10px] text-indigo-400/80 shrink-0 font-medium" style={mono}>
-              {timeUntil(event)}
-            </span>
-          )}
-        </div>
-
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <Clock className="w-3 h-3 text-indigo-400/60 shrink-0" />
-            <span className="text-[11px] text-foreground/70" style={mono}>
-              {formatDate(event)} · {formatTimeRange(event)}
-            </span>
-            <span className="text-[10px] text-muted-foreground/50" style={mono}>
-              ({formatDuration(event)})
-            </span>
-          </div>
-
-          {(isOnline || location) && (
-            <div className="flex items-center gap-2">
-              {isOnline ? (
-                <>
-                  <Video className="w-3 h-3 text-violet-400/60 shrink-0" />
-                  <span className="text-[11px] text-violet-400/70">Online Meeting</span>
-                </>
-              ) : (
-                <>
-                  <MapPin className="w-3 h-3 text-indigo-400/60 shrink-0" />
-                  <span className="text-[11px] text-foreground/60 truncate">{location}</span>
-                </>
-              )}
-            </div>
-          )}
-
-          {organizer && (
-            <div className="flex items-center gap-2">
-              <Users className="w-3 h-3 text-indigo-400/60 shrink-0" />
-              <span className="text-[11px] text-foreground/60 truncate">
-                {organizer}
-                {attendees.length > 1 && ` + ${attendees.length - 1} other${attendees.length > 2 ? "s" : ""}`}
-              </span>
-            </div>
-          )}
-        </div>
-      </motion.div>
-    );
-  };
-
-  return (
-    <div className="space-y-2" data-testid="list-calendar-events">
-      {categorized.happening.map((e, i) => renderEvent(e, i, "now"))}
-      {categorized.upcoming.map((e, i) => renderEvent(e, categorized.happening.length + i, "upcoming"))}
-      {categorized.past.length > 0 && (
-        <>
-          <div className="flex items-center gap-2 pt-1">
-            <div className="h-px flex-1 bg-white/5" />
-            <span className="text-[9px] text-muted-foreground/40 uppercase tracking-widest" style={mono}>Earlier</span>
-            <div className="h-px flex-1 bg-white/5" />
-          </div>
-          {categorized.past.map((e, i) => renderEvent(e, categorized.happening.length + categorized.upcoming.length + i, "past"))}
-        </>
-      )}
-    </div>
-  );
-}
-
 function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendMessage, loadingMessages, loadingChats, error }: {
   chats: any[];
   onSelectChat: (chatId: string) => void;
@@ -546,15 +369,26 @@ function MarkdownContent({ content }: { content: string }) {
   );
 }
 
-function EmailInbox() {
+function EmailInbox({ userEmail }: { userEmail?: string }) {
   const { data: emails, isLoading } = useQuery({
     queryKey: ["/api/work/emails"],
-    queryFn: () => workApi("/api/work/emails"),
+    queryFn: () => workApi("/api/work/emails?top=20"),
     refetchInterval: 120000,
   });
 
-  const emailList = emails?.value || [];
-  const unreadCount = emailList.filter((e: any) => !e.isRead).length;
+  const directEmails = useMemo(() => {
+    const all = emails?.value || [];
+    if (!userEmail) return [];
+    const myEmail = userEmail.toLowerCase();
+    return all.filter((email: any) => {
+      const toRecipients = email.toRecipients || [];
+      return toRecipients.some((r: any) =>
+        r.emailAddress?.address?.toLowerCase() === myEmail
+      );
+    });
+  }, [emails, userEmail]);
+
+  const unreadCount = directEmails.filter((e: any) => !e.isRead).length;
 
   return (
     <div className={cn(cmdPanel, "p-4")} data-testid="panel-email-inbox">
@@ -573,11 +407,11 @@ function EmailInbox() {
         <div className="flex items-center justify-center py-4">
           <Loader2 className="w-4 h-4 animate-spin text-indigo-400/40" />
         </div>
-      ) : emailList.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-3">No recent emails</p>
+      ) : directEmails.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-3">No direct emails</p>
       ) : (
         <div className="space-y-1.5 max-h-[220px] overflow-y-auto">
-          {emailList.slice(0, 6).map((email: any, i: number) => (
+          {directEmails.slice(0, 6).map((email: any, i: number) => (
             <div
               key={email.id || i}
               className={cn(
@@ -609,6 +443,96 @@ function EmailInbox() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function MeetingsStrip({ events }: { events: any[] }) {
+  const now = new Date();
+
+  const nextMeetings = useMemo(() => {
+    return events
+      .map((e: any) => {
+        const start = parseEventDate(e.start.dateTime, e.start.timeZone);
+        const end = parseEventDate(e.end.dateTime, e.end.timeZone);
+        return { ...e, _start: start, _end: end };
+      })
+      .filter((e) => e._end > now)
+      .sort((a, b) => a._start.getTime() - b._start.getTime())
+      .slice(0, 4);
+  }, [events]);
+
+  if (!nextMeetings.length) return null;
+
+  const timeUntil = (start: Date) => {
+    const diff = start.getTime() - now.getTime();
+    if (diff <= 0) return "Now";
+    const mins = Math.round(diff / 60000);
+    if (mins < 60) return `in ${mins}m`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m > 0 ? `in ${h}h ${m}m` : `in ${h}h`;
+  };
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4" data-testid="strip-upcoming-meetings">
+      {nextMeetings.map((event, i) => {
+        const isLive = event._start <= now && event._end > now;
+        const startStr = event._start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+        const endStr = event._end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+        const mins = Math.round((event._end.getTime() - event._start.getTime()) / 60000);
+        const durStr = mins >= 60 ? `${Math.floor(mins / 60)}h${mins % 60 ? ` ${mins % 60}m` : ""}` : `${mins}m`;
+
+        return (
+          <motion.div
+            key={event.id || i}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+            className={cn(
+              cmdPanel,
+              "p-3 relative overflow-hidden",
+              isLive && "border-indigo-400/30 shadow-[0_0_15px_rgba(100,80,255,0.1)]"
+            )}
+            data-testid={`strip-meeting-${i}`}
+          >
+            {isLive && (
+              <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-indigo-400 to-violet-400 rounded-full" />
+            )}
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <p className="text-[12px] font-semibold text-foreground/90 leading-tight line-clamp-1">
+                {event.subject || "Meeting"}
+              </p>
+              {isLive ? (
+                <span className="flex items-center gap-1 text-[8px] text-indigo-300 font-semibold bg-indigo-500/20 px-1.5 py-0.5 rounded-full shrink-0 uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                  Live
+                </span>
+              ) : (
+                <span className="text-[9px] text-indigo-400/80 shrink-0 font-medium whitespace-nowrap" style={mono}>
+                  {timeUntil(event._start)}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] text-foreground/60" style={mono}>
+              <Clock className="w-2.5 h-2.5 text-indigo-400/50" />
+              <span>{startStr} – {endStr}</span>
+              <span className="text-muted-foreground/40">({durStr})</span>
+            </div>
+            <div className="flex items-center gap-1.5 mt-1">
+              {event.isOnlineMeeting ? (
+                <Video className="w-2.5 h-2.5 text-violet-400/60" />
+              ) : event.location?.displayName ? (
+                <MapPin className="w-2.5 h-2.5 text-indigo-400/50" />
+              ) : null}
+              <span className="text-[9px] text-foreground/50 truncate">
+                {event.isOnlineMeeting ? "Online" : event.location?.displayName || ""}
+                {(event.attendees?.length > 0) && ` · ${event.attendees.length} attendees`}
+              </span>
+            </div>
+          </motion.div>
+        );
+      })}
     </div>
   );
 }
@@ -1020,19 +944,30 @@ export default function WorkPage() {
               </div>
             </div>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs text-muted-foreground hover:text-foreground"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              data-testid="button-refresh-data"
-            >
-              <RefreshCw className={cn("w-3.5 h-3.5 mr-1", isRefreshing && "animate-spin")} />
-              {isRefreshing ? "Syncing..." : "Refresh"}
-            </Button>
+            <div className="flex items-center gap-3">
+              {connected && (
+                <div className="hidden sm:flex items-center gap-3 mr-2">
+                  <span className="text-[10px] px-2 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/15" style={mono}>
+                    {meetingCount} meetings
+                  </span>
+                  <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/15" style={mono}>
+                    {freeHours.toFixed(1)}h free
+                  </span>
+                </div>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                data-testid="button-refresh-data"
+              >
+                <RefreshCw className={cn("w-3.5 h-3.5 mr-1", isRefreshing && "animate-spin")} />
+                {isRefreshing ? "Syncing..." : "Refresh"}
+              </Button>
+            </div>
           </div>
-
 
           <div className="lg:hidden flex gap-1 mb-4 p-1 bg-black/30 rounded-xl border border-indigo-500/10">
             {mobileTabItems.map((tab) => (
@@ -1053,34 +988,13 @@ export default function WorkPage() {
             ))}
           </div>
 
+          {!loadingCalendar && weekEvents.length > 0 && (
+            <MeetingsStrip events={weekEvents} />
+          )}
+
           <div className="hidden lg:grid lg:grid-cols-[300px_1fr_300px] gap-4">
             <div className="space-y-4">
-              <div className={cn(cmdPanel, "p-4")}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-                    <CmdLabel>Meetings</CmdLabel>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400" style={mono}>
-                      {meetingCount} today
-                    </span>
-                    <span className="text-[10px] text-emerald-400/70" style={mono}>
-                      {freeHours.toFixed(1)}h free
-                    </span>
-                  </div>
-                </div>
-
-                {loadingCalendar ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-5 h-5 animate-spin text-indigo-400/40" />
-                  </div>
-                ) : (
-                  <UpcomingMeetings events={weekEvents} />
-                )}
-              </div>
-
-              {connected && <EmailInbox />}
+              {connected && <EmailInbox userEmail={connectionStatus?.email} />}
 
               <ConnectionCard
                 connected={connected}
@@ -1138,31 +1052,7 @@ export default function WorkPage() {
                   exit={{ opacity: 0, x: 20 }}
                   className="space-y-4"
                 >
-                  <div className={cn(cmdPanel, "p-4")}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-                        <CmdLabel>Meetings</CmdLabel>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400" style={mono}>
-                          {meetingCount} today
-                        </span>
-                        <span className="text-[10px] text-emerald-400/70" style={mono}>
-                          {freeHours.toFixed(1)}h free
-                        </span>
-                      </div>
-                    </div>
-                    {loadingCalendar ? (
-                      <div className="flex items-center justify-center py-6">
-                        <Loader2 className="w-5 h-5 animate-spin text-indigo-400/40" />
-                      </div>
-                    ) : (
-                      <UpcomingMeetings events={weekEvents} />
-                    )}
-                  </div>
-
-                  {connected && <EmailInbox />}
+                  {connected && <EmailInbox userEmail={connectionStatus?.email} />}
 
                   <ConnectionCard
                     connected={connected}

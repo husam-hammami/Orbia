@@ -278,7 +278,7 @@ export async function getRecentEmails(token: string, top: number = 10) {
   const params = new URLSearchParams({
     $top: String(top),
     $orderby: "receivedDateTime desc",
-    $select: "id,subject,from,receivedDateTime,bodyPreview,isRead",
+    $select: "id,subject,from,toRecipients,ccRecipients,receivedDateTime,bodyPreview,isRead",
   });
 
   return graphRequest(token, `/me/messages?${params.toString()}`);
