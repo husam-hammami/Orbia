@@ -107,14 +107,14 @@ function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
 
   const links = [
-    { href: "/", label: "Daily Tracker", icon: ClipboardList },
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/orbit", label: "Orbia", icon: Orbit },
+    { href: "/", label: "Daily Tracker", icon: ClipboardList },
+    { href: "/work", label: "Workstation", icon: Monitor },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/career", label: "Goals & Vision", icon: Briefcase },
-    { href: "/work", label: "Command Center", icon: Monitor },
-    { href: "/news", label: "Orbital News", icon: Newspaper },
-    { href: "/finance", label: "Finance", icon: Wallet },
     { href: "/medical", label: "Medical", icon: Stethoscope },
+    { href: "/finance", label: "Finance", icon: Wallet },
+    { href: "/news", label: "Orbital News", icon: Newspaper },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
 

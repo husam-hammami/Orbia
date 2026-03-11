@@ -965,7 +965,7 @@ function SetupScreen({ onConnect, isConnecting }: { onConnect: () => void; isCon
             </div>
           </div>
 
-          <h1 className="text-2xl font-display font-bold text-foreground mb-2">Command Center</h1>
+          <h1 className="text-2xl font-display font-bold text-foreground mb-2">Workstation</h1>
           <p className="text-sm text-muted-foreground mb-8 max-w-[320px] mx-auto leading-relaxed">
             Connect your Microsoft 365 account to bring your work life into Orbia.
           </p>
@@ -1152,7 +1152,7 @@ export default function WorkPage() {
                 <Monitor className="w-5 h-5 text-indigo-400" />
               </div>
               <div>
-                <h1 className="text-lg font-display font-bold text-foreground" data-testid="text-page-title">Command Center</h1>
+                <h1 className="text-lg font-display font-bold text-foreground" data-testid="text-page-title">Workstation</h1>
                 <p className="text-xs text-muted-foreground">
                   {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                 </p>

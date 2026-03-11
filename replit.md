@@ -40,7 +40,7 @@ Preferred communication style: Simple, everyday language.
 - **Frontend**: 3-column HUD layout — Left: "My Health" (profile, conditions, medications, tabs for History/Care Team), Center: AI Chat, Right: "Actions" (upload zone, action items, document vault). Pain Mechanisms and Health Overview sections removed. Priorities renamed to "Action Items." Mobile uses tab-based fallback.
 - **AI Medical Chat Tone**: Clinical precision with human warmth, leading with insights, connecting patterns, and referencing specific patient data.
 
-### Command Center (Work Module)
+### Workstation (Work Module)
 - **Purpose**: Microsoft 365 integration for Outlook Calendar and Teams, with AI work assistant ("Nexus").
 - **Microsoft Graph API**: Direct OAuth 2.0 connection to Microsoft Graph API — no middleware.
 - **Env Secrets Required**: `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_REDIRECT_URI` (from Azure AD app registration).
