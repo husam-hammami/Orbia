@@ -202,12 +202,54 @@ ${activeTodos
       ]);
 
       if (eventsR.status === "fulfilled" && eventsR.value?.value?.length) {
-        const parseEvt = (dt: string, tz?: string) =>
-          new Date(tz === "UTC" ? dt + "Z" : dt);
+        const msTimezoneToIANA: Record<string, string> = {
+          "UTC": "UTC",
+          "Arabian Standard Time": "Asia/Dubai",
+          "Arab Standard Time": "Asia/Riyadh",
+          "Arabic Standard Time": "Asia/Baghdad",
+          "Eastern Standard Time": "America/New_York",
+          "Central Standard Time": "America/Chicago",
+          "Pacific Standard Time": "America/Los_Angeles",
+          "Mountain Standard Time": "America/Denver",
+          "GMT Standard Time": "Europe/London",
+          "W. Europe Standard Time": "Europe/Berlin",
+          "Central European Standard Time": "Europe/Warsaw",
+          "Romance Standard Time": "Europe/Paris",
+          "India Standard Time": "Asia/Kolkata",
+          "China Standard Time": "Asia/Shanghai",
+          "Tokyo Standard Time": "Asia/Tokyo",
+          "AUS Eastern Standard Time": "Australia/Sydney",
+          "E. Africa Standard Time": "Africa/Nairobi",
+          "Turkey Standard Time": "Europe/Istanbul",
+          "Egypt Standard Time": "Africa/Cairo",
+          "Pakistan Standard Time": "Asia/Karachi",
+          "Singapore Standard Time": "Asia/Singapore",
+        };
+
+        function parseEvtWithTz(dt: string, tz?: string): Date {
+          if (!tz || tz === "UTC") return new Date(dt + "Z");
+          const iana = msTimezoneToIANA[tz];
+          if (iana) {
+            const localStr = new Date(dt + "Z").toLocaleString("en-US", { timeZone: iana });
+            const utcMs = new Date(dt + "Z").getTime();
+            const localMs = new Date(localStr).getTime();
+            const offsetMs = localMs - utcMs;
+            return new Date(utcMs - offsetMs);
+          }
+          return new Date(dt);
+        }
+
+        const userTz = eventsR.value.value[0]?.start?.timeZone || "UTC";
+        const userIANA = msTimezoneToIANA[userTz] || "UTC";
+
         const nowMs = now.getTime();
+        const fmtTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: userIANA });
+        const fmtDate = (d: Date) => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: userIANA });
+        const fmtDateLong = (d: Date) => d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: userIANA });
+
         const events = eventsR.value.value.map((e: any) => {
-          const start = parseEvt(e.start.dateTime, e.start.timeZone);
-          const end = parseEvt(e.end.dateTime, e.end.timeZone);
+          const start = parseEvtWithTz(e.start.dateTime, e.start.timeZone);
+          const end = parseEvtWithTz(e.end.dateTime, e.end.timeZone);
           const diffMs = start.getTime() - nowMs;
           const diffMin = Math.round(diffMs / 60000);
           let timeTag = "";
@@ -224,15 +266,10 @@ ${activeTodos
             const mins = diffMin % 60;
             timeTag = ` [IN ${hrs}h ${mins}m]`;
           }
-          const dateLabel = start.toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-          });
-          return `- [${dateLabel}] ${e.subject} | ${start.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}${timeTag}${e.location?.displayName ? ` | ${e.location.displayName}` : ""}${e.isOnlineMeeting ? " | Online" : ""}${e.attendees?.length ? ` | ${e.attendees.length} attendees` : ""}`;
+          return `- [${fmtDate(start)}] ${e.subject} | ${fmtTime(start)} - ${fmtTime(end)}${timeTag}${e.location?.displayName ? ` | ${e.location.displayName}` : ""}${e.isOnlineMeeting ? " | Online" : ""}${e.attendees?.length ? ` | ${e.attendees.length} attendees` : ""}`;
         });
         const calBlock = `<CALENDAR>
-Current time: ${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} on ${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+Current time: ${fmtTime(now)} on ${fmtDateLong(now)}
 ${events.join("\n")}
 </CALENDAR>`;
         sections.push(calBlock);
