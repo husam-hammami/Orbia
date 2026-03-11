@@ -6,8 +6,9 @@ import {
   MapPin, Users, Sparkles, ArrowRight, Zap,
   RefreshCw, ExternalLink, BarChart3, Coffee,
   ChevronDown, AlertCircle, Mail, MailOpen,
-  Reply, ArrowLeft, Paperclip
+  Reply, ArrowLeft, Paperclip, Rocket
 } from "lucide-react";
+import { ProjectsTab } from "@/components/projects-tab";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1014,13 +1015,15 @@ function SetupScreen({ onConnect, isConnecting }: { onConnect: () => void; isCon
   );
 }
 
-type MobileTab = "today" | "nexus" | "comms";
+type MobileTab = "today" | "nexus" | "comms" | "projects";
+type WorkView = "office" | "projects";
 
 export default function WorkPage() {
   const queryClient = useQueryClient();
   const [isConnecting, setIsConnecting] = useState(false);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>("nexus");
+  const [workView, setWorkView] = useState<WorkView>("office");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: connectionStatus, isLoading: loadingStatus } = useQuery({
@@ -1140,6 +1143,7 @@ export default function WorkPage() {
     { key: "today", label: "Today", icon: Calendar },
     { key: "nexus", label: "Professional", icon: Sparkles },
     { key: "comms", label: "Comms", icon: MessageSquare },
+    { key: "projects", label: "Projects", icon: Rocket },
   ];
 
   return (
@@ -1160,7 +1164,7 @@ export default function WorkPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              {connected && (
+              {connected && workView === "office" && (
                 <div className="hidden sm:flex items-center gap-3 mr-2">
                   <span className="text-[10px] px-2 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/15" style={mono}>
                     {meetingCount} meetings
@@ -1170,20 +1174,46 @@ export default function WorkPage() {
                   </span>
                 </div>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs text-muted-foreground hover:text-foreground"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                data-testid="button-refresh-data"
-              >
-                <RefreshCw className={cn("w-3.5 h-3.5 mr-1", isRefreshing && "animate-spin")} />
-                {isRefreshing ? "Syncing..." : "Refresh"}
-              </Button>
+              {workView === "office" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  data-testid="button-refresh-data"
+                >
+                  <RefreshCw className={cn("w-3.5 h-3.5 mr-1", isRefreshing && "animate-spin")} />
+                  {isRefreshing ? "Syncing..." : "Refresh"}
+                </Button>
+              )}
             </div>
           </div>
 
+          {/* Desktop view switcher */}
+          <div className="hidden lg:flex gap-1 mb-4 p-1 bg-black/30 rounded-xl border border-indigo-500/10 w-fit">
+            {([
+              { key: "office" as WorkView, label: "Office", icon: Monitor },
+              { key: "projects" as WorkView, label: "Projects", icon: Rocket },
+            ]).map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setWorkView(tab.key)}
+                className={cn(
+                  "flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium transition-all",
+                  workView === tab.key
+                    ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/25"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                data-testid={`tab-desktop-${tab.key}`}
+              >
+                <tab.icon className="w-3.5 h-3.5" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile tab bar */}
           <div className="lg:hidden flex gap-1 mb-4 p-1 bg-black/30 rounded-xl border border-indigo-500/10">
             {mobileTabItems.map((tab) => (
               <button
@@ -1203,64 +1233,77 @@ export default function WorkPage() {
             ))}
           </div>
 
-          {!loadingCalendar && weekEvents.length > 0 && (
-            <MeetingsStrip events={weekEvents} />
+          {/* === OFFICE VIEW (Desktop) === */}
+          {workView === "office" && (
+            <>
+              {!loadingCalendar && weekEvents.length > 0 && (
+                <MeetingsStrip events={weekEvents} />
+              )}
+
+              <div className="hidden lg:grid lg:grid-cols-[minmax(280px,1fr)_minmax(350px,1.4fr)_minmax(280px,1fr)] gap-5" style={{ minHeight: "calc(100vh - 220px)" }}>
+                <div className="flex flex-col gap-4 min-h-0">
+                  <div className="flex-1 min-h-0">
+                    {connected && <EmailInbox userEmail={connectionStatus?.email} />}
+                  </div>
+
+                  <div className="shrink-0">
+                    <ConnectionCard
+                      connected={connected}
+                      displayName={connectionStatus?.displayName}
+                      email={connectionStatus?.email}
+                      onConnect={handleConnect}
+                      onDisconnect={handleDisconnect}
+                      isConnecting={isConnecting}
+                    />
+                  </div>
+                </div>
+
+                <div className={cn(cmdPanelGlow, "p-5 flex flex-col")}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Sparkles className="w-4 h-4 text-indigo-400" />
+                    <CmdLabel>Orbia Professional</CmdLabel>
+                  </div>
+                  <NexusChat connected={connected} />
+                </div>
+
+                <div className={cn(cmdPanel, "p-4 flex flex-col min-h-0")}>
+                  <div className="flex items-center justify-between mb-3 shrink-0">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-indigo-400" />
+                      <CmdLabel>Teams</CmdLabel>
+                    </div>
+                    {teamsChats.length > 0 && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400" style={mono}>
+                        {teamsChats.length}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto scrollbar-themed">
+                    <TeamsPanel
+                      chats={teamsChats}
+                      onSelectChat={(id) => setSelectedChatId(id || null)}
+                      selectedChatId={selectedChatId}
+                      chatMessages={chatMessages}
+                      onSendMessage={sendTeamsMessage}
+                      loadingMessages={loadingChatMessages}
+                      loadingChats={loadingTeams}
+                      error={teamsError ? "Failed to load" : null}
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
           )}
 
-          <div className="hidden lg:grid lg:grid-cols-[minmax(280px,1fr)_minmax(350px,1.4fr)_minmax(280px,1fr)] gap-5" style={{ minHeight: "calc(100vh - 220px)" }}>
-            <div className="flex flex-col gap-4 min-h-0">
-              <div className="flex-1 min-h-0">
-                {connected && <EmailInbox userEmail={connectionStatus?.email} />}
-              </div>
-
-              <div className="shrink-0">
-                <ConnectionCard
-                  connected={connected}
-                  displayName={connectionStatus?.displayName}
-                  email={connectionStatus?.email}
-                  onConnect={handleConnect}
-                  onDisconnect={handleDisconnect}
-                  isConnecting={isConnecting}
-                />
-              </div>
+          {/* === PROJECTS VIEW (Desktop) === */}
+          {workView === "projects" && (
+            <div className="hidden lg:block" style={{ minHeight: "calc(100vh - 220px)" }}>
+              <ProjectsTab />
             </div>
+          )}
 
-            <div className={cn(cmdPanelGlow, "p-5 flex flex-col")}>
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
-                <CmdLabel>Orbia Professional</CmdLabel>
-              </div>
-              <NexusChat connected={connected} />
-            </div>
-
-            <div className={cn(cmdPanel, "p-4 flex flex-col min-h-0")}>
-              <div className="flex items-center justify-between mb-3 shrink-0">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-indigo-400" />
-                  <CmdLabel>Teams</CmdLabel>
-                </div>
-                {teamsChats.length > 0 && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400" style={mono}>
-                    {teamsChats.length}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex-1 overflow-y-auto scrollbar-themed">
-                <TeamsPanel
-                  chats={teamsChats}
-                  onSelectChat={(id) => setSelectedChatId(id || null)}
-                  selectedChatId={selectedChatId}
-                  chatMessages={chatMessages}
-                  onSendMessage={sendTeamsMessage}
-                  loadingMessages={loadingChatMessages}
-                  loadingChats={loadingTeams}
-                  error={teamsError ? "Failed to load" : null}
-                />
-              </div>
-            </div>
-          </div>
-
+          {/* === MOBILE CONTENT === */}
           <div className="lg:hidden">
             <AnimatePresence mode="wait">
               {mobileTab === "today" && (
@@ -1271,6 +1314,9 @@ export default function WorkPage() {
                   exit={{ opacity: 0, x: 20 }}
                   className="space-y-4"
                 >
+                  {!loadingCalendar && weekEvents.length > 0 && (
+                    <MeetingsStrip events={weekEvents} />
+                  )}
                   {connected && <EmailInbox userEmail={connectionStatus?.email} />}
 
                   <ConnectionCard
@@ -1324,6 +1370,17 @@ export default function WorkPage() {
                     loadingChats={loadingTeams}
                     error={teamsError ? "Failed to load" : null}
                   />
+                </motion.div>
+              )}
+
+              {mobileTab === "projects" && (
+                <motion.div
+                  key="projects"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                >
+                  <ProjectsTab />
                 </motion.div>
               )}
             </AnimatePresence>

@@ -3313,11 +3313,14 @@ ${JSON.stringify(context, null, 2)}`;
         { name: "create_task", regex: /\[CREATE_TASK\s+title="([^"]+)"(?:\s+due="([^"]*)")?\]/ },
         { name: "send_email", regex: /\[SEND_EMAIL\s+to="([^"]+)"\s+subject="([^"]+)"\s+body="([^"]+)"\]/ },
         { name: "schedule_message", regex: /\[SCHEDULE_MESSAGE\s+chatId="([^"]+)"\s+recipient="([^"]+)"\s+message="([^"]+)"\s+time="([^"]+)"\s+recurrence="([^"]+)"\]/ },
+        { name: "create_project", regex: /\[CREATE_PROJECT\s+title="([^"]+)"(?:\s+description="([^"]*)")?(?:\s+status="([^"]*)")?(?:\s+deadline="([^"]*)")?\]/ },
+        { name: "add_project_task", regex: /\[ADD_TASK\s+project="([^"]+)"\s+title="([^"]+)"(?:\s+priority="([^"]*)")?(?:\s+due="([^"]*)")?\]/ },
+        { name: "update_project_status", regex: /\[UPDATE_PROJECT_STATUS\s+project="([^"]+)"\s+status="([^"]+)"\]/ },
+        { name: "complete_task", regex: /\[COMPLETE_TASK\s+task="([^"]+)"\]/ },
       ];
 
       async function executeWorkActions(text: string): Promise<void> {
-        if (!msToken) return;
-        const graphLib = await import("./lib/microsoft-graph");
+        const graphLib = msToken ? await import("./lib/microsoft-graph") : null;
         for (const { name, regex } of ACTION_PATTERNS) {
           let match;
           const globalRegex = new RegExp(regex.source, 'g');
@@ -3328,18 +3331,22 @@ ${JSON.stringify(context, null, 2)}`;
             try {
               switch (name) {
                 case "teams_send":
+                  if (!msToken || !graphLib) break;
                   await graphLib.sendChatMessage(msToken!, match[1], match[2]);
                   res.write(`data: ${JSON.stringify({ action: "teams_sent", chatId: match[1], message: match[2] })}\n\n`);
                   break;
                 case "create_event":
+                  if (!msToken || !graphLib) break;
                   await graphLib.createCalendarEvent(msToken!, match[1], match[2], match[3], { isOnline: match[4] === "true" });
                   res.write(`data: ${JSON.stringify({ action: "event_created", subject: match[1], start: match[2], end: match[3] })}\n\n`);
                   break;
                 case "create_task":
+                  if (!msToken || !graphLib) break;
                   await graphLib.createTask(msToken!, match[1], match[2] || undefined);
                   res.write(`data: ${JSON.stringify({ action: "task_created", title: match[1], due: match[2] || null })}\n\n`);
                   break;
                 case "send_email":
+                  if (!msToken || !graphLib) break;
                   await graphLib.sendEmail(msToken!, match[1], match[2], match[3]);
                   res.write(`data: ${JSON.stringify({ action: "email_sent", to: match[1], subject: match[2] })}\n\n`);
                   break;
@@ -3351,6 +3358,62 @@ ${JSON.stringify(context, null, 2)}`;
                   });
                   res.write(`data: ${JSON.stringify({ action: "message_scheduled", recipient: match[2], message: match[3], time: match[4], recurrence: match[5] })}\n\n`);
                   break;
+                case "create_project": {
+                  const project = await storage.createCareerProject(userId, {
+                    title: match[1],
+                    description: match[2] || null,
+                    status: match[3] || "planning",
+                    deadline: match[4] || null,
+                    progress: 0,
+                    nextAction: null,
+                    color: null,
+                    tags: null,
+                  });
+                  res.write(`data: ${JSON.stringify({ action: "project_created", id: project.id, title: match[1] })}\n\n`);
+                  break;
+                }
+                case "add_project_task": {
+                  const projects = await storage.getCareerProjects(userId);
+                  const proj = projects.find((p: any) => p.title.toLowerCase() === match[1].toLowerCase());
+                  if (!proj) {
+                    res.write(`data: ${JSON.stringify({ action: "add_task_failed", error: `Project "${match[1]}" not found` })}\n\n`);
+                    break;
+                  }
+                  const task = await storage.createCareerTask(userId, {
+                    title: match[2],
+                    projectId: proj.id,
+                    parentId: null,
+                    completed: false,
+                    priority: match[3] || "medium",
+                    due: match[4] || null,
+                    tags: null,
+                    description: null,
+                  });
+                  res.write(`data: ${JSON.stringify({ action: "project_task_added", id: task.id, title: match[2], project: match[1] })}\n\n`);
+                  break;
+                }
+                case "update_project_status": {
+                  const projects2 = await storage.getCareerProjects(userId);
+                  const proj2 = projects2.find((p: any) => p.title.toLowerCase() === match[1].toLowerCase());
+                  if (!proj2) {
+                    res.write(`data: ${JSON.stringify({ action: "update_project_failed", error: `Project "${match[1]}" not found` })}\n\n`);
+                    break;
+                  }
+                  await storage.updateCareerProject(userId, proj2.id, { status: match[2] });
+                  res.write(`data: ${JSON.stringify({ action: "project_status_updated", project: match[1], status: match[2] })}\n\n`);
+                  break;
+                }
+                case "complete_task": {
+                  const allTasks = await storage.getCareerTasks(userId);
+                  const foundTask = allTasks.find((t: any) => t.title.toLowerCase() === match[1].toLowerCase());
+                  if (!foundTask) {
+                    res.write(`data: ${JSON.stringify({ action: "complete_task_failed", error: `Task "${match[1]}" not found` })}\n\n`);
+                    break;
+                  }
+                  await storage.updateCareerTask(userId, foundTask.id, { completed: true });
+                  res.write(`data: ${JSON.stringify({ action: "task_completed", task: match[1] })}\n\n`);
+                  break;
+                }
               }
             } catch (err: any) {
               console.error(`Orbit action ${name} failed:`, err.message);
@@ -3360,7 +3423,7 @@ ${JSON.stringify(context, null, 2)}`;
         }
       }
 
-      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE)\s[^\]]+\]/g;
+      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE|CREATE_PROJECT|ADD_TASK|UPDATE_PROJECT_STATUS|COMPLETE_TASK)\s[^\]]+\]/g;
       let bufferedContent = "";
       let hasActionTag = false;
 
@@ -5500,11 +5563,14 @@ ${unifiedContext}`;
         { name: "create_task", regex: /\[CREATE_TASK\s+title="([^"]+)"(?:\s+due="([^"]*)")?\]/ },
         { name: "send_email", regex: /\[SEND_EMAIL\s+to="([^"]+)"\s+subject="([^"]+)"\s+body="([^"]+)"\]/ },
         { name: "schedule_message", regex: /\[SCHEDULE_MESSAGE\s+chatId="([^"]+)"\s+recipient="([^"]+)"\s+message="([^"]+)"\s+time="([^"]+)"\s+recurrence="([^"]+)"\]/ },
+        { name: "create_project", regex: /\[CREATE_PROJECT\s+title="([^"]+)"(?:\s+description="([^"]*)")?(?:\s+status="([^"]*)")?(?:\s+deadline="([^"]*)")?\]/ },
+        { name: "add_project_task", regex: /\[ADD_TASK\s+project="([^"]+)"\s+title="([^"]+)"(?:\s+priority="([^"]*)")?(?:\s+due="([^"]*)")?\]/ },
+        { name: "update_project_status", regex: /\[UPDATE_PROJECT_STATUS\s+project="([^"]+)"\s+status="([^"]+)"\]/ },
+        { name: "complete_task", regex: /\[COMPLETE_TASK\s+task="([^"]+)"\]/ },
       ];
 
       async function executeActions(text: string): Promise<void> {
-        if (!msToken) return;
-        const graphLib = await import("./lib/microsoft-graph");
+        const graphLib = msToken ? await import("./lib/microsoft-graph") : null;
 
         for (const { name, regex } of ACTION_PATTERNS) {
           let match;
@@ -5517,21 +5583,25 @@ ${unifiedContext}`;
             try {
               switch (name) {
                 case "teams_send": {
+                  if (!msToken || !graphLib) break;
                   await graphLib.sendChatMessage(msToken!, match[1], match[2]);
                   res.write(`data: ${JSON.stringify({ action: "teams_sent", chatId: match[1], message: match[2] })}\n\n`);
                   break;
                 }
                 case "create_event": {
+                  if (!msToken || !graphLib) break;
                   await graphLib.createCalendarEvent(msToken!, match[1], match[2], match[3], { isOnline: match[4] === "true" });
                   res.write(`data: ${JSON.stringify({ action: "event_created", subject: match[1], start: match[2], end: match[3] })}\n\n`);
                   break;
                 }
                 case "create_task": {
+                  if (!msToken || !graphLib) break;
                   await graphLib.createTask(msToken!, match[1], match[2] || undefined);
                   res.write(`data: ${JSON.stringify({ action: "task_created", title: match[1], due: match[2] || null })}\n\n`);
                   break;
                 }
                 case "send_email": {
+                  if (!msToken || !graphLib) break;
                   await graphLib.sendEmail(msToken!, match[1], match[2], match[3]);
                   res.write(`data: ${JSON.stringify({ action: "email_sent", to: match[1], subject: match[2] })}\n\n`);
                   break;
@@ -5549,6 +5619,62 @@ ${unifiedContext}`;
                   res.write(`data: ${JSON.stringify({ action: "message_scheduled", recipient: match[2], message: match[3], time: match[4], recurrence: match[5] })}\n\n`);
                   break;
                 }
+                case "create_project": {
+                  const project = await storage.createCareerProject(userId, {
+                    title: match[1],
+                    description: match[2] || null,
+                    status: match[3] || "planning",
+                    deadline: match[4] || null,
+                    progress: 0,
+                    nextAction: null,
+                    color: null,
+                    tags: null,
+                  });
+                  res.write(`data: ${JSON.stringify({ action: "project_created", id: project.id, title: match[1] })}\n\n`);
+                  break;
+                }
+                case "add_project_task": {
+                  const projects = await storage.getCareerProjects(userId);
+                  const proj = projects.find((p: any) => p.title.toLowerCase() === match[1].toLowerCase());
+                  if (!proj) {
+                    res.write(`data: ${JSON.stringify({ action: "add_task_failed", error: `Project "${match[1]}" not found` })}\n\n`);
+                    break;
+                  }
+                  const task = await storage.createCareerTask(userId, {
+                    title: match[2],
+                    projectId: proj.id,
+                    parentId: null,
+                    completed: false,
+                    priority: match[3] || "medium",
+                    due: match[4] || null,
+                    tags: null,
+                    description: null,
+                  });
+                  res.write(`data: ${JSON.stringify({ action: "project_task_added", id: task.id, title: match[2], project: match[1] })}\n\n`);
+                  break;
+                }
+                case "update_project_status": {
+                  const projects2 = await storage.getCareerProjects(userId);
+                  const proj2 = projects2.find((p: any) => p.title.toLowerCase() === match[1].toLowerCase());
+                  if (!proj2) {
+                    res.write(`data: ${JSON.stringify({ action: "update_project_failed", error: `Project "${match[1]}" not found` })}\n\n`);
+                    break;
+                  }
+                  await storage.updateCareerProject(userId, proj2.id, { status: match[2] });
+                  res.write(`data: ${JSON.stringify({ action: "project_status_updated", project: match[1], status: match[2] })}\n\n`);
+                  break;
+                }
+                case "complete_task": {
+                  const allTasks = await storage.getCareerTasks(userId);
+                  const foundTask = allTasks.find((t: any) => t.title.toLowerCase() === match[1].toLowerCase());
+                  if (!foundTask) {
+                    res.write(`data: ${JSON.stringify({ action: "complete_task_failed", error: `Task "${match[1]}" not found` })}\n\n`);
+                    break;
+                  }
+                  await storage.updateCareerTask(userId, foundTask.id, { completed: true });
+                  res.write(`data: ${JSON.stringify({ action: "task_completed", task: match[1] })}\n\n`);
+                  break;
+                }
               }
             } catch (err: any) {
               console.error(`Action ${name} failed:`, err.message);
@@ -5558,7 +5684,7 @@ ${unifiedContext}`;
         }
       }
 
-      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE)\s[^\]]+\]/g;
+      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE|CREATE_PROJECT|ADD_TASK|UPDATE_PROJECT_STATUS|COMPLETE_TASK)\s[^\]]+\]/g;
       let bufferedContent = "";
       let hasActionTag = false;
 

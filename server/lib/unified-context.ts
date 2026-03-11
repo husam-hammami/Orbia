@@ -27,6 +27,8 @@ export async function buildUnifiedContext(userId: string): Promise<{
     finSettingsResult,
     scheduledResult,
     visionResult,
+    projectsResult,
+    projectTasksResult,
   ] = await Promise.allSettled([
     storage.getRecentTrackerEntries(userId, 30),
     storage.getAllJournalEntries(userId),
@@ -44,6 +46,8 @@ export async function buildUnifiedContext(userId: string): Promise<{
     storage.getFinanceSettings(userId),
     storage.getScheduledMessages(userId),
     storage.getVision(userId),
+    storage.getCareerProjects(userId),
+    storage.getCareerTasks(userId),
   ]);
 
   const val = <T,>(r: PromiseSettledResult<T>, fallback: T): T =>
@@ -65,6 +69,8 @@ export async function buildUnifiedContext(userId: string): Promise<{
   const financeSettings = val(finSettingsResult, undefined);
   const scheduledMsgs = val(scheduledResult, []);
   const visionItems = val(visionResult, []);
+  const projects = val(projectsResult, []) as any[];
+  const projectTasks = val(projectTasksResult, []) as any[];
 
   let sections: string[] = [];
 
@@ -422,6 +428,19 @@ ${visionItems.map((v: any) => `- ${v.title} (${v.timeframe}): ${v.description ||
     sections.push(visBlock);
   }
 
+  if (projects.length > 0) {
+    const projLines = projects.map((p: any) => {
+      const tasks = projectTasks.filter((t: any) => t.projectId === p.id);
+      const completed = tasks.filter((t: any) => t.completed === 1).length;
+      const progress = tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : (p.progress || 0);
+      const taskList = tasks.length > 0
+        ? `\n    Tasks: ${tasks.map((t: any) => `${t.completed === 1 ? "[x]" : "[ ]"} ${t.title}`).join(", ")}`
+        : "";
+      return `- "${p.title}" [${p.status}] ${progress}% complete${p.deadline ? `, deadline: ${p.deadline}` : ""}${p.nextAction ? `, next: ${p.nextAction}` : ""}${taskList}`;
+    }).join("\n");
+    sections.push(`<PROJECTS>\n${projLines}\n</PROJECTS>`);
+  }
+
   return {
     context: sections.join("\n\n"),
     msToken,
@@ -562,12 +581,22 @@ CRITICAL: The memory graph makes you SMARTER, not CHATTIER. Use it to give short
 [SEND_EMAIL to="<email address>" subject="<subject>" body="<email body>"]
 ### Schedule Recurring Teams Message
 [SCHEDULE_MESSAGE chatId="<chatId from TEAMS_RECENT>" recipient="<person name>" message="<message text>" time="<HH:MM 24h>" recurrence="<daily|weekdays>"]
+### Create Project
+[CREATE_PROJECT title="<project title>" description="<optional description>" status="<planning|in_progress|review|completed>" deadline="<YYYY-MM-DD>"]
+### Add Task to Project
+[ADD_TASK project="<exact project title>" title="<task title>" priority="<low|medium|high|urgent>" due="<YYYY-MM-DD>"]
+### Update Project Status
+[UPDATE_PROJECT_STATUS project="<exact project title>" status="<planning|in_progress|review|completed>"]
+### Complete Task
+[COMPLETE_TASK task="<exact task title>"]
 
 ACTION RULES:
 - When asked to send/create/schedule, ALWAYS use the action tag — never just suggest
 - After each action, briefly confirm what you did
 - For scheduled/recurring messages, ALWAYS use SCHEDULE_MESSAGE
-- Match people to chatIds from TEAMS_RECENT`;
+- Match people to chatIds from TEAMS_RECENT
+- For project actions, match project/task titles exactly as they exist
+- You can create projects, add tasks, update statuses, and complete tasks directly`;
 
   const orbitActions = `
 ## APP ACTIONS — JSON FORMAT
