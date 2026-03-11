@@ -201,7 +201,7 @@ export async function registerRoutes(
       if (!success) {
         return res.status(404).json({ error: "Tracker entry not found" });
       }
-      res.json({ success: true });
+      res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete tracker entry" });
     }
@@ -2144,7 +2144,8 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   app.patch("/api/vision/item/:id", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const vision = await storage.updateVisionItem(userId, req.params.id, req.body);
+      const validatedData = insertCareerVisionSchema.partial().parse(req.body);
+      const vision = await storage.updateVisionItem(userId, req.params.id, validatedData);
       if (!vision) {
         return res.status(404).json({ error: "Vision item not found" });
       }
@@ -3393,7 +3394,7 @@ ${JSON.stringify(context, null, 2)}`;
                   break;
                 }
                 case "add_project_task": {
-                  const projects = await storage.getCareerProjects(userId);
+                  const projects = await storage.getAllCareerProjects(userId);
                   const proj = projects.find((p: any) => p.title.toLowerCase() === match[1].toLowerCase());
                   if (!proj) {
                     res.write(`data: ${JSON.stringify({ action: "add_task_failed", error: `Project "${match[1]}" not found` })}\n\n`);
@@ -3413,7 +3414,7 @@ ${JSON.stringify(context, null, 2)}`;
                   break;
                 }
                 case "update_project_status": {
-                  const projects2 = await storage.getCareerProjects(userId);
+                  const projects2 = await storage.getAllCareerProjects(userId);
                   const proj2 = projects2.find((p: any) => p.title.toLowerCase() === match[1].toLowerCase());
                   if (!proj2) {
                     res.write(`data: ${JSON.stringify({ action: "update_project_failed", error: `Project "${match[1]}" not found` })}\n\n`);
@@ -3424,7 +3425,7 @@ ${JSON.stringify(context, null, 2)}`;
                   break;
                 }
                 case "complete_task": {
-                  const allTasks = await storage.getCareerTasks(userId);
+                  const allTasks = await storage.getAllCareerTasks(userId);
                   const foundTask = allTasks.find((t: any) => t.title.toLowerCase() === match[1].toLowerCase());
                   if (!foundTask) {
                     res.write(`data: ${JSON.stringify({ action: "complete_task_failed", error: `Task "${match[1]}" not found` })}\n\n`);
@@ -3655,7 +3656,7 @@ ${JSON.stringify(context, null, 2)}`;
       if (!success) {
         return res.status(404).json({ error: "Journal entry not found" });
       }
-      res.json({ success: true });
+      res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete journal entry" });
     }
@@ -3687,7 +3688,8 @@ ${JSON.stringify(context, null, 2)}`;
   app.patch("/api/food-options/:id", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const updated = await storage.updateFoodOption(userId, req.params.id, req.body);
+      const validatedData = insertFoodOptionSchema.partial().parse(req.body);
+      const updated = await storage.updateFoodOption(userId, req.params.id, validatedData);
       if (!updated) {
         return res.status(404).json({ error: "Food option not found" });
       }
@@ -4672,7 +4674,7 @@ RULES:
     }
   });
 
-  app.put("/api/loans/:id", async (req, res) => {
+  app.patch("/api/loans/:id", async (req, res) => {
     try {
       const userId = req.session.userId!;
       const validatedData = insertLoanSchema.partial().parse(req.body);
@@ -5708,7 +5710,7 @@ ${unifiedContext}`;
                   break;
                 }
                 case "add_project_task": {
-                  const projects = await storage.getCareerProjects(userId);
+                  const projects = await storage.getAllCareerProjects(userId);
                   const proj = projects.find((p: any) => p.title.toLowerCase() === match[1].toLowerCase());
                   if (!proj) {
                     res.write(`data: ${JSON.stringify({ action: "add_task_failed", error: `Project "${match[1]}" not found` })}\n\n`);
@@ -5728,7 +5730,7 @@ ${unifiedContext}`;
                   break;
                 }
                 case "update_project_status": {
-                  const projects2 = await storage.getCareerProjects(userId);
+                  const projects2 = await storage.getAllCareerProjects(userId);
                   const proj2 = projects2.find((p: any) => p.title.toLowerCase() === match[1].toLowerCase());
                   if (!proj2) {
                     res.write(`data: ${JSON.stringify({ action: "update_project_failed", error: `Project "${match[1]}" not found` })}\n\n`);
@@ -5739,7 +5741,7 @@ ${unifiedContext}`;
                   break;
                 }
                 case "complete_task": {
-                  const allTasks = await storage.getCareerTasks(userId);
+                  const allTasks = await storage.getAllCareerTasks(userId);
                   const foundTask = allTasks.find((t: any) => t.title.toLowerCase() === match[1].toLowerCase());
                   if (!foundTask) {
                     res.write(`data: ${JSON.stringify({ action: "complete_task_failed", error: `Task "${match[1]}" not found` })}\n\n`);
