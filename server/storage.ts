@@ -109,6 +109,17 @@ import {
   scheduledMessages,
   type ScheduledMessage,
   type InsertScheduledMessage,
+  memoryEntities,
+  memoryConnections,
+  memoryNarratives,
+  memoryProcessingLog,
+  type MemoryEntity,
+  type InsertMemoryEntity,
+  type MemoryConnection,
+  type InsertMemoryConnection,
+  type MemoryNarrative,
+  type InsertMemoryNarrative,
+  type MemoryProcessingLogEntry,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, asc, inArray } from "drizzle-orm";
@@ -348,6 +359,27 @@ export interface IStorage {
   deleteScheduledMessage(userId: string, id: number): Promise<boolean>;
   getActiveScheduledMessages(): Promise<ScheduledMessage[]>;
   markScheduledMessageSent(id: number): Promise<void>;
+
+  // Memory Graph
+  getMemoryEntities(userId: string): Promise<MemoryEntity[]>;
+  getMemoryEntity(userId: string, id: string): Promise<MemoryEntity | undefined>;
+  createMemoryEntity(userId: string, entity: InsertMemoryEntity): Promise<MemoryEntity>;
+  updateMemoryEntity(userId: string, id: string, updates: Partial<InsertMemoryEntity>): Promise<MemoryEntity | undefined>;
+  deleteMemoryEntity(userId: string, id: string): Promise<boolean>;
+
+  getMemoryConnections(userId: string): Promise<MemoryConnection[]>;
+  getMemoryConnectionsBetween(userId: string, sourceId: string, targetId: string): Promise<MemoryConnection[]>;
+  createMemoryConnection(userId: string, connection: InsertMemoryConnection): Promise<MemoryConnection>;
+  updateMemoryConnection(userId: string, id: string, updates: Partial<InsertMemoryConnection>): Promise<MemoryConnection | undefined>;
+  deleteMemoryConnection(userId: string, id: string): Promise<boolean>;
+
+  getMemoryNarratives(userId: string): Promise<MemoryNarrative[]>;
+  upsertMemoryNarrative(userId: string, narrative: InsertMemoryNarrative): Promise<MemoryNarrative>;
+  deleteMemoryNarrative(userId: string, id: string): Promise<boolean>;
+
+  getMemoryProcessingLog(userId: string): Promise<MemoryProcessingLogEntry[]>;
+  markMemoryProcessed(userId: string, sourceType: string, sourceId: string): Promise<void>;
+  clearMemoryGraph(userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1285,6 +1317,119 @@ export class DatabaseStorage implements IStorage {
   async markScheduledMessageSent(id: number): Promise<void> {
     await db.update(scheduledMessages).set({ lastSentAt: new Date() })
       .where(eq(scheduledMessages.id, id));
+  }
+
+  // ==================== MEMORY GRAPH ====================
+
+  async getMemoryEntities(userId: string): Promise<MemoryEntity[]> {
+    return await db.select().from(memoryEntities)
+      .where(and(eq(memoryEntities.userId, userId), eq(memoryEntities.active, 1)))
+      .orderBy(desc(memoryEntities.importance));
+  }
+
+  async getMemoryEntity(userId: string, id: string): Promise<MemoryEntity | undefined> {
+    const [row] = await db.select().from(memoryEntities)
+      .where(and(eq(memoryEntities.id, id), eq(memoryEntities.userId, userId)));
+    return row;
+  }
+
+  async createMemoryEntity(userId: string, entity: InsertMemoryEntity): Promise<MemoryEntity> {
+    const [row] = await db.insert(memoryEntities).values({ ...entity, userId }).returning();
+    return row;
+  }
+
+  async updateMemoryEntity(userId: string, id: string, updates: Partial<InsertMemoryEntity>): Promise<MemoryEntity | undefined> {
+    const [row] = await db.update(memoryEntities).set(updates)
+      .where(and(eq(memoryEntities.id, id), eq(memoryEntities.userId, userId))).returning();
+    return row;
+  }
+
+  async deleteMemoryEntity(userId: string, id: string): Promise<boolean> {
+    const result = await db.delete(memoryEntities)
+      .where(and(eq(memoryEntities.id, id), eq(memoryEntities.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  async getMemoryConnections(userId: string): Promise<MemoryConnection[]> {
+    return await db.select().from(memoryConnections)
+      .where(eq(memoryConnections.userId, userId))
+      .orderBy(desc(memoryConnections.strength));
+  }
+
+  async getMemoryConnectionsBetween(userId: string, sourceId: string, targetId: string): Promise<MemoryConnection[]> {
+    return await db.select().from(memoryConnections)
+      .where(and(
+        eq(memoryConnections.userId, userId),
+        eq(memoryConnections.sourceId, sourceId),
+        eq(memoryConnections.targetId, targetId)
+      ));
+  }
+
+  async createMemoryConnection(userId: string, connection: InsertMemoryConnection): Promise<MemoryConnection> {
+    const [row] = await db.insert(memoryConnections).values({ ...connection, userId }).returning();
+    return row;
+  }
+
+  async updateMemoryConnection(userId: string, id: string, updates: Partial<InsertMemoryConnection>): Promise<MemoryConnection | undefined> {
+    const [row] = await db.update(memoryConnections).set(updates)
+      .where(and(eq(memoryConnections.id, id), eq(memoryConnections.userId, userId))).returning();
+    return row;
+  }
+
+  async deleteMemoryConnection(userId: string, id: string): Promise<boolean> {
+    const result = await db.delete(memoryConnections)
+      .where(and(eq(memoryConnections.id, id), eq(memoryConnections.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  async getMemoryNarratives(userId: string): Promise<MemoryNarrative[]> {
+    return await db.select().from(memoryNarratives)
+      .where(eq(memoryNarratives.userId, userId))
+      .orderBy(desc(memoryNarratives.confidence));
+  }
+
+  async upsertMemoryNarrative(userId: string, narrative: InsertMemoryNarrative): Promise<MemoryNarrative> {
+    // Check if a narrative with this key exists
+    const [existing] = await db.select().from(memoryNarratives)
+      .where(and(
+        eq(memoryNarratives.userId, userId),
+        eq(memoryNarratives.narrativeKey, narrative.narrativeKey)
+      ));
+
+    if (existing) {
+      const [row] = await db.update(memoryNarratives).set({
+        narrative: narrative.narrative,
+        supportingEntityIds: narrative.supportingEntityIds,
+        confidence: narrative.confidence,
+        lastUpdated: new Date(),
+      }).where(eq(memoryNarratives.id, existing.id)).returning();
+      return row;
+    }
+
+    const [row] = await db.insert(memoryNarratives).values({ ...narrative, userId }).returning();
+    return row;
+  }
+
+  async deleteMemoryNarrative(userId: string, id: string): Promise<boolean> {
+    const result = await db.delete(memoryNarratives)
+      .where(and(eq(memoryNarratives.id, id), eq(memoryNarratives.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  async getMemoryProcessingLog(userId: string): Promise<MemoryProcessingLogEntry[]> {
+    return await db.select().from(memoryProcessingLog)
+      .where(eq(memoryProcessingLog.userId, userId));
+  }
+
+  async markMemoryProcessed(userId: string, sourceType: string, sourceId: string): Promise<void> {
+    await db.insert(memoryProcessingLog).values({ userId, sourceType, sourceId });
+  }
+
+  async clearMemoryGraph(userId: string): Promise<void> {
+    await db.delete(memoryConnections).where(eq(memoryConnections.userId, userId));
+    await db.delete(memoryEntities).where(eq(memoryEntities.userId, userId));
+    await db.delete(memoryNarratives).where(eq(memoryNarratives.userId, userId));
+    await db.delete(memoryProcessingLog).where(eq(memoryProcessingLog.userId, userId));
   }
 }
 
