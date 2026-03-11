@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { createPortal } from "react-dom";
+import logoUrl from "@assets/ChatGPT_Image_Jan_10,_2026,_05_13_01_PM_1768050787078.png";
 
 interface VoiceInputButtonProps {
   onTranscript: (text: string) => void;
@@ -14,14 +15,47 @@ interface VoiceInputButtonProps {
   size?: "default" | "sm" | "lg" | "icon";
 }
 
+const listeningMessages = [
+  "I'm right here...",
+  "Take your time...",
+  "I'm listening...",
+  "Tell me everything...",
+  "Go ahead, I'm here...",
+];
+
+const transcribingMessages = [
+  "Let me think about that...",
+  "Processing what you said...",
+  "I heard you...",
+  "One moment...",
+];
+
 function ListeningOverlay({ onStop, isTranscribing }: { onStop: () => void; isTranscribing: boolean }) {
   const [elapsed, setElapsed] = useState(0);
+  const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
-    if (isTranscribing) return;
+    setMessageIndex(Math.floor(Math.random() * listeningMessages.length));
+  }, []);
+
+  useEffect(() => {
+    if (isTranscribing) {
+      setMessageIndex(Math.floor(Math.random() * transcribingMessages.length));
+      return;
+    }
     const interval = setInterval(() => setElapsed((p) => p + 1), 1000);
     return () => clearInterval(interval);
   }, [isTranscribing]);
+
+  useEffect(() => {
+    if (isTranscribing) return;
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % listeningMessages.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [isTranscribing]);
+
+  const messages = isTranscribing ? transcribingMessages : listeningMessages;
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -34,110 +68,160 @@ function ListeningOverlay({ onStop, isTranscribing }: { onStop: () => void; isTr
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.4 }}
       className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
-      style={{ background: "radial-gradient(ellipse at center, rgba(139,92,246,0.15) 0%, rgba(0,0,0,0.85) 70%)" }}
+      style={{
+        background: "radial-gradient(ellipse at center, rgba(88, 28, 135, 0.25) 0%, rgba(15, 10, 30, 0.95) 60%, rgba(5, 2, 15, 0.98) 100%)",
+      }}
       onClick={!isTranscribing ? onStop : undefined}
     >
-      <div className="relative flex items-center justify-center mb-8">
-        {!isTranscribing && (
-          <>
-            {[0, 1, 2, 3].map((i) => (
-              <motion.div
-                key={i}
-                className="absolute rounded-full border"
-                style={{
-                  borderColor: i % 2 === 0 
-                    ? "rgba(139, 92, 246, 0.3)" 
-                    : "rgba(168, 85, 247, 0.2)",
-                }}
-                initial={{ width: 80, height: 80, opacity: 0.6 }}
-                animate={{
-                  width: [80 + i * 40, 120 + i * 50, 80 + i * 40],
-                  height: [80 + i * 40, 120 + i * 50, 80 + i * 40],
-                  opacity: [0.6 - i * 0.1, 0.3 - i * 0.05, 0.6 - i * 0.1],
-                }}
-                transition={{
-                  duration: 2.5 + i * 0.4,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: i * 0.3,
-                }}
-              />
-            ))}
-          </>
-        )}
+      <div className="relative flex items-center justify-center" style={{ width: 320, height: 320 }}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <motion.div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              background: `radial-gradient(circle, transparent 60%, ${
+                i % 2 === 0
+                  ? "rgba(139, 92, 246, 0.08)"
+                  : "rgba(192, 132, 252, 0.06)"
+              } 100%)`,
+              border: `1px solid ${
+                i % 2 === 0
+                  ? "rgba(139, 92, 246, 0.15)"
+                  : "rgba(192, 132, 252, 0.1)"
+              }`,
+            }}
+            animate={
+              isTranscribing
+                ? {
+                    width: [140 + i * 35, 160 + i * 35, 140 + i * 35],
+                    height: [140 + i * 35, 160 + i * 35, 140 + i * 35],
+                    opacity: [0.5 - i * 0.08, 0.3 - i * 0.05, 0.5 - i * 0.08],
+                    rotate: [0, i % 2 === 0 ? 5 : -5, 0],
+                  }
+                : {
+                    width: [140 + i * 35, 190 + i * 45, 140 + i * 35],
+                    height: [140 + i * 35, 190 + i * 45, 140 + i * 35],
+                    opacity: [0.6 - i * 0.08, 0.25 - i * 0.04, 0.6 - i * 0.08],
+                    rotate: [0, i % 2 === 0 ? 8 : -8, 0],
+                  }
+            }
+            transition={{
+              duration: isTranscribing ? 2 + i * 0.3 : 3 + i * 0.5,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: i * 0.2,
+            }}
+          />
+        ))}
 
         <motion.div
-          className="relative z-10 rounded-full flex items-center justify-center"
-          style={{
-            width: 90,
-            height: 90,
-            background: isTranscribing
-              ? "linear-gradient(135deg, rgba(139,92,246,0.3), rgba(79,70,229,0.3))"
-              : "linear-gradient(135deg, rgba(139,92,246,0.5), rgba(236,72,153,0.4))",
-            boxShadow: isTranscribing
-              ? "0 0 40px rgba(139,92,246,0.2)"
-              : "0 0 60px rgba(139,92,246,0.4), 0 0 120px rgba(139,92,246,0.15)",
-          }}
+          className="relative z-10"
           animate={
             isTranscribing
-              ? { scale: [1, 1.05, 1] }
+              ? {
+                  scale: [1, 1.04, 1],
+                  filter: [
+                    "brightness(1) drop-shadow(0 0 30px rgba(139,92,246,0.4))",
+                    "brightness(1.1) drop-shadow(0 0 50px rgba(139,92,246,0.5))",
+                    "brightness(1) drop-shadow(0 0 30px rgba(139,92,246,0.4))",
+                  ],
+                }
               : {
-                  scale: [1, 1.12, 1],
-                  boxShadow: [
-                    "0 0 60px rgba(139,92,246,0.4), 0 0 120px rgba(139,92,246,0.15)",
-                    "0 0 80px rgba(139,92,246,0.6), 0 0 160px rgba(139,92,246,0.25)",
-                    "0 0 60px rgba(139,92,246,0.4), 0 0 120px rgba(139,92,246,0.15)",
+                  scale: [1, 1.08, 1],
+                  filter: [
+                    "brightness(1.05) drop-shadow(0 0 40px rgba(139,92,246,0.5))",
+                    "brightness(1.25) drop-shadow(0 0 80px rgba(139,92,246,0.7)) drop-shadow(0 0 120px rgba(168,85,247,0.3))",
+                    "brightness(1.05) drop-shadow(0 0 40px rgba(139,92,246,0.5))",
                   ],
                 }
           }
-          transition={{ duration: isTranscribing ? 1.5 : 2.5, repeat: Infinity, ease: "easeInOut" }}
+          transition={{
+            duration: isTranscribing ? 2 : 3,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
         >
-          {isTranscribing ? (
-            <Loader2 className="w-10 h-10 text-white/90 animate-spin" />
-          ) : (
-            <Mic className="w-10 h-10 text-white/90" />
-          )}
+          <img
+            src={logoUrl}
+            alt="Orbia"
+            className="w-32 h-32 object-contain"
+          />
         </motion.div>
+
+        {!isTranscribing && (
+          <motion.div
+            className="absolute z-20"
+            style={{ bottom: 20 }}
+            animate={{
+              scale: [1, 1.15, 1],
+              opacity: [0.9, 1, 0.9],
+            }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <div className="flex items-center gap-1.5">
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full bg-violet-400"
+                  animate={{
+                    scale: [1, 1.8, 1],
+                    opacity: [0.4, 1, 0.4],
+                  }}
+                  transition={{
+                    duration: 1,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: i * 0.2,
+                  }}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
       </div>
 
-      <motion.p
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="text-white/90 text-xl font-medium mb-2"
-      >
-        {isTranscribing ? "Understanding you..." : "Listening..."}
-      </motion.p>
+      <AnimatePresence mode="wait">
+        <motion.p
+          key={messageIndex}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.5 }}
+          className="text-violet-200/90 text-xl font-light tracking-wide mt-2 mb-2"
+        >
+          {messages[messageIndex % messages.length]}
+        </motion.p>
+      </AnimatePresence>
 
       {!isTranscribing && (
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="text-white/40 text-sm mb-8"
+          transition={{ delay: 0.6 }}
+          className="text-white/25 text-xs mb-10"
         >
-          {formatTime(elapsed)} — tap anywhere to stop
+          {formatTime(elapsed)}
         </motion.p>
       )}
 
       {isTranscribing && (
-        <motion.p
+        <motion.div
+          className="flex items-center gap-2 mb-10 mt-1"
           initial={{ opacity: 0 }}
-          animate={{ opacity: [0.4, 0.8, 0.4] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="text-violet-300/60 text-sm mb-8"
+          animate={{ opacity: 1 }}
         >
-          Processing your voice...
-        </motion.p>
+          <Loader2 className="w-3.5 h-3.5 text-violet-400/60 animate-spin" />
+          <span className="text-violet-300/40 text-xs">Transcribing...</span>
+        </motion.div>
       )}
 
       {!isTranscribing && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.8 }}
         >
           <Button
             variant="outline"
@@ -146,10 +230,10 @@ function ListeningOverlay({ onStop, isTranscribing }: { onStop: () => void; isTr
               e.stopPropagation();
               onStop();
             }}
-            className="rounded-full border-white/20 text-white/80 hover:text-white hover:bg-white/10 gap-2 px-6"
+            className="rounded-full border-violet-500/20 bg-violet-500/10 text-violet-200/80 hover:text-white hover:bg-violet-500/20 gap-2 px-8 backdrop-blur-sm"
           >
-            <MicOff className="w-5 h-5" />
-            Stop Recording
+            <MicOff className="w-4 h-4" />
+            Done
           </Button>
         </motion.div>
       )}
