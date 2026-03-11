@@ -19,8 +19,9 @@ const anthropic = new Anthropic({
   baseURL: process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL,
 });
 
-export const MODEL_PRIMARY = "claude-sonnet-4-6";
-export const MODEL_FAST = "claude-haiku-4-5";
+export const MODEL_PRIMARY = "claude-opus-4";
+export const MODEL_FAST = "claude-sonnet-4-6";
+export const MODEL_MICRO = "claude-haiku-4-5";
 
 interface Message {
   role: "user" | "assistant" | "system";

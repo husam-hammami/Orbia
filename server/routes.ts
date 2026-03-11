@@ -3259,23 +3259,43 @@ MERCHANT FIELD:
   app.post("/api/orbit/chat", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const { message, context, history } = req.body;
-      
+      const { message, context, history, therapyMode } = req.body;
+
       if (!message) {
         return res.status(400).json({ error: "Message is required" });
       }
 
-      const { buildUnifiedContextWithMemory, buildUnifiedSystemPrompt } = await import("./lib/unified-context");
+      const { buildUnifiedContextWithMemory, buildUnifiedSystemPrompt, buildTherapeuticPrompt } = await import("./lib/unified-context");
       const { context: unifiedContext, msToken } = await buildUnifiedContextWithMemory(userId, "orbit");
-      const systemPrompt = buildUnifiedSystemPrompt("orbit");
 
-      const orbitSystemPrompt = `${systemPrompt}
+      let orbitSystemPrompt: string;
+      if (therapyMode) {
+        // Load clinical formulation for therapy mode
+        let clinicalContext = "";
+        try {
+          const therapeuticNarratives = await storage.getMemoryNarratives(userId);
+          const clinical = therapeuticNarratives.filter((n: any) => n.domain === "therapeutic");
+          if (clinical.length > 0) {
+            clinicalContext = clinical.map((n: any) => `${n.narrativeKey}: ${n.narrative}`).join("\n");
+          }
+        } catch (err) {
+          console.error("[TherapyMode] Failed to load clinical formulation:", err);
+        }
+        const therapeuticPrompt = buildTherapeuticPrompt(clinicalContext || undefined);
+        orbitSystemPrompt = `${therapeuticPrompt}
+
+## CONTEXT DATA (use silently)
+${unifiedContext}`;
+      } else {
+        const systemPrompt = buildUnifiedSystemPrompt("orbit");
+        orbitSystemPrompt = `${systemPrompt}
 
 ## CONTEXT DATA (use silently)
 ${unifiedContext}
 
 ADDITIONAL OPERATIONAL CONTEXT:
 ${JSON.stringify(context, null, 2)}`;
+      }
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
@@ -3302,7 +3322,7 @@ ${JSON.stringify(context, null, 2)}`;
         chatMessages.unshift({ role: "user", content: "(continuing)" });
       }
 
-      const stream = await createRawStream(systemContent, chatMessages, { model: MODEL_PRIMARY, maxTokens: 800 });
+      const stream = await createRawStream(systemContent, chatMessages, { model: MODEL_PRIMARY, maxTokens: therapyMode ? 2000 : 800 });
 
       let fullResponse = "";
       const executedActions = new Set<string>();
@@ -3491,6 +3511,19 @@ ${JSON.stringify(context, null, 2)}`;
             console.error("[PostChat] Orbit conversation extraction failed:", err);
           }
         })();
+
+        // Therapy mode: post-session reflection & clinical formulation update
+        if (therapyMode) {
+          (async () => {
+            try {
+              const { buildClinicalFormulation } = await import("./lib/memory-graph");
+              await buildClinicalFormulation(userId);
+              console.log("[TherapyMode] Post-session clinical formulation updated");
+            } catch (err) {
+              console.error("[TherapyMode] Post-session reflection failed:", err);
+            }
+          })();
+        }
       }
     } catch (error) {
       console.error("Orbit chat error:", error);

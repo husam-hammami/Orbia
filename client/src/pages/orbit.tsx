@@ -23,7 +23,8 @@ import {
   Check,
   X,
   Bell,
-  Brain
+  Brain,
+  Heart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -102,6 +103,13 @@ const QUICK_CHIPS = [
   { label: "Send a Teams message", prompt: "I want to send a Teams message" },
   { label: "Motivate me!", prompt: "I need some encouragement today" },
   { label: "Health + work check", prompt: "How's my health affecting my work lately?" },
+];
+
+const THERAPY_CHIPS = [
+  { label: "I need to talk", prompt: "I have something on my mind that I need to process" },
+  { label: "Feeling stuck", prompt: "I feel stuck and I'm not sure why" },
+  { label: "Something's off", prompt: "Something feels off today but I can't put my finger on it" },
+  { label: "Check in on me", prompt: "Can you check in on how I've really been doing lately?" },
 ];
 
 function formatMarkdown(text: string): React.ReactNode {
@@ -254,6 +262,7 @@ export default function OrbitPage() {
   const createLoanPayment = useCreateLoanPayment();
 
   const [unloadOpen, setUnloadOpen] = useState(false);
+  const [therapyMode, setTherapyMode] = useState(false);
   
   const logMealMutation = useMutation({
     mutationFn: async (data: { date: string; breakfast?: string; lunch?: string; dinner?: string }) => {
@@ -875,7 +884,8 @@ export default function OrbitPage() {
         body: JSON.stringify({
           message: messageText,
           context,
-          history: messages.slice(-10).map(m => ({ role: m.role, content: m.content }))
+          history: messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
+          therapyMode
         })
       });
 
@@ -1080,19 +1090,58 @@ export default function OrbitPage() {
 
   return (
     <Layout>
-      <div className="h-[calc(100vh-120px)] flex flex-col animate-in fade-in duration-500">
-        <div className="flex items-center justify-between mb-4">
+      <div className={cn(
+        "h-[calc(100vh-120px)] flex flex-col animate-in fade-in duration-500 transition-all",
+        therapyMode && "relative"
+      )}>
+        {/* Therapy mode ambient glow */}
+        {therapyMode && (
+          <div className="absolute inset-0 pointer-events-none z-0">
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: "8s" }} />
+            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: "12s" }} />
+          </div>
+        )}
+        <div className="flex items-center justify-between mb-4 relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-              <OrbitIcon className="w-5 h-5 text-primary-foreground" />
+            <div className={cn(
+              "w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all duration-500",
+              therapyMode
+                ? "bg-gradient-to-br from-amber-500 to-violet-600 shadow-amber-500/30"
+                : "bg-primary shadow-primary/30"
+            )}>
+              {therapyMode
+                ? <Heart className="w-5 h-5 text-white" />
+                : <OrbitIcon className="w-5 h-5 text-primary-foreground" />
+              }
             </div>
             <div>
-              <h1 className="text-2xl font-display font-bold tracking-tight">Orbia</h1>
-              <p className="text-xs text-muted-foreground">Hey Fatima! How can I help?</p>
+              <h1 className="text-2xl font-display font-bold tracking-tight">
+                {therapyMode ? "Go Deeper" : "Orbia"}
+              </h1>
+              <p className={cn(
+                "text-xs transition-colors duration-500",
+                therapyMode ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground"
+              )}>
+                {therapyMode ? "A safe space to explore what's underneath" : "Hey! How can I help?"}
+              </p>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
+            <Button
+              variant={therapyMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setTherapyMode(!therapyMode)}
+              className={cn(
+                "text-xs gap-1.5 transition-all duration-500",
+                therapyMode
+                  ? "bg-gradient-to-r from-amber-600 to-violet-600 hover:from-amber-700 hover:to-violet-700 text-white border-0 shadow-lg shadow-amber-500/20"
+                  : "border-amber-400/40 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+              )}
+            >
+              <Heart className={cn("w-3.5 h-3.5", therapyMode && "animate-pulse")} />
+              {therapyMode ? "Deeper" : "Go Deeper"}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -1137,18 +1186,32 @@ export default function OrbitPage() {
           ))}
         </AnimatePresence>
 
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col min-h-0 relative z-10">
           <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
             <div className="space-y-4 pb-4">
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                    <OrbitIcon className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">Hi Fatima!</h3>
-                  <p className="text-sm text-muted-foreground max-w-sm">
-                    I'm here to help you stay on track. Ask me about your goals, get help with job hunting, or just chat about your day!
-                  </p>
+                  {therapyMode ? (
+                    <>
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/10 to-violet-500/10 flex items-center justify-center mb-4">
+                        <Heart className="w-8 h-8 text-amber-500" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2">I'm here</h3>
+                      <p className="text-sm text-muted-foreground max-w-sm">
+                        No agenda. No rush. Say whatever comes to mind — or just sit here for a moment. This space is yours.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                        <OrbitIcon className="w-8 h-8 text-primary" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2">Hi there!</h3>
+                      <p className="text-sm text-muted-foreground max-w-sm">
+                        I'm here to help you stay on track. Ask me about your goals, get help with tasks, or just chat about your day!
+                      </p>
+                    </>
+                  )}
                 </div>
               )}
               
@@ -1165,10 +1228,14 @@ export default function OrbitPage() {
                     )}
                   >
                     <div className={cn(
-                      "max-w-[80%] rounded-2xl px-4 py-3 shadow-sm",
-                      message.role === "user" 
-                        ? "bg-primary text-primary-foreground" 
-                        : "bg-muted/80 text-foreground border border-border/50"
+                      "max-w-[80%] rounded-2xl px-4 py-3 shadow-sm transition-colors duration-500",
+                      message.role === "user"
+                        ? therapyMode
+                          ? "bg-gradient-to-r from-amber-600 to-amber-700 text-white"
+                          : "bg-primary text-primary-foreground"
+                        : therapyMode
+                          ? "bg-gradient-to-br from-amber-50/80 to-violet-50/80 dark:from-amber-950/30 dark:to-violet-950/30 text-foreground border border-amber-200/30 dark:border-amber-800/30"
+                          : "bg-muted/80 text-foreground border border-border/50"
                     )}>
                       <p className="text-sm whitespace-pre-wrap leading-relaxed">
                         {message.role === "assistant" ? formatMarkdown(message.content) : message.content}
@@ -1222,14 +1289,19 @@ export default function OrbitPage() {
           </ScrollArea>
 
           <div className="flex flex-wrap gap-2 mb-3">
-            {QUICK_CHIPS.map((chip) => (
+            {(therapyMode ? THERAPY_CHIPS : QUICK_CHIPS).map((chip) => (
               <Button
                 key={chip.label}
                 variant="outline"
                 size="sm"
                 onClick={() => handleSend(chip.prompt)}
                 disabled={isLoading}
-                className="text-xs hover:bg-accent hover:text-accent-foreground"
+                className={cn(
+                  "text-xs",
+                  therapyMode
+                    ? "border-amber-400/30 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                    : "hover:bg-accent hover:text-accent-foreground"
+                )}
                 data-testid={`chip-${chip.label.toLowerCase().replace(/\s+/g, "-")}`}
               >
                 {chip.label}
@@ -1243,7 +1315,7 @@ export default function OrbitPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-              placeholder="Chat with Orbia..."
+              placeholder={therapyMode ? "What's on your mind..." : "Chat with Orbia..."}
               disabled={isLoading}
               className="flex-1 bg-background border-input focus:border-primary"
               data-testid="input-orbit-message"

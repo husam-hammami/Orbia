@@ -1256,3 +1256,217 @@ function pearsonCorrelation(x: number[], y: number[]): number {
 
   return denominator === 0 ? 0 : numerator / denominator;
 }
+
+// ============================================================
+// 8. CLINICAL FORMULATION — Background therapeutic analyst
+// ============================================================
+
+/**
+ * Build a deep clinical formulation from all cross-domain data.
+ * Uses Opus to analyze tracker patterns, journal entries, conversation memories,
+ * habit adherence, routine compliance, medical data, and personal profile
+ * to produce a structured therapeutic formulation.
+ *
+ * Stored as memory narratives under domain: "therapeutic".
+ * Evolves over time — each run refines rather than replaces.
+ */
+export async function buildClinicalFormulation(userId: string): Promise<void> {
+  // Gather all available data
+  const [
+    entities,
+    narratives,
+    trackerEntries,
+    journalEntries,
+    habits,
+    habitCompletions,
+  ] = await Promise.all([
+    storage.getMemoryEntities(userId),
+    storage.getMemoryNarratives(userId),
+    storage.getRecentTrackerEntries(userId, 60),
+    storage.getAllJournalEntries(userId),
+    storage.getAllHabits(userId),
+    storage.getAllHabitCompletions(userId),
+  ]);
+
+  // Need minimum data to build a formulation
+  if (trackerEntries.length < 5 && journalEntries.length < 3 && entities.length < 5) {
+    return;
+  }
+
+  // Build data summary for the analyst
+  const existingTherapeutic = narratives
+    .filter((n) => n.domain === "therapeutic")
+    .map((n) => `[${n.narrativeKey}] ${n.narrative}`)
+    .join("\n");
+
+  const identityEntities = entities
+    .filter((e) => e.category === "identity" || ["preference", "interest", "like", "dislike", "value", "personality_trait", "communication_style"].includes(e.entityType))
+    .map((e) => `- [${e.entityType}] ${e.summary}`)
+    .join("\n");
+
+  const patternEntities = entities
+    .filter((e) => e.entityType === "pattern" || e.entityType === "trigger" || e.entityType === "state")
+    .sort((a, b) => b.importance - a.importance)
+    .slice(0, 20)
+    .map((e) => `- [${e.entityType}/${e.category}] ${e.name}: ${e.summary} (importance: ${e.importance.toFixed(2)})`)
+    .join("\n");
+
+  const otherNarratives = narratives
+    .filter((n) => n.domain !== "therapeutic")
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, 10)
+    .map((n) => `- [${n.domain}] ${n.narrative}`)
+    .join("\n");
+
+  // Tracker data summary
+  const trackerSummary = trackerEntries.slice(0, 30).map((e: any) => {
+    const parts = [`mood:${e.mood || "?"}`, `energy:${e.energy || "?"}`, `stress:${e.stress || "?"}`];
+    if (e.dissociation) parts.push(`dissociation:${e.dissociation}`);
+    if (e.pain) parts.push(`pain:${e.pain}`);
+    if (e.sleepHours) parts.push(`sleep:${e.sleepHours}h`);
+    if (e.notes) parts.push(`notes:"${e.notes.slice(0, 80)}"`);
+    return `${new Date(e.timestamp).toISOString().split("T")[0]}: ${parts.join(", ")}`;
+  }).join("\n");
+
+  // Journal summary (most recent, most emotional)
+  const recentJournals = journalEntries
+    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 10)
+    .map((j: any) => `[${j.entryType || "reflection"}, mood:${j.mood || "?"}, energy:${j.energy || "?"}] "${(j.content || "").slice(0, 200)}"`)
+    .join("\n\n");
+
+  // Habit adherence
+  const habitSummary = habits.map((h: any) => {
+    const completionCount = habitCompletions.filter((c: any) => c.habitId === h.id).length;
+    return `- ${h.title} (${h.category}): ${completionCount} completions, streak: ${h.streak || 0}`;
+  }).join("\n");
+
+  try {
+    const responseText = await aiComplete(
+      [
+        {
+          role: "system",
+          content: `You are an expert integrative clinical psychologist conducting a comprehensive case formulation. You draw from CBT, IFS (Internal Family Systems), ACT (Acceptance and Commitment Therapy), attachment theory, somatic psychology, and narrative therapy.
+
+You are reviewing a person's complete data file — their daily mood/energy/stress tracking, journal entries, behavioral patterns, personality profile, and AI-synthesized narratives about their life. Your job is to produce a structured clinical formulation that will guide a therapeutic AI in future sessions.
+
+${existingTherapeutic ? `PREVIOUS FORMULATION (refine and evolve, don't start from scratch):\n${existingTherapeutic}\n` : ""}
+
+Return JSON with this exact structure:
+{
+  "formulation": [
+    {
+      "key": "core_beliefs",
+      "narrative": "Deep analysis of their core beliefs about self, others, and the world. Cite specific evidence from the data.",
+      "confidence": 0.0-1.0
+    },
+    {
+      "key": "defense_mechanisms",
+      "narrative": "Observed patterns of psychological defense — avoidance, intellectualization, deflection, humor-as-shield, etc.",
+      "confidence": 0.0-1.0
+    },
+    {
+      "key": "emotional_regulation",
+      "narrative": "How they handle distress. What works, what doesn't. Specific strategies observed.",
+      "confidence": 0.0-1.0
+    },
+    {
+      "key": "attachment_patterns",
+      "narrative": "How they relate to people. Dependency, trust, closeness patterns.",
+      "confidence": 0.0-1.0
+    },
+    {
+      "key": "cognitive_distortions",
+      "narrative": "Specific cognitive distortions observed with examples — catastrophizing, all-or-nothing, mind-reading, etc.",
+      "confidence": 0.0-1.0
+    },
+    {
+      "key": "recurring_themes",
+      "narrative": "What keeps coming up across their data — the threads that run through everything.",
+      "confidence": 0.0-1.0
+    },
+    {
+      "key": "growth_edges",
+      "narrative": "Where they're ready to be gently challenged vs where they need more safety first.",
+      "confidence": 0.0-1.0
+    },
+    {
+      "key": "unprocessed_material",
+      "narrative": "Experiences or feelings that surface indirectly but haven't been worked through.",
+      "confidence": 0.0-1.0
+    },
+    {
+      "key": "protective_factors",
+      "narrative": "Strengths, relationships, values, routines that serve as anchors and sources of resilience.",
+      "confidence": 0.0-1.0
+    }
+  ]
+}
+
+RULES:
+- Only include formulation elements where you have genuine evidence. Skip elements with insufficient data (return fewer than 9 if needed).
+- Be deeply specific. Not "they have low mood sometimes" but "mood crashes cluster around [specific pattern] and seem connected to [specific trigger], suggesting [clinical interpretation]."
+- Reference actual data points — journal themes, tracker patterns, behavioral trends.
+- Write as clinical case notes, not as advice to the patient. This is for the therapist's eyes only.
+- If a previous formulation exists, evolve it: strengthen what's confirmed, soften what's contradicted, add new observations.
+- Confidence: based on how much evidence supports each element. Low data = low confidence. Repeated patterns = high confidence.
+- Each narrative should be 2-4 sentences. Dense, clinical, evidence-based.`,
+        },
+        {
+          role: "user",
+          content: `PATIENT DATA FILE:
+
+=== PERSONALITY & IDENTITY ===
+${identityEntities || "No identity data yet."}
+
+=== DETECTED PATTERNS & TRIGGERS ===
+${patternEntities || "No patterns detected yet."}
+
+=== AI NARRATIVES (cross-domain understanding) ===
+${otherNarratives || "No narratives generated yet."}
+
+=== RECENT TRACKER DATA (daily mood/energy/stress/sleep) ===
+${trackerSummary || "No tracker data."}
+
+=== JOURNAL ENTRIES ===
+${recentJournals || "No journal entries."}
+
+=== HABIT ADHERENCE ===
+${habitSummary || "No habits tracked."}
+
+Please produce the clinical formulation.`,
+        },
+      ],
+      { maxTokens: 3000, temperature: 0.3 }
+    );
+
+    const parsed = JSON.parse(responseText || "{}");
+    const formulation = parsed.formulation || [];
+
+    // Store each formulation element as a therapeutic narrative
+    for (const element of formulation) {
+      if (!element.key || !element.narrative) continue;
+
+      // Find supporting entities
+      const supportingIds = entities
+        .filter((e) =>
+          element.narrative.toLowerCase().includes(e.name.toLowerCase()) ||
+          (e.category === "identity" && element.key === "core_beliefs") ||
+          (e.entityType === "trigger" && element.key === "recurring_themes")
+        )
+        .slice(0, 5)
+        .map((e) => e.id);
+
+      await storage.upsertMemoryNarrative(userId, {
+        userId,
+        domain: "therapeutic",
+        narrativeKey: element.key,
+        narrative: element.narrative,
+        supportingEntityIds: supportingIds,
+        confidence: element.confidence || 0.5,
+      });
+    }
+  } catch (err) {
+    console.error("[ClinicalAnalyst] Formulation failed:", err);
+  }
+}
