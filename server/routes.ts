@@ -5272,7 +5272,7 @@ ${unifiedContext}${extraMedContext}`;
       if (!token) return res.status(401).json({ error: "Microsoft account not connected" });
 
       const allEmails = await getRecentEmails(token, 20);
-      const emailsList = (allEmails?.value || []).slice(0, 8);
+      const emailsList = (allEmails?.value || []).slice(0, 10);
       if (emailsList.length === 0) return res.json({});
 
       const OpenAI = (await import("openai")).default;
@@ -5283,9 +5283,9 @@ ${unifiedContext}${extraMedContext}`;
 
       const emailData = emailsList.map((e: any, i: number) => {
         const from = e.from?.emailAddress?.name || e.from?.emailAddress?.address || "Unknown";
-        const subject = (e.subject || "No subject").substring(0, 100);
-        const preview = (e.bodyPreview || "").substring(0, 150);
-        return `${i + 1}. From: ${from} | Subject: ${subject} | Preview: ${preview}`;
+        const subject = (e.subject || "No subject").substring(0, 80);
+        const preview = (e.bodyPreview || "").substring(0, 120);
+        return `${i + 1}. From: ${from} | Subject: ${subject} | Latest message preview: ${preview}`;
       }).join("\n");
 
       const response = await openai.chat.completions.create({
@@ -5293,15 +5293,15 @@ ${unifiedContext}${extraMedContext}`;
         messages: [
           {
             role: "system",
-            content: `You summarize emails. Return ONLY a valid JSON object mapping index numbers to summaries. Each summary should be a concise sentence (max 55 chars) describing who sent it and what it's about. Example: {"1":"Job alert from LinkedIn for architect roles","2":"Meeting invite from John for project sync"}`
+            content: `Summarize ONLY the latest/most recent message in each email — ignore older replies, forwarded threads, or quoted history. Return ONLY a valid JSON object mapping index numbers (as strings) to summaries. Each summary: max 50 chars, plain language, no sender name (already shown separately). Focus on what the latest message says or asks. Examples: {"1":"New architect role in Germany (remote)","2":"Final test results are ready","3":"Livestream schedule update"}`
           },
           {
             role: "user",
-            content: `Summarize each email:\n${emailData}`
+            content: emailData
           }
         ],
         temperature: 0.2,
-        max_tokens: 500,
+        max_tokens: 400,
       });
 
       const raw = response.choices[0]?.message?.content || "{}";
@@ -5315,7 +5315,7 @@ ${unifiedContext}${extraMedContext}`;
       emailsList.forEach((e: any, i: number) => {
         const summary = parsed[String(i + 1)];
         if (e.id && summary && typeof summary === "string") {
-          result[e.id] = summary.substring(0, 80);
+          result[e.id] = summary.substring(0, 70);
         }
       });
 
