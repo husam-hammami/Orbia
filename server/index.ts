@@ -111,16 +111,19 @@ async function ensureDefaultUsers() {
     const dbInfo = await db.execute(sql`SELECT current_database()`);
     console.log(`[startup] Connected to database: ${(dbInfo.rows[0] as any)?.current_database}`);
 
+    // Ensure bio column exists (added for user profile feature)
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT`).catch(() => {});
+
     const existing = await db.execute(sql`SELECT id, display_name FROM users`);
     console.log(`[startup] Found ${existing.rows.length} users in database`);
 
     if (existing.rows.length === 0) {
       console.log(`[startup] No users found — seeding default users`);
-      const fatimaHash = await bcrypt.hash("IwillBeBetter", 12);
+      const defaultHash = await bcrypt.hash("IwillBeBetter", 12);
       const demoHash = await bcrypt.hash("Demo", 12);
       await db.execute(sql`
         INSERT INTO users (id, password_hash, display_name, created_at) VALUES
-        ('cfa63f09-8307-4759-bc52-8ac75f7cbf87', ${fatimaHash}, 'Fatima', NOW()),
+        ('cfa63f09-8307-4759-bc52-8ac75f7cbf87', ${defaultHash}, 'User', NOW()),
         ('91653702-7ee6-45a2-b493-9ac905ec3dbc', ${demoHash}, 'Demo User', NOW())
         ON CONFLICT (id) DO UPDATE SET password_hash = EXCLUDED.password_hash
       `);

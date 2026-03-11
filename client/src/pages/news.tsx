@@ -96,6 +96,14 @@ const categoryIcons: Record<string, any> = {
   ai: Brain
 };
 
+function getCategoryIcon(category: string) {
+  return categoryIcons[category] || Globe;
+}
+
+function getCategoryColor(category: string) {
+  return categoryColors[category] || "bg-muted text-muted-foreground border-border";
+}
+
 const categoryColors: Record<string, string> = {
   teaching: "bg-primary/10 text-primary border-primary/20",
   cybersecurity: "bg-accent/80 text-accent-foreground border-accent",
@@ -150,6 +158,10 @@ const categoryLabels: Record<string, string> = {
   productivity: "Productivity",
   ai: "AI"
 };
+
+function getCategoryLabel(category: string): string {
+  return categoryLabels[category] || category.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+}
 
 function TopicManager({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
@@ -206,8 +218,8 @@ function TopicManager({ onClose }: { onClose: () => void }) {
           <h4 className="text-sm font-semibold mb-3 text-foreground">Your Topics</h4>
           <div className="flex flex-wrap gap-2">
             {userTopics.map(topic => {
-              const Icon = categoryIcons[topic.topic] || Globe;
-              const colorClass = categoryColors[topic.topic] || "bg-muted text-muted-foreground";
+              const Icon = getCategoryIcon(topic.topic);
+              const colorClass = getCategoryColor(topic.topic);
               return (
                 <motion.button
                   key={topic.id}
@@ -238,7 +250,7 @@ function TopicManager({ onClose }: { onClose: () => void }) {
           </h4>
           <div className="space-y-2">
             {suggestions.suggestions.filter(s => !activeTopicIds.has(s.topic)).slice(0, 5).map(suggestion => {
-              const Icon = categoryIcons[suggestion.topic] || Globe;
+              const Icon = getCategoryIcon(suggestion.topic);
               return (
                 <motion.button
                   key={suggestion.topic}
@@ -248,7 +260,7 @@ function TopicManager({ onClose }: { onClose: () => void }) {
                   onClick={() => addTopic.mutate({ topic: suggestion.topic })}
                   data-testid={`topic-add-${suggestion.topic}`}
                 >
-                  <div className={cn("p-2 rounded-lg", categoryColors[suggestion.topic] || "bg-muted")}>
+                  <div className={cn("p-2 rounded-lg", getCategoryColor(suggestion.topic))}>
                     <Icon className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -267,7 +279,7 @@ function TopicManager({ onClose }: { onClose: () => void }) {
         <h4 className="text-sm font-semibold mb-3 text-foreground">All Topics</h4>
         <div className="flex flex-wrap gap-2">
           {suggestions?.allTopics?.filter(t => !activeTopicIds.has(t.topic)).map(topic => {
-            const Icon = categoryIcons[topic.topic] || Globe;
+            const Icon = getCategoryIcon(topic.topic);
             return (
               <button
                 key={topic.topic}
@@ -334,8 +346,8 @@ function CustomTopicInput({ onAdd }: { onAdd: (topic: string) => void }) {
 
 function ArticleCard({ article, index }: { article: NewsArticle; index: number }) {
   const queryClient = useQueryClient();
-  const Icon = categoryIcons[article.category] || Globe;
-  const colorClass = categoryColors[article.category] || "bg-muted text-muted-foreground border-muted";
+  const Icon = getCategoryIcon(article.category);
+  const colorClass = getCategoryColor(article.category);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -390,7 +402,7 @@ function ArticleCard({ article, index }: { article: NewsArticle; index: number }
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
               <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide", colorClass)} data-testid={`article-category-${index}`}>
-                {categoryLabels[article.category] || article.category}
+                {getCategoryLabel(article.category)}
               </span>
             </div>
             
@@ -405,6 +417,11 @@ function ArticleCard({ article, index }: { article: NewsArticle; index: number }
             )}
             
             <div className="flex items-center gap-3 mt-2.5 text-[10px] text-muted-foreground">
+              {article.source && (
+                <span className="font-medium text-foreground/60" data-testid={`article-source-${index}`}>
+                  {article.source}
+                </span>
+              )}
               {article.pubDate && (
                 <span className="flex items-center gap-1" data-testid={`article-time-${index}`}>
                   <Clock className="w-3 h-3" />
@@ -446,8 +463,8 @@ function ArticleCard({ article, index }: { article: NewsArticle; index: number }
 
 function SavedArticleCard({ article, index }: { article: SavedArticle; index: number }) {
   const queryClient = useQueryClient();
-  const Icon = categoryIcons[article.category] || Globe;
-  const colorClass = categoryColors[article.category] || "bg-muted text-muted-foreground";
+  const Icon = getCategoryIcon(article.category);
+  const colorClass = getCategoryColor(article.category);
 
   const removeMutation = useMutation({
     mutationFn: async () => {
@@ -483,7 +500,7 @@ function SavedArticleCard({ article, index }: { article: SavedArticle; index: nu
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase", colorClass)} data-testid={`saved-category-${index}`}>
-                {categoryLabels[article.category] || article.category}
+                {getCategoryLabel(article.category)}
               </span>
               <span className="text-[10px] text-muted-foreground" data-testid={`saved-time-${index}`}>
                 Saved {formatTimeAgo(article.createdAt)}
@@ -657,7 +674,7 @@ export default function NewsPage() {
                       All ({data.articles?.length || 0})
                     </button>
                     {data.topics.map((topic, idx) => {
-                      const Icon = categoryIcons[topic] || Globe;
+                      const Icon = getCategoryIcon(topic);
                       const topicName = data.topicNames?.[idx] || topic;
                       const count = data.articles?.filter(a => a.category === topic).length || 0;
                       return (

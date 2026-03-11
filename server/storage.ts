@@ -105,6 +105,8 @@ import {
   type InsertMedVaultDocument,
   microsoftConnections,
   type MicrosoftConnection,
+  type User,
+  users,
   type InsertMicrosoftConnection,
   scheduledMessages,
   type ScheduledMessage,
@@ -125,6 +127,10 @@ import { db } from "./db";
 import { eq, desc, and, asc, inArray } from "drizzle-orm";
 
 export interface IStorage {
+  // User Profile
+  getUserProfile(userId: string): Promise<{ displayName: string | null; bio: string | null }>;
+  updateUserProfile(userId: string, data: { displayName?: string; bio?: string }): Promise<User>;
+
   // System Members
   getAllMembers(userId: string): Promise<SystemMember[]>;
   getMember(userId: string, id: string): Promise<SystemMember | undefined>;
@@ -383,6 +389,17 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // User Profile
+  async getUserProfile(userId: string): Promise<{ displayName: string | null; bio: string | null }> {
+    const result = await db.select({ displayName: users.displayName, bio: users.bio }).from(users).where(eq(users.id, userId));
+    return result[0] || { displayName: null, bio: null };
+  }
+
+  async updateUserProfile(userId: string, data: { displayName?: string; bio?: string }): Promise<User> {
+    const result = await db.update(users).set(data).where(eq(users.id, userId)).returning();
+    return result[0];
+  }
+
   // System Members
   async getAllMembers(userId: string): Promise<SystemMember[]> {
     return await db.select().from(systemMembers).where(eq(systemMembers.userId, userId));
