@@ -37,6 +37,7 @@ import {
   X,
   Check,
 } from "lucide-react";
+import { VoiceInputButton } from "@/components/voice-input-button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -261,11 +262,21 @@ export default function UnloadSheet({ open, onOpenChange, onExecuteAction }: Unl
                   }}
                 />
                 <div className="flex items-center justify-between py-4">
-                  <span className="text-xs text-muted-foreground">
-                    {rawText.length > 0
-                      ? `${rawText.length} characters`
-                      : "Ctrl+Enter to submit"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <VoiceInputButton
+                      onTranscript={(text) => {
+                        setRawText(prev => prev ? prev + " " + text : text);
+                      }}
+                      variant="outline"
+                      size="default"
+                      className="gap-2 px-3"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {rawText.length > 0
+                        ? `${rawText.length} characters`
+                        : "Tap mic or type"}
+                    </span>
+                  </div>
                   <Button
                     onClick={handleParse}
                     disabled={rawText.trim().length < 5}

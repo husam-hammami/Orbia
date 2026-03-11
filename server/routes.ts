@@ -5952,5 +5952,35 @@ ${unifiedContext}`;
     }
   });
 
+  app.post("/api/voice/transcribe", async (req, res) => {
+    try {
+      const { audioData, mimeType } = req.body;
+      if (!audioData) {
+        return res.status(400).json({ error: "audioData is required" });
+      }
+
+      const OpenAI = (await import("openai")).default;
+      const openai = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
+
+      const audioBuffer = Buffer.from(audioData, "base64");
+      const ext = mimeType?.includes("webm") ? "webm" : mimeType?.includes("mp4") ? "mp4" : "webm";
+      const { toFile } = await import("openai");
+      const file = await toFile(audioBuffer, `audio.${ext}`, { type: mimeType || "audio/webm" });
+
+      const transcription = await openai.audio.transcriptions.create({
+        file,
+        model: "whisper-1",
+      });
+
+      res.json({ text: transcription.text });
+    } catch (error: any) {
+      console.error("Transcription error:", error);
+      res.status(500).json({ error: error.message || "Transcription failed" });
+    }
+  });
+
   return httpServer;
 }

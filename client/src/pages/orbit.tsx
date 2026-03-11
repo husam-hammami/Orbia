@@ -26,6 +26,7 @@ import {
   Brain,
   Heart
 } from "lucide-react";
+import { VoiceInputButton } from "@/components/voice-input-button";
 import { cn } from "@/lib/utils";
 import {
   useHabits,
@@ -1319,6 +1320,12 @@ export default function OrbitPage() {
               disabled={isLoading}
               className="flex-1 bg-background border-input focus:border-primary"
               data-testid="input-orbit-message"
+            />
+            <VoiceInputButton
+              onTranscript={(text) => {
+                setInput(prev => prev ? prev + " " + text : text);
+              }}
+              disabled={isLoading}
             />
             <Button 
               onClick={() => handleSend()} 
