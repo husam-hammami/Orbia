@@ -251,6 +251,22 @@
   animation: subtle-pulse 3s ease-in-out infinite;
 }
 
+/* Orbia logo pulse animation */
+@keyframes logo-pulse {
+  0%, 100% { 
+    transform: scale(1); 
+    filter: brightness(1) drop-shadow(0 0 8px rgba(139, 92, 246, 0.3));
+  }
+  50% { 
+    transform: scale(1.03); 
+    filter: brightness(1.15) drop-shadow(0 0 20px rgba(139, 92, 246, 0.5));
+  }
+}
+
+.animate-logo-pulse {
+  animation: logo-pulse 3s ease-in-out infinite;
+}
+
 /* Hide scrollbar but keep functionality */
 .scrollbar-hide {
   -ms-overflow-style: none;

@@ -127,7 +127,7 @@ function Sidebar({ className }: SidebarProps) {
         <img 
           src={logoUrl} 
           alt="Orbia Logo" 
-          className="w-[160%] max-w-none h-auto object-contain -ml-[30%]" 
+          className="w-[160%] max-w-none h-auto object-contain -ml-[30%] animate-logo-pulse" 
         />
       </div>
       
