@@ -1207,8 +1207,8 @@ export default function WorkPage() {
             <MeetingsStrip events={weekEvents} />
           )}
 
-          <div className="hidden lg:grid lg:grid-cols-[minmax(280px,1fr)_minmax(350px,1.4fr)_minmax(280px,1fr)] gap-5">
-            <div className="space-y-4">
+          <div className="hidden lg:grid lg:grid-cols-[minmax(280px,1fr)_minmax(350px,1.4fr)_minmax(280px,1fr)] gap-5" style={{ minHeight: "calc(100vh - 220px)" }}>
+            <div className="flex flex-col gap-4">
               {connected && <EmailInbox userEmail={connectionStatus?.email} />}
 
               <ConnectionCard
@@ -1221,7 +1221,7 @@ export default function WorkPage() {
               />
             </div>
 
-            <div className={cn(cmdPanelGlow, "p-5 flex flex-col min-h-[600px]")}>
+            <div className={cn(cmdPanelGlow, "p-5 flex flex-col")}>
               <div className="flex items-center gap-2 mb-4">
                 <Sparkles className="w-4 h-4 text-indigo-400" />
                 <CmdLabel>Orbia Professional</CmdLabel>
@@ -1229,7 +1229,7 @@ export default function WorkPage() {
               <NexusChat connected={connected} />
             </div>
 
-            <div className={cn(cmdPanel, "p-4 flex flex-col min-h-[600px]")}>
+            <div className={cn(cmdPanel, "p-4 flex flex-col")}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-indigo-400" />
