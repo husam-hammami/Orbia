@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  Send, 
-  Orbit as OrbitIcon, 
-  CheckCircle2, 
-  Clock, 
-  Activity, 
+import {
+  Send,
+  Orbit as OrbitIcon,
+  CheckCircle2,
+  Clock,
+  Activity,
   Zap,
   Loader2,
   Sparkles,
@@ -22,11 +22,12 @@ import {
   AlertCircle,
   Check,
   X,
-  Bell
+  Bell,
+  Brain
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { 
-  useHabits, 
+import {
+  useHabits,
   useAllHabitCompletions,
   useRoutineBlocks,
   useRoutineActivities,
@@ -67,8 +68,11 @@ import {
   useCareerVision,
   useCreateVisionItem,
   useUpdateVisionItem,
-  useDeleteVisionItem
+  useDeleteVisionItem,
+  useCreateTransaction,
+  useCreateLoanPayment
 } from "@/lib/api-hooks";
+import UnloadSheet from "@/components/unload-sheet";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -246,6 +250,10 @@ export default function OrbitPage() {
   const createVisionItem = useCreateVisionItem();
   const updateVisionItem = useUpdateVisionItem();
   const deleteVisionItem = useDeleteVisionItem();
+  const createTransaction = useCreateTransaction();
+  const createLoanPayment = useCreateLoanPayment();
+
+  const [unloadOpen, setUnloadOpen] = useState(false);
   
   const logMealMutation = useMutation({
     mutationFn: async (data: { date: string; breakfast?: string; lunch?: string; dinner?: string }) => {
@@ -745,6 +753,83 @@ export default function OrbitPage() {
           return { success: true, message: `Deleted vision: "${vision?.title || vision_id}"` };
         }
         
+        // TRACKER ENTRY
+        case "create_tracker_entry": {
+          const { mood, energy, stress, dissociation, sleepHours, capacity, pain, notes } = action.args;
+          await createTrackerEntry.mutateAsync({
+            userId: "",  // Backend overrides with session userId
+            timestamp: new Date(),
+            mood: mood || 5,
+            energy: energy || 5,
+            stress: stress ?? 50,
+            dissociation: dissociation ?? 0,
+            sleepHours: sleepHours || undefined,
+            capacity: capacity || undefined,
+            pain: pain || undefined,
+            notes: notes || undefined,
+          } as any);
+          return { success: true, message: `Logged wellness check: mood ${mood}/10` };
+        }
+
+        // TRANSACTION (Finance)
+        case "add_transaction": {
+          const { type, name, amount, category, notes: txNotes } = action.args;
+          const now = new Date();
+          await createTransaction.mutateAsync({
+            type: type || "expense",
+            name,
+            amount: Math.round(Number(amount)),
+            category: category || "other",
+            date: now,
+            month: now.toLocaleString("en-US", { month: "long" }),
+            isRecurring: 0,
+            notes: txNotes || null,
+          });
+          return { success: true, message: `Logged ${type || "expense"}: ${name} (${amount})` };
+        }
+
+        // LOAN PAYMENT
+        case "add_loan_payment": {
+          const { loan_id, amount: payAmount, notes: payNotes } = action.args;
+          await createLoanPayment.mutateAsync({
+            loanId: loan_id,
+            amount: Math.round(Number(payAmount)),
+            paymentDate: new Date(),
+            notes: payNotes || null,
+          });
+          return { success: true, message: `Logged loan payment: ${payAmount}` };
+        }
+
+        // MEDICAL NOTE (from Unload — flagged for awareness, stored as journal)
+        case "medical_note": {
+          const { type: medType, condition, note: medNote } = action.args;
+          await createJournalEntry.mutateAsync({
+            content: `[Medical: ${medType}] ${condition ? condition + " — " : ""}${medNote}`,
+            entryType: "reflection",
+            tags: ["medical", medType || "observation"],
+            isPrivate: 1,
+            authorId: null,
+            timeOfDay: (() => {
+              const hour = new Date().getHours();
+              if (hour >= 5 && hour < 12) return "morning";
+              if (hour >= 12 && hour < 17) return "afternoon";
+              if (hour >= 17 && hour < 21) return "evening";
+              return "night";
+            })()
+          });
+          return { success: true, message: `Medical note saved: ${condition || medType}` };
+        }
+
+        // WORK NOTE (from Unload — flagged only, not auto-executed)
+        case "work_note": {
+          return { success: true, message: `Work action noted: ${action.args.details || action.args.type}` };
+        }
+
+        // SYSTEM NOTE (from Unload)
+        case "system_note": {
+          return { success: true, message: `System note: ${action.args.note || action.args.type}` };
+        }
+
         // ROADMAP ACTION
         case "refresh_roadmap": {
           const response = await fetch("/api/career/coach", { method: "POST" });
@@ -1008,6 +1093,14 @@ export default function OrbitPage() {
           </div>
           
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setUnloadOpen(true)}
+              className="text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+            >
+              <Brain className="w-3.5 h-3.5" /> Unload
+            </Button>
             <Button variant="ghost" size="sm" onClick={clearChat} className="text-xs text-muted-foreground">
               <RefreshCw className="w-3 h-3 mr-1" /> Clear
             </Button>
@@ -1165,6 +1258,19 @@ export default function OrbitPage() {
           </div>
         </div>
       </div>
+
+      <UnloadSheet
+        open={unloadOpen}
+        onOpenChange={setUnloadOpen}
+        onExecuteAction={async (actionName, actionArgs) => {
+          const action = { type: "action" as const, name: actionName, args: actionArgs, confirm: false };
+          const result = await executeAction(action);
+          if (result.success) {
+            queryClient.invalidateQueries();
+          }
+          return result;
+        }}
+      />
     </Layout>
   );
 }

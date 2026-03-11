@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Orbit, X, Send, Loader2, Sparkles, ExternalLink, Check, XCircle } from "lucide-react";
+import { Orbit, X, Send, Loader2, Sparkles, ExternalLink, Check, XCircle, Brain } from "lucide-react";
+import UnloadSheet from "@/components/unload-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -131,6 +132,7 @@ export function OrbitFab() {
   const updateJournalEntry = useUpdateJournalEntry();
   const deleteJournalEntry = useDeleteJournalEntry();
 
+  const [unloadOpen, setUnloadOpen] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -568,6 +570,14 @@ export function OrbitFab() {
                     <Sparkles className="w-8 h-8 mx-auto text-primary/50 mb-2" />
                     <p className="text-xs text-muted-foreground">Quick access to Orbit</p>
                     <div className="flex flex-wrap gap-1 justify-center mt-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUnloadOpen(true)}
+                        className="text-[10px] h-6 px-2 border-primary/30 text-primary"
+                      >
+                        <Brain className="w-3 h-3 mr-1" /> Unload
+                      </Button>
                       {QUICK_PROMPTS.map((p) => (
                         <Button key={p} variant="outline" size="sm" onClick={() => handleSend(p)} className="text-[10px] h-6 px-2">
                           {p}
@@ -659,6 +669,19 @@ export function OrbitFab() {
       >
         {isOpen ? <X className="w-5 h-5" /> : <Orbit className="w-5 h-5" />}
       </motion.button>
+
+      <UnloadSheet
+        open={unloadOpen}
+        onOpenChange={setUnloadOpen}
+        onExecuteAction={async (actionName, actionArgs) => {
+          const action = { type: "action" as const, name: actionName, args: actionArgs, confirm: false };
+          const result = await executeAction(action);
+          if (result.success) {
+            queryClient.invalidateQueries();
+          }
+          return result;
+        }}
+      />
     </>
   );
 }

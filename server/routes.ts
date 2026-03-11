@@ -3419,6 +3419,25 @@ ${JSON.stringify(context, null, 2)}`;
     }
   });
 
+  // ==================== UNLOAD (Brain Dump) ====================
+  app.post("/api/orbit/unload", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { text } = req.body;
+
+      if (!text || typeof text !== "string" || text.trim().length < 5) {
+        return res.status(400).json({ error: "Please share what's on your mind (at least a few words)" });
+      }
+
+      const { parseUnload } = await import("./lib/unload");
+      const result = await parseUnload(userId, text.trim());
+      res.json(result);
+    } catch (error) {
+      console.error("Unload parse error:", error);
+      res.status(500).json({ error: "Failed to process your unload" });
+    }
+  });
+
   // Daily Summary Routes
   app.get("/api/daily-summaries", async (req, res) => {
     try {
