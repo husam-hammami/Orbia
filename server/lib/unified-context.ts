@@ -204,20 +204,36 @@ ${activeTodos
       if (eventsR.status === "fulfilled" && eventsR.value?.value?.length) {
         const parseEvt = (dt: string, tz?: string) =>
           new Date(tz === "UTC" ? dt + "Z" : dt);
+        const nowMs = now.getTime();
+        const events = eventsR.value.value.map((e: any) => {
+          const start = parseEvt(e.start.dateTime, e.start.timeZone);
+          const end = parseEvt(e.end.dateTime, e.end.timeZone);
+          const diffMs = start.getTime() - nowMs;
+          const diffMin = Math.round(diffMs / 60000);
+          let timeTag = "";
+          if (diffMin < -5 && nowMs < end.getTime()) {
+            timeTag = " [HAPPENING NOW]";
+          } else if (diffMin <= 0) {
+            timeTag = " [JUST STARTED]";
+          } else if (diffMin <= 15) {
+            timeTag = ` [STARTS IN ${diffMin} MIN — IMMINENT]`;
+          } else if (diffMin <= 60) {
+            timeTag = ` [IN ${diffMin} MIN]`;
+          } else {
+            const hrs = Math.floor(diffMin / 60);
+            const mins = diffMin % 60;
+            timeTag = ` [IN ${hrs}h ${mins}m]`;
+          }
+          const dateLabel = start.toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          });
+          return `- [${dateLabel}] ${e.subject} | ${start.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}${timeTag}${e.location?.displayName ? ` | ${e.location.displayName}` : ""}${e.isOnlineMeeting ? " | Online" : ""}${e.attendees?.length ? ` | ${e.attendees.length} attendees` : ""}`;
+        });
         const calBlock = `<CALENDAR>
-Today: ${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-${eventsR.value.value
-  .map((e: any) => {
-    const start = parseEvt(e.start.dateTime, e.start.timeZone);
-    const end = parseEvt(e.end.dateTime, e.end.timeZone);
-    const dateLabel = start.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
-    return `- [${dateLabel}] ${e.subject} | ${start.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}${e.location?.displayName ? ` | ${e.location.displayName}` : ""}${e.isOnlineMeeting ? " | Online" : ""}`;
-  })
-  .join("\n")}
+Current time: ${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} on ${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+${events.join("\n")}
 </CALENDAR>`;
         sections.push(calBlock);
       }
@@ -479,6 +495,9 @@ You see EVERYTHING. Use it like someone who actually knows this person — not l
   const silentProtocol = `
 ## SILENT CONTEXT PROTOCOL
 You have access to the user's complete data below. NEVER regurgitate raw data. Use it silently to inform every response. When the user asks about their day, synthesize — don't list. When they ask about patterns, connect dots across domains. Incorporate context implicitly.
+
+## CALENDAR TIME AWARENESS
+Each calendar event has a time tag like [IN 45 MIN], [IN 3h 20m], [HAPPENING NOW], [STARTS IN 5 MIN — IMMINENT]. ALWAYS use these tags to determine timing — never guess or say "in a bit" or "coming up" unless it's actually within 30 minutes. When asked about "next meeting", pick the soonest FUTURE event (smallest [IN ...] tag). If the next meeting is hours away, say "your next meeting is at X:XX, about Y hours from now" — never imply it's imminent when it's not.
 
 ## MEMORY GRAPH PROTOCOL
 You have access to a MEMORY_GRAPH section containing deep, synthesized understanding of this user built over time. This is your most valuable context — it represents genuine understanding, not raw data.
