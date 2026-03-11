@@ -3259,23 +3259,43 @@ MERCHANT FIELD:
   app.post("/api/orbit/chat", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const { message, context, history } = req.body;
-      
+      const { message, context, history, therapyMode } = req.body;
+
       if (!message) {
         return res.status(400).json({ error: "Message is required" });
       }
 
-      const { buildUnifiedContextWithMemory, buildUnifiedSystemPrompt } = await import("./lib/unified-context");
+      const { buildUnifiedContextWithMemory, buildUnifiedSystemPrompt, buildTherapeuticPrompt } = await import("./lib/unified-context");
       const { context: unifiedContext, msToken } = await buildUnifiedContextWithMemory(userId, "orbit");
-      const systemPrompt = buildUnifiedSystemPrompt("orbit");
 
-      const orbitSystemPrompt = `${systemPrompt}
+      let orbitSystemPrompt: string;
+      if (therapyMode) {
+        // Load clinical formulation for therapy mode
+        let clinicalContext = "";
+        try {
+          const therapeuticNarratives = await storage.getMemoryNarratives(userId);
+          const clinical = therapeuticNarratives.filter((n: any) => n.domain === "therapeutic");
+          if (clinical.length > 0) {
+            clinicalContext = clinical.map((n: any) => `${n.narrativeKey}: ${n.narrative}`).join("\n");
+          }
+        } catch (err) {
+          console.error("[TherapyMode] Failed to load clinical formulation:", err);
+        }
+        const therapeuticPrompt = buildTherapeuticPrompt(clinicalContext || undefined);
+        orbitSystemPrompt = `${therapeuticPrompt}
+
+## CONTEXT DATA (use silently)
+${unifiedContext}`;
+      } else {
+        const systemPrompt = buildUnifiedSystemPrompt("orbit");
+        orbitSystemPrompt = `${systemPrompt}
 
 ## CONTEXT DATA (use silently)
 ${unifiedContext}
 
 ADDITIONAL OPERATIONAL CONTEXT:
 ${JSON.stringify(context, null, 2)}`;
+      }
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
@@ -3302,7 +3322,7 @@ ${JSON.stringify(context, null, 2)}`;
         chatMessages.unshift({ role: "user", content: "(continuing)" });
       }
 
-      const stream = await createRawStream(systemContent, chatMessages, { model: MODEL_PRIMARY, maxTokens: 800 });
+      const stream = await createRawStream(systemContent, chatMessages, { model: MODEL_PRIMARY, maxTokens: therapyMode ? 2000 : 800 });
 
       let fullResponse = "";
       const executedActions = new Set<string>();
@@ -3313,11 +3333,14 @@ ${JSON.stringify(context, null, 2)}`;
         { name: "create_task", regex: /\[CREATE_TASK\s+title="([^"]+)"(?:\s+due="([^"]*)")?\]/ },
         { name: "send_email", regex: /\[SEND_EMAIL\s+to="([^"]+)"\s+subject="([^"]+)"\s+body="([^"]+)"\]/ },
         { name: "schedule_message", regex: /\[SCHEDULE_MESSAGE\s+chatId="([^"]+)"\s+recipient="([^"]+)"\s+message="([^"]+)"\s+time="([^"]+)"\s+recurrence="([^"]+)"\]/ },
+        { name: "create_project", regex: /\[CREATE_PROJECT\s+title="([^"]+)"(?:\s+description="([^"]*)")?(?:\s+status="([^"]*)")?(?:\s+deadline="([^"]*)")?\]/ },
+        { name: "add_project_task", regex: /\[ADD_TASK\s+project="([^"]+)"\s+title="([^"]+)"(?:\s+priority="([^"]*)")?(?:\s+due="([^"]*)")?\]/ },
+        { name: "update_project_status", regex: /\[UPDATE_PROJECT_STATUS\s+project="([^"]+)"\s+status="([^"]+)"\]/ },
+        { name: "complete_task", regex: /\[COMPLETE_TASK\s+task="([^"]+)"\]/ },
       ];
 
       async function executeWorkActions(text: string): Promise<void> {
-        if (!msToken) return;
-        const graphLib = await import("./lib/microsoft-graph");
+        const graphLib = msToken ? await import("./lib/microsoft-graph") : null;
         for (const { name, regex } of ACTION_PATTERNS) {
           let match;
           const globalRegex = new RegExp(regex.source, 'g');
@@ -3328,18 +3351,22 @@ ${JSON.stringify(context, null, 2)}`;
             try {
               switch (name) {
                 case "teams_send":
+                  if (!msToken || !graphLib) break;
                   await graphLib.sendChatMessage(msToken!, match[1], match[2]);
                   res.write(`data: ${JSON.stringify({ action: "teams_sent", chatId: match[1], message: match[2] })}\n\n`);
                   break;
                 case "create_event":
+                  if (!msToken || !graphLib) break;
                   await graphLib.createCalendarEvent(msToken!, match[1], match[2], match[3], { isOnline: match[4] === "true" });
                   res.write(`data: ${JSON.stringify({ action: "event_created", subject: match[1], start: match[2], end: match[3] })}\n\n`);
                   break;
                 case "create_task":
+                  if (!msToken || !graphLib) break;
                   await graphLib.createTask(msToken!, match[1], match[2] || undefined);
                   res.write(`data: ${JSON.stringify({ action: "task_created", title: match[1], due: match[2] || null })}\n\n`);
                   break;
                 case "send_email":
+                  if (!msToken || !graphLib) break;
                   await graphLib.sendEmail(msToken!, match[1], match[2], match[3]);
                   res.write(`data: ${JSON.stringify({ action: "email_sent", to: match[1], subject: match[2] })}\n\n`);
                   break;
@@ -3351,6 +3378,62 @@ ${JSON.stringify(context, null, 2)}`;
                   });
                   res.write(`data: ${JSON.stringify({ action: "message_scheduled", recipient: match[2], message: match[3], time: match[4], recurrence: match[5] })}\n\n`);
                   break;
+                case "create_project": {
+                  const project = await storage.createCareerProject(userId, {
+                    title: match[1],
+                    description: match[2] || null,
+                    status: match[3] || "planning",
+                    deadline: match[4] || null,
+                    progress: 0,
+                    nextAction: null,
+                    color: null,
+                    tags: null,
+                  });
+                  res.write(`data: ${JSON.stringify({ action: "project_created", id: project.id, title: match[1] })}\n\n`);
+                  break;
+                }
+                case "add_project_task": {
+                  const projects = await storage.getCareerProjects(userId);
+                  const proj = projects.find((p: any) => p.title.toLowerCase() === match[1].toLowerCase());
+                  if (!proj) {
+                    res.write(`data: ${JSON.stringify({ action: "add_task_failed", error: `Project "${match[1]}" not found` })}\n\n`);
+                    break;
+                  }
+                  const task = await storage.createCareerTask(userId, {
+                    title: match[2],
+                    projectId: proj.id,
+                    parentId: null,
+                    completed: false,
+                    priority: match[3] || "medium",
+                    due: match[4] || null,
+                    tags: null,
+                    description: null,
+                  });
+                  res.write(`data: ${JSON.stringify({ action: "project_task_added", id: task.id, title: match[2], project: match[1] })}\n\n`);
+                  break;
+                }
+                case "update_project_status": {
+                  const projects2 = await storage.getCareerProjects(userId);
+                  const proj2 = projects2.find((p: any) => p.title.toLowerCase() === match[1].toLowerCase());
+                  if (!proj2) {
+                    res.write(`data: ${JSON.stringify({ action: "update_project_failed", error: `Project "${match[1]}" not found` })}\n\n`);
+                    break;
+                  }
+                  await storage.updateCareerProject(userId, proj2.id, { status: match[2] });
+                  res.write(`data: ${JSON.stringify({ action: "project_status_updated", project: match[1], status: match[2] })}\n\n`);
+                  break;
+                }
+                case "complete_task": {
+                  const allTasks = await storage.getCareerTasks(userId);
+                  const foundTask = allTasks.find((t: any) => t.title.toLowerCase() === match[1].toLowerCase());
+                  if (!foundTask) {
+                    res.write(`data: ${JSON.stringify({ action: "complete_task_failed", error: `Task "${match[1]}" not found` })}\n\n`);
+                    break;
+                  }
+                  await storage.updateCareerTask(userId, foundTask.id, { completed: true });
+                  res.write(`data: ${JSON.stringify({ action: "task_completed", task: match[1] })}\n\n`);
+                  break;
+                }
               }
             } catch (err: any) {
               console.error(`Orbit action ${name} failed:`, err.message);
@@ -3360,7 +3443,7 @@ ${JSON.stringify(context, null, 2)}`;
         }
       }
 
-      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE)\s[^\]]+\]/g;
+      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE|CREATE_PROJECT|ADD_TASK|UPDATE_PROJECT_STATUS|COMPLETE_TASK)\s[^\]]+\]/g;
       let bufferedContent = "";
       let hasActionTag = false;
 
@@ -3408,6 +3491,40 @@ ${JSON.stringify(context, null, 2)}`;
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
+
+      // Background: extract personal insights from conversation
+      if (fullResponse && message) {
+        (async () => {
+          try {
+            const { extractFromConversation, persistMemories } = await import("./lib/memory-graph");
+            const convMessages = [
+              ...(history || []).slice(-6).map((h: any) => ({ role: h.role, content: h.content })),
+              { role: "user", content: message },
+              { role: "assistant", content: fullResponse },
+            ];
+            const existingEntities = await storage.getMemoryEntities(userId);
+            const result = await extractFromConversation(convMessages, "orbit", existingEntities);
+            if (result.entities.length > 0 || result.connections.length > 0) {
+              await persistMemories(userId, result, "conversation_orbit", new Date().toISOString());
+            }
+          } catch (err) {
+            console.error("[PostChat] Orbit conversation extraction failed:", err);
+          }
+        })();
+
+        // Therapy mode: post-session reflection & clinical formulation update
+        if (therapyMode) {
+          (async () => {
+            try {
+              const { buildClinicalFormulation } = await import("./lib/memory-graph");
+              await buildClinicalFormulation(userId);
+              console.log("[TherapyMode] Post-session clinical formulation updated");
+            } catch (err) {
+              console.error("[TherapyMode] Post-session reflection failed:", err);
+            }
+          })();
+        }
+      }
     } catch (error) {
       console.error("Orbit chat error:", error);
       if (!res.headersSent) {
@@ -3416,6 +3533,25 @@ ${JSON.stringify(context, null, 2)}`;
         res.write(`data: ${JSON.stringify({ error: "Failed to process chat" })}\n\n`);
         res.end();
       }
+    }
+  });
+
+  // ==================== UNLOAD (Brain Dump) ====================
+  app.post("/api/orbit/unload", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { text } = req.body;
+
+      if (!text || typeof text !== "string" || text.trim().length < 5) {
+        return res.status(400).json({ error: "Please share what's on your mind (at least a few words)" });
+      }
+
+      const { parseUnload } = await import("./lib/unload");
+      const result = await parseUnload(userId, text.trim());
+      res.json(result);
+    } catch (error) {
+      console.error("Unload parse error:", error);
+      res.status(500).json({ error: "Failed to process your unload" });
     }
   });
 
@@ -4974,7 +5110,7 @@ ${unifiedContext}${extraMedContext}`;
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      await aiStream(
+      const fullMedResponse = await aiStream(
         [
           { role: "system", content: systemPrompt },
           ...chatMessages.map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content })),
@@ -4985,6 +5121,26 @@ ${unifiedContext}${extraMedContext}`;
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
+
+      // Background: extract personal insights from medical conversation
+      if (fullMedResponse && chatMessages.length > 0) {
+        (async () => {
+          try {
+            const { extractFromConversation, persistMemories } = await import("./lib/memory-graph");
+            const convMessages = [
+              ...chatMessages.slice(-6).map((m: any) => ({ role: m.role, content: m.content })),
+              { role: "assistant", content: fullMedResponse },
+            ];
+            const existingEntities = await storage.getMemoryEntities(userId);
+            const result = await extractFromConversation(convMessages, "medical", existingEntities);
+            if (result.entities.length > 0 || result.connections.length > 0) {
+              await persistMemories(userId, result, "conversation_medical", new Date().toISOString());
+            }
+          } catch (err) {
+            console.error("[PostChat] Medical conversation extraction failed:", err);
+          }
+        })();
+      }
     } catch (error: any) {
       console.error("Medical chat error:", error);
       if (res.headersSent) {
@@ -5481,11 +5637,14 @@ ${unifiedContext}`;
         { name: "create_task", regex: /\[CREATE_TASK\s+title="([^"]+)"(?:\s+due="([^"]*)")?\]/ },
         { name: "send_email", regex: /\[SEND_EMAIL\s+to="([^"]+)"\s+subject="([^"]+)"\s+body="([^"]+)"\]/ },
         { name: "schedule_message", regex: /\[SCHEDULE_MESSAGE\s+chatId="([^"]+)"\s+recipient="([^"]+)"\s+message="([^"]+)"\s+time="([^"]+)"\s+recurrence="([^"]+)"\]/ },
+        { name: "create_project", regex: /\[CREATE_PROJECT\s+title="([^"]+)"(?:\s+description="([^"]*)")?(?:\s+status="([^"]*)")?(?:\s+deadline="([^"]*)")?\]/ },
+        { name: "add_project_task", regex: /\[ADD_TASK\s+project="([^"]+)"\s+title="([^"]+)"(?:\s+priority="([^"]*)")?(?:\s+due="([^"]*)")?\]/ },
+        { name: "update_project_status", regex: /\[UPDATE_PROJECT_STATUS\s+project="([^"]+)"\s+status="([^"]+)"\]/ },
+        { name: "complete_task", regex: /\[COMPLETE_TASK\s+task="([^"]+)"\]/ },
       ];
 
       async function executeActions(text: string): Promise<void> {
-        if (!msToken) return;
-        const graphLib = await import("./lib/microsoft-graph");
+        const graphLib = msToken ? await import("./lib/microsoft-graph") : null;
 
         for (const { name, regex } of ACTION_PATTERNS) {
           let match;
@@ -5498,21 +5657,25 @@ ${unifiedContext}`;
             try {
               switch (name) {
                 case "teams_send": {
+                  if (!msToken || !graphLib) break;
                   await graphLib.sendChatMessage(msToken!, match[1], match[2]);
                   res.write(`data: ${JSON.stringify({ action: "teams_sent", chatId: match[1], message: match[2] })}\n\n`);
                   break;
                 }
                 case "create_event": {
+                  if (!msToken || !graphLib) break;
                   await graphLib.createCalendarEvent(msToken!, match[1], match[2], match[3], { isOnline: match[4] === "true" });
                   res.write(`data: ${JSON.stringify({ action: "event_created", subject: match[1], start: match[2], end: match[3] })}\n\n`);
                   break;
                 }
                 case "create_task": {
+                  if (!msToken || !graphLib) break;
                   await graphLib.createTask(msToken!, match[1], match[2] || undefined);
                   res.write(`data: ${JSON.stringify({ action: "task_created", title: match[1], due: match[2] || null })}\n\n`);
                   break;
                 }
                 case "send_email": {
+                  if (!msToken || !graphLib) break;
                   await graphLib.sendEmail(msToken!, match[1], match[2], match[3]);
                   res.write(`data: ${JSON.stringify({ action: "email_sent", to: match[1], subject: match[2] })}\n\n`);
                   break;
@@ -5530,6 +5693,62 @@ ${unifiedContext}`;
                   res.write(`data: ${JSON.stringify({ action: "message_scheduled", recipient: match[2], message: match[3], time: match[4], recurrence: match[5] })}\n\n`);
                   break;
                 }
+                case "create_project": {
+                  const project = await storage.createCareerProject(userId, {
+                    title: match[1],
+                    description: match[2] || null,
+                    status: match[3] || "planning",
+                    deadline: match[4] || null,
+                    progress: 0,
+                    nextAction: null,
+                    color: null,
+                    tags: null,
+                  });
+                  res.write(`data: ${JSON.stringify({ action: "project_created", id: project.id, title: match[1] })}\n\n`);
+                  break;
+                }
+                case "add_project_task": {
+                  const projects = await storage.getCareerProjects(userId);
+                  const proj = projects.find((p: any) => p.title.toLowerCase() === match[1].toLowerCase());
+                  if (!proj) {
+                    res.write(`data: ${JSON.stringify({ action: "add_task_failed", error: `Project "${match[1]}" not found` })}\n\n`);
+                    break;
+                  }
+                  const task = await storage.createCareerTask(userId, {
+                    title: match[2],
+                    projectId: proj.id,
+                    parentId: null,
+                    completed: false,
+                    priority: match[3] || "medium",
+                    due: match[4] || null,
+                    tags: null,
+                    description: null,
+                  });
+                  res.write(`data: ${JSON.stringify({ action: "project_task_added", id: task.id, title: match[2], project: match[1] })}\n\n`);
+                  break;
+                }
+                case "update_project_status": {
+                  const projects2 = await storage.getCareerProjects(userId);
+                  const proj2 = projects2.find((p: any) => p.title.toLowerCase() === match[1].toLowerCase());
+                  if (!proj2) {
+                    res.write(`data: ${JSON.stringify({ action: "update_project_failed", error: `Project "${match[1]}" not found` })}\n\n`);
+                    break;
+                  }
+                  await storage.updateCareerProject(userId, proj2.id, { status: match[2] });
+                  res.write(`data: ${JSON.stringify({ action: "project_status_updated", project: match[1], status: match[2] })}\n\n`);
+                  break;
+                }
+                case "complete_task": {
+                  const allTasks = await storage.getCareerTasks(userId);
+                  const foundTask = allTasks.find((t: any) => t.title.toLowerCase() === match[1].toLowerCase());
+                  if (!foundTask) {
+                    res.write(`data: ${JSON.stringify({ action: "complete_task_failed", error: `Task "${match[1]}" not found` })}\n\n`);
+                    break;
+                  }
+                  await storage.updateCareerTask(userId, foundTask.id, { completed: true });
+                  res.write(`data: ${JSON.stringify({ action: "task_completed", task: match[1] })}\n\n`);
+                  break;
+                }
               }
             } catch (err: any) {
               console.error(`Action ${name} failed:`, err.message);
@@ -5539,7 +5758,7 @@ ${unifiedContext}`;
         }
       }
 
-      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE)\s[^\]]+\]/g;
+      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE|CREATE_PROJECT|ADD_TASK|UPDATE_PROJECT_STATUS|COMPLETE_TASK)\s[^\]]+\]/g;
       let bufferedContent = "";
       let hasActionTag = false;
 
@@ -5587,6 +5806,26 @@ ${unifiedContext}`;
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
+
+      // Background: extract personal insights from work conversation
+      if (fullResponse && chatMessages.length > 0) {
+        (async () => {
+          try {
+            const { extractFromConversation, persistMemories } = await import("./lib/memory-graph");
+            const convMessages = [
+              ...chatMessages.slice(-6).map((m: any) => ({ role: m.role, content: m.content })),
+              { role: "assistant", content: fullResponse },
+            ];
+            const existingEntities = await storage.getMemoryEntities(userId);
+            const result = await extractFromConversation(convMessages, "work", existingEntities);
+            if (result.entities.length > 0 || result.connections.length > 0) {
+              await persistMemories(userId, result, "conversation_work", new Date().toISOString());
+            }
+          } catch (err) {
+            console.error("[PostChat] Work conversation extraction failed:", err);
+          }
+        })();
+      }
     } catch (error: any) {
       console.error("Work chat error:", error);
       if (res.headersSent) {

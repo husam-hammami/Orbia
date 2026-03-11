@@ -111,7 +111,7 @@ function Sidebar({ className }: SidebarProps) {
     { href: "/", label: "Daily Tracker", icon: ClipboardList },
     { href: "/work", label: "Workstation", icon: Monitor },
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/career", label: "Goals & Vision", icon: Briefcase },
+    { href: "/career", label: "Vision & Coach", icon: Briefcase },
     { href: "/medical", label: "Medical", icon: Stethoscope },
     { href: "/finance", label: "Finance", icon: Wallet },
     { href: "/news", label: "Orbital News", icon: Newspaper },
