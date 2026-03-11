@@ -3471,6 +3471,27 @@ ${JSON.stringify(context, null, 2)}`;
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
+
+      // Background: extract personal insights from conversation
+      if (fullResponse && message) {
+        (async () => {
+          try {
+            const { extractFromConversation, persistMemories } = await import("./lib/memory-graph");
+            const convMessages = [
+              ...(history || []).slice(-6).map((h: any) => ({ role: h.role, content: h.content })),
+              { role: "user", content: message },
+              { role: "assistant", content: fullResponse },
+            ];
+            const existingEntities = await storage.getMemoryEntities(userId);
+            const result = await extractFromConversation(convMessages, "orbit", existingEntities);
+            if (result.entities.length > 0 || result.connections.length > 0) {
+              await persistMemories(userId, result, "conversation_orbit", new Date().toISOString());
+            }
+          } catch (err) {
+            console.error("[PostChat] Orbit conversation extraction failed:", err);
+          }
+        })();
+      }
     } catch (error) {
       console.error("Orbit chat error:", error);
       if (!res.headersSent) {
@@ -5056,7 +5077,7 @@ ${unifiedContext}${extraMedContext}`;
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      await aiStream(
+      const fullMedResponse = await aiStream(
         [
           { role: "system", content: systemPrompt },
           ...chatMessages.map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content })),
@@ -5067,6 +5088,26 @@ ${unifiedContext}${extraMedContext}`;
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
+
+      // Background: extract personal insights from medical conversation
+      if (fullMedResponse && chatMessages.length > 0) {
+        (async () => {
+          try {
+            const { extractFromConversation, persistMemories } = await import("./lib/memory-graph");
+            const convMessages = [
+              ...chatMessages.slice(-6).map((m: any) => ({ role: m.role, content: m.content })),
+              { role: "assistant", content: fullMedResponse },
+            ];
+            const existingEntities = await storage.getMemoryEntities(userId);
+            const result = await extractFromConversation(convMessages, "medical", existingEntities);
+            if (result.entities.length > 0 || result.connections.length > 0) {
+              await persistMemories(userId, result, "conversation_medical", new Date().toISOString());
+            }
+          } catch (err) {
+            console.error("[PostChat] Medical conversation extraction failed:", err);
+          }
+        })();
+      }
     } catch (error: any) {
       console.error("Medical chat error:", error);
       if (res.headersSent) {
@@ -5732,6 +5773,26 @@ ${unifiedContext}`;
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
+
+      // Background: extract personal insights from work conversation
+      if (fullResponse && chatMessages.length > 0) {
+        (async () => {
+          try {
+            const { extractFromConversation, persistMemories } = await import("./lib/memory-graph");
+            const convMessages = [
+              ...chatMessages.slice(-6).map((m: any) => ({ role: m.role, content: m.content })),
+              { role: "assistant", content: fullResponse },
+            ];
+            const existingEntities = await storage.getMemoryEntities(userId);
+            const result = await extractFromConversation(convMessages, "work", existingEntities);
+            if (result.entities.length > 0 || result.connections.length > 0) {
+              await persistMemories(userId, result, "conversation_work", new Date().toISOString());
+            }
+          } catch (err) {
+            console.error("[PostChat] Work conversation extraction failed:", err);
+          }
+        })();
+      }
     } catch (error: any) {
       console.error("Work chat error:", error);
       if (res.headersSent) {

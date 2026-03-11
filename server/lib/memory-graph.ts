@@ -19,7 +19,7 @@ import type {
   MemoryConnection,
   MemoryNarrative,
 } from "@shared/schema";
-import { aiComplete, MODEL_PRIMARY } from "./ai-client";
+import { aiComplete, MODEL_PRIMARY, MODEL_FAST } from "./ai-client";
 
 // ============================================================
 // TYPES
@@ -636,6 +636,119 @@ RULES:
   }
 }
 
+/**
+ * Extract personal insights from a conversation.
+ * This runs after each chat interaction as a lightweight background reflection.
+ * Focuses on WHO the user is: preferences, interests, values, personality traits,
+ * relationships, communication style — things revealed through conversation
+ * that structured data can't capture.
+ */
+export async function extractFromConversation(
+  conversationMessages: { role: string; content: string }[],
+  mode: "orbit" | "work" | "medical",
+  existingEntities: MemoryEntity[]
+): Promise<ExtractionResult> {
+  // Only extract from conversations with enough user content
+  const userMessages = conversationMessages.filter((m) => m.role === "user");
+  const totalUserContent = userMessages.map((m) => m.content).join(" ");
+  if (totalUserContent.length < 50 || userMessages.length < 1) {
+    return { entities: [], connections: [] };
+  }
+
+  // Build conversation text (last few exchanges only)
+  const recentExchanges = conversationMessages.slice(-10);
+  const conversationText = recentExchanges
+    .map((m) => `${m.role === "user" ? "User" : "Orbia"}: ${m.content}`)
+    .join("\n\n");
+
+  const existingPersonal = existingEntities
+    .filter((e) => ["preference", "interest", "insight", "person", "like", "dislike", "value"].includes(e.entityType) || e.category === "identity")
+    .slice(0, 30)
+    .map((e) => `${e.name} (${e.entityType}/${e.category}): ${e.summary}`)
+    .join("\n");
+
+  try {
+    const responseText = await aiComplete(
+      [
+        {
+          role: "system",
+          content: `You are a personal insight extraction engine. After a conversation, silently extract personal details about the USER (not Orbia) that reveal who they are as a person.
+
+ALREADY KNOWN ABOUT THIS PERSON:
+${existingPersonal || "Nothing yet — this is a fresh start."}
+
+CONVERSATION MODE: ${mode}
+
+Return JSON:
+{
+  "entities": [
+    {
+      "entityType": "preference|interest|like|dislike|value|personality_trait|person|communication_style",
+      "category": "identity",
+      "name": "lowercase_snake_case_identifier",
+      "summary": "One clear sentence about what this reveals",
+      "importance": 0.0-1.0,
+      "confidence": 0.0-1.0
+    }
+  ],
+  "connections": [
+    {
+      "sourceName": "entity_name",
+      "targetName": "entity_name",
+      "relationType": "influences|correlates_with|contradicts",
+      "strength": 0.0-1.0,
+      "observation": "What was observed"
+    }
+  ]
+}
+
+WHAT TO EXTRACT:
+- Preferences: favorite foods, drinks, music, activities, times of day, ways of working
+- Interests: hobbies, topics they light up about, things they follow
+- Likes/Dislikes: strong opinions, things that energize or drain them
+- Values: what matters to them — family, faith, independence, excellence, humor
+- Personality traits: how they communicate, think, make decisions, handle stress
+- People: relationships mentioned — names, roles, dynamics
+- Communication style: do they prefer brevity? humor? directness? do they use specific phrases?
+
+WHAT NOT TO EXTRACT:
+- Raw data that's already captured (mood scores, habits, finances) — those have their own extractors
+- Orbia's responses or suggestions — only what the USER reveals
+- Things already known (check existing entities) — unless this conversation adds new depth
+- Generic observations. "User uses the app" is worthless. "User processes stress through humor and sarcasm" is gold.
+- Anything speculative. Only extract what the user actually said or clearly implied.
+
+RULES:
+- Extract 0-4 entities MAX. Most conversations yield 0-1 personal insights. That's fine.
+- Importance: 0.3 = passing mention, 0.5 = clear statement, 0.7 = core to who they are, 0.9 = defining trait
+- Confidence: based on how explicitly they stated it vs. how much you're inferring
+- If a conversation is purely transactional (mark habit, check weather), return empty arrays
+- If this deepens something already known, create the entity with the SAME name to update it
+- Names should be descriptive: "prefers_direct_communication", "loves_arabic_coffee", "close_with_mother"`,
+        },
+        {
+          role: "user",
+          content: `CONVERSATION:\n\n${conversationText}`,
+        },
+      ],
+      { maxTokens: 512, temperature: 0.2, model: MODEL_FAST }
+    );
+
+    const parsed = JSON.parse(responseText || "{}");
+    return {
+      entities: (parsed.entities || []).map((e: any) => ({
+        ...e,
+        category: e.category || "identity",
+        content: { source: "conversation", mode, extractedAt: new Date().toISOString() },
+      })),
+      connections: parsed.connections || [],
+    };
+  } catch (err) {
+    console.error("[MemoryGraph] Conversation extraction failed:", err);
+    return { entities: [], connections: [] };
+  }
+}
+
 // ============================================================
 // 3. PERSISTENCE — Save extracted memories to the database
 // ============================================================
@@ -804,13 +917,19 @@ Return JSON:
 }
 
 RULES:
-- Generate 3-8 narratives covering the domains where you have enough signal
+- Generate 3-10 narratives covering the domains where you have enough signal
 - Each narrative should be something that would make the person feel "this AI actually gets me"
 - Cross-domain narratives are the most valuable: connecting wellness to work, medical to habits, etc.
 - Don't state the obvious. "User has low mood sometimes" is useless. "Your mood crashes tend to follow 2+ days of poor sleep and usually coincide with heavy work weeks — the combination, not either alone, is the trigger" is valuable.
 - Write in second person ("You tend to...", "Your pattern shows...")
 - If the data is insufficient for a domain, skip it entirely
-- confidence: based on how much evidence supports the narrative`,
+- confidence: based on how much evidence supports the narrative
+
+IDENTITY NARRATIVES (important):
+- If there are entities with category "identity" (preferences, interests, likes, dislikes, values, personality traits, communication style), synthesize them into 1-2 "identity" domain narratives
+- Identity narratives should read like a friend describing someone they know well: "You're driven by family and faith, prefer direct communication, love Arabic coffee and hate small talk, and process stress through dry humor."
+- Combine related traits into flowing descriptions rather than listing them
+- These are the most personal narratives — they should feel like genuine understanding, not a data profile`,
         },
         {
           role: "user",
@@ -961,17 +1080,40 @@ export async function buildMemoryContext(
     sections.push(`## Goals & Aspirations\n${goalBlock}`);
   }
 
-  // Section 7: Identity markers (preferences, values, self-insights)
+  // Section 7: Identity markers — personal profile from conversations and data
+  const personalTypes = new Set(["preference", "interest", "like", "dislike", "value", "personality_trait", "communication_style", "insight"]);
   const identity = entities
-    .filter((e) => (e.entityType === "preference" || e.entityType === "insight") && e.category === "identity" && e.active === 1)
+    .filter((e) => (personalTypes.has(e.entityType) || e.category === "identity") && e.active === 1)
     .sort((a, b) => b.importance - a.importance)
-    .slice(0, 5);
+    .slice(0, 10);
 
   if (identity.length > 0) {
-    const idBlock = identity
-      .map((i) => `- ${i.summary}`)
-      .join("\n");
-    sections.push(`## Who They Are\n${idBlock}`);
+    // Group by type for cleaner context
+    const likes = identity.filter((e) => e.entityType === "like" || e.entityType === "interest");
+    const dislikes = identity.filter((e) => e.entityType === "dislike");
+    const values = identity.filter((e) => e.entityType === "value" || e.entityType === "personality_trait");
+    const prefs = identity.filter((e) => e.entityType === "preference" || e.entityType === "communication_style");
+    const insights = identity.filter((e) => e.entityType === "insight" && e.category === "identity");
+    const allOther = identity.filter((e) => !likes.includes(e) && !dislikes.includes(e) && !values.includes(e) && !prefs.includes(e) && !insights.includes(e));
+
+    const lines: string[] = [];
+    for (const e of [...likes, ...dislikes, ...values, ...prefs, ...insights, ...allOther]) {
+      lines.push(`- [${e.entityType}] ${e.summary}`);
+    }
+    // Deduplicate in case of overlap
+    const uniqueLines = [...new Set(lines)];
+    sections.push(`## Who They Are\n${uniqueLines.join("\n")}`);
+
+    // Also include identity narratives if they exist
+    const identityNarratives = narratives.filter((n) => n.domain === "identity");
+    if (identityNarratives.length > 0) {
+      const narBlock = identityNarratives
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 3)
+        .map((n) => `- ${n.narrative}`)
+        .join("\n");
+      sections.push(`## Personal Profile Summary\n${narBlock}`);
+    }
   }
 
   if (sections.length === 0) return "";
