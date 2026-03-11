@@ -30,7 +30,7 @@ import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerImageRoutes } from "./replit_integrations/image";
 import { parseTrackerNotes } from "./lib/parse-notes";
 import { computeDashboardInsights, DashboardInsightsSchema } from "./lib/dashboard-analytics";
-import { aiComplete, aiStream, MODEL_PRIMARY, MODEL_FAST, createRawStream, createRawCompletion } from "./lib/ai-client";
+import { aiComplete, aiStream, MODEL_PRIMARY, MODEL_FAST, createRawStream, createRawCompletion, getAnthropicClient } from "./lib/ai-client";
 
 // Simple in-memory cache for AI responses (cost optimization)
 const aiCache = new Map<string, { data: string; timestamp: number }>();
@@ -2530,7 +2530,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
       // Generate AI summary if available
       let aiSummary = null;
-      if (articlesWithSaveStatus.length > 0 && process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+      if (articlesWithSaveStatus.length > 0 && process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY) {
         try {
           const vision = await storage.getVision(userId);
           const visionSummary = vision.map(v => v.title).join(", ");
@@ -2573,7 +2573,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   app.get("/api/career/ai-roadmap", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY || !process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {
+      if (!process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY) {
         return res.json({
           roadmap: [],
           suggestedActions: [],
@@ -2682,7 +2682,7 @@ Based on this vision and current project state, create a strategic roadmap and s
   app.post("/api/career/coach", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY || !process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {
+      if (!process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY) {
         return res.json({
           error: "missing_credentials",
           message: "AI features are not configured. Please set up AI integrations to use this feature."
@@ -3364,8 +3364,9 @@ ${JSON.stringify(context, null, 2)}`;
       let bufferedContent = "";
       let hasActionTag = false;
 
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content;
+      for await (const event of stream) {
+        if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") continue;
+        const content = event.delta.text;
         if (content) {
           fullResponse += content;
           bufferedContent += content;
@@ -4443,9 +4444,9 @@ RULES:
       ], { model: MODEL_FAST, maxTokens: 500 });
 
       let fullResponse = "";
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content;
-        if (content) {
+      for await (const event of stream) {
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          const content = event.delta.text;
           res.write(content);
           fullResponse += content;
         }
@@ -4849,8 +4850,8 @@ Think like a doctor building a patient's problem list — not like a text parser
         }
       } else if (isImage) {
         userContent.push({
-          type: "image_url",
-          image_url: { url: `data:${mimeType};base64,${fileData}`, detail: "high" },
+          type: "image",
+          source: { type: "base64", media_type: mimeType, data: fileData },
         });
         userContent.push({ type: "text", text: `Analyze this medical image: "${fileName}"` });
       } else if (isTextFile) {
@@ -5232,12 +5233,6 @@ ${unifiedContext}${extraMedContext}`;
       const emailsList = (allEmails?.value || []).slice(0, 10);
       if (emailsList.length === 0) return res.json({});
 
-      const OpenAI = (await import("openai")).default;
-      const openai = new OpenAI({
-        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-      });
-
       const emailData = emailsList.map((e: any, i: number) => {
         const from = e.from?.emailAddress?.name || e.from?.emailAddress?.address || "Unknown";
         const subject = (e.subject || "No subject").substring(0, 80);
@@ -5245,9 +5240,8 @@ ${unifiedContext}${extraMedContext}`;
         return `${i + 1}. From: ${from} | Subject: ${subject} | Latest message preview: ${preview}`;
       }).join("\n");
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
+      const raw = await aiComplete(
+        [
           {
             role: "system",
             content: `Summarize ONLY the latest/most recent message in each email — ignore older replies, forwarded threads, or quoted history. Return ONLY a valid JSON object mapping index numbers (as strings) to summaries. Each summary: max 50 chars, plain language, no sender name (already shown separately). Focus on what the latest message says or asks. Examples: {"1":"New architect role in Germany (remote)","2":"Final test results are ready","3":"Livestream schedule update"}`
@@ -5257,11 +5251,8 @@ ${unifiedContext}${extraMedContext}`;
             content: emailData
           }
         ],
-        temperature: 0.2,
-        max_tokens: 400,
-      });
-
-      const raw = response.choices[0]?.message?.content || "{}";
+        { model: MODEL_FAST, maxTokens: 400, temperature: 0.2 }
+      );
       let parsed: Record<string, string> = {};
       try {
         const jsonMatch = raw.match(/\{[\s\S]*\}/);
@@ -5552,8 +5543,9 @@ ${unifiedContext}`;
       let bufferedContent = "";
       let hasActionTag = false;
 
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content;
+      for await (const event of stream) {
+        if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") continue;
+        const content = event.delta.text;
         if (content) {
           fullResponse += content;
           bufferedContent += content;

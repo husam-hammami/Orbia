@@ -55,7 +55,7 @@ Preferred communication style: Simple, everyday language.
 - **Files**: `server/lib/microsoft-graph.ts` (Graph API client), `client/src/pages/work.tsx` (frontend).
 
 ### AI Integration
-- **Provider**: OpenAI via Replit AI Integrations - no API key required. All endpoints fully migrated from Anthropic to OpenAI (`createRawStream`/`createRawCompletion` in `server/lib/ai-client.ts`).
+- **Provider**: Anthropic Claude via Replit AI Integrations (claude-sonnet-4-6 primary, claude-haiku-4-5 fast) — no API key required, billed to Replit credits. OpenAI kept for image generation only. All AI routed through `server/lib/ai-client.ts` (`aiComplete`, `aiStream`, `createRawStream`, `createRawCompletion`). Anti-hallucination patterns baked into system prompts (see `buildUnifiedSystemPrompt` in `unified-context.ts`). Memory graph context injected into all chat modes via `buildUnifiedContextWithMemory`.
 - **Unified Context Layer**: `server/lib/unified-context.ts` — single `buildUnifiedContext(userId)` function assembles ALL user data (wellness, habits, tasks, calendar, Teams, emails, medical, finance, system members) into XML-tagged context blocks. Used by all 3 AI chat endpoints.
 - **Unified System Prompt**: `buildUnifiedSystemPrompt(mode)` generates mode-specific prompts ("orbit", "work", "medical") with shared cross-domain intelligence rules and privacy boundaries.
 - **Endpoints**:
