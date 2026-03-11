@@ -627,47 +627,36 @@ function EmailInbox({ userEmail }: { userEmail?: string }) {
       ) : directEmails.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-3">No direct emails</p>
       ) : (
-        <div className="space-y-1.5 max-h-[400px] overflow-y-auto scrollbar-themed">
-          {directEmails.slice(0, 8).map((email: any, i: number) => {
+        <div className="space-y-1 max-h-[400px] overflow-y-auto scrollbar-themed">
+          {directEmails.slice(0, 10).map((email: any, i: number) => {
             const senderName = email.from?.emailAddress?.name || email.from?.emailAddress?.address || "Unknown";
             const aiSummary = summaries?.[email.id];
+            const displayText = aiSummary || email.subject || "(no subject)";
             return (
               <div
                 key={email.id || i}
                 onClick={() => setSelectedEmailId(email.id)}
                 className={cn(
-                  "p-2.5 rounded-lg border transition-all cursor-pointer group",
+                  "flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-all cursor-pointer group",
                   email.isRead
                     ? "bg-white/[0.02] border-white/5 hover:border-white/15 hover:bg-white/[0.04]"
                     : "bg-indigo-500/5 border-indigo-500/15 hover:border-indigo-500/30 hover:bg-indigo-500/10"
                 )}
                 data-testid={`card-email-${i}`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {email.isRead ? (
-                      <MailOpen className="w-3 h-3 text-muted-foreground shrink-0" />
-                    ) : (
-                      <Mail className="w-3 h-3 text-indigo-400 shrink-0" />
-                    )}
-                    <span className={cn("text-[11px] truncate", email.isRead ? "text-muted-foreground" : "text-foreground/90 font-medium")}>
-                      {senderName}
-                    </span>
-                  </div>
-                  <span className="text-[9px] text-muted-foreground shrink-0 ml-2" style={mono}>
-                    {new Date(email.receivedDateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                  </span>
-                </div>
-                {aiSummary ? (
-                  <p className="text-[11px] text-indigo-300/80 truncate pl-[18px]" data-testid={`text-email-summary-${i}`}>
-                    {aiSummary}
-                  </p>
-                ) : (
-                  <>
-                    <p className="text-[11px] text-foreground/70 truncate pl-[18px]">{email.subject}</p>
-                    <p className="text-[10px] text-muted-foreground truncate mt-0.5 pl-[18px]">{(email.bodyPreview || "").substring(0, 80)}</p>
-                  </>
+                {!email.isRead && (
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
                 )}
+                <span className={cn("text-[11px] shrink-0 font-medium", email.isRead ? "text-muted-foreground" : "text-foreground/90")}>
+                  {senderName.length > 18 ? senderName.substring(0, 18) + "…" : senderName}
+                </span>
+                <span className="text-muted-foreground/30 shrink-0">·</span>
+                <span className={cn("text-[11px] truncate min-w-0", aiSummary ? "text-indigo-300/70" : "text-foreground/50")} data-testid={`text-email-summary-${i}`}>
+                  {displayText}
+                </span>
+                <span className="text-[9px] text-muted-foreground shrink-0 ml-auto" style={mono}>
+                  {new Date(email.receivedDateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                </span>
               </div>
             );
           })}
@@ -1156,7 +1145,7 @@ export default function WorkPage() {
   return (
     <Layout>
       <div className="min-h-screen">
-        <div className="p-4 lg:p-6 max-w-[1400px] mx-auto">
+        <div className="p-4 lg:p-6">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
               <div className={cn(cmdPanelGlow, "p-2.5")}>
