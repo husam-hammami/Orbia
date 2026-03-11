@@ -8,7 +8,7 @@ import {
   ChevronDown, AlertCircle, Mail, MailOpen,
   Reply, ArrowLeft, Paperclip, Rocket
 } from "lucide-react";
-import { ProjectsTab } from "@/components/projects-tab";
+import ProjectsTab from "@/components/projects-tab";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
