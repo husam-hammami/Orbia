@@ -343,6 +343,38 @@ export async function registerRoutes(
     }
   });
 
+  // User Profile Routes
+  app.get("/api/user/profile", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const profile = await storage.getUserProfile(userId);
+      res.json(profile);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch profile" });
+    }
+  });
+
+  app.patch("/api/user/profile", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { displayName, bio } = req.body;
+      const updates: { displayName?: string; bio?: string } = {};
+      if (typeof displayName === "string") updates.displayName = displayName.trim().slice(0, 100);
+      if (typeof bio === "string") updates.bio = bio.trim().slice(0, 500);
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: "No valid fields to update" });
+      }
+      const user = await storage.updateUserProfile(userId, updates);
+      // Update session displayName if changed
+      if (updates.displayName && req.session) {
+        req.session.displayName = updates.displayName;
+      }
+      res.json({ displayName: user.displayName, bio: user.bio });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
   app.get("/api/export", async (req, res) => {
     try {
       const userId = req.session.userId!;

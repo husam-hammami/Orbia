@@ -4,6 +4,7 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
@@ -31,12 +32,23 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const [systemName, setSystemName] = useState("");
   const [privacyMode, setPrivacyMode] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
+  const [hasProfileChanges, setHasProfileChanges] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const { themeId, themes, isDark, setTheme, toggleDarkMode } = useTheme();
 
   const { data: settings, isLoading } = useQuery<SystemSettings>({
     queryKey: ["/api/settings"],
+  });
+
+  const { data: profile, isLoading: profileLoading } = useQuery<{ displayName: string | null; bio: string | null }>({
+    queryKey: ["/api/user/profile"],
+    queryFn: async () => {
+      const res = await fetch("/api/user/profile");
+      return res.json();
+    }
   });
 
   useEffect(() => {
@@ -45,6 +57,13 @@ export default function Settings() {
       setPrivacyMode(settings.privacyMode === 1);
     }
   }, [settings]);
+
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.displayName || "");
+      setBio(profile.bio || "");
+    }
+  }, [profile]);
 
   const updateSettings = useMutation({
     mutationFn: async (data: Partial<SystemSettings>) => {
@@ -61,11 +80,35 @@ export default function Settings() {
     }
   });
 
+  const updateProfile = useMutation({
+    mutationFn: async (data: { displayName?: string; bio?: string }) => {
+      const res = await apiRequest("PATCH", "/api/user/profile", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+      setHasProfileChanges(false);
+      toast.success("Profile saved");
+    },
+    onError: () => {
+      toast.error("Failed to save profile");
+    }
+  });
+
   const handleSave = () => {
     updateSettings.mutate({
       systemName,
       privacyMode: privacyMode ? 1 : 0,
     });
+  };
+
+  const handleProfileSave = () => {
+    updateProfile.mutate({ displayName, bio });
+  };
+
+  const handleProfileFieldChange = (setter: (val: string) => void, value: string) => {
+    setter(value);
+    setHasProfileChanges(true);
   };
 
   const handleExport = async () => {
@@ -138,9 +181,67 @@ export default function Settings() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <User className="w-5 h-5 text-[hsl(var(--chart-4))]" />
+                    Your Profile
+                  </CardTitle>
+                  <CardDescription>
+                    Tell Orbia about yourself so it can personalize your experience.
+                  </CardDescription>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleProfileSave}
+                  disabled={!hasProfileChanges || updateProfile.isPending}
+                  data-testid="button-save-profile"
+                >
+                  {updateProfile.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : !hasProfileChanges ? (
+                    <Check className="w-4 h-4 mr-2" />
+                  ) : null}
+                  {hasProfileChanges ? "Save" : "Saved"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="display-name">Your Name</Label>
+                <Input
+                  id="display-name"
+                  value={displayName}
+                  onChange={(e) => handleProfileFieldChange(setDisplayName, e.target.value)}
+                  placeholder="What should Orbia call you?"
+                  maxLength={100}
+                  data-testid="input-display-name"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="user-bio">About You</Label>
+                <Textarea
+                  id="user-bio"
+                  value={bio}
+                  onChange={(e) => handleProfileFieldChange(setBio, e.target.value)}
+                  placeholder="Tell Orbia a bit about yourself — your background, interests, how you like to be supported..."
+                  maxLength={500}
+                  rows={3}
+                  className="resize-none"
+                  data-testid="input-user-bio"
+                />
+                <p className="text-[0.8rem] text-muted-foreground">
+                  {bio.length}/500 — This helps Orbia understand you better and tailor its responses.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <User className="w-5 h-5 text-[hsl(var(--chart-4))]" />
-                Profile
+                <SettingsIcon className="w-5 h-5 text-muted-foreground" />
+                System
               </CardTitle>
               <CardDescription>
                 Basic information about your setup.
@@ -148,11 +249,11 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-2">
-                <Label htmlFor="system-name">Display Name</Label>
-                <Input 
-                  id="system-name" 
-                  value={systemName} 
-                  onChange={(e) => handleFieldChange(setSystemName, e.target.value)} 
+                <Label htmlFor="system-name">System Display Name</Label>
+                <Input
+                  id="system-name"
+                  value={systemName}
+                  onChange={(e) => handleFieldChange(setSystemName, e.target.value)}
                   placeholder="e.g. My Wellness Tracker"
                   data-testid="input-system-name"
                 />

@@ -11,6 +11,7 @@ export async function buildUnifiedContext(userId: string): Promise<{
   const todayStr = now.toISOString().split("T")[0];
 
   const [
+    userProfileResult,
     entriesResult,
     journalResult,
     membersResult,
@@ -30,6 +31,7 @@ export async function buildUnifiedContext(userId: string): Promise<{
     projectsResult,
     projectTasksResult,
   ] = await Promise.allSettled([
+    storage.getUserProfile(userId),
     storage.getRecentTrackerEntries(userId, 30),
     storage.getAllJournalEntries(userId),
     storage.getAllMembers(userId),
@@ -53,6 +55,7 @@ export async function buildUnifiedContext(userId: string): Promise<{
   const val = <T,>(r: PromiseSettledResult<T>, fallback: T): T =>
     r.status === "fulfilled" ? r.value : fallback;
 
+  const userProfile = val(userProfileResult, { displayName: null, bio: null });
   const entries = val(entriesResult, []);
   const journalEntries = val(journalResult, []);
   const members = val(membersResult, []);
@@ -73,6 +76,14 @@ export async function buildUnifiedContext(userId: string): Promise<{
   const projectTasks = val(projectTasksResult, []) as any[];
 
   let sections: string[] = [];
+
+  // User profile (name and bio)
+  if (userProfile.displayName || userProfile.bio) {
+    let profileSection = "### USER PROFILE";
+    if (userProfile.displayName) profileSection += `\nName: ${userProfile.displayName}`;
+    if (userProfile.bio) profileSection += `\nAbout: ${userProfile.bio}`;
+    sections.push(profileSection);
+  }
 
   const recentEntries = entries.filter(
     (e) => new Date(e.timestamp) >= sevenDaysAgo

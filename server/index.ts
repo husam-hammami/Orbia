@@ -111,6 +111,9 @@ async function ensureDefaultUsers() {
     const dbInfo = await db.execute(sql`SELECT current_database()`);
     console.log(`[startup] Connected to database: ${(dbInfo.rows[0] as any)?.current_database}`);
 
+    // Ensure bio column exists (added for user profile feature)
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT`).catch(() => {});
+
     const existing = await db.execute(sql`SELECT id, display_name FROM users`);
     console.log(`[startup] Found ${existing.rows.length} users in database`);
 
