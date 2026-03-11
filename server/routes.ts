@@ -2169,51 +2169,98 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   });
 
   // Define available RSS feeds for news topics
-  const rssFeedsByTopic: Record<string, { name: string; feeds: string[] }> = {
+  const rssFeedsByTopic: Record<string, { name: string; feeds: { url: string; source: string }[] }> = {
     teaching: {
       name: "Teaching",
-      feeds: ["https://www.edweek.org/rss/blogs/edweek/default.rss", "https://www.teachthought.com/feed/"]
+      feeds: [
+        { url: "https://www.edutopia.org/feeds/rss", source: "Edutopia" },
+        { url: "https://hnrss.org/newest?q=education+teaching", source: "Hacker News" },
+        { url: "https://news.google.com/rss/search?q=teaching+education+classroom&hl=en-US&gl=US&ceid=US:en", source: "Google News" }
+      ]
     },
     cybersecurity: {
       name: "Security",
-      feeds: ["https://feeds.feedburner.com/TheHackersNews", "https://krebsonsecurity.com/feed/"]
+      feeds: [
+        { url: "https://www.bleepingcomputer.com/feed/", source: "BleepingComputer" },
+        { url: "https://krebsonsecurity.com/feed/", source: "Krebs on Security" },
+        { url: "https://www.darkreading.com/rss.xml", source: "Dark Reading" },
+        { url: "https://hnrss.org/newest?q=cybersecurity+hacking+infosec", source: "Hacker News" }
+      ]
     },
     technology: {
       name: "Tech",
-      feeds: ["https://hnrss.org/frontpage", "https://www.theverge.com/rss/index.xml"]
+      feeds: [
+        { url: "https://hnrss.org/frontpage", source: "Hacker News" },
+        { url: "https://www.theverge.com/rss/index.xml", source: "The Verge" },
+        { url: "https://techcrunch.com/feed/", source: "TechCrunch" },
+        { url: "https://arstechnica.com/feed/", source: "Ars Technica" }
+      ]
     },
     career: {
       name: "Career",
-      feeds: ["https://hbr.org/feed"]
+      feeds: [
+        { url: "https://news.google.com/rss/search?q=career+development+professional+growth&hl=en-US&gl=US&ceid=US:en", source: "Google News" },
+        { url: "https://hnrss.org/newest?q=career+hiring+job+interview", source: "Hacker News" }
+      ]
     },
     wellness: {
       name: "Wellness",
-      feeds: ["https://zenhabits.net/feed/", "https://www.psychologytoday.com/us/blog/feed"]
+      feeds: [
+        { url: "https://zenhabits.net/feed/", source: "Zen Habits" },
+        { url: "https://news.google.com/rss/search?q=mental+health+wellness+mindfulness&hl=en-US&gl=US&ceid=US:en", source: "Google News" },
+        { url: "https://hnrss.org/newest?q=mental+health+wellness", source: "Hacker News" }
+      ]
     },
     skincare: {
       name: "Skincare & Dermatology",
       feeds: [
-        "https://www.dermatologytimes.com/rss/feed",
-        "https://www.aad.org/rss/news"
+        { url: "https://news.google.com/rss/search?q=skincare+dermatology+skin+health&hl=en-US&gl=US&ceid=US:en", source: "Google News" },
+        { url: "https://www.allure.com/feed/rss", source: "Allure" }
       ]
     },
     french: {
       name: "French",
-      feeds: ["https://www.france24.com/en/rss"]
+      feeds: [
+        { url: "https://www.france24.com/en/rss", source: "France 24" },
+        { url: "https://news.google.com/rss/search?q=france+french+culture+language&hl=en-US&gl=US&ceid=US:en", source: "Google News" }
+      ]
     },
     finance: {
       name: "Personal Finance",
-      feeds: ["https://feeds.feedburner.com/TheFinancialDiet"]
+      feeds: [
+        { url: "https://news.google.com/rss/search?q=personal+finance+budgeting+investing&hl=en-US&gl=US&ceid=US:en", source: "Google News" },
+        { url: "https://hnrss.org/newest?q=personal+finance+investing", source: "Hacker News" }
+      ]
     },
     productivity: {
       name: "Productivity",
-      feeds: ["https://feeds.feedburner.com/zenhabits"]
+      feeds: [
+        { url: "https://zenhabits.net/feed/", source: "Zen Habits" },
+        { url: "https://news.google.com/rss/search?q=productivity+time+management+focus&hl=en-US&gl=US&ceid=US:en", source: "Google News" },
+        { url: "https://hnrss.org/newest?q=productivity", source: "Hacker News" }
+      ]
     },
     ai: {
       name: "AI & Machine Learning",
-      feeds: ["https://openai.com/blog/rss.xml"]
+      feeds: [
+        { url: "https://hnrss.org/newest?q=AI+LLM+machine+learning+GPT+Claude", source: "Hacker News" },
+        { url: "https://techcrunch.com/category/artificial-intelligence/feed/", source: "TechCrunch" },
+        { url: "https://news.google.com/rss/search?q=artificial+intelligence+AI+machine+learning&hl=en-US&gl=US&ceid=US:en", source: "Google News" }
+      ]
     }
   };
+
+  // Generate RSS feeds for custom topics dynamically via Google News
+  function getFeedsForTopic(topic: string): { url: string; source: string }[] {
+    const config = rssFeedsByTopic[topic];
+    if (config) return config.feeds;
+    // Custom topic — use Google News RSS
+    const query = encodeURIComponent(topic.replace(/-/g, " "));
+    return [
+      { url: `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`, source: "Google News" },
+      { url: `https://hnrss.org/newest?q=${query}`, source: "Hacker News" }
+    ];
+  }
 
   // Get suggested topics based on user's goals, projects, and visions
   app.get("/api/news/suggested-topics", async (req, res) => {
@@ -2438,15 +2485,13 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
         }
       }
 
-      // Fetch RSS feeds for active topics
+      // Fetch RSS feeds for active topics (supports both preset and custom topics)
       const feedsToFetch: { category: string; url: string; source: string }[] = [];
       activeTopics.forEach(topic => {
-        const feedConfig = rssFeedsByTopic[topic];
-        if (feedConfig) {
-          feedConfig.feeds.forEach(url => {
-            feedsToFetch.push({ category: topic, url, source: feedConfig.name });
-          });
-        }
+        const feeds = getFeedsForTopic(topic);
+        feeds.forEach(feed => {
+          feedsToFetch.push({ category: topic, url: feed.url, source: feed.source });
+        });
       });
 
       // Fetch and parse RSS feeds with enhanced metadata
@@ -2464,7 +2509,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
       const fetchedArticles: EnhancedArticle[] = [];
       
       await Promise.allSettled(
-        feedsToFetch.slice(0, 8).map(async ({ category, url, source }) => {
+        feedsToFetch.slice(0, 15).map(async ({ category, url, source }) => {
           try {
             const response = await fetch(url, { 
               headers: { 'User-Agent': 'Orbya/1.0' },
@@ -2559,7 +2604,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
 
       res.json({
         topics: activeTopics,
-        topicNames: activeTopics.map(t => rssFeedsByTopic[t]?.name || t),
+        topicNames: activeTopics.map(t => rssFeedsByTopic[t]?.name || t.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())),
         articles: articlesWithSaveStatus.slice(0, 20),
         aiSummary,
         hasUserTopics: userTopics.length > 0,
