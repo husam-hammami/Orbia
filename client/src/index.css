@@ -260,6 +260,29 @@
   display: none;
 }
 
+/* Themed scrollbar for dark UI */
+.scrollbar-themed {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.2) transparent;
+}
+.scrollbar-themed::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.scrollbar-themed::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-themed::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.2);
+  border-radius: 9999px;
+}
+.scrollbar-themed::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.35);
+}
+.scrollbar-themed::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Safe area padding for mobile devices */
 .safe-area-top {
   padding-top: env(safe-area-inset-top, 0px);

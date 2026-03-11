@@ -203,7 +203,7 @@ function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendM
           <span className="text-sm font-medium text-foreground/85 truncate">{chatName}</span>
         </div>
 
-        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden space-y-2 mb-3 max-h-[350px]">
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden space-y-2 mb-3 max-h-[350px] scrollbar-themed">
           {loadingMessages ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-5 h-5 animate-spin text-indigo-400/50" />
@@ -501,7 +501,7 @@ function EmailDetail({ emailId, onBack }: { emailId: string; onBack: () => void 
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden max-h-[200px] mb-3 rounded-lg bg-black/20 border border-white/5 p-3">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden max-h-[200px] mb-3 rounded-lg bg-black/20 border border-white/5 p-3 scrollbar-themed">
         {isHtml ? (
           <div
             className="text-[11px] text-foreground/70 leading-relaxed break-words overflow-hidden [&_a]:text-indigo-400 [&_a]:underline [&_a]:break-all [&_img]:max-w-full [&_img]:h-auto [&_table]:text-[10px] [&_table]:w-full [&_table]:table-fixed [&_td]:break-words [&_td]:overflow-hidden [&_th]:break-words [&_*]:max-w-full [&_*]:overflow-hidden [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_div]:max-w-full"
@@ -579,7 +579,7 @@ function EmailInbox({ userEmail }: { userEmail?: string }) {
     });
   }, [emails, userEmail]);
 
-  const { data: summaries } = useQuery({
+  const { data: summaries, isLoading: loadingSummaries } = useQuery({
     queryKey: ["/api/work/emails/summaries"],
     queryFn: async () => {
       const fullUrl = API_BASE_URL ? `${API_BASE_URL}/api/work/emails/summarize` : "/api/work/emails/summarize";
@@ -594,6 +594,7 @@ function EmailInbox({ userEmail }: { userEmail?: string }) {
     },
     enabled: directEmails.length > 0,
     staleTime: 300000,
+    retry: 1,
     refetchOnWindowFocus: false,
   });
 
@@ -609,6 +610,9 @@ function EmailInbox({ userEmail }: { userEmail?: string }) {
         <div className="flex items-center gap-2">
           <Mail className="w-3.5 h-3.5 text-indigo-400" />
           <CmdLabel>Inbox</CmdLabel>
+          {loadingSummaries && directEmails.length > 0 && (
+            <Sparkles className="w-3 h-3 text-indigo-400/50 animate-pulse" />
+          )}
         </div>
         {unreadCount > 0 && (
           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400" style={mono} data-testid="text-unread-count">
@@ -623,43 +627,50 @@ function EmailInbox({ userEmail }: { userEmail?: string }) {
       ) : directEmails.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-3">No direct emails</p>
       ) : (
-        <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
-          {directEmails.slice(0, 8).map((email: any, i: number) => (
-            <div
-              key={email.id || i}
-              onClick={() => setSelectedEmailId(email.id)}
-              className={cn(
-                "p-2.5 rounded-lg border transition-all cursor-pointer",
-                email.isRead
-                  ? "bg-white/[0.02] border-white/5 hover:border-white/15 hover:bg-white/[0.04]"
-                  : "bg-indigo-500/5 border-indigo-500/15 hover:border-indigo-500/30 hover:bg-indigo-500/10"
-              )}
-              data-testid={`card-email-${i}`}
-            >
-              <div className="flex items-start gap-2">
-                {email.isRead ? (
-                  <MailOpen className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
-                ) : (
-                  <Mail className="w-3 h-3 text-indigo-400 mt-0.5 shrink-0" />
+        <div className="space-y-1.5 max-h-[400px] overflow-y-auto scrollbar-themed">
+          {directEmails.slice(0, 8).map((email: any, i: number) => {
+            const senderName = email.from?.emailAddress?.name || email.from?.emailAddress?.address || "Unknown";
+            const aiSummary = summaries?.[email.id];
+            return (
+              <div
+                key={email.id || i}
+                onClick={() => setSelectedEmailId(email.id)}
+                className={cn(
+                  "p-2.5 rounded-lg border transition-all cursor-pointer group",
+                  email.isRead
+                    ? "bg-white/[0.02] border-white/5 hover:border-white/15 hover:bg-white/[0.04]"
+                    : "bg-indigo-500/5 border-indigo-500/15 hover:border-indigo-500/30 hover:bg-indigo-500/10"
                 )}
-                <div className="min-w-0 flex-1">
-                  <p className={cn("text-[11px] truncate", email.isRead ? "text-muted-foreground" : "text-foreground/90 font-medium")}>
-                    {email.from?.emailAddress?.name || email.from?.emailAddress?.address || "Unknown"}
-                  </p>
-                  <p className="text-[11px] text-foreground/70 truncate">{email.subject}</p>
-                  <p className="text-[10px] text-muted-foreground truncate mt-0.5 italic">
-                    {summaries?.[email.id] || (email.bodyPreview || "").substring(0, 60)}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  <span className="text-[9px] text-muted-foreground" style={mono}>
+                data-testid={`card-email-${i}`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {email.isRead ? (
+                      <MailOpen className="w-3 h-3 text-muted-foreground shrink-0" />
+                    ) : (
+                      <Mail className="w-3 h-3 text-indigo-400 shrink-0" />
+                    )}
+                    <span className={cn("text-[11px] truncate", email.isRead ? "text-muted-foreground" : "text-foreground/90 font-medium")}>
+                      {senderName}
+                    </span>
+                  </div>
+                  <span className="text-[9px] text-muted-foreground shrink-0 ml-2" style={mono}>
                     {new Date(email.receivedDateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                   </span>
-                  <ChevronRight className="w-2.5 h-2.5 text-muted-foreground/40" />
                 </div>
+                {aiSummary ? (
+                  <p className="text-[11px] text-indigo-300/80 truncate pl-[18px]" data-testid={`text-email-summary-${i}`}>
+                    {aiSummary}
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-[11px] text-foreground/70 truncate pl-[18px]">{email.subject}</p>
+                    <p className="text-[10px] text-muted-foreground truncate mt-0.5 pl-[18px]">{(email.bodyPreview || "").substring(0, 80)}</p>
+                  </>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -858,7 +869,7 @@ function NexusChat({ connected }: { connected: boolean }) {
 
   return (
     <div className="flex flex-col h-full" data-testid="panel-nexus-chat">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-0 scroll-smooth">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-0 scroll-smooth scrollbar-themed">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-12">
             <h3 className="text-lg font-display font-semibold text-foreground/90 mb-1">Orbia Professional</h3>
@@ -1207,7 +1218,7 @@ export default function WorkPage() {
             <MeetingsStrip events={weekEvents} />
           )}
 
-          <div className="hidden lg:grid lg:grid-cols-[300px_1fr_300px] gap-4">
+          <div className="hidden lg:grid lg:grid-cols-[minmax(280px,1fr)_minmax(350px,1.4fr)_minmax(280px,1fr)] gap-5">
             <div className="space-y-4">
               {connected && <EmailInbox userEmail={connectionStatus?.email} />}
 
@@ -1242,7 +1253,7 @@ export default function WorkPage() {
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto scrollbar-themed">
                 <TeamsPanel
                   chats={teamsChats}
                   onSelectChat={(id) => setSelectedChatId(id || null)}
