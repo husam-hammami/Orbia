@@ -55,7 +55,7 @@ Preferred communication style: Simple, everyday language.
 - **Files**: `server/lib/microsoft-graph.ts` (Graph API client), `client/src/pages/work.tsx` (frontend).
 
 ### AI Integration
-- **Provider**: OpenAI via Replit AI Integrations (GPT-5.1) - no API key required.
+- **Provider**: OpenAI via Replit AI Integrations - no API key required. All endpoints fully migrated from Anthropic to OpenAI (`createRawStream`/`createRawCompletion` in `server/lib/ai-client.ts`).
 - **Unified Context Layer**: `server/lib/unified-context.ts` — single `buildUnifiedContext(userId)` function assembles ALL user data (wellness, habits, tasks, calendar, Teams, emails, medical, finance, system members) into XML-tagged context blocks. Used by all 3 AI chat endpoints.
 - **Unified System Prompt**: `buildUnifiedSystemPrompt(mode)` generates mode-specific prompts ("orbit", "work", "medical") with shared cross-domain intelligence rules and privacy boundaries.
 - **Endpoints**:

@@ -30,7 +30,7 @@ import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerImageRoutes } from "./replit_integrations/image";
 import { parseTrackerNotes } from "./lib/parse-notes";
 import { computeDashboardInsights, DashboardInsightsSchema } from "./lib/dashboard-analytics";
-import { aiComplete, aiStream, MODEL_PRIMARY, MODEL_FAST } from "./lib/ai-client";
+import { aiComplete, aiStream, MODEL_PRIMARY, MODEL_FAST, createRawStream, createRawCompletion } from "./lib/ai-client";
 
 // Simple in-memory cache for AI responses (cost optimization)
 const aiCache = new Map<string, { data: string; timestamp: number }>();
@@ -3295,22 +3295,14 @@ ${JSON.stringify(context, null, 2)}`;
       
       messages.push({ role: "user", content: message });
 
-      // Separate system message for Anthropic format
+      // Separate system message from chat messages
       const systemContent = messages.filter(m => m.role === "system").map(m => m.content).join("\n\n");
       const chatMessages = messages.filter(m => m.role !== "system").map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
       if (chatMessages.length === 0 || chatMessages[0].role !== "user") {
         chatMessages.unshift({ role: "user", content: "(continuing)" });
       }
 
-      const { getAnthropicClient } = await import("./lib/ai-client");
-      const anthropic = getAnthropicClient();
-      const stream = await anthropic.messages.create({
-        model: MODEL_PRIMARY,
-        system: systemContent,
-        messages: chatMessages,
-        max_tokens: 800,
-        stream: true,
-      });
+      const stream = await createRawStream(systemContent, chatMessages, { model: MODEL_PRIMARY, maxTokens: 800 });
 
       let fullResponse = "";
       const executedActions = new Set<string>();
@@ -3372,9 +3364,8 @@ ${JSON.stringify(context, null, 2)}`;
       let bufferedContent = "";
       let hasActionTag = false;
 
-      for await (const event of stream) {
-        if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") continue;
-        const content = event.delta.text;
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content;
         if (content) {
           fullResponse += content;
           bufferedContent += content;
@@ -4447,22 +4438,14 @@ RULES:
         return;
       }
       
-      const { getAnthropicClient } = await import("./lib/ai-client");
-      const anthropicClient = getAnthropicClient();
-      const stream = await anthropicClient.messages.create({
-        model: MODEL_FAST,
-        system: systemPrompt,
-        messages: [
-          { role: "user", content: "Analyze my data following the exact 4-section format." }
-        ],
-        stream: true,
-        max_tokens: 500,
-      });
+      const stream = await createRawStream(systemPrompt, [
+        { role: "user", content: "Analyze my data following the exact 4-section format." }
+      ], { model: MODEL_FAST, maxTokens: 500 });
 
       let fullResponse = "";
-      for await (const event of stream) {
-        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-          const content = event.delta.text;
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content;
+        if (content) {
           res.write(content);
           fullResponse += content;
         }
@@ -4877,35 +4860,9 @@ Think like a doctor building a patient's problem list — not like a text parser
         userContent.push({ type: "text", text: `A medical file named "${fileName}" (type: ${mimeType}) was uploaded. Based on the filename and type, provide your best categorization. Note that full content extraction is not available for this file format.` });
       }
 
-      // Convert OpenAI content blocks to Anthropic format
-      const anthropicContent: any[] = userContent.map((block: any) => {
-        if (block.type === "image_url") {
-          // Extract base64 data and media type from data URL
-          const dataUrl = block.image_url.url;
-          const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-          if (match) {
-            return { type: "image", source: { type: "base64", media_type: match[1], data: match[2] } };
-          }
-          return { type: "text", text: "[Image could not be processed]" };
-        }
-        return block; // text blocks stay the same
-      });
-
-      const { getAnthropicClient } = await import("./lib/ai-client");
-      const anthropicClient = getAnthropicClient();
-      const completion = await anthropicClient.messages.create({
-        model: MODEL_PRIMARY,
-        system: analysisPrompt,
-        messages: [
-          { role: "user", content: anthropicContent },
-        ],
-        max_tokens: 8192,
-      });
-
-      const rawAnalysis = completion.content
-        .filter((block) => block.type === "text")
-        .map((block) => block.type === "text" ? block.text : "")
-        .join("") || "{}";
+      const rawAnalysis = await createRawCompletion(analysisPrompt, [
+        { role: "user", content: userContent },
+      ], { model: MODEL_PRIMARY, maxTokens: 8192 });
       let analysis: any;
       try {
         analysis = JSON.parse(rawAnalysis);
@@ -5516,21 +5473,13 @@ ${unifiedContext}`;
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      // Separate system message for Anthropic format
+      // Separate system message from chat messages
       const workMsgs = chatMessages.map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content }));
       if (workMsgs.length === 0 || workMsgs[0].role !== "user") {
         workMsgs.unshift({ role: "user" as const, content: "(continuing)" });
       }
 
-      const { getAnthropicClient } = await import("./lib/ai-client");
-      const anthropicClient = getAnthropicClient();
-      const stream = await anthropicClient.messages.create({
-        model: MODEL_PRIMARY,
-        system: systemPrompt,
-        messages: workMsgs,
-        max_tokens: 2048,
-        stream: true,
-      });
+      const stream = await createRawStream(systemPrompt, workMsgs, { model: MODEL_PRIMARY, maxTokens: 2048 });
 
       let fullResponse = "";
       const executedActions = new Set<string>();
@@ -5603,9 +5552,8 @@ ${unifiedContext}`;
       let bufferedContent = "";
       let hasActionTag = false;
 
-      for await (const event of stream) {
-        if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") continue;
-        const content = event.delta.text;
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content;
         if (content) {
           fullResponse += content;
           bufferedContent += content;
