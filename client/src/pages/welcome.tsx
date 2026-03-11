@@ -99,10 +99,22 @@ export default function WelcomePage({ onAuthenticated }: WelcomePageProps) {
         <motion.img
           src={logoUrl}
           alt="Orbia"
-          className="w-64 h-auto mb-2"
+          className="w-80 h-auto mb-2"
           initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          animate={{ 
+            scale: [1, 1.06, 1],
+            opacity: 1,
+            filter: [
+              "brightness(1) drop-shadow(0 0 12px rgba(139, 92, 246, 0.3))",
+              "brightness(1.2) drop-shadow(0 0 30px rgba(139, 92, 246, 0.6))",
+              "brightness(1) drop-shadow(0 0 12px rgba(139, 92, 246, 0.3))"
+            ]
+          }}
+          transition={{ 
+            scale: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+            filter: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+            opacity: { duration: 0.6, ease: "easeOut" }
+          }}
         />
 
         <motion.p

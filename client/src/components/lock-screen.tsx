@@ -110,11 +110,18 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
       >
         <div className="text-center mb-6">
           <motion.div
-            animate={{ rotate: [0, 5, -5, 0] }}
-            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+            animate={{ 
+              scale: [1, 1.06, 1],
+              filter: [
+                "brightness(1) drop-shadow(0 0 12px rgba(139, 92, 246, 0.3))",
+                "brightness(1.2) drop-shadow(0 0 30px rgba(139, 92, 246, 0.6))",
+                "brightness(1) drop-shadow(0 0 12px rgba(139, 92, 246, 0.3))"
+              ]
+            }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             className="inline-block mb-4"
           >
-            <img src={logoUrl} alt="Orbia" className="w-32 h-32 object-contain mx-auto" />
+            <img src={logoUrl} alt="Orbia" className="w-40 h-40 object-contain mx-auto" />
           </motion.div>
           
           <div className="flex items-center justify-center gap-2 mb-2">
