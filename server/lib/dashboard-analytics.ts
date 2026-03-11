@@ -1,15 +1,23 @@
 import { z } from "zod";
-import type { 
-  TrackerEntry, 
-  Habit, 
-  HabitCompletion, 
-  RoutineBlock, 
-  RoutineActivity, 
+import type {
+  TrackerEntry,
+  Habit,
+  HabitCompletion,
+  RoutineBlock,
+  RoutineActivity,
   RoutineActivityLog,
   Todo,
   JournalEntry,
   DailySummary,
-  FoodOption
+  FoodOption,
+  Transaction,
+  Loan,
+  IncomeStream,
+  FinanceSettings,
+  CareerProject,
+  CareerTask,
+  CareerVision,
+  MemoryNarrative,
 } from "@shared/schema";
 
 export const MoodInsightsSchema = z.object({
@@ -100,6 +108,44 @@ export const FoodInsightsSchema = z.object({
   daysLogged: z.number(),
 });
 
+export const FinanceInsightsSchema = z.object({
+  monthlyIncome: z.number(),
+  monthlyExpenses: z.number(),
+  netFlow: z.number(),
+  topCategories: z.array(z.object({ category: z.string(), amount: z.number() })),
+  totalDebt: z.number(),
+  currency: z.string(),
+  budgetUsed: z.number(),
+  monthlyBudget: z.number(),
+});
+
+export const CareerInsightsSchema = z.object({
+  activeProjects: z.number(),
+  projectsSummary: z.array(z.object({
+    title: z.string(),
+    status: z.string(),
+    progress: z.number(),
+    deadline: z.string().nullable(),
+  })),
+  openTasks: z.number(),
+  completedTasks: z.number(),
+  upcomingDeadlines: z.array(z.object({ title: z.string(), due: z.string() })),
+});
+
+export const CurrentStateSchema = z.object({
+  driver: z.string(),
+  driverConfidence: z.string(),
+  stability: z.number(),
+  riskFlag: z.string().nullable(),
+  suggestion: z.object({ do: z.string(), avoid: z.string() }),
+}).nullable();
+
+export const InsightNarrativeSchema = z.object({
+  domain: z.string(),
+  narrative: z.string(),
+  confidence: z.number(),
+});
+
 export const RecommendationSchema = z.object({
   id: z.string(),
   category: z.enum(["mood", "habits", "routine", "journal", "food", "general"]),
@@ -111,12 +157,17 @@ export const RecommendationSchema = z.object({
 
 export const DashboardInsightsSchema = z.object({
   generatedAt: z.string(),
+  displayName: z.string().nullable().optional(),
   mood: MoodInsightsSchema,
   habits: HabitInsightsSchema,
   routine: RoutineInsightsSchema,
   todos: TodoInsightsSchema,
   journal: JournalInsightsSchema,
   food: FoodInsightsSchema,
+  finance: FinanceInsightsSchema.optional(),
+  career: CareerInsightsSchema.optional(),
+  currentState: CurrentStateSchema.optional(),
+  narratives: z.array(InsightNarrativeSchema).optional(),
   recommendations: z.array(RecommendationSchema),
 });
 
@@ -127,6 +178,10 @@ export type RoutineInsights = z.infer<typeof RoutineInsightsSchema>;
 export type TodoInsights = z.infer<typeof TodoInsightsSchema>;
 export type JournalInsights = z.infer<typeof JournalInsightsSchema>;
 export type FoodInsights = z.infer<typeof FoodInsightsSchema>;
+export type FinanceInsights = z.infer<typeof FinanceInsightsSchema>;
+export type CareerInsights = z.infer<typeof CareerInsightsSchema>;
+export type CurrentState = z.infer<typeof CurrentStateSchema>;
+export type InsightNarrative = z.infer<typeof InsightNarrativeSchema>;
 export type Recommendation = z.infer<typeof RecommendationSchema>;
 
 function getDateString(date: Date): string {
@@ -638,6 +693,78 @@ export function computeFoodInsights(
   };
 }
 
+export function computeFinanceInsights(
+  transactions: Transaction[],
+  loans: Loan[],
+  incomeStreams: IncomeStream[],
+  financeSettings?: FinanceSettings
+): FinanceInsights {
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const monthTxns = transactions.filter(t => t.month === currentMonth);
+  const income = monthTxns.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
+  const expenses = monthTxns.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+
+  const categoryTotals = new Map<string, number>();
+  for (const t of monthTxns.filter(t => t.type === "expense")) {
+    categoryTotals.set(t.category, (categoryTotals.get(t.category) || 0) + t.amount);
+  }
+  const topCategories = Array.from(categoryTotals.entries())
+    .map(([category, amount]) => ({ category, amount }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 5);
+
+  const totalDebt = loans
+    .filter(l => l.status === "active")
+    .reduce((s, l) => s + (l.currentBalance || 0), 0);
+
+  const budget = financeSettings?.monthlyBudget || 0;
+
+  return {
+    monthlyIncome: income,
+    monthlyExpenses: expenses,
+    netFlow: income - expenses,
+    topCategories,
+    totalDebt,
+    currency: financeSettings?.currency || "USD",
+    budgetUsed: budget > 0 ? Math.round((expenses / budget) * 100) : 0,
+    monthlyBudget: budget,
+  };
+}
+
+export function computeCareerInsights(
+  projects: CareerProject[],
+  tasks: CareerTask[],
+): CareerInsights {
+  const activeProjects = projects.filter(p => p.status !== "completed" && p.status !== "archived");
+  const projectsSummary = activeProjects.slice(0, 4).map(p => ({
+    title: p.title,
+    status: p.status,
+    progress: p.progress,
+    deadline: p.deadline || null,
+  }));
+
+  const openTasks = tasks.filter(t => t.completed === 0).length;
+  const completedTasks = tasks.filter(t => t.completed === 1).length;
+
+  const now = new Date();
+  const twoWeeks = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+  const upcomingDeadlines = tasks
+    .filter(t => t.completed === 0 && t.due && new Date(t.due) <= twoWeeks && new Date(t.due) >= now)
+    .map(t => ({ title: t.title, due: t.due! }))
+    .sort((a, b) => new Date(a.due).getTime() - new Date(b.due).getTime())
+    .slice(0, 5);
+
+  return {
+    activeProjects: activeProjects.length,
+    projectsSummary,
+    openTasks,
+    completedTasks,
+    upcomingDeadlines,
+  };
+}
+
 export function generateRecommendations(
   moodInsights: MoodInsights,
   habitInsights: HabitInsights,
@@ -778,18 +905,35 @@ export async function computeDashboardInsights(data: {
   journalEntries: JournalEntry[];
   dailySummaries: DailySummary[];
   foodOptions: FoodOption[];
+  transactions?: Transaction[];
+  loans?: Loan[];
+  incomeStreams?: IncomeStream[];
+  financeSettings?: FinanceSettings;
+  careerProjects?: CareerProject[];
+  careerTasks?: CareerTask[];
+  displayName?: string | null;
+  currentState?: CurrentState;
+  narratives?: InsightNarrative[];
 }): Promise<DashboardInsights> {
   const moodInsights = computeMoodInsights(data.trackerEntries);
   const habitInsights = computeHabitInsights(data.habits, data.habitCompletions, data.trackerEntries);
   const routineInsights = computeRoutineInsights(
-    data.routineBlocks, 
-    data.routineActivities, 
-    data.routineActivityLogs, 
+    data.routineBlocks,
+    data.routineActivities,
+    data.routineActivityLogs,
     data.trackerEntries
   );
   const todoInsights = computeTodoInsights(data.todos);
   const journalInsights = computeJournalInsights(data.journalEntries);
   const foodInsights = computeFoodInsights(data.dailySummaries, data.foodOptions);
+
+  const financeInsights = data.transactions
+    ? computeFinanceInsights(data.transactions, data.loans || [], data.incomeStreams || [], data.financeSettings)
+    : undefined;
+
+  const careerInsights = data.careerProjects
+    ? computeCareerInsights(data.careerProjects, data.careerTasks || [])
+    : undefined;
 
   const recommendations = generateRecommendations(
     moodInsights,
@@ -802,12 +946,17 @@ export async function computeDashboardInsights(data: {
 
   return {
     generatedAt: new Date().toISOString(),
+    displayName: data.displayName ?? null,
     mood: moodInsights,
     habits: habitInsights,
     routine: routineInsights,
     todos: todoInsights,
     journal: journalInsights,
     food: foodInsights,
+    finance: financeInsights,
+    career: careerInsights,
+    currentState: data.currentState,
+    narratives: data.narratives,
     recommendations,
   };
 }

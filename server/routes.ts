@@ -4694,6 +4694,14 @@ RULES:
         journalEntries,
         dailySummaries,
         foodOptions,
+        allTransactions,
+        allLoans,
+        allIncomeStreams,
+        finSettings,
+        careerProjects,
+        careerTasks,
+        userProfile,
+        memoryNarratives,
       ] = await Promise.all([
         storage.getAllTrackerEntries(userId),
         storage.getAllHabits(userId),
@@ -4705,7 +4713,103 @@ RULES:
         storage.getAllJournalEntries(userId),
         storage.getAllDailySummaries(userId),
         storage.getAllFoodOptions(userId),
+        storage.getAllTransactions(userId),
+        storage.getAllLoans(userId),
+        storage.getAllIncomeStreams(userId),
+        storage.getFinanceSettings(userId),
+        storage.getAllCareerProjects(userId),
+        storage.getAllCareerTasks(userId),
+        storage.getUserProfile(userId),
+        storage.getMemoryNarratives(userId).catch(() => []),
       ]);
+
+      // Compute current state from recent tracker data (inline deep-mind/now logic)
+      let currentState = null;
+      if (trackerEntries.length > 0) {
+        const recentEntries = [...trackerEntries]
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+          .slice(0, 50);
+        const mostRecent = recentEntries[0];
+
+        let driver = "Unknown";
+        if (mostRecent.sleepHours !== null && mostRecent.sleepHours < 5) {
+          driver = "Sleep";
+        } else if (mostRecent.triggerTag) {
+          const tagMap: Record<string, string> = {
+            work: "Work", loneliness: "Loneliness", pain: "Pain",
+            noise: "Stress", sleep: "Sleep", body: "Pain", unknown: "Unknown"
+          };
+          driver = tagMap[mostRecent.triggerTag] || mostRecent.triggerTag;
+        } else if (mostRecent.workLoad !== null && mostRecent.workLoad >= 7) {
+          driver = "Work";
+        }
+
+        if (driver === "Unknown") {
+          const recentJournals = [...journalEntries]
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 5);
+          const driverCounts: Record<string, number> = {};
+          recentJournals.forEach(j => {
+            if (j.primaryDriver) driverCounts[j.primaryDriver] = (driverCounts[j.primaryDriver] || 0) + 1;
+          });
+          const topDriver = Object.entries(driverCounts).sort((a, b) => b[1] - a[1])[0];
+          if (topDriver) driver = topDriver[0];
+        }
+
+        const sampleSize = recentEntries.length;
+        const driverConfidence = sampleSize < 5 ? "Low" : sampleSize < 15 ? "Medium" : "High";
+
+        let stability = 50;
+        const recentFive = recentEntries.slice(0, 5);
+        const avgMood = recentFive.reduce((s, e) => s + e.mood, 0) / recentFive.length;
+        const moodVariance = recentFive.length > 1
+          ? recentFive.reduce((s, e) => s + Math.pow(e.mood - avgMood, 2), 0) / recentFive.length : 0;
+        const avgDissociation = recentFive.reduce((s, e) => s + e.dissociation, 0) / recentFive.length;
+        stability = Math.max(0, Math.min(100, Math.round(100 - avgDissociation - (moodVariance * 5))));
+
+        let riskFlag: string | null = null;
+        const lowSleep = (mostRecent.sleepHours ?? 8) < 5;
+        const highStress = mostRecent.stress > 70;
+        const highDissociation = mostRecent.dissociation > 60;
+        if (lowSleep && (highStress || highDissociation)) {
+          riskFlag = "High risk of crash in next 12h";
+        }
+
+        const suggestions: Record<string, { do: string; avoid: string }> = {
+          Sleep: { do: "10-min power nap or dim lights", avoid: "Coffee after 2pm" },
+          Work: { do: "5-min walk or stretch", avoid: "Starting new big tasks" },
+          Loneliness: { do: "Text one person", avoid: "Doom scrolling alone" },
+          Pain: { do: "Gentle stretch or heat pad", avoid: "Pushing through it" },
+          Stress: { do: "Box breathing 4-4-4-4", avoid: "Checking work messages" },
+          Unknown: { do: "5-min grounding exercise", avoid: "Making big decisions" },
+        };
+
+        currentState = {
+          driver,
+          driverConfidence,
+          stability,
+          riskFlag,
+          suggestion: suggestions[driver] || suggestions.Unknown,
+        };
+      }
+
+      // Map memory narratives for dashboard — prioritize cross-domain insights
+      // and high-confidence patterns, skip obvious single-domain statements
+      const narratives = (memoryNarratives as any[])
+        .filter((n: any) => n.confidence >= 0.55)
+        .sort((a: any, b: any) => {
+          // Prefer cross-domain insights over single-domain ones
+          const aCross = a.domain === "cross_domain" ? 1 : 0;
+          const bCross = b.domain === "cross_domain" ? 1 : 0;
+          if (aCross !== bCross) return bCross - aCross;
+          return b.confidence - a.confidence;
+        })
+        .slice(0, 4)
+        .map((n: any) => ({
+          domain: n.domain,
+          narrative: n.narrative,
+          confidence: n.confidence,
+        }));
 
       const insights = await computeDashboardInsights({
         trackerEntries,
@@ -4718,6 +4822,15 @@ RULES:
         journalEntries,
         dailySummaries,
         foodOptions,
+        transactions: allTransactions,
+        loans: allLoans,
+        incomeStreams: allIncomeStreams,
+        financeSettings: finSettings,
+        careerProjects,
+        careerTasks,
+        displayName: userProfile.displayName,
+        currentState,
+        narratives,
       });
 
       const validated = DashboardInsightsSchema.parse(insights);
