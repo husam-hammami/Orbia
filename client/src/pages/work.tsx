@@ -203,7 +203,7 @@ function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendM
           <span className="text-sm font-medium text-foreground/85 truncate">{chatName}</span>
         </div>
 
-        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto space-y-2 mb-3 max-h-[350px]">
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden space-y-2 mb-3 max-h-[350px]">
           {loadingMessages ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-5 h-5 animate-spin text-indigo-400/50" />
@@ -225,7 +225,7 @@ function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendM
                     {msg.createdDateTime ? new Date(msg.createdDateTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : ""}
                   </span>
                 </div>
-                <p className="text-foreground/70 leading-relaxed">
+                <p className="text-foreground/70 leading-relaxed break-words overflow-hidden" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
                   {(msg.body?.content || "").replace(/<[^>]*>/g, "")}
                 </p>
               </div>
@@ -501,14 +501,14 @@ function EmailDetail({ emailId, onBack }: { emailId: string; onBack: () => void 
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto max-h-[200px] mb-3 rounded-lg bg-black/20 border border-white/5 p-3">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden max-h-[200px] mb-3 rounded-lg bg-black/20 border border-white/5 p-3">
         {isHtml ? (
           <div
-            className="text-[11px] text-foreground/70 leading-relaxed [&_a]:text-indigo-400 [&_a]:underline [&_img]:max-w-full [&_img]:h-auto [&_table]:text-[10px] [&_*]:max-w-full"
+            className="text-[11px] text-foreground/70 leading-relaxed break-words overflow-hidden [&_a]:text-indigo-400 [&_a]:underline [&_a]:break-all [&_img]:max-w-full [&_img]:h-auto [&_table]:text-[10px] [&_table]:w-full [&_table]:table-fixed [&_td]:break-words [&_td]:overflow-hidden [&_th]:break-words [&_*]:max-w-full [&_*]:overflow-hidden [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_div]:max-w-full"
             dangerouslySetInnerHTML={{ __html: bodyHtml }}
           />
         ) : (
-          <p className="text-[11px] text-foreground/70 leading-relaxed whitespace-pre-wrap">{bodyHtml}</p>
+          <p className="text-[11px] text-foreground/70 leading-relaxed whitespace-pre-wrap break-words">{bodyHtml}</p>
         )}
       </div>
 
@@ -579,6 +579,24 @@ function EmailInbox({ userEmail }: { userEmail?: string }) {
     });
   }, [emails, userEmail]);
 
+  const { data: summaries } = useQuery({
+    queryKey: ["/api/work/emails/summaries"],
+    queryFn: async () => {
+      const fullUrl = API_BASE_URL ? `${API_BASE_URL}/api/work/emails/summarize` : "/api/work/emails/summarize";
+      const res = await fetch(fullUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) return {};
+      return res.json();
+    },
+    enabled: directEmails.length > 0,
+    staleTime: 300000,
+    refetchOnWindowFocus: false,
+  });
+
   const unreadCount = directEmails.filter((e: any) => !e.isRead).length;
 
   if (selectedEmailId) {
@@ -629,7 +647,9 @@ function EmailInbox({ userEmail }: { userEmail?: string }) {
                     {email.from?.emailAddress?.name || email.from?.emailAddress?.address || "Unknown"}
                   </p>
                   <p className="text-[11px] text-foreground/70 truncate">{email.subject}</p>
-                  <p className="text-[10px] text-muted-foreground truncate mt-0.5">{(email.bodyPreview || "").substring(0, 60)}</p>
+                  <p className="text-[10px] text-muted-foreground truncate mt-0.5 italic">
+                    {summaries?.[email.id] || (email.bodyPreview || "").substring(0, 60)}
+                  </p>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
                   <span className="text-[9px] text-muted-foreground" style={mono}>
