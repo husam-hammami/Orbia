@@ -605,7 +605,7 @@ function EmailInbox({ userEmail }: { userEmail?: string }) {
   }
 
   return (
-    <div className={cn(cmdPanel, "p-4")} data-testid="panel-email-inbox">
+    <div className={cn(cmdPanel, "p-4 h-full flex flex-col")} data-testid="panel-email-inbox">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Mail className="w-3.5 h-3.5 text-indigo-400" />
@@ -627,7 +627,7 @@ function EmailInbox({ userEmail }: { userEmail?: string }) {
       ) : directEmails.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-3">No direct emails</p>
       ) : (
-        <div className="space-y-1 max-h-[400px] overflow-y-auto scrollbar-themed">
+        <div className="space-y-1 flex-1 overflow-y-auto scrollbar-themed">
           {directEmails.slice(0, 10).map((email: any, i: number) => {
             const senderName = email.from?.emailAddress?.name || email.from?.emailAddress?.address || "Unknown";
             const aiSummary = summaries?.[email.id];
@@ -1208,17 +1208,21 @@ export default function WorkPage() {
           )}
 
           <div className="hidden lg:grid lg:grid-cols-[minmax(280px,1fr)_minmax(350px,1.4fr)_minmax(280px,1fr)] gap-5" style={{ minHeight: "calc(100vh - 220px)" }}>
-            <div className="flex flex-col gap-4">
-              {connected && <EmailInbox userEmail={connectionStatus?.email} />}
+            <div className="flex flex-col gap-4 min-h-0">
+              <div className="flex-1 min-h-0">
+                {connected && <EmailInbox userEmail={connectionStatus?.email} />}
+              </div>
 
-              <ConnectionCard
-                connected={connected}
-                displayName={connectionStatus?.displayName}
-                email={connectionStatus?.email}
-                onConnect={handleConnect}
-                onDisconnect={handleDisconnect}
-                isConnecting={isConnecting}
-              />
+              <div className="shrink-0">
+                <ConnectionCard
+                  connected={connected}
+                  displayName={connectionStatus?.displayName}
+                  email={connectionStatus?.email}
+                  onConnect={handleConnect}
+                  onDisconnect={handleDisconnect}
+                  isConnecting={isConnecting}
+                />
+              </div>
             </div>
 
             <div className={cn(cmdPanelGlow, "p-5 flex flex-col")}>
@@ -1229,8 +1233,8 @@ export default function WorkPage() {
               <NexusChat connected={connected} />
             </div>
 
-            <div className={cn(cmdPanel, "p-4 flex flex-col")}>
-              <div className="flex items-center justify-between mb-3">
+            <div className={cn(cmdPanel, "p-4 flex flex-col min-h-0")}>
+              <div className="flex items-center justify-between mb-3 shrink-0">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-indigo-400" />
                   <CmdLabel>Teams</CmdLabel>
