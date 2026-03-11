@@ -93,7 +93,7 @@ export async function registerRoutes(
   app.post("/api/members", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertSystemMemberSchema.parse(req.body);
+      const validatedData = insertSystemMemberSchema.parse({ ...req.body, userId });
       const member = await storage.createMember(userId, validatedData);
       res.status(201).json(member);
     } catch (error) {
@@ -160,7 +160,7 @@ export async function registerRoutes(
   app.post("/api/tracker", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertTrackerEntrySchema.parse(req.body);
+      const validatedData = insertTrackerEntrySchema.parse({ ...req.body, userId });
       const entry = await storage.createTrackerEntry(userId, validatedData);
       res.status(201).json(entry);
 
@@ -234,7 +234,7 @@ export async function registerRoutes(
   app.post("/api/messages", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertSystemMessageSchema.parse(req.body);
+      const validatedData = insertSystemMessageSchema.parse({ ...req.body, userId });
       const message = await storage.createMessage(userId, validatedData);
       res.status(201).json(message);
     } catch (error) {
@@ -283,7 +283,7 @@ export async function registerRoutes(
   app.post("/api/rooms", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertHeadspaceRoomSchema.parse(req.body);
+      const validatedData = insertHeadspaceRoomSchema.parse({ ...req.body, userId });
       const room = await storage.createRoom(userId, validatedData);
       res.status(201).json(room);
     } catch (error) {
@@ -430,7 +430,7 @@ export async function registerRoutes(
   app.post("/api/habits", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertHabitSchema.parse(req.body);
+      const validatedData = insertHabitSchema.parse({ ...req.body, userId });
       const habit = await storage.createHabit(userId, validatedData);
       res.status(201).json(habit);
     } catch (error) {
@@ -483,6 +483,7 @@ export async function registerRoutes(
       const userId = req.session.userId!;
       const validatedData = insertHabitCompletionSchema.parse({
         ...req.body,
+        userId,
         habitId: req.params.id
       });
       const completion = await storage.addHabitCompletion(userId, validatedData);
@@ -821,7 +822,7 @@ export async function registerRoutes(
   app.post("/api/routine-blocks", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertRoutineBlockSchema.parse(req.body);
+      const validatedData = insertRoutineBlockSchema.parse({ ...req.body, userId });
       const block = await storage.createRoutineBlock(userId, validatedData);
       res.status(201).json(block);
     } catch (error) {
@@ -882,7 +883,7 @@ export async function registerRoutes(
   app.post("/api/routine-activities", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertRoutineActivitySchema.parse(req.body);
+      const validatedData = insertRoutineActivitySchema.parse({ ...req.body, userId });
       const activity = await storage.createRoutineActivity(userId, validatedData);
       res.status(201).json(activity);
     } catch (error) {
@@ -933,7 +934,7 @@ export async function registerRoutes(
   app.post("/api/routine-logs", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertRoutineActivityLogSchema.parse(req.body);
+      const validatedData = insertRoutineActivityLogSchema.parse({ ...req.body, userId });
       const log = await storage.addActivityLog(userId, validatedData);
       res.status(201).json(log);
     } catch (error) {
@@ -1895,7 +1896,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   app.post("/api/todos", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertTodoSchema.parse(req.body);
+      const validatedData = insertTodoSchema.parse({ ...req.body, userId });
       const todo = await storage.createTodo(userId, validatedData);
       res.status(201).json(todo);
     } catch (error) {
@@ -1959,7 +1960,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   app.post("/api/career-projects", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertCareerProjectSchema.parse(req.body);
+      const validatedData = insertCareerProjectSchema.parse({ ...req.body, userId });
       const project = await storage.createCareerProject(userId, validatedData);
       res.status(201).json(project);
     } catch (error) {
@@ -2013,7 +2014,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   app.post("/api/career-tasks", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertCareerTaskSchema.parse(req.body);
+      const validatedData = insertCareerTaskSchema.parse({ ...req.body, userId });
       const task = await storage.createCareerTask(userId, validatedData);
       res.status(201).json(task);
     } catch (error) {
@@ -2067,7 +2068,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   app.post("/api/expenses", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertExpenseSchema.parse(req.body);
+      const validatedData = insertExpenseSchema.parse({ ...req.body, userId });
       const expense = await storage.createExpense(userId, validatedData);
       res.status(201).json(expense);
     } catch (error) {
@@ -2131,7 +2132,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
   app.post("/api/vision/item", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertCareerVisionSchema.parse(req.body);
+      const validatedData = insertCareerVisionSchema.parse({ ...req.body, userId });
       const vision = await storage.createVisionItem(userId, validatedData);
       res.status(201).json(vision);
     } catch (error) {
@@ -3039,7 +3040,7 @@ Generate a different, equally specific milestone that serves the same purpose bu
   app.post("/api/income-streams", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertIncomeStreamSchema.parse(req.body);
+      const validatedData = insertIncomeStreamSchema.parse({ ...req.body, userId });
       const stream = await storage.createIncomeStream(userId, validatedData);
       res.status(201).json(stream);
     } catch (error) {
@@ -3093,7 +3094,7 @@ Generate a different, equally specific milestone that serves the same purpose bu
   app.post("/api/transactions", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertTransactionSchema.parse(req.body);
+      const validatedData = insertTransactionSchema.parse({ ...req.body, userId });
       const txn = await storage.createTransaction(userId, validatedData);
       res.status(201).json(txn);
     } catch (error) {
@@ -3450,7 +3451,7 @@ ${JSON.stringify(context, null, 2)}`;
   app.post("/api/daily-summaries", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertDailySummarySchema.parse(req.body);
+      const validatedData = insertDailySummarySchema.parse({ ...req.body, userId });
       const summary = await storage.upsertDailySummary(userId, validatedData);
       res.status(201).json(summary);
     } catch (error) {
@@ -3486,7 +3487,7 @@ ${JSON.stringify(context, null, 2)}`;
   app.post("/api/journal", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertJournalEntrySchema.parse(req.body);
+      const validatedData = insertJournalEntrySchema.parse({ ...req.body, userId });
       const entry = await storage.createJournalEntry(userId, validatedData);
       res.status(201).json(entry);
 
@@ -3546,7 +3547,7 @@ ${JSON.stringify(context, null, 2)}`;
   app.post("/api/food-options", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertFoodOptionSchema.parse(req.body);
+      const validatedData = insertFoodOptionSchema.parse({ ...req.body, userId });
       const option = await storage.createFoodOption(userId, validatedData);
       res.status(201).json(option);
     } catch (error) {
@@ -4542,7 +4543,7 @@ RULES:
   app.post("/api/loans", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = insertLoanSchema.parse(req.body);
+      const validatedData = insertLoanSchema.parse({ ...req.body, userId });
       const loan = await storage.createLoan(userId, validatedData);
       res.status(201).json(loan);
     } catch (error) {
