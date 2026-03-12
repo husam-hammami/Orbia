@@ -192,6 +192,8 @@ ${activeTodos
     const token = await graphLib.getValidToken(userId);
     msToken = token;
     if (token) {
+      const userMsTimezone = await graphLib.getUserTimezone(token);
+
       const todayStart = new Date(
         now.getFullYear(),
         now.getMonth(),
@@ -202,7 +204,7 @@ ${activeTodos
       ).toISOString();
 
       const [eventsR, chatsR, profileR, emailsR] = await Promise.allSettled([
-        graphLib.getCalendarEvents(token, todayStart, tomorrowEnd),
+        graphLib.getCalendarEvents(token, todayStart, tomorrowEnd, userMsTimezone),
         graphLib.getRecentChats(token),
         graphLib.getProfile(token),
         graphLib.getRecentEmails(token, 8),
@@ -233,20 +235,7 @@ ${activeTodos
           "Singapore Standard Time": "Asia/Singapore",
         };
 
-        function parseEvtWithTz(dt: string, tz?: string): Date {
-          if (!tz || tz === "UTC") return new Date(dt + "Z");
-          const iana = msTimezoneToIANA[tz];
-          if (iana) {
-            const localStr = new Date(dt + "Z").toLocaleString("en-US", { timeZone: iana });
-            const utcMs = new Date(dt + "Z").getTime();
-            const localMs = new Date(localStr).getTime();
-            const offsetMs = localMs - utcMs;
-            return new Date(utcMs - offsetMs);
-          }
-          return new Date(dt);
-        }
-
-        const userTz = eventsR.value.value[0]?.start?.timeZone || "UTC";
+        const userTz = eventsR.value.value[0]?.start?.timeZone || userMsTimezone || "UTC";
         const userIANA = msTimezoneToIANA[userTz] || "UTC";
 
         const nowMs = now.getTime();
@@ -254,9 +243,22 @@ ${activeTodos
         const fmtDate = (d: Date) => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: userIANA });
         const fmtDateLong = (d: Date) => d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: userIANA });
 
+        function localTimeToUtc(dt: string, tz?: string): Date {
+          if (!tz || tz === "UTC") return new Date(dt + "Z");
+          const iana = msTimezoneToIANA[tz];
+          if (iana) {
+            const naive = new Date(dt);
+            const utcGuess = new Date(dt + "Z");
+            const inTz = new Date(utcGuess.toLocaleString("en-US", { timeZone: iana }));
+            const offsetMs = inTz.getTime() - utcGuess.getTime();
+            return new Date(naive.getTime() - offsetMs);
+          }
+          return new Date(dt);
+        }
+
         const events = eventsR.value.value.map((e: any) => {
-          const start = parseEvtWithTz(e.start.dateTime, e.start.timeZone);
-          const end = parseEvtWithTz(e.end.dateTime, e.end.timeZone);
+          const start = localTimeToUtc(e.start.dateTime, e.start.timeZone);
+          const end = localTimeToUtc(e.end.dateTime, e.end.timeZone);
           const diffMs = start.getTime() - nowMs;
           const diffMin = Math.round(diffMs / 60000);
           let timeTag = "";

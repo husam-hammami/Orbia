@@ -32,6 +32,38 @@ async function workApi(url: string, opts?: RequestInit) {
 
 function parseEventDate(dateTime: string, timeZone?: string): Date {
   if (timeZone === "UTC") return new Date(dateTime + "Z");
+  if (timeZone && timeZone !== "UTC") {
+    const msToIANA: Record<string, string> = {
+      "Arabian Standard Time": "Asia/Dubai",
+      "Arab Standard Time": "Asia/Riyadh",
+      "Arabic Standard Time": "Asia/Baghdad",
+      "Eastern Standard Time": "America/New_York",
+      "Central Standard Time": "America/Chicago",
+      "Pacific Standard Time": "America/Los_Angeles",
+      "Mountain Standard Time": "America/Denver",
+      "GMT Standard Time": "Europe/London",
+      "W. Europe Standard Time": "Europe/Berlin",
+      "Central European Standard Time": "Europe/Warsaw",
+      "Romance Standard Time": "Europe/Paris",
+      "India Standard Time": "Asia/Kolkata",
+      "China Standard Time": "Asia/Shanghai",
+      "Tokyo Standard Time": "Asia/Tokyo",
+      "AUS Eastern Standard Time": "Australia/Sydney",
+      "E. Africa Standard Time": "Africa/Nairobi",
+      "Turkey Standard Time": "Europe/Istanbul",
+      "Egypt Standard Time": "Africa/Cairo",
+      "Pakistan Standard Time": "Asia/Karachi",
+      "Singapore Standard Time": "Asia/Singapore",
+    };
+    const iana = msToIANA[timeZone];
+    if (iana) {
+      const naive = new Date(dateTime);
+      const utcGuess = new Date(dateTime + "Z");
+      const inTz = new Date(utcGuess.toLocaleString("en-US", { timeZone: iana }));
+      const offsetMs = inTz.getTime() - utcGuess.getTime();
+      return new Date(naive.getTime() - offsetMs);
+    }
+  }
   return new Date(dateTime);
 }
 

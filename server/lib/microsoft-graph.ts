@@ -177,7 +177,16 @@ export async function getProfile(token: string) {
   return graphRequest(token, "/me");
 }
 
-export async function getCalendarEvents(token: string, startDate: string, endDate: string) {
+export async function getUserTimezone(token: string): Promise<string> {
+  try {
+    const settings = await graphRequest(token, "/me/mailboxSettings");
+    return settings?.timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+}
+
+export async function getCalendarEvents(token: string, startDate: string, endDate: string, userTimezone?: string) {
   const params = new URLSearchParams({
     startDateTime: startDate,
     endDateTime: endDate,
@@ -186,7 +195,9 @@ export async function getCalendarEvents(token: string, startDate: string, endDat
     $select: "id,subject,start,end,location,organizer,attendees,isOnlineMeeting,onlineMeetingUrl,bodyPreview",
   });
 
-  return graphRequest(token, `/me/calendarView?${params.toString()}`);
+  return graphRequest(token, `/me/calendarView?${params.toString()}`, {
+    headers: userTimezone ? { "Prefer": `outlook.timezone="${userTimezone}"` } : {},
+  });
 }
 
 export async function getRecentChats(token: string) {

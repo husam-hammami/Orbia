@@ -4959,9 +4959,11 @@ ${unifiedContext}${extraMedContext}`;
   app.get("/api/work/calendar", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const { getValidToken, getCalendarEvents } = await import("./lib/microsoft-graph");
+      const { getValidToken, getCalendarEvents, getUserTimezone } = await import("./lib/microsoft-graph");
       const token = await getValidToken(userId);
       if (!token) return res.status(401).json({ error: "Microsoft account not connected" });
+
+      const userTimezone = await getUserTimezone(token);
 
       const dateParam = req.query.date as string | undefined;
       let startDate: string;
@@ -4977,7 +4979,7 @@ ${unifiedContext}${extraMedContext}`;
         endDate = weekLater.toISOString();
       }
 
-      const events = await getCalendarEvents(token, startDate, endDate);
+      const events = await getCalendarEvents(token, startDate, endDate, userTimezone);
       res.json(events);
     } catch (error: any) {
       console.error("Calendar fetch error:", error);
