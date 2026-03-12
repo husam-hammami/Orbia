@@ -46,8 +46,8 @@ export async function buildUnifiedContext(userId: string): Promise<{
     storage.getFinanceSettings(userId),
     storage.getScheduledMessages(userId),
     storage.getVision(userId),
-    storage.getCareerProjects(userId),
-    storage.getCareerTasks(userId),
+    storage.getAllCareerProjects(userId),
+    storage.getAllCareerTasks(userId),
   ]);
 
   const val = <T,>(r: PromiseSettledResult<T>, fallback: T): T =>
