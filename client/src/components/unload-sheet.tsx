@@ -271,8 +271,11 @@ export default function UnloadSheet({ open, onOpenChange, onExecuteAction }: Unl
                       size="default"
                       className="gap-2 px-3"
                       conversationMode={true}
-                      onConversationResponse={(userText) => {
-                        setRawText(prev => prev ? prev + "\n" + userText : userText);
+                      onConversationResponse={(userText, assistantText) => {
+                        setRawText(prev => {
+                          const entry = userText + "\n\nOrbia: " + assistantText;
+                          return prev ? prev + "\n\n" + entry : entry;
+                        });
                       }}
                       therapyMode={true}
                       aiMode="orbit"
