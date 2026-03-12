@@ -1928,7 +1928,7 @@ Provide supportive analysis. Be specific about patterns you observe in the data.
     teaching: {
       name: "Teaching",
       feeds: [
-        { url: "https://www.edutopia.org/feeds/rss", source: "Edutopia" },
+        { url: "https://www.teachthought.com/feed/", source: "TeachThought" },
         { url: "https://hnrss.org/newest?q=education+teaching", source: "Hacker News" },
         { url: "https://news.google.com/rss/search?q=teaching+education+classroom&hl=en-US&gl=US&ceid=US:en", source: "Google News" }
       ]
@@ -1948,7 +1948,7 @@ Provide supportive analysis. Be specific about patterns you observe in the data.
         { url: "https://hnrss.org/frontpage", source: "Hacker News" },
         { url: "https://www.theverge.com/rss/index.xml", source: "The Verge" },
         { url: "https://techcrunch.com/feed/", source: "TechCrunch" },
-        { url: "https://arstechnica.com/feed/", source: "Ars Technica" }
+        { url: "https://thenewstack.io/feed/", source: "The New Stack" }
       ]
     },
     career: {
@@ -1961,7 +1961,7 @@ Provide supportive analysis. Be specific about patterns you observe in the data.
     wellness: {
       name: "Wellness",
       feeds: [
-        { url: "https://zenhabits.net/feed/", source: "Zen Habits" },
+        { url: "https://jamesclear.com/feed", source: "James Clear" },
         { url: "https://news.google.com/rss/search?q=mental+health+wellness+mindfulness&hl=en-US&gl=US&ceid=US:en", source: "Google News" },
         { url: "https://hnrss.org/newest?q=mental+health+wellness", source: "Hacker News" }
       ]
@@ -1970,7 +1970,7 @@ Provide supportive analysis. Be specific about patterns you observe in the data.
       name: "Skincare & Dermatology",
       feeds: [
         { url: "https://news.google.com/rss/search?q=skincare+dermatology+skin+health&hl=en-US&gl=US&ceid=US:en", source: "Google News" },
-        { url: "https://www.allure.com/feed/rss", source: "Allure" }
+        { url: "https://www.sciencedaily.com/rss/health_medicine/skin_care.xml", source: "ScienceDaily" }
       ]
     },
     french: {
@@ -1990,7 +1990,7 @@ Provide supportive analysis. Be specific about patterns you observe in the data.
     productivity: {
       name: "Productivity",
       feeds: [
-        { url: "https://zenhabits.net/feed/", source: "Zen Habits" },
+        { url: "https://jamesclear.com/feed", source: "James Clear" },
         { url: "https://news.google.com/rss/search?q=productivity+time+management+focus&hl=en-US&gl=US&ceid=US:en", source: "Google News" },
         { url: "https://hnrss.org/newest?q=productivity", source: "Hacker News" }
       ]
@@ -2319,12 +2319,64 @@ Provide supportive analysis. Be specific about patterns you observe in the data.
         return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
       });
 
+      // AI relevance filter — batch-check all articles in one call
+      let relevantArticles = fetchedArticles;
+      if (fetchedArticles.length > 0 && process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY) {
+        try {
+          const articleList = fetchedArticles.map((a, i) =>
+            `${i}. [${a.category}] "${a.title}" — ${a.description?.slice(0, 80) || "no description"}`
+          ).join("\n");
+
+          const topicDescriptions = activeTopics.map(t => {
+            const config = rssFeedsByTopic[t];
+            return config ? `${t} (${config.name})` : t;
+          }).join(", ");
+
+          const filterResult = await aiComplete(
+            [
+              {
+                role: "system",
+                content: `You are a strict news relevance filter. Given a list of articles tagged with topics, return ONLY the indices of articles that are genuinely, directly relevant to their assigned topic. Remove articles that are:
+- Tangentially related or clickbait
+- About celebrities/gossip that merely mention the topic keyword
+- Clearly miscategorized or off-topic
+- Duplicate/near-duplicate content
+Be strict — only keep articles a professional in that field would find useful.`
+              },
+              {
+                role: "user",
+                content: `Topics the user follows: ${topicDescriptions}
+
+Articles:
+${articleList}
+
+Return ONLY a JSON array of the index numbers of relevant articles, e.g. [0,1,3,5]. Nothing else.`
+              }
+            ],
+            { model: MODEL_FAST, maxTokens: 200, temperature: 0 }
+          );
+
+          const match = filterResult?.match(/\[[\d,\s]*\]/);
+          if (match) {
+            const keepIndices: number[] = JSON.parse(match[0]);
+            const filtered = keepIndices
+              .filter(i => i >= 0 && i < fetchedArticles.length)
+              .map(i => fetchedArticles[i]);
+            if (filtered.length > 0) {
+              relevantArticles = filtered;
+            }
+          }
+        } catch (e) {
+          // If AI filter fails, fall back to unfiltered articles
+        }
+      }
+
       // Get saved article links to mark which are saved
       const savedArticles = await storage.getAllSavedArticles(userId);
       const savedLinks = new Set(savedArticles.map(a => a.link));
 
       // Add isSaved flag to articles
-      const articlesWithSaveStatus = fetchedArticles.map(a => ({
+      const articlesWithSaveStatus = relevantArticles.map(a => ({
         ...a,
         isSaved: savedLinks.has(a.link)
       }));
