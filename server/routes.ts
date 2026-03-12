@@ -5699,6 +5699,7 @@ ${unifiedContext}`;
       const transcription = await openai.audio.transcriptions.create({
         file,
         model: "gpt-4o-mini-transcribe",
+        prompt: "Orbia is a personal AI companion app. The user may say words like: Orbia, Orbit, Unload, Workstation, Dashboard. Orbia is NOT Olivia or Orbea.",
       });
 
       console.log("[voice] Transcription result:", transcription.text?.substring(0, 100));
