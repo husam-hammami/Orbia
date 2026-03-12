@@ -5685,6 +5685,60 @@ ${unifiedContext}`;
         return res.status(400).json({ error: "Audio data too small" });
       }
 
+      const userId = req.session?.userId;
+      let contextPrompt = [
+        "Orbia is a personal AI companion and wellness app. Orbia is NOT Olivia or Orbea.",
+        "",
+        "APP FEATURES AND SECTIONS the user may reference:",
+        "- Orbit: the main AI chat page where users talk to Orbia",
+        "- Unload: a journaling feature where users vent or reflect on their day",
+        "- Workstation: Microsoft 365 integration showing Teams chats, Calendar events, and Emails",
+        "- Dashboard: overview of habits, routines, todos, and daily progress",
+        "- Daily Tracker: habit tracking page with streaks, completions, and habit management",
+        "- Vision & Coach: goal setting and life coaching features",
+        "- Medical: health tracking with conditions, medications, care team, and medical documents",
+        "- Finance: financial tracking with income, expenses, budgets, and transactions",
+        "- Orbital News: news feed",
+        "- Settings: app preferences and account settings",
+        "- Habits, Routines, Todos: task management features within the Daily Tracker",
+        "- Career Projects: project and task management within Workstation",
+        "",
+        "COMMON ACTIONS the user may say:",
+        "- Add a habit, create a routine, add a todo, log a journal entry",
+        "- Track a medication, add a condition, upload a document",
+        "- Add a transaction, set a budget, log an expense or income",
+        "- Create a project, add a task, check my calendar, read my emails",
+        "- Show my dashboard, open settings, check my streaks",
+      ].join("\n");
+
+      if (userId) {
+        try {
+          const entities = await storage.getMemoryEntities(userId);
+          if (entities.length > 0) {
+            const names = new Set<string>();
+            const terms = new Set<string>();
+
+            for (const e of entities.slice(0, 50)) {
+              names.add(e.name);
+              if (e.entityType === "person") names.add(e.name);
+              if (e.entityType === "medication") terms.add(e.name);
+              if (e.entityType === "condition") terms.add(e.name);
+              if (e.entityType === "goal") terms.add(e.name);
+            }
+
+            const user = await storage.getUser(userId);
+            if (user?.displayName) names.add(user.displayName);
+
+            const uniqueTerms = [...new Set([...names, ...terms])].filter(t => t.length > 1).slice(0, 40);
+            if (uniqueTerms.length > 0) {
+              contextPrompt += `\n\nUSER-SPECIFIC TERMS (names, medications, conditions, goals): ${uniqueTerms.join(", ")}`;
+            }
+          }
+        } catch (e) {
+          console.warn("[voice] Could not load memory context (non-fatal):", e);
+        }
+      }
+
       const OpenAI = (await import("openai")).default;
       const openai = new OpenAI({
         apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -5695,11 +5749,11 @@ ${unifiedContext}`;
       const { toFile } = await import("openai");
       const file = await toFile(audioBuffer, `audio.${ext}`, { type: mimeType || "audio/webm" });
 
-      console.log("[voice] Sending to transcription API with model gpt-4o-mini-transcribe...");
+      console.log("[voice] Sending to transcription API with context prompt length:", contextPrompt.length);
       const transcription = await openai.audio.transcriptions.create({
         file,
         model: "gpt-4o-mini-transcribe",
-        prompt: "Orbia is a personal AI companion app. The user may say words like: Orbia, Orbit, Unload, Workstation, Dashboard. Orbia is NOT Olivia or Orbea.",
+        prompt: contextPrompt,
       });
 
       console.log("[voice] Transcription result:", transcription.text?.substring(0, 100));
