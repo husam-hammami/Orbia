@@ -270,6 +270,12 @@ export default function UnloadSheet({ open, onOpenChange, onExecuteAction }: Unl
                       variant="outline"
                       size="default"
                       className="gap-2 px-3"
+                      conversationMode={true}
+                      onConversationResponse={(userText) => {
+                        setRawText(prev => prev ? prev + "\n" + userText : userText);
+                      }}
+                      therapyMode={true}
+                      aiMode="orbit"
                     />
                     <span className="text-xs text-muted-foreground">
                       {rawText.length > 0
