@@ -5691,7 +5691,7 @@ ${unifiedContext}`;
 
       const transcription = await openai.audio.transcriptions.create({
         file,
-        model: "whisper-1",
+        model: "gpt-4o-mini-transcribe",
       });
 
       res.json({ text: transcription.text });

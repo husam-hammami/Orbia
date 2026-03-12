@@ -276,7 +276,7 @@ export function VoiceInputButton({
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunksRef.current, { type: mimeType });
 
-        if (blob.size < 1000) {
+        if (blob.size < 100) {
           toast.error("Recording too short, try again");
           return;
         }
@@ -296,6 +296,7 @@ export function VoiceInputButton({
           const res = await fetch("/api/voice/transcribe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({ audioData: base64, mimeType }),
           });
 
@@ -318,7 +319,7 @@ export function VoiceInputButton({
         }
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(250);
       setIsRecording(true);
     } catch (err: any) {
       console.error("Microphone error:", err);
