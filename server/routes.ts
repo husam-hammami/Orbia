@@ -5756,8 +5756,42 @@ ${unifiedContext}`;
         prompt: contextPrompt,
       });
 
-      console.log("[voice] Transcription result:", transcription.text?.substring(0, 100));
-      res.json({ text: transcription.text });
+      const rawText = transcription.text?.trim();
+      console.log("[voice] Raw transcription:", rawText?.substring(0, 100));
+
+      if (!rawText || rawText.length < 30) {
+        res.json({ text: rawText || "" });
+        return;
+      }
+
+      try {
+        const Anthropic = (await import("@anthropic-ai/sdk")).default;
+        const anthropic = new Anthropic();
+        const formatResult = await anthropic.messages.create({
+          model: "claude-haiku-4-5",
+          max_tokens: 1024,
+          messages: [{
+            role: "user",
+            content: `You are a text formatter. Take the following raw speech transcription and format it cleanly for a chat input. Rules:
+- If the person mentioned multiple distinct points, topics, or requests, use bullet points or numbered lists
+- If it's a single thought or question, keep it as a clean paragraph — do NOT add bullets
+- Add line breaks between distinct sections or topic shifts
+- Fix obvious speech artifacts (repeated words, filler words like "um", "uh", "like")
+- Keep the person's voice and tone — do NOT rewrite or summarize, just format
+- Do NOT add any introduction, explanation, or commentary — output ONLY the formatted text
+
+Raw transcription:
+${rawText}`
+          }],
+        });
+
+        const formatted = formatResult.content[0].type === "text" ? formatResult.content[0].text.trim() : rawText;
+        console.log("[voice] Formatted transcription:", formatted?.substring(0, 100));
+        res.json({ text: formatted });
+      } catch (formatError) {
+        console.warn("[voice] Formatting failed, returning raw text:", formatError);
+        res.json({ text: rawText });
+      }
     } catch (error: any) {
       console.error("[voice] Transcription error:", error?.message || error);
       res.status(500).json({ error: error.message || "Transcription failed" });

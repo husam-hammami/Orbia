@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -323,7 +323,7 @@ export default function OrbitPage() {
   });
   
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     localStorage.setItem("orbit_messages", JSON.stringify(messages));
@@ -853,6 +853,7 @@ export default function OrbitPage() {
 
     setMessages(prev => [...prev, userMessage]);
     setInput("");
+    if (inputRef.current) inputRef.current.style.height = "auto";
     setIsLoading(true);
 
     try {
@@ -1289,20 +1290,36 @@ export default function OrbitPage() {
             ))}
           </div>
 
-          <div className="flex gap-2">
-            <Input
+          <div className="flex gap-2 items-end">
+            <Textarea
               ref={inputRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+              onChange={(e) => {
+                setInput(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = Math.min(e.target.scrollHeight, 150) + "px";
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
               placeholder={therapyMode ? "What's on your mind..." : "Chat with Orbia..."}
               disabled={isLoading}
-              className="flex-1 bg-background border-input focus:border-primary"
+              className="flex-1 bg-background border-input focus:border-primary resize-none min-h-[40px] max-h-[150px] py-2"
+              rows={1}
               data-testid="input-orbit-message"
             />
             <VoiceInputButton
               onTranscript={(text) => {
-                setInput(prev => prev ? prev + " " + text : text);
+                setInput(prev => prev ? prev + "\n" + text : text);
+                setTimeout(() => {
+                  if (inputRef.current) {
+                    inputRef.current.style.height = "auto";
+                    inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 150) + "px";
+                  }
+                }, 0);
               }}
               disabled={isLoading}
             />
