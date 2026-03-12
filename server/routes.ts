@@ -2205,7 +2205,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
     teaching: {
       name: "Teaching",
       feeds: [
-        { url: "https://www.edutopia.org/feeds/rss", source: "Edutopia" },
+        { url: "https://www.teachthought.com/feed/", source: "TeachThought" },
         { url: "https://hnrss.org/newest?q=education+teaching", source: "Hacker News" },
         { url: "https://news.google.com/rss/search?q=teaching+education+classroom&hl=en-US&gl=US&ceid=US:en", source: "Google News" }
       ]
@@ -2225,7 +2225,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
         { url: "https://hnrss.org/frontpage", source: "Hacker News" },
         { url: "https://www.theverge.com/rss/index.xml", source: "The Verge" },
         { url: "https://techcrunch.com/feed/", source: "TechCrunch" },
-        { url: "https://arstechnica.com/feed/", source: "Ars Technica" }
+        { url: "https://thenewstack.io/feed/", source: "The New Stack" }
       ]
     },
     career: {
@@ -2238,7 +2238,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
     wellness: {
       name: "Wellness",
       feeds: [
-        { url: "https://zenhabits.net/feed/", source: "Zen Habits" },
+        { url: "https://jamesclear.com/feed", source: "James Clear" },
         { url: "https://news.google.com/rss/search?q=mental+health+wellness+mindfulness&hl=en-US&gl=US&ceid=US:en", source: "Google News" },
         { url: "https://hnrss.org/newest?q=mental+health+wellness", source: "Hacker News" }
       ]
@@ -2247,7 +2247,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
       name: "Skincare & Dermatology",
       feeds: [
         { url: "https://news.google.com/rss/search?q=skincare+dermatology+skin+health&hl=en-US&gl=US&ceid=US:en", source: "Google News" },
-        { url: "https://www.allure.com/feed/rss", source: "Allure" }
+        { url: "https://www.sciencedaily.com/rss/health_medicine/skin_care.xml", source: "ScienceDaily" }
       ]
     },
     french: {
@@ -2267,7 +2267,7 @@ Provide trauma-informed, supportive analysis. Be specific about patterns you obs
     productivity: {
       name: "Productivity",
       feeds: [
-        { url: "https://zenhabits.net/feed/", source: "Zen Habits" },
+        { url: "https://jamesclear.com/feed", source: "James Clear" },
         { url: "https://news.google.com/rss/search?q=productivity+time+management+focus&hl=en-US&gl=US&ceid=US:en", source: "Google News" },
         { url: "https://hnrss.org/newest?q=productivity", source: "Hacker News" }
       ]
