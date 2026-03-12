@@ -57,6 +57,8 @@ function ListeningOverlay({ phase, onStop, onInterrupt, liveTranscript, interimT
   const [idleMsgIndex, setIdleMsgIndex] = useState(0);
   const [thinkMsgIndex] = useState(() => Math.floor(Math.random() * thinkingMessages.length));
   const responseRef = useRef<HTMLDivElement>(null);
+  const [displayedWordCount, setDisplayedWordCount] = useState(0);
+  const streamingStartedRef = useRef(false);
 
   useEffect(() => {
     setIdleMsgIndex(Math.floor(Math.random() * idleMessages.length));
@@ -77,10 +79,31 @@ function ListeningOverlay({ phase, onStop, onInterrupt, liveTranscript, interimT
   }, [phase]);
 
   useEffect(() => {
+    if (phase === "speaking" && orbiaResponse && !streamingStartedRef.current) {
+      streamingStartedRef.current = true;
+      setDisplayedWordCount(0);
+      const words = orbiaResponse.split(/\s+/);
+      const totalWords = words.length;
+      const msPerWord = Math.max(60, Math.min(150, 8000 / totalWords));
+      let count = 0;
+      const interval = setInterval(() => {
+        count++;
+        setDisplayedWordCount(count);
+        if (count >= totalWords) clearInterval(interval);
+      }, msPerWord);
+      return () => clearInterval(interval);
+    }
+    if (phase !== "speaking") {
+      streamingStartedRef.current = false;
+      setDisplayedWordCount(0);
+    }
+  }, [phase, orbiaResponse]);
+
+  useEffect(() => {
     if (responseRef.current) {
       responseRef.current.scrollTop = responseRef.current.scrollHeight;
     }
-  }, [orbiaResponse]);
+  }, [displayedWordCount]);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -303,7 +326,14 @@ function ListeningOverlay({ phase, onStop, onInterrupt, liveTranscript, interimT
             className="relative rounded-2xl bg-violet-500/[0.06] backdrop-blur-md border border-violet-400/15 px-5 py-4 max-h-[180px] overflow-y-auto"
           >
             <p className="text-violet-100 text-base leading-relaxed font-light">
-              {orbiaResponse}
+              {orbiaResponse.split(/\s+/).slice(0, displayedWordCount).join(" ")}
+              {displayedWordCount < orbiaResponse.split(/\s+/).length && (
+                <motion.span
+                  className="inline-block w-0.5 h-4 bg-violet-400/70 ml-0.5 align-text-bottom"
+                  animate={{ opacity: [1, 0, 1] }}
+                  transition={{ duration: 0.8, repeat: Infinity, ease: "steps(2)" }}
+                />
+              )}
             </p>
           </div>
           <div className="flex items-center justify-center gap-2 mt-3">
