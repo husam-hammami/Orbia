@@ -24,17 +24,3 @@ export interface UserStats {
   completionRate: number;
 }
 
-export interface SystemMember {
-    id: string;
-    name: string;
-    role: string;
-    traits: string[];
-    color: string;
-    avatar: string;
-    description: string;
-    location?: string;
-    stats?: {
-        stress: number;
-        activity: number;
-    };
-}

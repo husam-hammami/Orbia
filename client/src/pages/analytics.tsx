@@ -93,14 +93,12 @@ export default function Analytics() {
     
     const detailedMetrics = last7Days.map(({ date, name }) => {
       const dayEntries = trackerEntries.filter(e => isSameDay(new Date(e.timestamp), date));
-      const avgDissociation = dayEntries.length ? dayEntries.reduce((sum, e) => sum + e.dissociation, 0) / dayEntries.length : 0;
+      const avgStressDetail = dayEntries.length ? dayEntries.reduce((sum, e) => sum + e.stress, 0) / dayEntries.length : 0;
       const avgEnergy = dayEntries.length ? dayEntries.reduce((sum, e) => sum + e.energy, 0) / dayEntries.length : 0;
       return { 
         name, 
-        dissociation: Math.round(avgDissociation / 10),
-        communication: Math.round(avgEnergy),
+        stress: Math.round(avgStressDetail / 10),
         energy: Math.round(avgEnergy),
-        urges: 0
       };
     });
     
@@ -452,7 +450,7 @@ export default function Analytics() {
                         <CloudFog className="w-4 h-4 text-purple-500" />
                         Internal System State
                      </CardTitle>
-                     <CardDescription>Dissociation & Communication levels</CardDescription>
+                     <CardDescription>Stress & Energy levels</CardDescription>
                   </CardHeader>
                   <CardContent>
                      <div className="h-[250px] w-full">
@@ -464,9 +462,8 @@ export default function Analytics() {
                               <Tooltip 
                                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--background))' }}
                               />
-                              <Line type="monotone" dataKey="dissociation" stroke="#9333ea" strokeWidth={2} dot={{r:3}} name="Dissociation" />
-                              <Line type="monotone" dataKey="communication" stroke="#6366f1" strokeWidth={2} dot={{r:3}} name="Communication" />
-                              <Line type="step" dataKey="urges" stroke="#ef4444" strokeWidth={1} strokeDasharray="4 4" dot={false} name="Urge Intensity" />
+                              <Line type="monotone" dataKey="stress" stroke="#9333ea" strokeWidth={2} dot={{r:3}} name="Stress" />
+                              <Line type="monotone" dataKey="energy" stroke="#6366f1" strokeWidth={2} dot={{r:3}} name="Energy" />
                            </LineChart>
                         </ResponsiveContainer>
                      </div>

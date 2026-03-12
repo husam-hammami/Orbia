@@ -30,9 +30,8 @@ import {
   Users,
   Hash
 } from "lucide-react";
-import { HeadspaceMap } from "@/components/headspace-map";
 import { cn } from "@/lib/utils";
-import { useDeepMindNow, useDeepMindLoops, useDeepMindVisualizations, useMembers, useTrackerEntries } from "@/lib/api-hooks";
+import { useDeepMindNow, useDeepMindLoops, useDeepMindVisualizations, useTrackerEntries } from "@/lib/api-hooks";
 import {
   BarChart,
   Bar,
@@ -446,7 +445,7 @@ function AIInsightDisplay({ content }: { content: string }) {
 
 export default function DeepMind() {
   const [activeTab, setActiveTab] = useState("now");
-  const [sleepMetric, setSleepMetric] = useState<"mood" | "dissociation" | "urges">("mood");
+  const [sleepMetric, setSleepMetric] = useState<"mood" | "stress" | "urges">("mood");
   const [aiInsight, setAiInsight] = useState("");
   const [isLoadingInsight, setIsLoadingInsight] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -454,7 +453,6 @@ export default function DeepMind() {
   const { data: nowData, isLoading: nowLoading } = useDeepMindNow();
   const { data: loopsData, isLoading: loopsLoading } = useDeepMindLoops();
   const { data: visualsData, isLoading: visualsLoading } = useDeepMindVisualizations();
-  const { data: members = [], isLoading: membersLoading } = useMembers();
   const { data: entries = [], isLoading: entriesLoading } = useTrackerEntries(2000);
 
   const fetchAIInsight = async (focus: string = "system") => {
@@ -508,20 +506,13 @@ export default function DeepMind() {
     }
   }, [activeTab]);
 
-  const stateDriverAssociations = useMemo(() => {
-    if (entries.length === 0 || members.length === 0) return { associations: [], sampleSize: 0, confidence: "Low" as const };
+  const driverStats = useMemo(() => {
+    if (entries.length === 0) return { drivers: [], sampleSize: 0, confidence: "Low" as const };
 
-    const memberDrivers: { [memberId: string]: { [driver: string]: number } } = {};
+    const driverCounts: { [driver: string]: number } = {};
     let entriesWithData = 0;
 
     entries.forEach((entry: any) => {
-      if (!entry.frontingMemberId) return;
-      
-      const memberId = entry.frontingMemberId;
-      if (!memberDrivers[memberId]) {
-        memberDrivers[memberId] = {};
-      }
-
       const drivers: string[] = [];
       
       if (entry.triggerTag) {
@@ -547,75 +538,40 @@ export default function DeepMind() {
       if (drivers.length > 0) {
         entriesWithData++;
         drivers.forEach(driver => {
-          memberDrivers[memberId][driver] = (memberDrivers[memberId][driver] || 0) + 1;
+          driverCounts[driver] = (driverCounts[driver] || 0) + 1;
         });
       }
     });
 
-    const associations = members
-      .filter((m: any) => memberDrivers[m.id] && Object.keys(memberDrivers[m.id]).length > 0)
-      .map((member: any) => {
-        const driverCounts = memberDrivers[member.id];
-        const sorted = Object.entries(driverCounts)
-          .sort(([, a], [, b]) => b - a)
-          .slice(0, 3);
-        
-        return {
-          memberId: member.id,
-          memberName: member.name,
-          memberColor: member.color,
-          topDrivers: sorted.map(([driver, count]) => ({ driver, count: count as number })),
-          totalOccurrences: Object.values(driverCounts).reduce((a, b) => a + b, 0)
-        };
-      })
-      .filter(a => a.topDrivers.length > 0)
-      .sort((a, b) => b.totalOccurrences - a.totalOccurrences);
+    const drivers = Object.entries(driverCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([driver, count]) => ({ driver, count }));
 
     const confidence: "Low" | "Medium" | "High" = 
       entriesWithData >= 50 ? "High" : 
       entriesWithData >= 20 ? "Medium" : "Low";
 
-    return { associations, sampleSize: entriesWithData, confidence };
-  }, [entries, members]);
+    return { drivers, sampleSize: entriesWithData, confidence };
+  }, [entries]);
 
   const timelineStats = useMemo(() => {
-    if (entries.length === 0 || members.length === 0) return null;
+    if (entries.length === 0) return null;
 
-    const memberCounts: { [id: string]: number } = {};
-    let stateShifts = 0;
-    let lastMemberId: string | null = null;
     const daysWithEntries = new Set<string>();
 
     entries.forEach((entry: any) => {
-      if (!entry.frontingMemberId) return;
-      
-      memberCounts[entry.frontingMemberId] = (memberCounts[entry.frontingMemberId] || 0) + 1;
-      
-      if (lastMemberId && lastMemberId !== entry.frontingMemberId) {
-        stateShifts++;
-      }
-      lastMemberId = entry.frontingMemberId;
-      
       if (entry.timestamp) {
         const dateStr = new Date(entry.timestamp).toISOString().split('T')[0];
         daysWithEntries.add(dateStr);
       }
     });
 
-    const topMemberId = Object.entries(memberCounts).sort(([, a], [, b]) => b - a)[0]?.[0];
-    const topMember = members.find((m: any) => m.id === topMemberId);
-    const avgShiftsPerDay = daysWithEntries.size > 0 
-      ? Math.round(stateShifts / daysWithEntries.size * 10) / 10 
-      : 0;
-
     return {
-      mostCommonState: topMember?.name || "Unknown",
-      mostCommonColor: topMember?.color || "#6366f1",
-      avgShiftsPerDay,
       totalEntries: entries.length,
       daysTracked: daysWithEntries.size
     };
-  }, [entries, members]);
+  }, [entries]);
 
   return (
     <Layout>
@@ -1022,7 +978,7 @@ export default function DeepMind() {
                         <ConfidenceBadge confidence={visualsData.sleepImpact.confidence} sampleSize={visualsData.sleepImpact.sampleSize} />
                       </div>
                       <div className="flex gap-1 mt-4 p-1 bg-slate-100 rounded-xl border border-slate-200 w-fit">
-                        {(["mood", "dissociation", "urges"] as const).map((metric) => (
+                        {(["mood", "stress", "urges"] as const).map((metric) => (
                           <button
                             key={metric}
                             onClick={() => setSleepMetric(metric)}
@@ -1034,7 +990,7 @@ export default function DeepMind() {
                             )}
                             data-testid={`toggle-${metric}`}
                           >
-                            {metric === "mood" ? "Mood" : metric === "dissociation" ? "Dissociation" : "Stress/Urges"}
+                            {metric === "mood" ? "Mood" : metric === "stress" ? "Stress" : "Stress/Urges"}
                           </button>
                         ))}
                       </div>
@@ -1048,7 +1004,7 @@ export default function DeepMind() {
                                 <stop offset="0%" stopColor="#14b8a6" stopOpacity={1}/>
                                 <stop offset="100%" stopColor="#14b8a6" stopOpacity={0.6}/>
                               </linearGradient>
-                              <linearGradient id="dissGrad" x1="0" y1="0" x2="0" y2="1">
+                              <linearGradient id="stressGrad" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stopColor="#f59e0b" stopOpacity={1}/>
                                 <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.6}/>
                               </linearGradient>
@@ -1082,13 +1038,13 @@ export default function DeepMind() {
                               itemStyle={{ color: '#64748b' }}
                               formatter={(value: number) => [
                                 `${value}${sleepMetric === "mood" ? "/10" : "%"}`,
-                                sleepMetric === "mood" ? "Avg Mood" : sleepMetric === "dissociation" ? "Avg Dissociation" : "Avg Stress"
+                                sleepMetric === "mood" ? "Avg Mood" : sleepMetric === "stress" ? "Avg Stress" : "Avg Stress"
                               ]}
                               cursor={{ fill: 'rgba(20, 184, 166, 0.1)' }}
                             />
                             <Bar 
                               dataKey={sleepMetric} 
-                              fill={`url(#${sleepMetric === "mood" ? "moodGrad" : sleepMetric === "dissociation" ? "dissGrad" : "urgesGrad"})`}
+                              fill={`url(#${sleepMetric === "mood" ? "moodGrad" : sleepMetric === "stress" ? "stressGrad" : "urgesGrad"})`}
                               radius={[6, 6, 0, 0]}
                             />
                           </BarChart>

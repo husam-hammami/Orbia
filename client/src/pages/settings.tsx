@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiRequest } from "@/lib/queryClient";
-import type { SystemSettings } from "@shared/schema";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +38,7 @@ export default function Settings() {
   const [isExporting, setIsExporting] = useState(false);
   const { themeId, themes, isDark, setTheme, toggleDarkMode } = useTheme();
 
-  const { data: settings, isLoading } = useQuery<SystemSettings>({
+  const { data: settings, isLoading } = useQuery<{ systemName?: string; privacyMode?: number }>({
     queryKey: ["/api/settings"],
   });
 
@@ -66,7 +65,7 @@ export default function Settings() {
   }, [profile]);
 
   const updateSettings = useMutation({
-    mutationFn: async (data: Partial<SystemSettings>) => {
+    mutationFn: async (data: { systemName?: string; privacyMode?: number }) => {
       const res = await apiRequest("PATCH", "/api/settings", data);
       return res.json();
     },

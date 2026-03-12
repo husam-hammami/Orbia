@@ -54,7 +54,7 @@ interface ExtractionResult {
 
 /**
  * Extract memory entities from a tracker entry.
- * Detects: emotional states, triggers, sleep patterns, pain events, fronting context
+ * Detects: emotional states, triggers, sleep patterns, pain events
  */
 export function extractFromTracker(entry: TrackerEntry): ExtractionResult {
   const entities: ExtractedEntity[] = [];
@@ -94,19 +94,6 @@ export function extractFromTracker(entry: TrackerEntry): ExtractionResult {
       content: { stress: entry.stress, mood: entry.mood, date: dateStr },
       summary: `Stress spike (${entry.stress}/100) on ${dateStr}`,
       importance: 0.7,
-      confidence: 0.9,
-    });
-  }
-
-  // Detect dissociation events
-  if (entry.dissociation >= 50) {
-    entities.push({
-      entityType: "state",
-      category: "system",
-      name: "dissociation_event",
-      content: { dissociation: entry.dissociation, stress: entry.stress, mood: entry.mood, date: dateStr },
-      summary: `Notable dissociation (${entry.dissociation}/100) on ${dateStr}`,
-      importance: 0.8,
       confidence: 0.9,
     });
   }
@@ -178,16 +165,6 @@ export function extractFromTracker(entry: TrackerEntry): ExtractionResult {
       relationType: "causes",
       strength: 0.8,
       observation: `Poor sleep (${entry.sleepHours}h) led to low energy (${entry.energy}/10) on ${dateStr}`,
-    });
-  }
-
-  if (entry.stress >= 70 && entry.dissociation >= 40) {
-    connections.push({
-      sourceName: "stress_spike",
-      targetName: "dissociation_event",
-      relationType: "triggers",
-      strength: 0.7,
-      observation: `High stress (${entry.stress}) co-occurred with dissociation (${entry.dissociation}) on ${dateStr}`,
     });
   }
 
@@ -1321,7 +1298,6 @@ export async function buildClinicalFormulation(userId: string): Promise<void> {
   // Tracker data summary
   const trackerSummary = trackerEntries.slice(0, 30).map((e: any) => {
     const parts = [`mood:${e.mood || "?"}`, `energy:${e.energy || "?"}`, `stress:${e.stress || "?"}`];
-    if (e.dissociation) parts.push(`dissociation:${e.dissociation}`);
     if (e.pain) parts.push(`pain:${e.pain}`);
     if (e.sleepHours) parts.push(`sleep:${e.sleepHours}h`);
     if (e.notes) parts.push(`notes:"${e.notes.slice(0, 80)}"`);

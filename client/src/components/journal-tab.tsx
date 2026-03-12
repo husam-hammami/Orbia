@@ -148,7 +148,6 @@ export function JournalTab() {
       entryType: "freewrite",
       mood,
       energy,
-      authorId: null,
       timeOfDay,
       tags: [],
       isPrivate: 0,

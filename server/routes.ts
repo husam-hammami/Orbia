@@ -2,11 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
-  insertSystemMemberSchema, 
   insertTrackerEntrySchema, 
-  insertSystemMessageSchema,
-  insertHeadspaceRoomSchema,
-  insertSystemSettingsSchema,
   insertHabitSchema,
   insertHabitCompletionSchema,
   insertRoutineBlockSchema,
@@ -66,70 +62,6 @@ export async function registerRoutes(
   registerChatRoutes(app);
   registerImageRoutes(app);
   
-  // System Members Routes
-  app.get("/api/members", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const members = await storage.getAllMembers(userId);
-      res.json(members);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch members" });
-    }
-  });
-
-  app.get("/api/members/:id", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const member = await storage.getMember(userId, req.params.id);
-      if (!member) {
-        return res.status(404).json({ error: "Member not found" });
-      }
-      res.json(member);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch member" });
-    }
-  });
-
-  app.post("/api/members", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const validatedData = insertSystemMemberSchema.parse({ ...req.body, userId });
-      const member = await storage.createMember(userId, validatedData);
-      res.status(201).json(member);
-    } catch (error) {
-      const validationError = fromError(error);
-      res.status(400).json({ error: validationError.toString() });
-    }
-  });
-
-  app.patch("/api/members/:id", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const validatedData = insertSystemMemberSchema.partial().parse(req.body);
-      const member = await storage.updateMember(userId, req.params.id, validatedData);
-      if (!member) {
-        return res.status(404).json({ error: "Member not found" });
-      }
-      res.json(member);
-    } catch (error) {
-      const validationError = fromError(error);
-      res.status(400).json({ error: validationError.toString() });
-    }
-  });
-
-  app.delete("/api/members/:id", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const success = await storage.deleteMember(userId, req.params.id);
-      if (!success) {
-        return res.status(404).json({ error: "Member not found" });
-      }
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete member" });
-    }
-  });
-
   // Tracker Entries Routes
   app.get("/api/tracker", async (req, res) => {
     try {
@@ -207,142 +139,6 @@ export async function registerRoutes(
     }
   });
 
-  // System Messages Routes
-  app.get("/api/messages", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const messages = await storage.getAllMessages(userId);
-      res.json(messages);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch messages" });
-    }
-  });
-
-  app.get("/api/messages/:id", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const message = await storage.getMessage(userId, req.params.id);
-      if (!message) {
-        return res.status(404).json({ error: "Message not found" });
-      }
-      res.json(message);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch message" });
-    }
-  });
-
-  app.post("/api/messages", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const validatedData = insertSystemMessageSchema.parse({ ...req.body, userId });
-      const message = await storage.createMessage(userId, validatedData);
-      res.status(201).json(message);
-    } catch (error) {
-      const validationError = fromError(error);
-      res.status(400).json({ error: validationError.toString() });
-    }
-  });
-
-  app.delete("/api/messages/:id", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const success = await storage.deleteMessage(userId, req.params.id);
-      if (!success) {
-        return res.status(404).json({ error: "Message not found" });
-      }
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete message" });
-    }
-  });
-
-  // Headspace Rooms Routes
-  app.get("/api/rooms", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const rooms = await storage.getAllRooms(userId);
-      res.json(rooms);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch rooms" });
-    }
-  });
-
-  app.get("/api/rooms/:id", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const room = await storage.getRoom(userId, req.params.id);
-      if (!room) {
-        return res.status(404).json({ error: "Room not found" });
-      }
-      res.json(room);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch room" });
-    }
-  });
-
-  app.post("/api/rooms", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const validatedData = insertHeadspaceRoomSchema.parse({ ...req.body, userId });
-      const room = await storage.createRoom(userId, validatedData);
-      res.status(201).json(room);
-    } catch (error) {
-      const validationError = fromError(error);
-      res.status(400).json({ error: validationError.toString() });
-    }
-  });
-
-  app.patch("/api/rooms/:id", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const validatedData = insertHeadspaceRoomSchema.partial().parse(req.body);
-      const room = await storage.updateRoom(userId, req.params.id, validatedData);
-      if (!room) {
-        return res.status(404).json({ error: "Room not found" });
-      }
-      res.json(room);
-    } catch (error) {
-      const validationError = fromError(error);
-      res.status(400).json({ error: validationError.toString() });
-    }
-  });
-
-  app.delete("/api/rooms/:id", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const success = await storage.deleteRoom(userId, req.params.id);
-      if (!success) {
-        return res.status(404).json({ error: "Room not found" });
-      }
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete room" });
-    }
-  });
-
-  // System Settings Routes
-  app.get("/api/settings", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const settings = await storage.getSettings(userId);
-      res.json(settings);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch settings" });
-    }
-  });
-
-  app.patch("/api/settings", async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const validatedData = insertSystemSettingsSchema.partial().parse(req.body);
-      const settings = await storage.updateSettings(userId, validatedData);
-      res.json(settings);
-    } catch (error) {
-      const validationError = fromError(error);
-      res.status(400).json({ error: validationError.toString() });
-    }
-  });
-
   // User Profile Routes
   app.get("/api/user/profile", async (req, res) => {
     try {
@@ -378,10 +174,9 @@ export async function registerRoutes(
   app.get("/api/export", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const [settings, habits, habitCompletions, routineBlocks, routineActivities, 
-             trackerEntries, journalEntries, todos, members, visionItems, 
+      const [habits, habitCompletions, routineBlocks, routineActivities, 
+             trackerEntries, journalEntries, todos, visionItems, 
              dailySummaries, expenses, transactions] = await Promise.all([
-        storage.getSettings(userId),
         storage.getAllHabits(userId),
         storage.getAllHabitCompletions(userId),
         storage.getAllRoutineBlocks(userId),
@@ -389,7 +184,6 @@ export async function registerRoutes(
         storage.getRecentTrackerEntries(userId, 10000),
         storage.getAllJournalEntries(userId),
         storage.getAllTodos(userId),
-        storage.getAllMembers(userId),
         storage.getVision(userId),
         storage.getAllDailySummaries(userId),
         storage.getAllExpenses(userId),
@@ -400,7 +194,6 @@ export async function registerRoutes(
         exportedAt: new Date().toISOString(),
         version: "1.0",
         data: {
-          settings,
           habits,
           habitCompletions,
           routineBlocks,
@@ -408,7 +201,6 @@ export async function registerRoutes(
           trackerEntries,
           journalEntries,
           todos,
-          members,
           visionItems,
           dailySummaries,
           expenses,
@@ -1015,14 +807,13 @@ export async function registerRoutes(
       const days = parseInt(req.query.days as string) || 14;
       
       // Fetch all linked data for analysis
-      const [entries, habits, completions, routineBlocks, routineActivities, routineLogs, members, dailySummaries, journalEntries] = await Promise.all([
+      const [entries, habits, completions, routineBlocks, routineActivities, routineLogs, dailySummaries, journalEntries] = await Promise.all([
         storage.getAllTrackerEntries(userId),
         storage.getAllHabits(userId),
         storage.getAllHabitCompletions(userId),
         storage.getAllRoutineBlocks(userId),
         storage.getAllRoutineActivities(userId),
         storage.getAllRoutineLogs(userId),
-        storage.getAllMembers(userId),
         storage.getAllDailySummaries(userId),
         storage.getAllJournalEntries(userId)
       ]);
@@ -1040,7 +831,6 @@ export async function registerRoutes(
       const parsedEntries = recentEntries.map(e => ({
         entry: e,
         parsed: parseTrackerNotes(e.notes),
-        frontingMember: members.find(m => m.id === e.frontingMemberId)
       }));
       
       // Build habit lookup for routine linkage
@@ -1114,8 +904,6 @@ export async function registerRoutes(
             goodSleepDays: goodSleep.length,
             avgMoodLowSleep: lowSleep.length > 0 ? (lowSleep.reduce((sum, pe) => sum + (pe.entry.mood || 5), 0) / lowSleep.length).toFixed(1) : null,
             avgMoodGoodSleep: goodSleep.length > 0 ? (goodSleep.reduce((sum, pe) => sum + (pe.entry.mood || 5), 0) / goodSleep.length).toFixed(1) : null,
-            avgDissociationLowSleep: lowSleep.length > 0 ? Math.round(lowSleep.reduce((sum, pe) => sum + (pe.entry.dissociation || 0), 0) / lowSleep.length) : null,
-            avgDissociationGoodSleep: goodSleep.length > 0 ? Math.round(goodSleep.reduce((sum, pe) => sum + (pe.entry.dissociation || 0), 0) / goodSleep.length) : null,
           };
         })();
         
@@ -1136,38 +924,10 @@ export async function registerRoutes(
           };
         });
         
-        // Fronting member patterns
-        const frontingPatterns = (() => {
-          const memberStats = new Map<string, { count: number; totalMood: number; totalStress: number; totalDissociation: number; name: string; role: string }>();
-          parsedEntries.forEach(({ entry, frontingMember }) => {
-            if (frontingMember) {
-              const existing = memberStats.get(frontingMember.id) || { 
-                count: 0, totalMood: 0, totalStress: 0, totalDissociation: 0, 
-                name: frontingMember.name, role: frontingMember.role || ''
-              };
-              existing.count++;
-              existing.totalMood += entry.mood || 5;
-              existing.totalStress += entry.stress || 0;
-              existing.totalDissociation += entry.dissociation || 0;
-              memberStats.set(frontingMember.id, existing);
-            }
-          });
-          return Array.from(memberStats.values()).map(s => ({
-            name: s.name,
-            role: s.role,
-            entriesCount: s.count,
-            percentageOfEntries: parsedEntries.length > 0 ? Math.round((s.count / parsedEntries.length) * 100) : 0,
-            avgMood: (s.totalMood / s.count).toFixed(1),
-            avgStress: Math.round(s.totalStress / s.count),
-            avgDissociation: Math.round(s.totalDissociation / s.count),
-          }));
-        })();
-        
         // Overall trends
         const overallMetrics = {
           avgMood: parsedEntries.length > 0 ? (parsedEntries.reduce((sum, pe) => sum + (pe.entry.mood || 5), 0) / parsedEntries.length).toFixed(1) : null,
           avgStress: parsedEntries.length > 0 ? Math.round(parsedEntries.reduce((sum, pe) => sum + (pe.entry.stress || 0), 0) / parsedEntries.length) : null,
-          avgDissociation: parsedEntries.length > 0 ? Math.round(parsedEntries.reduce((sum, pe) => sum + (pe.entry.dissociation || 0), 0) / parsedEntries.length) : null,
           avgEnergy: parsedEntries.length > 0 ? (parsedEntries.reduce((sum, pe) => sum + (pe.entry.energy || 5), 0) / parsedEntries.length).toFixed(1) : null,
           totalHabitCompletions: recentCompletions.length,
           totalRoutineCompletions: recentRoutineLogs.length,
@@ -1234,12 +994,8 @@ export async function registerRoutes(
           const avgMoodLowRoutine = lowRoutineDays.reduce((s, pe) => s + (pe.entry.mood || 5), 0) / lowRoutineDays.length;
           const avgStressHighRoutine = highRoutineDays.reduce((s, pe) => s + (pe.entry.stress || 0), 0) / highRoutineDays.length;
           const avgStressLowRoutine = lowRoutineDays.reduce((s, pe) => s + (pe.entry.stress || 0), 0) / lowRoutineDays.length;
-          const avgDissociationHighRoutine = highRoutineDays.reduce((s, pe) => s + (pe.entry.dissociation || 0), 0) / highRoutineDays.length;
-          const avgDissociationLowRoutine = lowRoutineDays.reduce((s, pe) => s + (pe.entry.dissociation || 0), 0) / lowRoutineDays.length;
-          
           const moodDiff = avgMoodHighRoutine - avgMoodLowRoutine;
           const stressDiff = avgStressLowRoutine - avgStressHighRoutine;
-          const dissociationDiff = avgDissociationLowRoutine - avgDissociationHighRoutine;
           
           return {
             highRoutineDays: highRoutineDays.length,
@@ -1251,9 +1007,6 @@ export async function registerRoutes(
             avgStressHighRoutine: Math.round(avgStressHighRoutine),
             avgStressLowRoutine: Math.round(avgStressLowRoutine),
             stressReduction: Math.round(stressDiff),
-            avgDissociationHighRoutine: Math.round(avgDissociationHighRoutine),
-            avgDissociationLowRoutine: Math.round(avgDissociationLowRoutine),
-            dissociationReduction: Math.round(dissociationDiff),
             confidence: getConfidence(Math.min(highRoutineDays.length, lowRoutineDays.length)),
             effectSize: calcEffectSize(avgMoodHighRoutine, avgMoodLowRoutine) > 0.5 ? 'strong' : calcEffectSize(avgMoodHighRoutine, avgMoodLowRoutine) > 0.2 ? 'moderate' : 'weak',
           };
@@ -1474,7 +1227,6 @@ export async function registerRoutes(
           habitCorrelations, 
           sleepCorrelations, 
           routineAdherence, 
-          frontingPatterns, 
           overallMetrics,
           // High-confidence multi-factor insights
           highConfidence: {
@@ -1491,19 +1243,16 @@ export async function registerRoutes(
       
       // Build comprehensive context for AI analysis including all parsed tracker data
       const context = {
-        moodEntries: parsedEntries.map(({ entry: e, parsed, frontingMember }) => ({
+        moodEntries: parsedEntries.map(({ entry: e, parsed }) => ({
           date: e.timestamp,
           mood: { value: e.mood, scale: "1-10" },
           energy: { value: e.energy, scale: "1-10" },
           stress: { value: e.stress, scale: "0-100" },
-          dissociation: { value: e.dissociation, scale: "0-100" },
           capacity: e.capacity !== null ? { value: e.capacity, scale: "0-5", description: "How much can they handle right now (not mood or energy)" } : null,
           triggerTag: e.triggerTag || null,
           workLoad: e.workLoad !== null ? { value: e.workLoad, scale: "0-10", description: "How hostile/draining was work (0=no work, 5=difficult, 10=toxic)" } : null,
           workTag: e.workTag || null,
           timeOfDay: e.timeOfDay || null,
-          frontingMember: frontingMember?.name || null,
-          frontingMemberRole: frontingMember?.role || null,
           journalText: parsed.text,
           tags: parsed.tags,
           stressTriggers: parsed.triggers,
@@ -1566,11 +1315,6 @@ export async function registerRoutes(
               };
             })
         })),
-        systemMembers: members.map(m => ({ 
-          name: m.name, 
-          role: m.role,
-          traits: m.traits
-        })),
         journalEntries: recentJournalEntries.map(j => ({
           id: j.id,
           date: j.createdAt,
@@ -1580,7 +1324,6 @@ export async function registerRoutes(
           isPrivate: j.isPrivate,
           primaryDriver: j.primaryDriver,
           secondaryDriver: j.secondaryDriver,
-          authorName: j.authorId ? members.find(m => m.id === j.authorId)?.name : null,
           contentPreview: j.content.length > 300 ? j.content.slice(0, 300) + "..." : j.content
         })),
         journalAnalytics: (() => {
@@ -1630,15 +1373,11 @@ KEY DATA AVAILABLE:
 
 2. preComputedCorrelations.sleepCorrelations - Shows:
    - avgMoodLowSleep vs avgMoodGoodSleep
-   - avgDissociationLowSleep vs avgDissociationGoodSleep
 
 3. preComputedCorrelations.routineAdherence - Shows per routine block:
    - completionRate (%), which blocks are being followed
 
-4. preComputedCorrelations.frontingPatterns - Shows per system member:
-   - percentageOfEntries, avgMood, avgStress, avgDissociation
-
-5. preComputedCorrelations.overallMetrics - Period averages
+4. preComputedCorrelations.overallMetrics - Period averages
 
 6. preComputedCorrelations.highConfidence - HIGH-CONFIDENCE MULTI-FACTOR INSIGHTS (PRIORITIZE THESE):
    - routineMoodCorrelation: Mood on high routine completion days vs low (with confidence level)
@@ -1647,13 +1386,12 @@ KEY DATA AVAILABLE:
    - sleepHabitInteraction: How sleep quality modifies habit effectiveness
    - bestWorstDaysAnalysis: Pattern analysis of your best vs worst mood days
 
-7. journalEntries - Full journal data with:
+6. journalEntries - Full journal data with:
    - mood and energy scores, timeOfDay
    - primaryDriver/secondaryDriver (HIGH WEIGHT - user-tagged: Sleep, Work, Relationships, Body, Anxiety, Urges/Escape, Shame, Trauma, Joy, Connection, Growth, Peace)
-   - authorName (which system member wrote it)
    - contentPreview (first 300 chars of content)
 
-8. journalAnalytics - Aggregated journal statistics:
+7. journalAnalytics - Aggregated journal statistics:
    - driverFrequency: Most common drivers tagged in journal entries (HIGH WEIGHT EVIDENCE - primary source of categorization)
    - avgMood/avgEnergy: Journal-specific averages
    - entriesByTimeOfDay: When journaling happens most
@@ -1662,9 +1400,8 @@ JOURNAL-SPECIFIC PATTERNS TO LOOK FOR:
 - Driver patterns: Which drivers appear most frequently? (driverFrequency in journalAnalytics)
 - Driver chains: When primaryDriver=Work, what secondaryDriver often follows? (e.g., Work → Urges/Escape)
 - Mood correlation by driver: Compare mood on Work-driven days vs Sleep-driven days
-- Vent entry frequency correlating with stress/dissociation levels
+- Vent entry frequency correlating with stress levels
 - Gratitude entries correlating with improved mood
-- Which system members write which types of entries
 - Tags that appear more frequently on high-stress days
 - Time-of-day patterns in journaling (night venting vs morning reflection)
 - Mood/energy differences between entry types
@@ -1674,7 +1411,7 @@ DRIVER WEIGHTING (HIGH PRIORITY):
 - These are HIGH WEIGHT evidence - prioritize driver-tagged patterns over inferred patterns
 - Use driverFrequency to identify the most common drivers and build insights around them
 
-9. NEW CONTEXT FIELDS - Use these for deeper pattern analysis:
+8. NEW CONTEXT FIELDS - Use these for deeper pattern analysis:
    - capacity (0-5): How much they can handle RIGHT NOW (distinct from mood/energy - someone can be calm but have low capacity)
    - triggerTag: What influenced the entry (work, loneliness, pain, noise, sleep, body, unknown)
    - workLoad (0-10): How hostile/draining was work? (0 = no work, 5 = difficult, 10 = toxic/unsafe)
@@ -1682,14 +1419,11 @@ DRIVER WEIGHTING (HIGH PRIORITY):
    - timeOfDay: When the entry was made (morning, afternoon, evening, night)
    - dailySummaries: End-of-day reflections (lighter, average, heavier than usual)
 
-8. IMPORTANT DID-SPECIFIC PATTERNS TO LOOK FOR:
-   - "Guardian fronts more on high pain + work days" - correlate fronting members with trigger tags
-   - Time-of-day patterns for dissociation spikes
-   - Which members appear at which times of day
+IMPORTANT PATTERNS TO LOOK FOR:
    - Capacity vs mood discrepancies (calm but low capacity = different from high energy high capacity)
-   - Daily summary correlations with actual metrics (does "heavier" correlate with specific triggers/members?)
-   - Work environment load impact on mood/dissociation - separate external pressure from internal state
-   - Work tag patterns (e.g., "blame/criticism days have 2x dissociation")
+   - Daily summary correlations with actual metrics (does "heavier" correlate with specific triggers?)
+   - Work environment load impact on mood/stress - separate external pressure from internal state
+   - Work tag patterns (e.g., "blame/criticism days have 2x stress")
    - Helps prevent self-blame by identifying external stressors
 
 CRITICAL INSTRUCTIONS:
@@ -1697,10 +1431,10 @@ CRITICAL INSTRUCTIONS:
 - Only report correlations with "high" or "moderate" confidence levels
 - Use SPECIFIC NUMBERS from the correlations (e.g., "Mood is 7.2 on days you complete X vs 5.1 on days without")
 - Calculate and state DIFFERENCES (e.g., "23% lower stress", "+1.5 mood points")
-- Reference SPECIFIC habits, routines, and members by name
+- Reference SPECIFIC habits and routines by name
 - State effect size: "strong", "moderate", or "weak" 
 - Highlight SYNERGY effects (e.g., "Doing X AND Y together yields +2.3 mood points")
-- Group insights by category: SLEEP, HABITS, ROUTINES, SYSTEM DYNAMICS, SYNERGIES, JOURNAL
+- Group insights by category: SLEEP, HABITS, ROUTINES, SYNERGIES, JOURNAL
 
 Be supportive, non-judgmental, and use trauma-informed language. Keep insights QUANTITATIVE and ACTIONABLE.`;
 
@@ -1771,14 +1505,13 @@ Format as JSON:
       const { question, days = 14 } = req.body;
       
       // Fetch all linked data
-      const [entries, habits, completions, routineBlocks, routineActivities, routineLogs, members] = await Promise.all([
+      const [entries, habits, completions, routineBlocks, routineActivities, routineLogs] = await Promise.all([
         storage.getAllTrackerEntries(userId),
         storage.getAllHabits(userId),
         storage.getAllHabitCompletions(userId),
         storage.getAllRoutineBlocks(userId),
         storage.getAllRoutineActivities(userId),
-        storage.getAllRoutineLogs(userId),
-        storage.getAllMembers(userId)
+        storage.getAllRoutineLogs(userId)
       ]);
       
       // Filter to recent data
@@ -1793,7 +1526,6 @@ Format as JSON:
       const parsedEntries = recentEntries.map(e => ({
         entry: e,
         parsed: parseTrackerNotes(e.notes),
-        frontingMember: members.find(m => m.id === e.frontingMemberId)
       }));
       
       // Build habit lookup for routine linkage
@@ -1804,19 +1536,16 @@ Format as JSON:
       });
       
       const dataContext = {
-        moodEntries: parsedEntries.map(({ entry: e, parsed, frontingMember }) => ({
+        moodEntries: parsedEntries.map(({ entry: e, parsed }) => ({
           date: e.timestamp,
           mood: { value: e.mood, scale: "1-10" },
           energy: { value: e.energy, scale: "1-10" },
           stress: { value: e.stress, scale: "0-100" },
-          dissociation: { value: e.dissociation, scale: "0-100" },
           capacity: e.capacity !== null ? { value: e.capacity, scale: "0-5", description: "How much can they handle right now" } : null,
           triggerTag: e.triggerTag || null,
           workLoad: e.workLoad !== null ? { value: e.workLoad, scale: "0-10", description: "How hostile/draining was work (0=no work, 5=difficult, 10=toxic)" } : null,
           workTag: e.workTag || null,
           timeOfDay: e.timeOfDay || null,
-          frontingMember: frontingMember?.name || null,
-          frontingMemberRole: frontingMember?.role || null,
           journalText: parsed.text,
           tags: parsed.tags,
           stressTriggers: parsed.triggers,
@@ -1870,11 +1599,6 @@ Format as JSON:
               };
             })
         })),
-        systemMembers: members.map(m => ({
-          name: m.name,
-          role: m.role,
-          traits: m.traits
-        }))
       };
       
       // Set up SSE for streaming response
@@ -1885,12 +1609,11 @@ Format as JSON:
       const systemPrompt = `You are a compassionate mental health pattern analyst for Orbia, a holistic wellness and productivity tracker. 
 
 You have access to the user's linked tracking data including:
-- Mood, energy, stress, and dissociation entries
+- Mood, energy, stress entries
 - Habit completions
 - Daily routine activity logs
-- System member (alter) information
 
-Provide trauma-informed, supportive analysis. Be specific about patterns you observe in the data. Use gentle, encouraging language.`;
+Provide supportive analysis. Be specific about patterns you observe in the data. Use gentle, encouraging language.`;
 
       await aiStream(
         [
@@ -3789,263 +3512,43 @@ ${JSON.stringify(context, null, 2)}`;
     }
   });
 
-  // Admin seed endpoint - populates database with initial data
-  app.post("/api/admin/seed", async (req, res) => {
-    const seedKey = req.headers["x-seed-key"];
-    const expectedKey = process.env.ADMIN_SEED_KEY;
-    if (!expectedKey || seedKey !== expectedKey) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    try {
-      const userId = req.session.userId!;
-      const results: Record<string, number> = {};
-
-      // Seed Habits
-      const habits = [
-        { id: "72e14641-1729-464a-b329-0bb1dba34a72", title: "Walk 20 minutes", description: "Daily walk for mental health and spinal health", category: "movement", frequency: "daily", streak: 0, color: "#22c55e", target: 20, unit: "minutes" },
-        { id: "69ab4bb6-1d0d-4f5a-8f0f-ff25539ec12f", title: "Drink 1.5L water", description: "Stay hydrated throughout the day", category: "health", frequency: "daily", streak: 0, color: "#0ea5e9", target: 1500, unit: "ml" },
-        { id: "bf5b256f-6896-420c-9a2f-018f78fc2f69", title: "Journal + mood log", description: "1-3 sentences max", category: "mental", frequency: "daily", streak: 0, color: "#ec4899", target: 1, unit: "entry" },
-        { id: "e3e0bbd3-2fe8-451f-a9bc-120f4278db1a", title: "Take meds / supplements", description: "Daily medications and supplements", category: "health", frequency: "daily", streak: 0, color: "#10b981", target: 1, unit: "dose" },
-        { id: "d46a0786-baaa-4136-9763-09a57859d7af", title: "1-minute grounding", description: "Quick grounding exercise", category: "mental", frequency: "daily", streak: 0, color: "#6366f1", target: 1, unit: "minute" },
-        { id: "967aad5e-9927-4313-baf3-f711fa95a2ba", title: "Swim (short, easy)", description: "5-15 minutes easy swimming", category: "Mindfulness", frequency: "daily", streak: 0, color: "#06b6d4", target: 1, unit: "session" },
-        { id: "2cb36ddd-f711-4b29-8f0d-3c4930dd94a9", title: "Stretch back 5 minutes", description: "Gentle back stretches, no forcing", category: "Mindfulness", frequency: "daily", streak: 0, color: "hsl(32 60% 60%)", target: 5, unit: "minutes" },
-        { id: "5e500376-8d59-4973-9d22-f93f66feccdd", title: "Sleep ~7 hours", description: "Aim for adequate rest", category: "Creativity", frequency: "daily", streak: 0, color: "#8b5cf6", target: 7, unit: "hours" },
-        { id: "4c74cdde-2734-4522-8b0e-be4a9086e5d5", title: "Eat 2 meals", description: "No pressure to cook, delivery acceptable", category: "Work", frequency: "daily", streak: 0, color: "#f59e0b", target: 2, unit: "meals" },
-        { id: "eae8a85c-42ed-4ec2-a848-68ff9203a271", title: "Stop working by 18:00", description: "", category: "Work", frequency: "daily", streak: 0, color: "hsl(220 10% 40%)", target: 1, unit: "times" },
-        { id: "683a5ce4-a589-444d-b2d1-3531b685ede1", title: "Leave the house once", description: "", category: "Health", frequency: "daily", streak: 0, color: "hsl(180 30% 50%)", target: 1, unit: "times" },
-        { id: "4ab512b1-a99e-4104-b40f-3ececf9e4b67", title: "Prepare One Meal", description: "", category: "Mindfulness", frequency: "daily", streak: 0, color: "hsl(32 60% 60%)", target: 1, unit: "times" },
-        { id: "bd1e4994-db7c-4832-819e-6f5dcad9bc23", title: "Read a book", description: "Focused reading, any book, for about 30 minutes", category: "creativity", frequency: "daily", streak: 0, color: "hsl(174 60% 50%)", target: 30, unit: "minutes" },
-        { id: "82859fab-767f-48dd-a026-b3d3120c66a2", title: "No Porn", description: "", category: "Mindfulness", frequency: "daily", streak: 0, color: "hsl(0 40% 70%)", target: 1, unit: "times" },
-      ];
-      for (const habit of habits) {
-        try {
-          await storage.createHabit(userId, habit);
-        } catch (e) { /* ignore duplicates */ }
-      }
-      results.habits = habits.length;
-
-      // Seed Routine Blocks
-      const blocks = [
-        { id: "c6a25b3c-d140-4490-b674-f571984aa5ea", name: "Morning", emoji: "🌅", startTime: "08:00", endTime: "09:00", purpose: "Signal safety + start the day cleanly ", order: 0, color: "#fbbf24" },
-        { id: "0079590c-0c28-4cd0-ab4c-5ba4079dd45d", name: "Work Block 1", emoji: "💻", startTime: "09:00", endTime: "13:00", purpose: "Prevent dissociation + pain flare-ups", order: 1, color: "#3b82f6" },
-        { id: "d7c632ac-5173-4ce4-9bd6-3c8b26714ed9", name: "Break", emoji: "🌤", startTime: "13:00", endTime: "14:00", purpose: "Antidepressant effect + spinal health", order: 2, color: "#22c55e" },
-        { id: "2eddfb51-7976-4481-b6b9-87fc7e779f2b", name: "Work Block 2", emoji: "💻", startTime: "14:00", endTime: "18:00", purpose: "Prevent endless work days (optional, lighter)", order: 3, color: "#8b5cf6" },
-        { id: "8d58f256-452c-4854-b0bf-f732a8497faa", name: "Late Afternoon", emoji: "🌊", startTime: "18:00", endTime: "20:00", purpose: "Movement without stress or goals", order: 4, color: "#06b6d4" },
-        { id: "08846613-1354-45a5-9fa6-70b979191b27", name: "Evening", emoji: "🌙", startTime: "20:30", endTime: "23:30", purpose: "Close the day properly (very important)", order: 5, color: "#6366f1" },
-      ];
-      for (const block of blocks) {
-        try {
-          await storage.createRoutineBlock(userId, block);
-        } catch (e) { /* ignore duplicates */ }
-      }
-      results.routineBlocks = blocks.length;
-
-      // Seed Routine Activities
-      const activities = [
-        { id: "2d5f4773-11b2-4aaa-a651-fd2bffd61bf9", blockId: "c6a25b3c-d140-4490-b674-f571984aa5ea", name: "Wake up", time: "08:00", description: "Curtains open, no phone for first 10 minutes", habitId: null, order: 0 },
-        { id: "a1edf78c-a0a6-4900-bb95-49ae9b9b36d5", blockId: "c6a25b3c-d140-4490-b674-f571984aa5ea", name: "Drink water (first glass)", time: "08:05", description: null, habitId: "69ab4bb6-1d0d-4f5a-8f0f-ff25539ec12f", order: 1 },
-        { id: "6f906a9d-b0c9-4f70-b752-e94f4225bc24", blockId: "c6a25b3c-d140-4490-b674-f571984aa5ea", name: "Stretch back – 5 minutes", time: "08:10", description: "Gentle, no forcing", habitId: "2cb36ddd-f711-4b29-8f0d-3c4930dd94a9", order: 2 },
-        { id: "935706d5-2989-4a16-a323-e2a2197fc277", blockId: "c6a25b3c-d140-4490-b674-f571984aa5ea", name: "Meal 1", time: "08:20", description: "Simple, repeatable, same few foods most days", habitId: "4c74cdde-2734-4522-8b0e-be4a9086e5d5", order: 3 },
-        { id: "d7b703fe-8d7e-4556-80ad-7376819bf9cc", blockId: "c6a25b3c-d140-4490-b674-f571984aa5ea", name: "Prep for work", time: "08:40", description: null, habitId: null, order: 4 },
-        { id: "7b52cb30-fc96-4d01-bf49-58e4cb5e4780", blockId: "0079590c-0c28-4cd0-ab4c-5ba4079dd45d", name: "Work in 45-60 min chunks [total of 5]", time: null, description: "Stand or move briefly between chunks", habitId: null, order: 0 },
-        { id: "3fe60680-a949-4165-a726-6a90f7a45a82", blockId: "0079590c-0c28-4cd0-ab4c-5ba4079dd45d", name: "Stop at 13:00 even if unfinished", time: "13:00", description: null, habitId: null, order: 1 },
-        { id: "7f0b1a60-38e5-43bc-b8fc-03da5dfe11a2", blockId: "d7c632ac-5173-4ce4-9bd6-3c8b26714ed9", name: "Walk 10 minutes", time: "13:00", description: "Around JVC / indoors if hot", habitId: "72e14641-1729-464a-b329-0bb1dba34a72", order: 0 },
-        { id: "11620cbd-cdc2-441b-9a25-8af8b3638d73", blockId: "d7c632ac-5173-4ce4-9bd6-3c8b26714ed9", name: "Meal 2", time: "13:30", description: "No pressure to cook, delivery acceptable", habitId: "4c74cdde-2734-4522-8b0e-be4a9086e5d5", order: 1 },
-        { id: "b40fe46c-d684-42b2-b7d9-8d26a60e75b6", blockId: "d7c632ac-5173-4ce4-9bd6-3c8b26714ed9", name: "Rest/ quiet time", time: "14:00", description: null, habitId: null, order: 2 },
-        { id: "7cb3c02b-64bd-4351-a28b-fb9aed305eb5", blockId: "2eddfb51-7976-4481-b6b9-87fc7e779f2b", name: "5 blocks", time: null, description: "Only if capacity allows, lower expectations than morning", habitId: null, order: 0 },
-        { id: "d902f106-1344-4bee-a2e3-4a291b216813", blockId: "2eddfb51-7976-4481-b6b9-87fc7e779f2b", name: "Hard stop at 18:00", time: "18:00", description: null, habitId: "eae8a85c-42ed-4ec2-a848-68ff9203a271", order: 1 },
-        { id: "37cc6308-127b-4fbc-8ae1-8d38b85c1bec", blockId: "8d58f256-452c-4854-b0bf-f732a8497faa", name: "Choose one: Short swim / Mall walk / sit outside / Driving License", time: null, description: "5-15 minutes easy, OR very light movement, OR just sitting outside", habitId: "967aad5e-9927-4313-baf3-f711fa95a2ba", order: 0 },
-        { id: "2a1028fa-d367-44a2-8847-fc11e7b546fd", blockId: "08846613-1354-45a5-9fa6-70b979191b27", name: "Free time (YouTube/Twitch/Netflix allowed)", time: "20:30", description: null, habitId: null, order: 0 },
-        { id: "390aebb7-c804-4f57-8e2a-c003fa420667", blockId: "08846613-1354-45a5-9fa6-70b979191b27", name: "Journal + mood / mental metrics log", time: "20:30", description: "1-3 sentences max", habitId: "bf5b256f-6896-420c-9a2f-018f78fc2f69", order: 1 },
-        { id: "5c6c2ea3-5fc9-46dd-a274-52dbcf8817cd", blockId: "08846613-1354-45a5-9fa6-70b979191b27", name: "Prep for sleep", time: "21:00", description: "Lights down, no intense content", habitId: null, order: 2 },
-        { id: "854320d9-1470-47f0-9401-a4061dc44c48", blockId: "08846613-1354-45a5-9fa6-70b979191b27", name: "In bed", time: "23:30", description: "Aim for ~7 hours sleep", habitId: "5e500376-8d59-4973-9d22-f93f66feccdd", order: 3 },
-        { id: "17d6c0b3-670d-40ed-8107-03afbc04f831", blockId: "08846613-1354-45a5-9fa6-70b979191b27", name: "Meal prep.order", time: "21:30", description: null, habitId: "4ab512b1-a99e-4104-b40f-3ececf9e4b67", order: 4 },
-      ];
-      for (const activity of activities) {
-        try {
-          await storage.createRoutineActivity(userId, activity);
-        } catch (e) { /* ignore duplicates */ }
-      }
-      results.routineActivities = activities.length;
-
-      // Seed System Members
-      const members = [
-        { id: "75c63f9b-d3a4-48ed-a6a5-24491a626fbb", name: "Noised", role: "Little", traits: [], color: "#ff0000", avatar: "user", description: "New system member.", location: "inner" },
-        { id: "462cbe4f-df24-4c56-8da1-151c8472817e", name: "Guardian", role: "Safety & Defense", traits: ["Vigilant", "Strong"], color: "#4265f0", avatar: "shield", description: "Steps in during high stress", location: "front" },
-        { id: "672914f3-2d23-46e6-b926-238e067635e3", name: "Despair", role: "Very negative", traits: [], color: "#6b7280", avatar: "users", description: "Nothing literally matters", location: null },
-        { id: "c81795d1-c4af-4730-9d61-187aa038853f", name: "Calm", role: "Daily Life", traits: ["Logical", "Responsible"], color: "#8b5cf6", avatar: "eye", description: "Handles work and daily routines", location: null },
-      ];
-      for (const member of members) {
-        try {
-          await storage.createMember(userId, member);
-        } catch (e) { /* ignore duplicates */ }
-      }
-      results.systemMembers = members.length;
-
-      // Seed Career Projects
-      const projects = [
-        { id: "herc-core", title: "Hercules Core: PLC Configuration Engine", description: "Full customization platform for Salalah. Configurable offset addresses, PLC Tag mapping with unique Tag IDs, groups, sections, and report builder.", status: "in_progress", progress: 15, deadline: null, nextAction: "Define Tag ID schema", color: "bg-blue-500", tags: ["PLC", "Tags", "Configuration"] },
-        { id: "herc-protocols", title: "Multi-Protocol Support & Integration", description: "Extend beyond Siemens/S7 to support TCP/IP, OPC UA, Modbus, and other protocols.", status: "planning", progress: 0, deadline: null, nextAction: "Research protocol requirements", color: "bg-cyan-500", tags: ["Protocols", "SQL", "ETL"] },
-        { id: "herc-reports", title: "Report Builder & Export System", description: "Universal report builder for any Siemens/S7 integration without development.", status: "planning", progress: 0, deadline: null, nextAction: "Design report templates", color: "bg-emerald-500", tags: ["Reports", "Export", "SMTP"] },
-        { id: "herc-ai", title: "AI & ML Predictive Module", description: "Starred/tracked signals linked to ML models for prediction.", status: "planning", progress: 0, deadline: null, nextAction: "Define ML model requirements", color: "bg-purple-500", tags: ["AI", "ML", "Predictive"] },
-        { id: "herc-energy", title: "Energy Monitoring System", description: "Complete UI/UX rework for Energy Monitor.", status: "planning", progress: 0, deadline: null, nextAction: "Schedule UX review meeting", color: "bg-amber-500", tags: ["Energy", "Monitoring", "UI/UX"] },
-        { id: "herc-3d", title: "3D Plant Monitor & Digital Twin", description: "Plant Monitor as top-level view with 3D components.", status: "planning", progress: 0, deadline: null, nextAction: "Get Salalah mill photos", color: "bg-orange-500", tags: ["3D", "Digital Twin", "Plant Monitor"] },
-        { id: "herc-security", title: "Security & Access Control", description: "Reproducible system without hacking potential.", status: "planning", progress: 0, deadline: null, nextAction: "Define access levels", color: "bg-red-500", tags: ["Security", "Access Control", "Cybersecurity"] },
-        { id: "herc-erp", title: "ERP Integration Module", description: "Fully configurable ERP integration for flour milling/feed.", status: "planning", progress: 0, deadline: null, nextAction: "Define JSON payload schema", color: "bg-indigo-500", tags: ["ERP", "Integration", "JSON"] },
-        { id: "herc-infra", title: "Infrastructure & Deployment", description: "Scalable data storage for long-term retention with good performance.", status: "planning", progress: 0, deadline: null, nextAction: "Plan hosting migration", color: "bg-slate-500", tags: ["Infrastructure", "Hosting", "Scalability"] },
-      ];
-      for (const project of projects) {
-        try {
-          await storage.createCareerProject(userId, project);
-        } catch (e) { /* ignore duplicates */ }
-      }
-      results.careerProjects = projects.length;
-
-      // Seed Career Tasks (abbreviated - key tasks only)
-      const tasks = [
-        { id: "fd2c5aa4-a60c-4fc8-a0f5-e77d764a58f0", projectId: "herc-core", title: "Design Tag ID schema with unique identifiers", description: "Each offset address will have a unique Tag ID for groups, sections, and reports", completed: 0, priority: "high", due: null, tags: ["Design", "Schema"] },
-        { id: "dca36b7c-7f03-4d21-8d1d-5a90eb24ae6e", projectId: "herc-core", title: "Build PLC Settings page UI", description: "Configuration interface for PLC connections", completed: 0, priority: "high", due: null, tags: ["UI", "PLC"] },
-        { id: "69c465d5-0c71-4493-8f53-d80d43370e96", projectId: "herc-core", title: "Create Mapping page and options", description: "Tag mapping interface with offset address configuration", completed: 0, priority: "medium", due: null, tags: ["Mapping", "UI"] },
-        { id: "cc3ecddf-2df9-404a-95c6-b28d84075420", projectId: "herc-core", title: "Implement Tags management with data types/units", description: "CRUD for tags with type and unit configuration", completed: 0, priority: "medium", due: null, tags: ["Tags", "CRUD"] },
-        { id: "a6b1dcf1-68ad-47e2-b1bb-49a2718a9d05", projectId: "herc-core", title: "Add custom formula support with unique result IDs", description: "Formula builder for computed tags", completed: 0, priority: "medium", due: null, tags: ["Formula", "Tags"] },
-        { id: "50f239e1-d6e7-4506-8242-6d0a9d97b5ea", projectId: "herc-core", title: "Implement sections and grouping for tags", description: "Research and build tag organization system", completed: 0, priority: "low", due: null, tags: ["Groups", "Organization"] },
-      ];
-      for (const task of tasks) {
-        try {
-          await storage.createCareerTask(userId, task);
-        } catch (e) { /* ignore duplicates */ }
-      }
-      results.careerTasks = tasks.length;
-
-      res.json({ success: true, seeded: results });
-    } catch (error) {
-      console.error("Seed error:", error);
-      res.status(500).json({ error: "Failed to seed database" });
-    }
-  });
-
-  // Deep Mind Overview API - System intelligence dashboard
+  // Deep Mind Overview API - Wellness intelligence dashboard
   app.get("/api/deep-mind/overview", async (req, res) => {
     try {
       const userId = req.session.userId!;
       const days = parseInt(req.query.days as string) || 30;
-      const [entries, members] = await Promise.all([
-        storage.getRecentTrackerEntries(userId, 500),
-        storage.getAllMembers(userId),
-      ]);
+      const entries = await storage.getRecentTrackerEntries(userId, 500);
       
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - days);
       const recentEntries = entries.filter(e => new Date(e.timestamp) >= cutoffDate);
       
-      // System-level metrics
       const totalEntries = recentEntries.length;
       const avgMood = totalEntries > 0 ? recentEntries.reduce((sum, e) => sum + e.mood, 0) / totalEntries : 0;
       const avgStress = totalEntries > 0 ? recentEntries.reduce((sum, e) => sum + e.stress, 0) / totalEntries : 0;
-      const avgDissociation = totalEntries > 0 ? recentEntries.reduce((sum, e) => sum + e.dissociation, 0) / totalEntries : 0;
       const avgEnergy = totalEntries > 0 ? recentEntries.reduce((sum, e) => sum + e.energy, 0) / totalEntries : 0;
       
-      // Calculate stability index (inverse of variance in mood + stress)
       const moodVariance = totalEntries > 1 
         ? recentEntries.reduce((sum, e) => sum + Math.pow(e.mood - avgMood, 2), 0) / totalEntries 
         : 0;
-      const stabilityIndex = Math.max(0, Math.min(100, 100 - (moodVariance * 10) - (avgDissociation / 2)));
+      const stabilityIndex = Math.max(0, Math.min(100, 100 - (moodVariance * 10)));
       
-      // Per-member analytics
-      const memberStats = members.map(member => {
-        const memberEntries = recentEntries.filter(e => e.frontingMemberId === member.id);
-        const entryCount = memberEntries.length;
-        const frontingPercent = totalEntries > 0 ? Math.round((entryCount / totalEntries) * 100) : 0;
-        
-        if (entryCount === 0) {
-          return {
-            memberId: member.id,
-            name: member.name,
-            role: member.role,
-            color: member.color,
-            avatar: member.avatar,
-            frontingPercent: 0,
-            avgMood: null,
-            avgStress: null,
-            avgEnergy: null,
-            entryCount: 0,
-            lastFronting: null,
-            moodTrend: "stable" as const,
-          };
-        }
-        
-        const mAvgMood = memberEntries.reduce((s, e) => s + e.mood, 0) / entryCount;
-        const mAvgStress = memberEntries.reduce((s, e) => s + e.stress, 0) / entryCount;
-        const mAvgEnergy = memberEntries.reduce((s, e) => s + e.energy, 0) / entryCount;
-        
-        // Sort chronologically (oldest first) for trend calculation
-        const chronologicalEntries = [...memberEntries].sort((a, b) => 
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-        );
-        const lastEntry = chronologicalEntries[chronologicalEntries.length - 1];
-        
-        // Calculate mood trend (compare older half to newer half)
-        const midpoint = Math.floor(chronologicalEntries.length / 2);
-        const olderHalf = chronologicalEntries.slice(0, midpoint);
-        const newerHalf = chronologicalEntries.slice(midpoint);
-        const olderAvg = olderHalf.length > 0 ? olderHalf.reduce((s, e) => s + e.mood, 0) / olderHalf.length : mAvgMood;
-        const newerAvg = newerHalf.length > 0 ? newerHalf.reduce((s, e) => s + e.mood, 0) / newerHalf.length : mAvgMood;
-        const moodTrend = newerAvg > olderAvg + 0.5 ? "improving" : newerAvg < olderAvg - 0.5 ? "declining" : "stable";
-        
-        return {
-          memberId: member.id,
-          name: member.name,
-          role: member.role,
-          color: member.color,
-          avatar: member.avatar,
-          frontingPercent,
-          avgMood: Math.round(mAvgMood * 10) / 10,
-          avgStress: Math.round(mAvgStress),
-          avgEnergy: Math.round(mAvgEnergy * 10) / 10,
-          entryCount,
-          lastFronting: lastEntry?.timestamp || null,
-          moodTrend,
-        };
-      });
-      
-      // Find current/recent fronter
-      const sortedEntries = recentEntries.sort((a, b) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
-      const currentFronterId = sortedEntries[0]?.frontingMemberId || null;
-      const currentFronter = members.find(m => m.id === currentFronterId);
-      
-      // Calculate switch frequency (unique fronters per day)
-      const entriesByDay: Record<string, Set<string>> = {};
+      const entriesByDay: Record<string, number> = {};
       recentEntries.forEach(e => {
-        if (e.frontingMemberId) {
-          const day = new Date(e.timestamp).toISOString().split('T')[0];
-          if (!entriesByDay[day]) entriesByDay[day] = new Set();
-          entriesByDay[day].add(e.frontingMemberId);
-        }
+        const day = new Date(e.timestamp).toISOString().split('T')[0];
+        entriesByDay[day] = (entriesByDay[day] || 0) + 1;
       });
       const daysWithData = Object.keys(entriesByDay).length;
-      const totalSwitches = Object.values(entriesByDay).reduce((sum, set) => sum + Math.max(0, set.size - 1), 0);
-      const avgSwitchesPerDay = daysWithData > 0 ? Math.round((totalSwitches / daysWithData) * 10) / 10 : 0;
       
       res.json({
-        systemMetrics: {
+        metrics: {
           avgMood: Math.round(avgMood * 10) / 10,
           avgStress: Math.round(avgStress),
-          avgDissociation: Math.round(avgDissociation),
           avgEnergy: Math.round(avgEnergy * 10) / 10,
           stabilityIndex: Math.round(stabilityIndex),
           totalEntries,
           daysTracked: daysWithData,
-          avgSwitchesPerDay,
         },
-        currentFronter: currentFronter ? {
-          id: currentFronter.id,
-          name: currentFronter.name,
-          color: currentFronter.color,
-        } : null,
-        memberStats: memberStats.sort((a, b) => b.frontingPercent - a.frontingPercent),
         timeRange: days,
       });
     } catch (error) {
@@ -4058,10 +3561,9 @@ ${JSON.stringify(context, null, 2)}`;
   app.get("/api/deep-mind/now", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const [entries, journalEntries, members] = await Promise.all([
+      const [entries, journalEntries] = await Promise.all([
         storage.getRecentTrackerEntries(userId, 50),
         storage.getAllJournalEntries(userId),
-        storage.getAllMembers(userId),
       ]);
 
       const sampleSize = entries.length;
@@ -4115,19 +3617,10 @@ ${JSON.stringify(context, null, 2)}`;
         }
       }
 
-      // Current state from frontingMemberId
-      let state = "Unknown";
-      if (mostRecent?.frontingMemberId) {
-        const member = members.find(m => m.id === mostRecent.frontingMemberId);
-        state = member?.name || "Unknown";
-      }
-
-      // State intensity based on dissociation and stress
       let stateIntensity: "Low" | "Medium" | "High" = "Low";
       if (mostRecent) {
-        const avgIntensity = (mostRecent.dissociation + mostRecent.stress) / 2;
-        if (avgIntensity >= 60) stateIntensity = "High";
-        else if (avgIntensity >= 35) stateIntensity = "Medium";
+        if (mostRecent.stress >= 60) stateIntensity = "High";
+        else if (mostRecent.stress >= 35) stateIntensity = "Medium";
       }
 
       // External load percentage (from workLoad, stress)
@@ -4137,7 +3630,6 @@ ${JSON.stringify(context, null, 2)}`;
         load = Math.round((workLoadPct + mostRecent.stress) / 2);
       }
 
-      // Internal stability (inverse of dissociation + mood variance)
       let stability = 50;
       if (entries.length > 0) {
         const recentFive = entries.slice(0, 5);
@@ -4145,17 +3637,14 @@ ${JSON.stringify(context, null, 2)}`;
         const moodVariance = recentFive.length > 1
           ? recentFive.reduce((s, e) => s + Math.pow(e.mood - avgMood, 2), 0) / recentFive.length
           : 0;
-        const avgDissociation = recentFive.reduce((s, e) => s + e.dissociation, 0) / recentFive.length;
-        stability = Math.max(0, Math.min(100, Math.round(100 - avgDissociation - (moodVariance * 5))));
+        stability = Math.max(0, Math.min(100, Math.round(100 - (moodVariance * 5))));
       }
 
-      // Risk flag: High risk if sleep < 5h AND (stress > 70 OR dissociation > 60)
       let riskFlag: string | undefined;
       if (mostRecent) {
         const lowSleep = (mostRecent.sleepHours ?? 8) < 5;
         const highStress = mostRecent.stress > 70;
-        const highDissociation = mostRecent.dissociation > 60;
-        if (lowSleep && (highStress || highDissociation)) {
+        if (lowSleep && highStress) {
           riskFlag = "High risk of crash in next 12h";
         }
       }
@@ -4174,7 +3663,6 @@ ${JSON.stringify(context, null, 2)}`;
       res.json({
         driver,
         driverConfidence: getConfidence(sampleSize),
-        state,
         stateIntensity,
         load,
         stability,
@@ -4193,10 +3681,9 @@ ${JSON.stringify(context, null, 2)}`;
     try {
       const userId = req.session.userId!;
       const days = parseInt(req.query.days as string) || 60;
-      const [entries, journalEntries, members] = await Promise.all([
+      const [entries, journalEntries] = await Promise.all([
         storage.getRecentTrackerEntries(userId, 500),
         storage.getAllJournalEntries(userId),
-        storage.getAllMembers(userId),
       ]);
 
       const cutoffDate = new Date();
@@ -4206,7 +3693,6 @@ ${JSON.stringify(context, null, 2)}`;
       const recentEntries = entries.filter(e => new Date(e.timestamp) >= cutoffDate);
       const recentJournals = journalEntries.filter(j => new Date(j.createdAt) >= cutoffDate);
 
-      // Count unique days with data
       const uniqueDays = new Set(recentEntries.map(e => 
         new Date(e.timestamp).toISOString().split('T')[0]
       ));
@@ -4218,7 +3704,6 @@ ${JSON.stringify(context, null, 2)}`;
         return "High";
       };
 
-      // Triggers analysis from triggerTag and journal primaryDriver
       const triggerCounts: Record<string, { count: number; lastSeen: Date }> = {};
       
       recentEntries.forEach(e => {
@@ -4256,7 +3741,6 @@ ${JSON.stringify(context, null, 2)}`;
           recency: Math.round((now.getTime() - data.lastSeen.getTime()) / (1000 * 60 * 60 * 24)),
         }));
 
-      // Stabilizers from journal content and notes
       const stabilizerKeywords = [
         { keyword: "walk", name: "Walking" },
         { keyword: "sleep", name: "Rest/Sleep" },
@@ -4296,24 +3780,20 @@ ${JSON.stringify(context, null, 2)}`;
           effect: data.effect,
         }));
 
-      // Crash loops detection - look for high stress/dissociation patterns
-      const crashPatterns: Record<string, { count: number; lastSeen: Date; trigger: string; state: string; outcome: string }> = {};
+      const crashPatterns: Record<string, { count: number; lastSeen: Date; trigger: string; outcome: string }> = {};
       
-      // Find entries with high stress or dissociation
-      const crashEntries = recentEntries.filter(e => e.stress > 60 || e.dissociation > 50);
+      const crashEntries = recentEntries.filter(e => e.stress > 60);
       
       crashEntries.forEach(e => {
         const trigger = e.triggerTag || "stress";
-        const stateMember = e.frontingMemberId ? members.find(m => m.id === e.frontingMemberId)?.name || "Unknown" : "Unknown";
-        const outcome = e.dissociation > 60 ? "dissociation" : e.stress > 70 ? "overwhelm" : "dysregulation";
-        const patternKey = `${trigger}→${stateMember}→${outcome}`;
+        const outcome = e.stress > 70 ? "overwhelm" : "dysregulation";
+        const patternKey = `${trigger}→${outcome}`;
         
         if (!crashPatterns[patternKey]) {
           crashPatterns[patternKey] = { 
             count: 0, 
             lastSeen: new Date(e.timestamp),
             trigger,
-            state: stateMember,
             outcome
           };
         }
@@ -4338,7 +3818,7 @@ ${JSON.stringify(context, null, 2)}`;
         .sort((a, b) => b[1].count - a[1].count)
         .slice(0, 3)
         .map(([pattern, data]) => ({
-          pattern: `${data.trigger} → ${data.state} → ${data.outcome}`,
+          pattern: `${data.trigger} → ${data.outcome}`,
           count: data.count,
           recency: Math.round((now.getTime() - data.lastSeen.getTime()) / (1000 * 60 * 60 * 24)),
           interrupt: interruptSuggestions[data.trigger.toLowerCase()] || interruptSuggestions.unknown,
@@ -4373,10 +3853,10 @@ ${JSON.stringify(context, null, 2)}`;
       const entriesWithSleep = entries.filter(e => e.sleepHours != null && e.sleepHours > 0);
       
       // Group entries by sleep hour buckets and calculate averages
-      const sleepBuckets: Record<string, { mood: number[]; dissociation: number[]; urges: number[] }> = {};
+      const sleepBuckets: Record<string, { mood: number[]; stress: number[] }> = {};
       
       entriesWithSleep.forEach(e => {
-        const sleepHours = Math.round(e.sleepHours!); // Round to nearest hour
+        const sleepHours = Math.round(e.sleepHours!);
         const bucket = sleepHours <= 4 ? "≤4h" : 
                        sleepHours === 5 ? "5h" :
                        sleepHours === 6 ? "6h" :
@@ -4385,13 +3865,11 @@ ${JSON.stringify(context, null, 2)}`;
                        sleepHours >= 9 ? "9h+" : "7h";
         
         if (!sleepBuckets[bucket]) {
-          sleepBuckets[bucket] = { mood: [], dissociation: [], urges: [] };
+          sleepBuckets[bucket] = { mood: [], stress: [] };
         }
         
         sleepBuckets[bucket].mood.push(e.mood);
-        sleepBuckets[bucket].dissociation.push(e.dissociation);
-        // Use stress as proxy for urges if no urge field exists
-        sleepBuckets[bucket].urges.push(e.stress);
+        sleepBuckets[bucket].stress.push(e.stress);
       });
 
       const orderedBuckets = ["≤4h", "5h", "6h", "7h", "8h", "9h+"];
@@ -4402,8 +3880,7 @@ ${JSON.stringify(context, null, 2)}`;
           return {
             sleepHours: bucket,
             mood: data.mood.length > 0 ? Number((data.mood.reduce((a, b) => a + b, 0) / data.mood.length).toFixed(1)) : 0,
-            dissociation: data.dissociation.length > 0 ? Number((data.dissociation.reduce((a, b) => a + b, 0) / data.dissociation.length).toFixed(1)) : 0,
-            urges: data.urges.length > 0 ? Number((data.urges.reduce((a, b) => a + b, 0) / data.urges.length).toFixed(1)) : 0,
+            stress: data.stress.length > 0 ? Number((data.stress.reduce((a, b) => a + b, 0) / data.stress.length).toFixed(1)) : 0,
             count: data.mood.length,
           };
         });
@@ -4499,10 +3976,9 @@ ${JSON.stringify(context, null, 2)}`;
   app.post("/api/deep-mind/insights", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const [entries, journalEntries, members] = await Promise.all([
+      const [entries, journalEntries] = await Promise.all([
         storage.getRecentTrackerEntries(userId, 200),
         storage.getAllJournalEntries(userId),
-        storage.getAllMembers(userId),
       ]);
       
       // Calculate facts for last 7 days
@@ -4592,11 +4068,6 @@ ${JSON.stringify(context, null, 2)}`;
       const triggerKeywords = ["stressed", "anxious", "overwhelmed", "exhausted", "lonely", "pain", "work", "deadline", "conflict"];
       const stabilizerKeywords = ["walk", "rest", "sleep", "friend", "calm", "better", "helped", "relaxed"];
       
-      // Current state (from most recent entry)
-      const currentState = entries[0]?.frontingMemberId 
-        ? members.find(m => m.id === entries[0].frontingMemberId)?.name || "Unknown"
-        : "Unknown";
-      
       const systemPrompt = `You are an evidence-based wellness analyst. Output MUST follow this exact 4-section structure. Max 6 bullet points total. No long paragraphs. Every claim needs a quote or metric as evidence.
 
 FACTS (provided):
@@ -4604,7 +4075,6 @@ FACTS (provided):
 - Today: sleep=${todaySleep}h, mood=${todayMood}/10, energy=${todayEnergy}/10, capacity=${todayCapacity}/5
 - Journal present: ${journalEntries.length > 0 ? "yes" : "no"}
 - Daily notes present: ${recentTrackerNotes.length > 0 ? "yes" : "no"}
-- Current state: ${currentState}
 - Top journal drivers (7d, HIGH WEIGHT): ${topDrivers}
 
 DAILY NOTES FROM STATE ENTRIES (HIGH WEIGHT - analyze these first):
@@ -4638,7 +4108,7 @@ RULES:
 - If journal entries have tagged drivers, PREFER those as Main Driver - they are user-selected HIGH WEIGHT evidence
 - ALWAYS include sleep hours in your analysis - it's a key metric
 - Never blame habits/routine completion. Say "low completion likely due to low capacity" not "you failed"
-- Use neutral language: "state" not "alter/member/fronting"
+- Use neutral, supportive language
 - Every insight needs evidence (quote or metric)
 - Max 6 bullet points total`;
 

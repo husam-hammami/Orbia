@@ -14,7 +14,6 @@ import {
   useRoutineLogs,
   useTodos,
   useTrackerEntries,
-  useMembers,
   useAddHabitCompletion,
   useRemoveHabitCompletion,
   useCreateTodo,
@@ -101,7 +100,6 @@ export function OrbitFab() {
   const { data: routineLogs } = useRoutineLogs(today);
   const { data: todos } = useTodos();
   const { data: trackerEntries } = useTrackerEntries(7);
-  const { data: members } = useMembers();
   const { data: careerProjects } = useCareerProjects();
   const { data: careerTasks } = useCareerTasks();
   const { data: expenses } = useExpenses();
@@ -164,10 +162,6 @@ export function OrbitFab() {
       : 0;
 
     const latestEntry = trackerEntries?.[0];
-    const latestFronter = latestEntry?.frontingMemberId 
-      ? members?.find(m => m.id === latestEntry.frontingMemberId)?.name 
-      : null;
-
     const incompleteTodos = todos?.filter(t => !t.completed) || [];
     const incompleteHabits = habits?.filter(h => 
       !todayCompletions.some(c => c.habitId === h.id)
@@ -176,7 +170,7 @@ export function OrbitFab() {
     return {
       date: today,
       time: format(new Date(), "h:mm a"),
-      snapshot: { habitsCompleted: habitsCompletedToday, totalHabits, routinePercent, latestFronter },
+      snapshot: { habitsCompleted: habitsCompletedToday, totalHabits, routinePercent },
       incompleteHabits: incompleteHabits.slice(0, 5).map(h => ({ id: h.id, name: h.title, category: h.category })),
       incompleteTodos: incompleteTodos.slice(0, 5).map(t => ({ id: t.id, title: t.title, priority: t.priority })),
       allHabits: habits?.map(h => ({ id: h.id, name: h.title, category: h.category })) || [],

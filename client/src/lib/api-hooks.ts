@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SystemMember, TrackerEntry, SystemMessage, HeadspaceRoom, SystemSettings, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo, DailySummary, CareerProject, CareerTask, Expense, JournalEntry, InsertJournalEntry, IncomeStream, Transaction, InsertIncomeStream, InsertTransaction, Loan, InsertLoan, LoanPayment, InsertLoanPayment } from "@shared/schema";
+import type { TrackerEntry, Habit, HabitCompletion, RoutineBlock, RoutineActivity, RoutineActivityLog, Todo, DailySummary, CareerProject, CareerTask, Expense, JournalEntry, InsertJournalEntry, IncomeStream, Transaction, InsertIncomeStream, InsertTransaction, Loan, InsertLoan, LoanPayment, InsertLoanPayment } from "@shared/schema";
 import type { DashboardInsights } from "../../../server/lib/dashboard-analytics";
 
 // Helper to handle API calls
@@ -11,57 +11,6 @@ async function fetchAPI(url: string, options?: RequestInit) {
   }
   if (response.status === 204) return null;
   return response.json();
-}
-
-// System Members Hooks
-export function useMembers() {
-  return useQuery<SystemMember[]>({
-    queryKey: ["members"],
-    queryFn: () => fetchAPI("/api/members"),
-  });
-}
-
-export function useCreateMember() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Omit<SystemMember, "id" | "createdAt">) =>
-      fetchAPI("/api/members", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["members"] });
-    },
-  });
-}
-
-export function useUpdateMember() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Omit<SystemMember, "id" | "createdAt">> }) =>
-      fetchAPI(`/api/members/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["members"] });
-    },
-  });
-}
-
-export function useDeleteMember() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) =>
-      fetchAPI(`/api/members/${id}`, {
-        method: "DELETE",
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["members"] });
-    },
-  });
 }
 
 // Tracker Entries Hooks
@@ -111,116 +60,6 @@ export function useDeleteTrackerEntry() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tracker"] });
-    },
-  });
-}
-
-// System Messages Hooks
-export function useMessages() {
-  return useQuery<SystemMessage[]>({
-    queryKey: ["messages"],
-    queryFn: () => fetchAPI("/api/messages"),
-  });
-}
-
-export function useCreateMessage() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Omit<SystemMessage, "id" | "createdAt">) =>
-      fetchAPI("/api/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["messages"] });
-    },
-  });
-}
-
-export function useDeleteMessage() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) =>
-      fetchAPI(`/api/messages/${id}`, {
-        method: "DELETE",
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["messages"] });
-    },
-  });
-}
-
-// Headspace Rooms Hooks
-export function useRooms() {
-  return useQuery<HeadspaceRoom[]>({
-    queryKey: ["rooms"],
-    queryFn: () => fetchAPI("/api/rooms"),
-  });
-}
-
-export function useCreateRoom() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Omit<HeadspaceRoom, "id" | "createdAt">) =>
-      fetchAPI("/api/rooms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rooms"] });
-    },
-  });
-}
-
-export function useUpdateRoom() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Omit<HeadspaceRoom, "id" | "createdAt">> }) =>
-      fetchAPI(`/api/rooms/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rooms"] });
-    },
-  });
-}
-
-export function useDeleteRoom() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) =>
-      fetchAPI(`/api/rooms/${id}`, {
-        method: "DELETE",
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rooms"] });
-    },
-  });
-}
-
-// System Settings Hooks
-export function useSettings() {
-  return useQuery<SystemSettings>({
-    queryKey: ["settings"],
-    queryFn: () => fetchAPI("/api/settings"),
-  });
-}
-
-export function useUpdateSettings() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Partial<Omit<SystemSettings, "id" | "updatedAt">>) =>
-      fetchAPI("/api/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
     },
   });
 }
@@ -1016,28 +855,11 @@ export interface DeepMindOverview {
   systemMetrics: {
     avgMood: number;
     avgStress: number;
-    avgDissociation: number;
     avgEnergy: number;
     stabilityIndex: number;
     totalEntries: number;
     daysTracked: number;
-    avgSwitchesPerDay: number;
   };
-  currentFronter: { id: string; name: string; color: string } | null;
-  memberStats: Array<{
-    memberId: string;
-    name: string;
-    role: string;
-    color: string;
-    avatar: string;
-    frontingPercent: number;
-    avgMood: number | null;
-    avgStress: number | null;
-    avgEnergy: number | null;
-    entryCount: number;
-    lastFronting: string | null;
-    moodTrend: "improving" | "stable" | "declining";
-  }>;
   timeRange: number;
 }
 
@@ -1090,7 +912,7 @@ export interface DeepMindVisualizationsData {
     data: Array<{
       sleepHours: string;
       mood: number;
-      dissociation: number;
+      stress: number;
       urges: number;
       count: number;
     }>;

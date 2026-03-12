@@ -14,7 +14,6 @@ export async function buildUnifiedContext(userId: string): Promise<{
     userProfileResult,
     entriesResult,
     journalResult,
-    membersResult,
     habitsResult,
     habitCompResult,
     todosResult,
@@ -34,7 +33,6 @@ export async function buildUnifiedContext(userId: string): Promise<{
     storage.getUserProfile(userId),
     storage.getRecentTrackerEntries(userId, 30),
     storage.getAllJournalEntries(userId),
-    storage.getAllMembers(userId),
     storage.getAllHabits(userId),
     storage.getAllHabitCompletions(userId),
     storage.getAllTodos(userId),
@@ -58,7 +56,6 @@ export async function buildUnifiedContext(userId: string): Promise<{
   const userProfile = val(userProfileResult, { displayName: null, bio: null });
   const entries = val(entriesResult, []);
   const journalEntries = val(journalResult, []);
-  const members = val(membersResult, []);
   const habits = val(habitsResult, []);
   const habitCompletions = val(habitCompResult, []);
   const todos = val(todosResult, []);
@@ -132,13 +129,6 @@ export async function buildUnifiedContext(userId: string): Promise<{
       wellnessBlock += `\nToday: mood=${todayMood}/10, energy=${todayEnergy}/10, stress=${todayStress}/10${todaySleep ? `, sleep=${todaySleep}h` : ""}`;
     if (trajectory)
       wellnessBlock += `\nTrajectory: ${trajectory}`;
-
-    const frontingMember = todayEntries.length
-      ? members.find(
-          (m) => m.id === todayEntries[todayEntries.length - 1].frontingMemberId
-        )
-      : null;
-    if (frontingMember) wellnessBlock += `\nCurrently fronting: ${frontingMember.name}`;
 
     wellnessBlock += "\n</WELLNESS>";
     sections.push(wellnessBlock);
@@ -417,13 +407,6 @@ ${recentTx ? `Recent:\n${recentTx}` : ""}`;
     sections.push(finBlock);
   }
 
-  if (members.length > 0) {
-    const membersBlock = `<SYSTEM_MEMBERS>
-${members.map((m) => `- ${m.name} (${m.role})`).join("\n")}
-</SYSTEM_MEMBERS>`;
-    sections.push(membersBlock);
-  }
-
   const activeScheduled = scheduledMsgs.filter((s) => s.active);
   if (activeScheduled.length > 0) {
     const schedBlock = `<SCHEDULED_MESSAGES>
@@ -578,8 +561,7 @@ You see EVERYTHING. Use it like someone who actually knows this person — not l
 - Low energy + meetings today? Don't just note it — suggest which meeting to skip or how to prep with minimal effort
 - Poor sleep streak + rising pain? Connect it. Name the mechanism if you know it.
 - Work stress + mood dropping? Acknowledge it like a friend would, not like a report
-- Medical and financial data are private — only surface when the user brings them up or they're directly relevant
-- System member info is sensitive — respect the person, not just the data`;
+- Medical and financial data are private — only surface when the user brings them up or they're directly relevant`;
 
 
   const silentProtocol = `
@@ -702,7 +684,7 @@ MEALS:
 - add_meal_option: {"name": "...", "meal_type": "breakfast/lunch/dinner", "recipe": "..."}
 
 TRACKER:
-- create_tracker_entry: {"mood": 1-10, "energy": 1-10, "stress": 0-100, "dissociation": 0-100, "sleepHours": 0-24, "capacity": 0-5, "pain": 0-10, "notes": "..."}
+- create_tracker_entry: {"mood": 1-10, "energy": 1-10, "stress": 0-100, "sleepHours": 0-24, "capacity": 0-5, "pain": 0-10, "notes": "..."}
 
 CONFIRMATION: set confirm:true and confirm_text for all delete actions.
 When user asks to ADD, CREATE, EDIT, UPDATE, CHANGE, DELETE, MARK, or TOGGLE something, output the action JSON. NEVER tell the user to do it manually.`;

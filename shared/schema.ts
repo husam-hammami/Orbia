@@ -22,35 +22,12 @@ export const insertUserSchema = createInsertSchema(users).omit({
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
-// System Members (Alters/Parts)
-export const systemMembers = pgTable("system_members", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  name: text("name").notNull(),
-  role: text("role").notNull(),
-  traits: jsonb("traits").notNull().$type<string[]>(),
-  color: text("color").notNull(),
-  avatar: text("avatar").notNull(),
-  description: text("description").notNull(),
-  location: text("location"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertSystemMemberSchema = createInsertSchema(systemMembers).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type SystemMember = typeof systemMembers.$inferSelect;
-export type InsertSystemMember = z.infer<typeof insertSystemMemberSchema>;
-
-// Daily Tracker Entries (mood, dissociation, stress, etc.)
+// Daily Tracker Entries (mood, stress, etc.)
 export const trackerEntries = pgTable("tracker_entries", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
   mood: integer("mood").notNull(),
-  dissociation: integer("dissociation").notNull(),
   stress: integer("stress").notNull(),
   energy: integer("energy").notNull(),
   sleepHours: real("sleep_hours"),
@@ -61,7 +38,6 @@ export const trackerEntries = pgTable("tracker_entries", {
   workLoad: integer("work_load"),
   workTag: text("work_tag"),
   timeOfDay: text("time_of_day"),
-  frontingMemberId: varchar("fronting_member_id").references(() => systemMembers.id),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -113,66 +89,6 @@ export const insertDailySummarySchema = createInsertSchema(dailySummaries).omit(
 
 export type DailySummary = typeof dailySummaries.$inferSelect;
 export type InsertDailySummary = z.infer<typeof insertDailySummarySchema>;
-
-// System Communication Messages (sticky notes)
-export const systemMessages = pgTable("system_messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  authorId: varchar("author_id").notNull().references(() => systemMembers.id),
-  content: text("content").notNull(),
-  type: text("type").notNull().default("note"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertSystemMessageSchema = createInsertSchema(systemMessages).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type SystemMessage = typeof systemMessages.$inferSelect;
-export type InsertSystemMessage = z.infer<typeof insertSystemMessageSchema>;
-
-// Headspace Rooms Configuration
-export const headspaceRooms = pgTable("headspace_rooms", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  name: text("name").notNull(),
-  icon: text("icon").notNull(),
-  color: text("color").notNull(),
-  order: integer("order").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertHeadspaceRoomSchema = createInsertSchema(headspaceRooms).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type HeadspaceRoom = typeof headspaceRooms.$inferSelect;
-export type InsertHeadspaceRoom = z.infer<typeof insertHeadspaceRoomSchema>;
-
-// System Settings
-export const systemSettings = pgTable("system_settings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  systemName: text("system_name").notNull().default("My System"),
-  theme: text("theme").notNull().default("dark"),
-  terminology: jsonb("terminology").notNull().$type<{
-    member: string;
-    fronting: string;
-    headspace: string;
-  }>().default(sql`'{"member":"alters","fronting":"fronting","headspace":"headspace"}'::jsonb`),
-  privacyMode: integer("privacy_mode").notNull().default(0),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertSystemSettingsSchema = createInsertSchema(systemSettings).omit({
-  id: true,
-  updatedAt: true,
-});
-
-export type SystemSettings = typeof systemSettings.$inferSelect;
-export type InsertSystemSettings = z.infer<typeof insertSystemSettingsSchema>;
 
 // Habits for daily tracking
 export const habits = pgTable("habits", {
@@ -489,7 +405,6 @@ export const journalEntries = pgTable("journal_entries", {
   entryType: text("entry_type").notNull().default("reflection"),
   mood: integer("mood"),
   energy: integer("energy"),
-  authorId: varchar("author_id").references(() => systemMembers.id),
   timeOfDay: text("time_of_day"),
   tags: jsonb("tags").$type<string[]>().default(sql`'[]'::jsonb`),
   isPrivate: integer("is_private").notNull().default(0),

@@ -1,14 +1,6 @@
 import { 
-  type SystemMember, 
-  type InsertSystemMember,
   type TrackerEntry,
   type InsertTrackerEntry,
-  type SystemMessage,
-  type InsertSystemMessage,
-  type HeadspaceRoom,
-  type InsertHeadspaceRoom,
-  type SystemSettings,
-  type InsertSystemSettings,
   type Habit,
   type InsertHabit,
   type HabitCompletion,
@@ -43,11 +35,7 @@ import {
   type InsertUserNewsTopic,
   type SavedArticle,
   type InsertSavedArticle,
-  systemMembers,
   trackerEntries,
-  systemMessages,
-  headspaceRooms,
-  systemSettings,
   habits,
   habitCompletions,
   routineTemplates,
@@ -131,13 +119,6 @@ export interface IStorage {
   getUserProfile(userId: string): Promise<{ displayName: string | null; bio: string | null }>;
   updateUserProfile(userId: string, data: { displayName?: string; bio?: string }): Promise<User>;
 
-  // System Members
-  getAllMembers(userId: string): Promise<SystemMember[]>;
-  getMember(userId: string, id: string): Promise<SystemMember | undefined>;
-  createMember(userId: string, member: InsertSystemMember): Promise<SystemMember>;
-  updateMember(userId: string, id: string, member: Partial<InsertSystemMember>): Promise<SystemMember | undefined>;
-  deleteMember(userId: string, id: string): Promise<boolean>;
-
   // Tracker Entries
   getAllTrackerEntries(userId: string): Promise<TrackerEntry[]>;
   getTrackerEntry(userId: string, id: string): Promise<TrackerEntry | undefined>;
@@ -145,23 +126,6 @@ export interface IStorage {
   updateTrackerEntry(userId: string, id: string, entry: Partial<InsertTrackerEntry>): Promise<TrackerEntry | undefined>;
   deleteTrackerEntry(userId: string, id: string): Promise<boolean>;
   getRecentTrackerEntries(userId: string, limit: number): Promise<TrackerEntry[]>;
-
-  // System Messages
-  getAllMessages(userId: string): Promise<SystemMessage[]>;
-  getMessage(userId: string, id: string): Promise<SystemMessage | undefined>;
-  createMessage(userId: string, message: InsertSystemMessage): Promise<SystemMessage>;
-  deleteMessage(userId: string, id: string): Promise<boolean>;
-
-  // Headspace Rooms
-  getAllRooms(userId: string): Promise<HeadspaceRoom[]>;
-  getRoom(userId: string, id: string): Promise<HeadspaceRoom | undefined>;
-  createRoom(userId: string, room: InsertHeadspaceRoom): Promise<HeadspaceRoom>;
-  updateRoom(userId: string, id: string, room: Partial<InsertHeadspaceRoom>): Promise<HeadspaceRoom | undefined>;
-  deleteRoom(userId: string, id: string): Promise<boolean>;
-
-  // System Settings
-  getSettings(userId: string): Promise<SystemSettings | undefined>;
-  updateSettings(userId: string, settings: Partial<InsertSystemSettings>): Promise<SystemSettings>;
 
   // Habits
   getAllHabits(userId: string): Promise<Habit[]>;
@@ -400,31 +364,6 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  // System Members
-  async getAllMembers(userId: string): Promise<SystemMember[]> {
-    return await db.select().from(systemMembers).where(eq(systemMembers.userId, userId));
-  }
-
-  async getMember(userId: string, id: string): Promise<SystemMember | undefined> {
-    const result = await db.select().from(systemMembers).where(and(eq(systemMembers.id, id), eq(systemMembers.userId, userId)));
-    return result[0];
-  }
-
-  async createMember(userId: string, member: InsertSystemMember): Promise<SystemMember> {
-    const result = await db.insert(systemMembers).values({ ...member, userId }).returning();
-    return result[0];
-  }
-
-  async updateMember(userId: string, id: string, member: Partial<InsertSystemMember>): Promise<SystemMember | undefined> {
-    const result = await db.update(systemMembers).set(member).where(and(eq(systemMembers.id, id), eq(systemMembers.userId, userId))).returning();
-    return result[0];
-  }
-
-  async deleteMember(userId: string, id: string): Promise<boolean> {
-    const result = await db.delete(systemMembers).where(and(eq(systemMembers.id, id), eq(systemMembers.userId, userId))).returning();
-    return result.length > 0;
-  }
-
   // Tracker Entries
   async getAllTrackerEntries(userId: string): Promise<TrackerEntry[]> {
     return await db.select().from(trackerEntries).where(eq(trackerEntries.userId, userId)).orderBy(desc(trackerEntries.timestamp));
@@ -452,72 +391,6 @@ export class DatabaseStorage implements IStorage {
 
   async getRecentTrackerEntries(userId: string, limit: number): Promise<TrackerEntry[]> {
     return await db.select().from(trackerEntries).where(eq(trackerEntries.userId, userId)).orderBy(desc(trackerEntries.timestamp)).limit(limit);
-  }
-
-  // System Messages
-  async getAllMessages(userId: string): Promise<SystemMessage[]> {
-    return await db.select().from(systemMessages).where(eq(systemMessages.userId, userId)).orderBy(desc(systemMessages.createdAt));
-  }
-
-  async getMessage(userId: string, id: string): Promise<SystemMessage | undefined> {
-    const result = await db.select().from(systemMessages).where(and(eq(systemMessages.id, id), eq(systemMessages.userId, userId)));
-    return result[0];
-  }
-
-  async createMessage(userId: string, message: InsertSystemMessage): Promise<SystemMessage> {
-    const result = await db.insert(systemMessages).values({ ...message, userId }).returning();
-    return result[0];
-  }
-
-  async deleteMessage(userId: string, id: string): Promise<boolean> {
-    const result = await db.delete(systemMessages).where(and(eq(systemMessages.id, id), eq(systemMessages.userId, userId))).returning();
-    return result.length > 0;
-  }
-
-  // Headspace Rooms
-  async getAllRooms(userId: string): Promise<HeadspaceRoom[]> {
-    return await db.select().from(headspaceRooms).where(eq(headspaceRooms.userId, userId)).orderBy(headspaceRooms.order);
-  }
-
-  async getRoom(userId: string, id: string): Promise<HeadspaceRoom | undefined> {
-    const result = await db.select().from(headspaceRooms).where(and(eq(headspaceRooms.id, id), eq(headspaceRooms.userId, userId)));
-    return result[0];
-  }
-
-  async createRoom(userId: string, room: InsertHeadspaceRoom): Promise<HeadspaceRoom> {
-    const result = await db.insert(headspaceRooms).values({ ...room, userId }).returning();
-    return result[0];
-  }
-
-  async updateRoom(userId: string, id: string, room: Partial<InsertHeadspaceRoom>): Promise<HeadspaceRoom | undefined> {
-    const result = await db.update(headspaceRooms).set(room).where(and(eq(headspaceRooms.id, id), eq(headspaceRooms.userId, userId))).returning();
-    return result[0];
-  }
-
-  async deleteRoom(userId: string, id: string): Promise<boolean> {
-    const result = await db.delete(headspaceRooms).where(and(eq(headspaceRooms.id, id), eq(headspaceRooms.userId, userId))).returning();
-    return result.length > 0;
-  }
-
-  // System Settings
-  async getSettings(userId: string): Promise<SystemSettings | undefined> {
-    const result = await db.select().from(systemSettings).where(eq(systemSettings.userId, userId)).limit(1);
-    if (result.length === 0) {
-      const newSettings = await db.insert(systemSettings).values({ userId }).returning();
-      return newSettings[0];
-    }
-    return result[0];
-  }
-
-  async updateSettings(userId: string, settings: Partial<InsertSystemSettings>): Promise<SystemSettings> {
-    const existing = await this.getSettings(userId);
-    if (!existing) throw new Error("Settings not found");
-    
-    const result = await db.update(systemSettings)
-      .set({ ...settings, updatedAt: new Date() })
-      .where(and(eq(systemSettings.id, existing.id), eq(systemSettings.userId, userId)))
-      .returning();
-    return result[0];
   }
 
   // Habits

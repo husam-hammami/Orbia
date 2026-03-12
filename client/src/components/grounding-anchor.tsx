@@ -143,7 +143,7 @@ export function GroundingAnchor() {
                         <Citrus className="w-5 h-5" />
                         <span className="font-bold">Sensory Shock</span>
                      </div>
-                     <p className="text-sm text-slate-300">Bite into a whole lemon, eat something very spicy, or smell strong peppermint oil. The intense sensation disrupts dissociation.</p>
+                     <p className="text-sm text-slate-300">Bite into a whole lemon, eat something very spicy, or smell strong peppermint oil. The intense sensation helps ground you in the present moment.</p>
                   </div>
 
                   <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">

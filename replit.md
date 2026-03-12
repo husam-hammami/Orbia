@@ -2,7 +2,7 @@
 
 ## Overview
 
-Orbya is a personal wellness and productivity tracker designed to help users manage habits, moods, routines, and daily rhythm. It offers features for mental health support, including system member management (for plural systems), internal communication tools, and grounding exercises. The project aims to provide a comprehensive solution for structured daily routines and mental well-being, combining traditional tracking with specialized support features.
+Orbia is a personal AI companion and holistic wellness/productivity app. It features habit tracking, routines, todos, journaling, Orbia AI chat (with voice input), finance tracking, medical tracking, grounding exercises, and more. The app is generic and not tied to any specific user's personal data.
 
 ## User Preferences
 
@@ -30,7 +30,7 @@ Preferred communication style: Simple, everyday language.
 ### Data Storage
 - **Database**: PostgreSQL
 - **ORM**: Drizzle ORM with drizzle-zod for schema validation
-- **Key Models**: `systemMembers`, `trackerEntries`, `systemMessages`, `headspaceRooms`, `systemSettings`, `habits`, `habitCompletions`, `routineBlocks`, `routineActivities`, `routineActivityLogs`, `dailySummaries`, `todos`, `conversations`, `messages`, `journalEntries`.
+- **Key Models**: `trackerEntries`, `habits`, `habitCompletions`, `routineBlocks`, `routineActivities`, `routineActivityLogs`, `dailySummaries`, `todos`, `conversations`, `messages`, `journalEntries`.
 - **Authentication**: Password-only login with `express-session` and `connect-pg-simple`, `bcrypt` for hashing, and `userId` based data isolation. Admin routes are protected by an environment variable.
 
 ### Medical Module (Integrated from Mika-AI)

@@ -21,7 +21,6 @@ import MedicalPage from "@/pages/medical";
 import WorkPage from "@/pages/work";
 import DeepMind from "@/pages/deep-mind";
 import Analytics from "@/pages/analytics";
-import SystemInsight from "@/pages/system-insight";
 
 interface LockContextType {
   isLocked: boolean;
@@ -67,7 +66,6 @@ function Router() {
       <Route path="/work" component={WorkPage} />
       <Route path="/deep-mind" component={DeepMind} />
       <Route path="/analytics" component={Analytics} />
-      <Route path="/system-insight" component={SystemInsight} />
       <Route path="/settings" component={Settings} />
       <Route path="/admin/seed" component={AdminSeed} />
       <Route component={NotFound} />

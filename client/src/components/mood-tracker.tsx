@@ -165,11 +165,9 @@ export function MoodTracker() {
     }
 
     createEntryMutation.mutate({
-      frontingMemberId: null,
       mood: mood,
       energy: energy,
       stress: 0,
-      dissociation: 0,
       sleepHours: sleep,
       sleepQuality: null,
       capacity: null,

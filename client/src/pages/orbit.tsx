@@ -36,7 +36,6 @@ import {
   useRoutineLogs,
   useTodos,
   useTrackerEntries,
-  useMembers,
   useAddHabitCompletion,
   useRemoveHabitCompletion,
   useCreateTodo,
@@ -173,7 +172,7 @@ EXPENSES:
 - delete_expense: {"expense_id": "..."} - ALWAYS set confirm:true for this
 
 JOURNAL ENTRIES:
-- create_journal: {"content": "...", "entry_type": "reflection/vent/gratitude/grounding/memory/system_note", "mood": 1-10 (optional), "energy": 1-10 (optional), "tags": ["anxiety", "calm", etc] (optional), "is_private": true/false (optional)}
+- create_journal: {"content": "...", "entry_type": "reflection/vent/gratitude/grounding/memory", "mood": 1-10 (optional), "energy": 1-10 (optional), "tags": ["anxiety", "calm", etc] (optional), "is_private": true/false (optional)}
 - update_journal: {"entry_id": "...", "content": "...", "entry_type": "...", "mood": ..., "energy": ..., "tags": [...]}
 - delete_journal: {"entry_id": "..."} - ALWAYS set confirm:true for this
 
@@ -207,7 +206,6 @@ export default function OrbitPage() {
   const { data: routineLogs } = useRoutineLogs(today);
   const { data: todos } = useTodos();
   const { data: trackerEntries } = useTrackerEntries(7);
-  const { data: members } = useMembers();
   
   const { data: careerProjects } = useCareerProjects();
   const { data: careerTasks } = useCareerTasks();
@@ -359,15 +357,12 @@ export default function OrbitPage() {
     : 0;
 
   const latestEntry = trackerEntries?.[0];
-  const latestFronter = latestEntry?.frontingMemberId 
-    ? members?.find(m => m.id === latestEntry.frontingMemberId)?.name 
-    : null;
   
   const externalPressure = latestEntry 
     ? Math.round(((latestEntry.workLoad || 0) * 10 + (latestEntry.stress || 0)) / 2)
     : null;
   const internalStability = latestEntry
-    ? Math.round(100 - ((latestEntry.dissociation || 0) + (100 - (latestEntry.capacity ?? 3) * 20) + (100 - (latestEntry.mood || 5) * 10)) / 3)
+    ? Math.round(100 - ((100 - (latestEntry.capacity ?? 3) * 20) + (100 - (latestEntry.mood || 5) * 10)) / 2)
     : null;
 
   const buildContext = () => {
@@ -397,7 +392,6 @@ export default function OrbitPage() {
         habitsCompleted: habitsCompletedToday,
         totalHabits,
         routinePercent,
-        latestFronter,
         externalPressure,
         internalStability
       },
@@ -431,8 +425,6 @@ export default function OrbitPage() {
         date: format(new Date(e.timestamp), "MMM d"),
         mood: e.mood,
         stress: e.stress,
-        dissociation: e.dissociation,
-        fronter: members?.find(m => m.id === e.frontingMemberId)?.name
       })),
       allHabits: habits?.map(h => ({ id: h.id, name: h.title, category: h.category })) || [],
       allTodos: todos?.map(t => ({ id: t.id, title: t.title, completed: !!t.completed, priority: t.priority })) || [],
@@ -757,14 +749,13 @@ export default function OrbitPage() {
         
         // TRACKER ENTRY
         case "create_tracker_entry": {
-          const { mood, energy, stress, dissociation, sleepHours, capacity, pain, notes } = action.args;
+          const { mood, energy, stress, sleepHours, capacity, pain, notes } = action.args;
           await createTrackerEntry.mutateAsync({
-            userId: "",  // Backend overrides with session userId
+            userId: "",
             timestamp: new Date(),
             mood: mood || 5,
             energy: energy || 5,
             stress: stress ?? 50,
-            dissociation: dissociation ?? 0,
             sleepHours: sleepHours || undefined,
             capacity: capacity || undefined,
             pain: pain || undefined,
@@ -827,10 +818,6 @@ export default function OrbitPage() {
           return { success: true, message: `Work action noted: ${action.args.details || action.args.type}` };
         }
 
-        // SYSTEM NOTE (from Unload)
-        case "system_note": {
-          return { success: true, message: `System note: ${action.args.note || action.args.type}` };
-        }
 
         // ROADMAP ACTION
         case "refresh_roadmap": {

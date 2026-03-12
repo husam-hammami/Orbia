@@ -35,7 +35,6 @@ export const MoodInsightsSchema = z.object({
     mood: z.number(),
     energy: z.number(),
     stress: z.number(),
-    dissociation: z.number(),
   }),
   volatility: z.number(),
   bestTimeOfDay: z.string().nullable(),
@@ -255,7 +254,6 @@ export function computeMoodInsights(entries: TrackerEntry[]): MoodInsights {
   const moods = entries.map(e => e.mood);
   const energies = entries.map(e => e.energy);
   const stresses = entries.map(e => e.stress);
-  const dissociations = entries.map(e => e.dissociation);
 
   const avg = (arr: number[]) => arr.length > 0 ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10 : 0;
 
@@ -303,7 +301,6 @@ export function computeMoodInsights(entries: TrackerEntry[]): MoodInsights {
       mood: avg(moods),
       energy: avg(energies),
       stress: avg(stresses),
-      dissociation: avg(dissociations),
     },
     volatility: Math.round(calculateStandardDeviation(moods) * 100) / 100,
     bestTimeOfDay: bestTime,

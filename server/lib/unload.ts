@@ -43,7 +43,7 @@ Parse the user's unstructured text and return a JSON object with structured acti
 ## MODULES YOU CAN ROUTE TO
 
 ### TRACKER (mood/wellness check-in)
-- create_tracker_entry: {"mood": 1-10, "energy": 1-10, "stress": 0-100, "dissociation": 0-100, "sleepHours": 0-24, "capacity": 0-5, "pain": 0-10, "notes": "..."}
+- create_tracker_entry: {"mood": 1-10, "energy": 1-10, "stress": 0-100, "sleepHours": 0-24, "capacity": 0-5, "pain": 0-10, "notes": "..."}
 - Only infer values the user actually mentioned. Use natural language mapping:
   - "terrible/awful/horrible" → mood 1-2, "bad/rough/down" → 3-4, "meh/okay" → 5-6, "good/nice" → 7-8, "great/amazing" → 9-10
   - "exhausted" → energy 1-2, "tired/low energy" → 3-4, "fine" → 5-6, "energetic" → 7-8, "buzzing/wired" → 9-10
@@ -103,9 +103,6 @@ Parse the user's unstructured text and return a JSON object with structured acti
 - These are flagged but not auto-executed. User must confirm.
 - actionName: "work_note", actionArgs: {"type": "send_teams/create_event/send_email/schedule_message", "details": "..."}
 
-### SYSTEM (Plurality/DID)
-- actionName: "system_note", actionArgs: {"type": "fronting_update/internal_message", "member": "...", "note": "..."}
-
 ## CROSS-MODULE LINKING RULES
 Only create links when there's a REAL connection:
 1. User states causality: "couldn't focus BECAUSE I slept badly" → link sleep to work
@@ -122,7 +119,7 @@ Return ONLY valid JSON, no markdown, no explanation:
     {
       "id": "<unique-id like item_1, item_2>",
       "action": "create" | "update" | "skip",
-      "module": "tracker|habits|tasks|career_projects|career_tasks|career_vision|finance|meals|medical|routine|work|system",
+      "module": "tracker|habits|tasks|career_projects|career_tasks|career_vision|finance|meals|medical|routine|work",
       "label": "Short human-readable description of what this does",
       "reason": "Why this action (created new / updated existing / skipped because already exists)",
       "actionName": "<the action name from above>",
