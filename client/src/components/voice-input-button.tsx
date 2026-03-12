@@ -7,6 +7,33 @@ import { toast } from "sonner";
 import { createPortal } from "react-dom";
 import logoUrl from "@assets/ChatGPT_Image_Jan_10,_2026,_05_13_01_PM_1768050787078.png";
 
+interface SpeechRecognitionEvent {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
+  message: string;
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  maxAlternatives: number;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
+
+interface SpeechRecognitionConstructor {
+  new(): SpeechRecognitionInstance;
+}
+
 type OverlayPhase = "listening" | "transcribing" | "thinking" | "speaking";
 
 interface VoiceInputButtonProps {
@@ -37,9 +64,9 @@ const thinkingMessages = [
   "Thinking...",
 ];
 
-const SpeechRecognitionAPI =
+const SpeechRecognitionAPI: SpeechRecognitionConstructor | null =
   typeof window !== "undefined"
-    ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    ? ((window as Record<string, unknown>).SpeechRecognition || (window as Record<string, unknown>).webkitSpeechRecognition) as SpeechRecognitionConstructor | null
     : null;
 
 interface ListeningOverlayProps {
@@ -433,7 +460,7 @@ export function VoiceInputButton({
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const stoppingRef = useRef(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const finalTranscriptRef = useRef("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -497,37 +524,30 @@ export function VoiceInputButton({
     cleanup();
   }, [cleanup]);
 
-  const playbackResolveRef = useRef<(() => void) | null>(null);
-
   const playAudio = useCallback((base64Audio: string): Promise<void> => {
     return new Promise((resolve) => {
       try {
         const audio = new Audio(`data:audio/mp3;base64,${base64Audio}`);
         audioRef.current = audio;
-        playbackResolveRef.current = resolve;
         audio.onended = () => {
           audioRef.current = null;
-          playbackResolveRef.current = null;
           resolve();
         };
         audio.onerror = () => {
           audioRef.current = null;
-          playbackResolveRef.current = null;
           resolve();
         };
         audio.onpause = () => {
           if (!audio.ended) {
             audioRef.current = null;
-            playbackResolveRef.current = null;
             resolve();
           }
         };
         audio.play().catch(() => {
           audioRef.current = null;
-          playbackResolveRef.current = null;
           resolve();
         });
-      } catch (e) {
+      } catch {
         resolve();
       }
     });
@@ -549,7 +569,7 @@ export function VoiceInputButton({
       recognition.lang = "en-US";
       recognition.maxAlternatives = 1;
 
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
         let finalText = finalTranscriptRef.current;
         let interim = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -565,7 +585,7 @@ export function VoiceInputButton({
         setInterimText(interim);
       };
 
-      recognition.onerror = (event: any) => {
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         if (event.error !== "aborted" && event.error !== "no-speech") {
           console.warn("[Voice] SpeechRecognition error:", event.error);
         }
@@ -632,10 +652,11 @@ export function VoiceInputButton({
       }
 
       cleanup();
-    } catch (err: any) {
-      if (err.name === "AbortError") return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      const message = err instanceof Error ? err.message : "Voice conversation failed";
       console.error("[Voice] Conversation error:", err);
-      toast.error(err.message || "Voice conversation failed");
+      toast.error(message);
       cleanup();
     }
   }, [chatHistory, therapyMode, aiMode, onConversationResponse, playAudio, cleanup]);
@@ -692,10 +713,11 @@ export function VoiceInputButton({
         onTranscript(text);
         cleanup();
       }
-    } catch (err: any) {
-      if (err.name === "AbortError") return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      const message = err instanceof Error ? err.message : "Voice transcription failed";
       console.error("[Voice] Transcription error:", err);
-      toast.error(err.message || "Voice transcription failed");
+      toast.error(message);
       cleanup();
     }
   }, [onTranscript, conversationMode, onConversationResponse, doConversation, cleanup]);
@@ -737,22 +759,18 @@ export function VoiceInputButton({
         processRecording(chunks, mimeType);
       };
 
-      mediaRecorder.onerror = (e: any) => {
-        console.error("[Voice] MediaRecorder error:", e.error || e);
+      mediaRecorder.onerror = (e: Event) => {
+        console.error("[Voice] MediaRecorder error:", e);
         toast.error("Recording error occurred");
         cleanup();
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach((t) => t.stop());
-          streamRef.current = null;
-        }
       };
 
       mediaRecorder.start(500);
       setPhase("listening");
       startSpeechRecognition();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[Voice] Microphone error:", err);
-      if (err.name === "NotAllowedError") {
+      if (err instanceof DOMException && err.name === "NotAllowedError") {
         toast.error("Microphone access denied. Please allow microphone access in your browser settings.");
       } else {
         toast.error("Could not access microphone");
