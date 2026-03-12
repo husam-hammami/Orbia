@@ -497,22 +497,38 @@ export function VoiceInputButton({
     cleanup();
   }, [cleanup]);
 
+  const playbackResolveRef = useRef<(() => void) | null>(null);
+
   const playAudio = useCallback((base64Audio: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       try {
         const audio = new Audio(`data:audio/mp3;base64,${base64Audio}`);
         audioRef.current = audio;
+        playbackResolveRef.current = resolve;
         audio.onended = () => {
           audioRef.current = null;
+          playbackResolveRef.current = null;
           resolve();
         };
-        audio.onerror = (e) => {
+        audio.onerror = () => {
           audioRef.current = null;
-          reject(e);
+          playbackResolveRef.current = null;
+          resolve();
         };
-        audio.play().catch(reject);
+        audio.onpause = () => {
+          if (!audio.ended) {
+            audioRef.current = null;
+            playbackResolveRef.current = null;
+            resolve();
+          }
+        };
+        audio.play().catch(() => {
+          audioRef.current = null;
+          playbackResolveRef.current = null;
+          resolve();
+        });
       } catch (e) {
-        reject(e);
+        resolve();
       }
     });
   }, []);
@@ -645,11 +661,15 @@ export function VoiceInputButton({
       }
       const base64 = btoa(binary);
 
+      const controller = new AbortController();
+      abortRef.current = controller;
+
       const res = await fetch("/api/voice/transcribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ audioData: base64, mimeType }),
+        signal: controller.signal,
       });
 
       if (!res.ok) {
@@ -673,6 +693,7 @@ export function VoiceInputButton({
         cleanup();
       }
     } catch (err: any) {
+      if (err.name === "AbortError") return;
       console.error("[Voice] Transcription error:", err);
       toast.error(err.message || "Voice transcription failed");
       cleanup();
