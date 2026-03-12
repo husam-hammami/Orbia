@@ -117,17 +117,23 @@ async function ensureDefaultUsers() {
     const existing = await db.execute(sql`SELECT id, display_name FROM users`);
     console.log(`[startup] Found ${existing.rows.length} users in database`);
 
-    const defaultHash = await bcrypt.hash("IwillBeBetter", 12);
-    const demoHash = await bcrypt.hash("Demo", 12);
-    const moussaHash = await bcrypt.hash("moussa", 12);
-    await db.execute(sql`
-      INSERT INTO users (id, password_hash, display_name, created_at) VALUES
-      ('cfa63f09-8307-4759-bc52-8ac75f7cbf87', ${defaultHash}, 'User', NOW()),
-      ('91653702-7ee6-45a2-b493-9ac905ec3dbc', ${demoHash}, 'Demo User', NOW()),
-      ('b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', ${moussaHash}, 'Moussa', NOW())
-      ON CONFLICT (id) DO UPDATE SET password_hash = EXCLUDED.password_hash, display_name = EXCLUDED.display_name
-    `);
-    console.log(`[startup] Ensured ${existing.rows.length > 0 ? existing.rows.length : 3} users in database`);
+    const seedUsers = [
+      { id: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', password: 'moussa', displayName: 'Moussa' },
+      { id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', password: 'sam', displayName: 'Sam' },
+      { id: '91653702-7ee6-45a2-b493-9ac905ec3dbc', password: 'Demo', displayName: 'Demo' },
+    ];
+
+    for (const u of seedUsers) {
+      const hash = await bcrypt.hash(u.password, 12);
+      await db.execute(sql`
+        INSERT INTO users (id, password_hash, display_name, created_at)
+        VALUES (${u.id}, ${hash}, ${u.displayName}, NOW())
+        ON CONFLICT (id) DO NOTHING
+      `);
+    }
+
+    const updatedCount = await db.execute(sql`SELECT id FROM users`);
+    console.log(`[startup] ${updatedCount.rows.length} users in database`);
   } catch (err: any) {
     console.error(`[startup] Failed to ensure users:`, err.message);
   }
