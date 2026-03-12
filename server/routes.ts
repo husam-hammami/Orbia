@@ -5673,6 +5673,11 @@ ${unifiedContext}`;
 
   app.post("/api/voice/transcribe", async (req, res) => {
     try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
       const { audioData, mimeType } = req.body;
       if (!audioData) {
         return res.status(400).json({ error: "audioData is required" });
@@ -5685,7 +5690,6 @@ ${unifiedContext}`;
         return res.status(400).json({ error: "Audio data too small" });
       }
 
-      const userId = req.session?.userId;
       let contextPrompt = [
         "Orbia is a personal AI companion and wellness app. Orbia is NOT Olivia or Orbea.",
         "",
