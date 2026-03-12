@@ -1322,6 +1322,25 @@ export default function OrbitPage() {
                 }, 0);
               }}
               disabled={isLoading}
+              conversationMode={true}
+              onConversationResponse={(userText, assistantText) => {
+                const userMsg: OrbitMessage = {
+                  id: crypto.randomUUID(),
+                  role: "user",
+                  content: userText,
+                  timestamp: new Date(),
+                };
+                const assistantMsg: OrbitMessage = {
+                  id: crypto.randomUUID(),
+                  role: "assistant",
+                  content: assistantText,
+                  timestamp: new Date(),
+                };
+                setMessages(prev => [...prev, userMsg, assistantMsg]);
+              }}
+              chatHistory={messages.slice(-10).map(m => ({ role: m.role, content: m.content }))}
+              therapyMode={therapyMode}
+              aiMode="orbit"
             />
             <Button 
               onClick={() => handleSend()} 

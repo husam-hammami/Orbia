@@ -1,11 +1,13 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Loader2 } from "lucide-react";
+import { Mic, MicOff, Loader2, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { createPortal } from "react-dom";
 import logoUrl from "@assets/ChatGPT_Image_Jan_10,_2026,_05_13_01_PM_1768050787078.png";
+
+type OverlayPhase = "listening" | "transcribing" | "thinking" | "speaking";
 
 interface VoiceInputButtonProps {
   onTranscript: (text: string) => void;
@@ -13,6 +15,11 @@ interface VoiceInputButtonProps {
   className?: string;
   variant?: "default" | "outline" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
+  conversationMode?: boolean;
+  onConversationResponse?: (userText: string, assistantText: string) => void;
+  chatHistory?: Array<{ role: string; content: string }>;
+  therapyMode?: boolean;
+  aiMode?: "orbit" | "work" | "medical";
 }
 
 const idleMessages = [
@@ -23,11 +30,11 @@ const idleMessages = [
   "Go ahead, I'm here...",
 ];
 
-const transcribingMessages = [
+const thinkingMessages = [
   "Let me think about that...",
   "Processing what you said...",
-  "I heard you...",
   "One moment...",
+  "Thinking...",
 ];
 
 const SpeechRecognitionAPI =
@@ -36,33 +43,44 @@ const SpeechRecognitionAPI =
     : null;
 
 interface ListeningOverlayProps {
+  phase: OverlayPhase;
   onStop: () => void;
-  isTranscribing: boolean;
+  onInterrupt: () => void;
   liveTranscript: string;
   interimText: string;
+  orbiaResponse: string;
+  conversationMode: boolean;
 }
 
-function ListeningOverlay({ onStop, isTranscribing, liveTranscript, interimText }: ListeningOverlayProps) {
+function ListeningOverlay({ phase, onStop, onInterrupt, liveTranscript, interimText, orbiaResponse, conversationMode }: ListeningOverlayProps) {
   const [elapsed, setElapsed] = useState(0);
   const [idleMsgIndex, setIdleMsgIndex] = useState(0);
+  const [thinkMsgIndex] = useState(() => Math.floor(Math.random() * thinkingMessages.length));
+  const responseRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIdleMsgIndex(Math.floor(Math.random() * idleMessages.length));
   }, []);
 
   useEffect(() => {
-    if (isTranscribing) return;
+    if (phase !== "listening") return;
     const interval = setInterval(() => setElapsed((p) => p + 1), 1000);
     return () => clearInterval(interval);
-  }, [isTranscribing]);
+  }, [phase]);
 
   useEffect(() => {
-    if (isTranscribing) return;
+    if (phase !== "listening") return;
     const interval = setInterval(() => {
       setIdleMsgIndex((prev) => (prev + 1) % idleMessages.length);
     }, 4000);
     return () => clearInterval(interval);
-  }, [isTranscribing]);
+  }, [phase]);
+
+  useEffect(() => {
+    if (responseRef.current) {
+      responseRef.current.scrollTop = responseRef.current.scrollHeight;
+    }
+  }, [orbiaResponse]);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -71,7 +89,50 @@ function ListeningOverlay({ onStop, isTranscribing, liveTranscript, interimText 
   };
 
   const hasLiveText = liveTranscript.length > 0 || interimText.length > 0;
-  const displayText = (liveTranscript + (interimText ? (liveTranscript ? " " : "") + interimText : "")).trim();
+  const isActive = phase === "listening";
+  const isProcessing = phase === "transcribing" || phase === "thinking";
+  const isSpeaking = phase === "speaking";
+
+  const handleOverlayClick = () => {
+    if (isActive) onStop();
+    else if (isProcessing) onInterrupt();
+    else if (isSpeaking) onInterrupt();
+  };
+
+  const ringAnimation = isProcessing || isSpeaking
+    ? { width: [120, 140, 120], height: [120, 140, 120], opacity: [0.5, 0.3, 0.5], rotate: [0, 5, 0] }
+    : hasLiveText
+      ? { width: [120, 170, 120], height: [120, 170, 120], opacity: [0.7, 0.35, 0.7], rotate: [0, 10, 0] }
+      : { width: [120, 170, 120], height: [120, 170, 120], opacity: [0.6, 0.25, 0.6], rotate: [0, 8, 0] };
+
+  const ringDuration = isProcessing ? 2 : isSpeaking ? 1.5 : hasLiveText ? 2 : 3;
+
+  const logoAnimation = isSpeaking
+    ? {
+        scale: [1, 1.12, 1],
+        filter: [
+          "brightness(1.1) drop-shadow(0 0 50px rgba(139,92,246,0.6))",
+          "brightness(1.35) drop-shadow(0 0 100px rgba(139,92,246,0.8)) drop-shadow(0 0 140px rgba(168,85,247,0.4))",
+          "brightness(1.1) drop-shadow(0 0 50px rgba(139,92,246,0.6))",
+        ],
+      }
+    : isProcessing
+      ? {
+          scale: [1, 1.04, 1],
+          filter: [
+            "brightness(1) drop-shadow(0 0 30px rgba(139,92,246,0.4))",
+            "brightness(1.1) drop-shadow(0 0 50px rgba(139,92,246,0.5))",
+            "brightness(1) drop-shadow(0 0 30px rgba(139,92,246,0.4))",
+          ],
+        }
+      : {
+          scale: [1, 1.08, 1],
+          filter: [
+            "brightness(1.05) drop-shadow(0 0 40px rgba(139,92,246,0.5))",
+            "brightness(1.25) drop-shadow(0 0 80px rgba(139,92,246,0.7)) drop-shadow(0 0 120px rgba(168,85,247,0.3))",
+            "brightness(1.05) drop-shadow(0 0 40px rgba(139,92,246,0.5))",
+          ],
+        };
 
   return createPortal(
     <motion.div
@@ -83,7 +144,7 @@ function ListeningOverlay({ onStop, isTranscribing, liveTranscript, interimText 
       style={{
         background: "radial-gradient(ellipse at center, rgba(88, 28, 135, 0.25) 0%, rgba(15, 10, 30, 0.95) 60%, rgba(5, 2, 15, 0.98) 100%)",
       }}
-      onClick={!isTranscribing ? onStop : undefined}
+      onClick={handleOverlayClick}
     >
       <div className="relative flex items-center justify-center" style={{ width: 280, height: 280 }}>
         {[0, 1, 2, 3, 4].map((i) => (
@@ -93,39 +154,23 @@ function ListeningOverlay({ onStop, isTranscribing, liveTranscript, interimText 
             style={{
               background: `radial-gradient(circle, transparent 60%, ${
                 i % 2 === 0
-                  ? "rgba(139, 92, 246, 0.08)"
-                  : "rgba(192, 132, 252, 0.06)"
+                  ? isSpeaking ? "rgba(168, 85, 247, 0.12)" : "rgba(139, 92, 246, 0.08)"
+                  : isSpeaking ? "rgba(216, 180, 254, 0.08)" : "rgba(192, 132, 252, 0.06)"
               } 100%)`,
               border: `1px solid ${
                 i % 2 === 0
-                  ? "rgba(139, 92, 246, 0.15)"
-                  : "rgba(192, 132, 252, 0.1)"
+                  ? isSpeaking ? "rgba(168, 85, 247, 0.25)" : "rgba(139, 92, 246, 0.15)"
+                  : isSpeaking ? "rgba(216, 180, 254, 0.15)" : "rgba(192, 132, 252, 0.1)"
               }`,
             }}
-            animate={
-              isTranscribing
-                ? {
-                    width: [120 + i * 30, 140 + i * 30, 120 + i * 30],
-                    height: [120 + i * 30, 140 + i * 30, 120 + i * 30],
-                    opacity: [0.5 - i * 0.08, 0.3 - i * 0.05, 0.5 - i * 0.08],
-                    rotate: [0, i % 2 === 0 ? 5 : -5, 0],
-                  }
-                : hasLiveText
-                  ? {
-                      width: [120 + i * 30, 170 + i * 40, 120 + i * 30],
-                      height: [120 + i * 30, 170 + i * 40, 120 + i * 30],
-                      opacity: [0.7 - i * 0.08, 0.35 - i * 0.04, 0.7 - i * 0.08],
-                      rotate: [0, i % 2 === 0 ? 10 : -10, 0],
-                    }
-                  : {
-                      width: [120 + i * 30, 170 + i * 40, 120 + i * 30],
-                      height: [120 + i * 30, 170 + i * 40, 120 + i * 30],
-                      opacity: [0.6 - i * 0.08, 0.25 - i * 0.04, 0.6 - i * 0.08],
-                      rotate: [0, i % 2 === 0 ? 8 : -8, 0],
-                    }
-            }
+            animate={{
+              width: [ringAnimation.width[0] + i * 30, ringAnimation.width[1] + i * (isSpeaking ? 45 : 40), ringAnimation.width[2] + i * 30],
+              height: [ringAnimation.height[0] + i * 30, ringAnimation.height[1] + i * (isSpeaking ? 45 : 40), ringAnimation.height[2] + i * 30],
+              opacity: [ringAnimation.opacity[0] - i * 0.08, ringAnimation.opacity[1] - i * 0.04, ringAnimation.opacity[2] - i * 0.08],
+              rotate: [0, i % 2 === 0 ? ringAnimation.rotate[1] : -ringAnimation.rotate[1], 0],
+            }}
             transition={{
-              duration: isTranscribing ? 2 + i * 0.3 : hasLiveText ? 2 + i * 0.3 : 3 + i * 0.5,
+              duration: ringDuration + i * 0.3,
               repeat: Infinity,
               ease: "easeInOut",
               delay: i * 0.2,
@@ -135,27 +180,9 @@ function ListeningOverlay({ onStop, isTranscribing, liveTranscript, interimText 
 
         <motion.div
           className="relative z-10"
-          animate={
-            isTranscribing
-              ? {
-                  scale: [1, 1.04, 1],
-                  filter: [
-                    "brightness(1) drop-shadow(0 0 30px rgba(139,92,246,0.4))",
-                    "brightness(1.1) drop-shadow(0 0 50px rgba(139,92,246,0.5))",
-                    "brightness(1) drop-shadow(0 0 30px rgba(139,92,246,0.4))",
-                  ],
-                }
-              : {
-                  scale: [1, 1.08, 1],
-                  filter: [
-                    "brightness(1.05) drop-shadow(0 0 40px rgba(139,92,246,0.5))",
-                    "brightness(1.25) drop-shadow(0 0 80px rgba(139,92,246,0.7)) drop-shadow(0 0 120px rgba(168,85,247,0.3))",
-                    "brightness(1.05) drop-shadow(0 0 40px rgba(139,92,246,0.5))",
-                  ],
-                }
-          }
+          animate={logoAnimation}
           transition={{
-            duration: isTranscribing ? 2 : 3,
+            duration: isSpeaking ? 2 : isProcessing ? 2 : 3,
             repeat: Infinity,
             ease: "easeInOut",
           }}
@@ -167,14 +194,11 @@ function ListeningOverlay({ onStop, isTranscribing, liveTranscript, interimText 
           />
         </motion.div>
 
-        {!isTranscribing && !hasLiveText && (
+        {isActive && !hasLiveText && (
           <motion.div
             className="absolute z-20"
             style={{ bottom: 15 }}
-            animate={{
-              scale: [1, 1.15, 1],
-              opacity: [0.9, 1, 0.9],
-            }}
+            animate={{ scale: [1, 1.15, 1], opacity: [0.9, 1, 0.9] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
           >
             <div className="flex items-center gap-1.5">
@@ -182,16 +206,8 @@ function ListeningOverlay({ onStop, isTranscribing, liveTranscript, interimText 
                 <motion.div
                   key={i}
                   className="w-1.5 h-1.5 rounded-full bg-violet-400"
-                  animate={{
-                    scale: [1, 1.8, 1],
-                    opacity: [0.4, 1, 0.4],
-                  }}
-                  transition={{
-                    duration: 1,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: i * 0.2,
-                  }}
+                  animate={{ scale: [1, 1.8, 1], opacity: [0.4, 1, 0.4] }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
                 />
               ))}
             </div>
@@ -199,7 +215,7 @@ function ListeningOverlay({ onStop, isTranscribing, liveTranscript, interimText 
         )}
       </div>
 
-      {!isTranscribing && !hasLiveText && (
+      {isActive && !hasLiveText && (
         <AnimatePresence mode="wait">
           <motion.p
             key={idleMsgIndex}
@@ -214,7 +230,7 @@ function ListeningOverlay({ onStop, isTranscribing, liveTranscript, interimText 
         </AnimatePresence>
       )}
 
-      {!isTranscribing && hasLiveText && (
+      {isActive && hasLiveText && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -236,29 +252,81 @@ function ListeningOverlay({ onStop, isTranscribing, liveTranscript, interimText 
         </motion.div>
       )}
 
-      {isTranscribing && (
+      {phase === "transcribing" && (
         <motion.div
-          className="mt-4 mb-2 px-8 max-w-lg w-full"
+          className="mt-2 mb-2"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          {displayText && (
-            <div className="rounded-2xl bg-white/[0.03] backdrop-blur-md border border-violet-500/10 px-5 py-4 mb-3 max-h-[120px] overflow-y-auto">
-              <p className="text-violet-200/60 text-sm leading-relaxed font-light italic">
-                {displayText}
-              </p>
-            </div>
-          )}
           <div className="flex items-center justify-center gap-2">
             <Loader2 className="w-3.5 h-3.5 text-violet-400/60 animate-spin" />
-            <span className="text-violet-300/40 text-xs">
-              {transcribingMessages[Math.floor(Math.random() * transcribingMessages.length)]}
-            </span>
+            <span className="text-violet-300/50 text-sm">Transcribing...</span>
           </div>
         </motion.div>
       )}
 
-      {!isTranscribing && (
+      {phase === "thinking" && (
+        <motion.div
+          className="mt-2 mb-2 flex flex-col items-center gap-3"
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <motion.p
+            className="text-violet-200/80 text-lg font-light tracking-wide"
+            animate={{ opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            {thinkingMessages[thinkMsgIndex]}
+          </motion.p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onInterrupt();
+            }}
+            className="rounded-full border-violet-500/20 bg-violet-500/10 text-violet-200/60 hover:text-white hover:bg-violet-500/20 text-xs px-4"
+          >
+            Cancel
+          </Button>
+        </motion.div>
+      )}
+
+      {isSpeaking && orbiaResponse && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-4 mb-2 px-8 max-w-lg w-full"
+        >
+          <div
+            ref={responseRef}
+            className="relative rounded-2xl bg-violet-500/[0.06] backdrop-blur-md border border-violet-400/15 px-5 py-4 max-h-[180px] overflow-y-auto"
+          >
+            <p className="text-violet-100 text-base leading-relaxed font-light">
+              {orbiaResponse}
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-2 mt-3">
+            <motion.div
+              className="flex items-center gap-1"
+              animate={{ opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              {[0, 1, 2, 3].map((i) => (
+                <motion.div
+                  key={i}
+                  className="w-1 rounded-full bg-violet-400"
+                  animate={{ height: [3, 12 + Math.random() * 8, 3] }}
+                  transition={{ duration: 0.5 + Math.random() * 0.3, repeat: Infinity, ease: "easeInOut", delay: i * 0.1 }}
+                />
+              ))}
+            </motion.div>
+            <span className="text-violet-300/40 text-xs ml-1">Speaking...</span>
+          </div>
+        </motion.div>
+      )}
+
+      {isActive && (
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -269,7 +337,7 @@ function ListeningOverlay({ onStop, isTranscribing, liveTranscript, interimText 
         </motion.p>
       )}
 
-      {!isTranscribing && (
+      {isActive && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -289,6 +357,27 @@ function ListeningOverlay({ onStop, isTranscribing, liveTranscript, interimText 
           </Button>
         </motion.div>
       )}
+
+      {isSpeaking && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-4"
+        >
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={(e) => {
+              e.stopPropagation();
+              onInterrupt();
+            }}
+            className="rounded-full border-violet-500/20 bg-violet-500/10 text-violet-200/80 hover:text-white hover:bg-violet-500/20 gap-2 px-8 backdrop-blur-sm"
+          >
+            <Square className="w-3 h-3 fill-current" />
+            Stop
+          </Button>
+        </motion.div>
+      )}
     </motion.div>,
     document.body
   );
@@ -300,33 +389,113 @@ export function VoiceInputButton({
   className,
   variant = "outline",
   size = "icon",
+  conversationMode = false,
+  onConversationResponse,
+  chatHistory,
+  therapyMode = false,
+  aiMode = "orbit",
 }: VoiceInputButtonProps) {
-  const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [phase, setPhase] = useState<OverlayPhase | null>(null);
   const [liveTranscript, setLiveTranscript] = useState("");
   const [interimText, setInterimText] = useState("");
+  const [orbiaResponse, setOrbiaResponse] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const stoppingRef = useRef(false);
   const recognitionRef = useRef<any>(null);
   const finalTranscriptRef = useRef("");
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const cleanup = useCallback(() => {
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch (e) {}
+      recognitionRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      try { mediaRecorderRef.current.stop(); } catch (e) {}
+    }
+    mediaRecorderRef.current = null;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+    setPhase(null);
+    setLiveTranscript("");
+    setInterimText("");
+    setOrbiaResponse("");
+    finalTranscriptRef.current = "";
+    stoppingRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) {}
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        try { mediaRecorderRef.current.stop(); } catch (e) {}
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      if (abortRef.current) {
+        abortRef.current.abort();
+      }
+    };
+  }, []);
+
+  const interruptSpeaking = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    cleanup();
+  }, [cleanup]);
+
+  const playAudio = useCallback((base64Audio: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      try {
+        const audio = new Audio(`data:audio/mp3;base64,${base64Audio}`);
+        audioRef.current = audio;
+        audio.onended = () => {
+          audioRef.current = null;
+          resolve();
+        };
+        audio.onerror = (e) => {
+          audioRef.current = null;
+          reject(e);
+        };
+        audio.play().catch(reject);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }, []);
 
   const stopSpeechRecognition = useCallback(() => {
     if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (e) {}
+      try { recognitionRef.current.stop(); } catch (e) {}
       recognitionRef.current = null;
     }
   }, []);
 
   const startSpeechRecognition = useCallback(() => {
-    if (!SpeechRecognitionAPI) {
-      console.log("[Voice] SpeechRecognition not supported — live transcript unavailable");
-      return;
-    }
-
+    if (!SpeechRecognitionAPI) return;
     try {
       const recognition = new SpeechRecognitionAPI();
       recognition.continuous = true;
@@ -337,7 +506,6 @@ export function VoiceInputButton({
       recognition.onresult = (event: any) => {
         let finalText = finalTranscriptRef.current;
         let interim = "";
-
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
@@ -347,7 +515,6 @@ export function VoiceInputButton({
             interim += transcript;
           }
         }
-
         setLiveTranscript(finalText);
         setInterimText(interim);
       };
@@ -360,35 +527,83 @@ export function VoiceInputButton({
 
       recognition.onend = () => {
         if (!stoppingRef.current && recognitionRef.current) {
-          try {
-            recognition.start();
-          } catch (e) {}
+          try { recognition.start(); } catch (e) {}
         }
       };
 
       recognition.start();
       recognitionRef.current = recognition;
-      console.log("[Voice] SpeechRecognition started for live transcript");
     } catch (e) {
       console.warn("[Voice] Could not start SpeechRecognition:", e);
     }
   }, []);
 
+  const doConversation = useCallback(async (transcribedText: string) => {
+    setPhase("thinking");
+    setOrbiaResponse("");
+
+    try {
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      const res = await fetch("/api/voice/converse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          message: transcribedText,
+          history: chatHistory?.slice(-6) || [],
+          therapyMode,
+          mode: aiMode,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Conversation failed" }));
+        throw new Error(err.error || "Conversation failed");
+      }
+
+      const data = await res.json();
+      const responseText = data.text || "";
+
+      if (onConversationResponse) {
+        onConversationResponse(transcribedText, responseText);
+      }
+
+      if (data.audio) {
+        setPhase("speaking");
+        setOrbiaResponse(responseText);
+        try {
+          await playAudio(data.audio);
+        } catch (audioErr) {
+          console.warn("[Voice] Audio playback failed:", audioErr);
+        }
+      } else {
+        setOrbiaResponse(responseText);
+        setPhase("speaking");
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+
+      cleanup();
+    } catch (err: any) {
+      if (err.name === "AbortError") return;
+      console.error("[Voice] Conversation error:", err);
+      toast.error(err.message || "Voice conversation failed");
+      cleanup();
+    }
+  }, [chatHistory, therapyMode, aiMode, onConversationResponse, playAudio, cleanup]);
+
   const processRecording = useCallback(async (chunks: Blob[], mimeType: string) => {
     const blob = new Blob(chunks, { type: mimeType });
-    console.log("[Voice] Processing recording:", { chunkCount: chunks.length, blobSize: blob.size, mimeType });
 
     if (blob.size < 100) {
-      console.error("[Voice] Blob too small:", blob.size, "bytes from", chunks.length, "chunks");
       toast.error("Recording too short, try again");
-      setIsRecording(false);
-      setLiveTranscript("");
-      setInterimText("");
+      cleanup();
       return;
     }
 
-    setIsTranscribing(true);
-    setIsRecording(false);
+    setPhase("transcribing");
     setInterimText("");
 
     try {
@@ -399,7 +614,6 @@ export function VoiceInputButton({
         binary += String.fromCharCode(uint8Array[i]);
       }
       const base64 = btoa(binary);
-      console.log("[Voice] Base64 size:", base64.length, "chars");
 
       const res = await fetch("/api/voice/transcribe", {
         method: "POST",
@@ -415,91 +629,67 @@ export function VoiceInputButton({
 
       const data = await res.json();
       const text = data.text?.trim();
-      console.log("[Voice] Transcription result:", text ? text.substring(0, 50) + "..." : "(empty)");
 
-      if (text) {
-        onTranscript(text);
-      } else {
+      if (!text) {
         toast.error("Could not understand the audio, try again");
+        cleanup();
+        return;
+      }
+
+      if (conversationMode && onConversationResponse) {
+        await doConversation(text);
+      } else {
+        onTranscript(text);
+        cleanup();
       }
     } catch (err: any) {
       console.error("[Voice] Transcription error:", err);
       toast.error(err.message || "Voice transcription failed");
-    } finally {
-      setIsTranscribing(false);
-      setLiveTranscript("");
-      setInterimText("");
-      finalTranscriptRef.current = "";
+      cleanup();
     }
-  }, [onTranscript]);
+  }, [onTranscript, conversationMode, onConversationResponse, doConversation, cleanup]);
 
   const startRecording = useCallback(async () => {
-    if (stoppingRef.current) return;
+    if (stoppingRef.current || phase) return;
 
     setLiveTranscript("");
     setInterimText("");
+    setOrbiaResponse("");
     finalTranscriptRef.current = "";
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 16000,
-        },
+        audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 },
       });
       streamRef.current = stream;
 
       const supportedTypes = [
-        "audio/webm;codecs=opus",
-        "audio/webm",
-        "audio/mp4",
-        "audio/ogg;codecs=opus",
-        "audio/ogg",
+        "audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus", "audio/ogg",
       ];
-      let mimeType = "";
-      for (const type of supportedTypes) {
-        if (MediaRecorder.isTypeSupported(type)) {
-          mimeType = type;
-          break;
-        }
-      }
-      if (!mimeType) {
-        mimeType = "audio/webm";
-      }
-      console.log("[Voice] Using MIME type:", mimeType);
+      let mimeType = supportedTypes.find(t => MediaRecorder.isTypeSupported(t)) || "audio/webm";
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType,
-        audioBitsPerSecond: 128000,
-      });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 128000 });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
       stoppingRef.current = false;
 
       mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-        }
+        if (e.data.size > 0) chunksRef.current.push(e.data);
       };
 
       mediaRecorder.onstop = () => {
-        console.log("[Voice] MediaRecorder stopped. Total chunks:", chunksRef.current.length);
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((t) => t.stop());
           streamRef.current = null;
         }
-
         const chunks = [...chunksRef.current];
-        const mt = mimeType;
-        processRecording(chunks, mt);
+        processRecording(chunks, mimeType);
       };
 
       mediaRecorder.onerror = (e: any) => {
         console.error("[Voice] MediaRecorder error:", e.error || e);
         toast.error("Recording error occurred");
-        setIsRecording(false);
-        stopSpeechRecognition();
+        cleanup();
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((t) => t.stop());
           streamRef.current = null;
@@ -507,9 +697,7 @@ export function VoiceInputButton({
       };
 
       mediaRecorder.start(500);
-      setIsRecording(true);
-      console.log("[Voice] Recording started");
-
+      setPhase("listening");
       startSpeechRecognition();
     } catch (err: any) {
       console.error("[Voice] Microphone error:", err);
@@ -519,7 +707,7 @@ export function VoiceInputButton({
         toast.error("Could not access microphone");
       }
     }
-  }, [processRecording, startSpeechRecognition, stopSpeechRecognition]);
+  }, [processRecording, startSpeechRecognition, cleanup, phase]);
 
   const stopRecording = useCallback(() => {
     if (stoppingRef.current) return;
@@ -527,36 +715,31 @@ export function VoiceInputButton({
     if (!recorder || recorder.state !== "recording") return;
 
     stoppingRef.current = true;
-    console.log("[Voice] Stopping recording...");
-
     stopSpeechRecognition();
 
-    try {
-      recorder.requestData();
-    } catch (e) {
-      console.warn("[Voice] requestData failed (harmless):", e);
-    }
-
+    try { recorder.requestData(); } catch (e) {}
     setTimeout(() => {
       try {
-        if (recorder.state === "recording") {
-          recorder.stop();
-        }
+        if (recorder.state === "recording") recorder.stop();
       } catch (e) {
-        console.error("[Voice] stop() failed:", e);
-        setIsRecording(false);
-        stoppingRef.current = false;
+        cleanup();
       }
     }, 100);
-  }, [stopSpeechRecognition]);
+  }, [stopSpeechRecognition, cleanup]);
 
   const handleClick = () => {
-    if (isRecording) {
+    if (phase === "listening") {
       stopRecording();
-    } else if (!isTranscribing) {
+    } else if (phase === "thinking" || phase === "transcribing") {
+      cleanup();
+    } else if (phase === "speaking") {
+      interruptSpeaking();
+    } else if (!phase) {
       startRecording();
     }
   };
+
+  const isActive = !!phase;
 
   return (
     <>
@@ -565,15 +748,15 @@ export function VoiceInputButton({
         variant={variant}
         size={size}
         onClick={handleClick}
-        disabled={disabled || isTranscribing}
+        disabled={disabled || phase === "transcribing"}
         className={cn(
           "relative transition-all duration-300",
-          isTranscribing && "opacity-70",
+          isActive && "opacity-70",
           className
         )}
         data-testid="button-voice-input"
       >
-        {isTranscribing ? (
+        {phase === "transcribing" || phase === "thinking" ? (
           <Loader2 className="w-4 h-4 animate-spin" />
         ) : (
           <Mic className="w-4 h-4" />
@@ -581,12 +764,15 @@ export function VoiceInputButton({
       </Button>
 
       <AnimatePresence>
-        {(isRecording || isTranscribing) && (
+        {phase && (
           <ListeningOverlay
+            phase={phase}
             onStop={stopRecording}
-            isTranscribing={isTranscribing}
+            onInterrupt={interruptSpeaking}
             liveTranscript={liveTranscript}
             interimText={interimText}
+            orbiaResponse={orbiaResponse}
+            conversationMode={conversationMode}
           />
         )}
       </AnimatePresence>

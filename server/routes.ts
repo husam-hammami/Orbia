@@ -5798,5 +5798,107 @@ ${rawText}`
     }
   });
 
+  app.post("/api/voice/converse", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { message, history, therapyMode, mode } = req.body;
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ error: "message is required and must be a string" });
+      }
+      if (message.length > 10000) {
+        return res.status(400).json({ error: "message too long" });
+      }
+      const validModes = ["orbit", "work", "medical"];
+      const safeMode = validModes.includes(mode) ? mode : "orbit";
+
+      console.log("[voice-converse] Starting conversation for user:", userId, "mode:", safeMode);
+
+      const { buildUnifiedContextWithMemory, buildUnifiedSystemPrompt, buildTherapeuticPrompt } = await import("./lib/unified-context");
+      const { context: unifiedContext } = await buildUnifiedContextWithMemory(userId, safeMode);
+
+      let systemPrompt: string;
+      if (therapyMode) {
+        let clinicalContext = "";
+        try {
+          const therapeuticNarratives = await storage.getMemoryNarratives(userId);
+          const clinical = therapeuticNarratives.filter((n: any) => n.domain === "therapeutic");
+          if (clinical.length > 0) {
+            clinicalContext = clinical.map((n: any) => `${n.narrativeKey}: ${n.narrative}`).join("\n");
+          }
+        } catch (err) {}
+        const therapeuticPrompt = buildTherapeuticPrompt(clinicalContext || undefined);
+        systemPrompt = `${therapeuticPrompt}\n\n## CONTEXT DATA (use silently)\n${unifiedContext}`;
+      } else {
+        const basePrompt = buildUnifiedSystemPrompt(safeMode);
+        systemPrompt = `${basePrompt}\n\n## CONTEXT DATA (use silently)\n${unifiedContext}`;
+      }
+
+      systemPrompt += `\n\nIMPORTANT: This is a VOICE conversation. The user is speaking to you and your response will be read aloud. Keep your response concise, conversational, and natural for spoken delivery. Avoid markdown formatting, bullet points, or structured lists — speak as you would in a natural conversation. Keep responses under 3-4 sentences unless the user asked for detailed information.`;
+
+      const chatMessages: { role: "user" | "assistant"; content: string }[] = [];
+      if (history && Array.isArray(history)) {
+        for (const h of history.slice(-6)) {
+          if (h.role === "user" || h.role === "assistant") {
+            chatMessages.push({ role: h.role, content: h.content });
+          }
+        }
+      }
+      chatMessages.push({ role: "user", content: message });
+
+      if (chatMessages[0]?.role !== "user") {
+        chatMessages.unshift({ role: "user", content: "(continuing)" });
+      }
+
+      const { createRawCompletion } = await import("./lib/ai-client");
+      const textResponse = await createRawCompletion(systemPrompt, chatMessages, {
+        model: "claude-sonnet-4-6",
+        maxTokens: 600,
+      });
+
+      console.log("[voice-converse] AI response generated, length:", textResponse.length);
+
+      let audioData: string | null = null;
+      try {
+        const OpenAI = (await import("openai")).default;
+        const openai = new OpenAI({
+          apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+          baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+        });
+
+        const ttsResponse = await openai.chat.completions.create({
+          model: "gpt-audio-mini",
+          modalities: ["text", "audio"],
+          audio: { voice: "sage", format: "mp3" },
+          messages: [
+            { role: "system", content: "You are reading a response aloud. Repeat the following text exactly as given, naturally and warmly. Do not add, remove, or change any words." },
+            { role: "user", content: textResponse },
+          ],
+          max_tokens: 2000,
+        });
+
+        const audio = ttsResponse.choices[0]?.message?.audio;
+        if (audio?.data) {
+          audioData = audio.data;
+          console.log("[voice-converse] Audio generated, size:", audioData.length);
+        }
+      } catch (ttsError: any) {
+        console.error("[voice-converse] TTS failed (returning text only):", ttsError?.message);
+      }
+
+      res.json({
+        text: textResponse,
+        audio: audioData,
+        audioFormat: "mp3",
+      });
+    } catch (error: any) {
+      console.error("[voice-converse] Error:", error?.message || error);
+      res.status(500).json({ error: error.message || "Voice conversation failed" });
+    }
+  });
+
   return httpServer;
 }
