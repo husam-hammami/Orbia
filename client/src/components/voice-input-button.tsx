@@ -15,7 +15,7 @@ interface VoiceInputButtonProps {
   size?: "default" | "sm" | "lg" | "icon";
 }
 
-const listeningMessages = [
+const idleMessages = [
   "I'm right here...",
   "Take your time...",
   "I'm listening...",
@@ -30,19 +30,28 @@ const transcribingMessages = [
   "One moment...",
 ];
 
-function ListeningOverlay({ onStop, isTranscribing }: { onStop: () => void; isTranscribing: boolean }) {
+const SpeechRecognitionAPI =
+  typeof window !== "undefined"
+    ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    : null;
+
+interface ListeningOverlayProps {
+  onStop: () => void;
+  isTranscribing: boolean;
+  liveTranscript: string;
+  interimText: string;
+}
+
+function ListeningOverlay({ onStop, isTranscribing, liveTranscript, interimText }: ListeningOverlayProps) {
   const [elapsed, setElapsed] = useState(0);
-  const [messageIndex, setMessageIndex] = useState(0);
+  const [idleMsgIndex, setIdleMsgIndex] = useState(0);
 
   useEffect(() => {
-    setMessageIndex(Math.floor(Math.random() * listeningMessages.length));
+    setIdleMsgIndex(Math.floor(Math.random() * idleMessages.length));
   }, []);
 
   useEffect(() => {
-    if (isTranscribing) {
-      setMessageIndex(Math.floor(Math.random() * transcribingMessages.length));
-      return;
-    }
+    if (isTranscribing) return;
     const interval = setInterval(() => setElapsed((p) => p + 1), 1000);
     return () => clearInterval(interval);
   }, [isTranscribing]);
@@ -50,18 +59,19 @@ function ListeningOverlay({ onStop, isTranscribing }: { onStop: () => void; isTr
   useEffect(() => {
     if (isTranscribing) return;
     const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % listeningMessages.length);
+      setIdleMsgIndex((prev) => (prev + 1) % idleMessages.length);
     }, 4000);
     return () => clearInterval(interval);
   }, [isTranscribing]);
-
-  const messages = isTranscribing ? transcribingMessages : listeningMessages;
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
     return `${m}:${sec.toString().padStart(2, "0")}`;
   };
+
+  const hasLiveText = liveTranscript.length > 0 || interimText.length > 0;
+  const displayText = (liveTranscript + (interimText ? (liveTranscript ? " " : "") + interimText : "")).trim();
 
   return createPortal(
     <motion.div
@@ -75,7 +85,7 @@ function ListeningOverlay({ onStop, isTranscribing }: { onStop: () => void; isTr
       }}
       onClick={!isTranscribing ? onStop : undefined}
     >
-      <div className="relative flex items-center justify-center" style={{ width: 320, height: 320 }}>
+      <div className="relative flex items-center justify-center" style={{ width: 280, height: 280 }}>
         {[0, 1, 2, 3, 4].map((i) => (
           <motion.div
             key={i}
@@ -95,20 +105,27 @@ function ListeningOverlay({ onStop, isTranscribing }: { onStop: () => void; isTr
             animate={
               isTranscribing
                 ? {
-                    width: [140 + i * 35, 160 + i * 35, 140 + i * 35],
-                    height: [140 + i * 35, 160 + i * 35, 140 + i * 35],
+                    width: [120 + i * 30, 140 + i * 30, 120 + i * 30],
+                    height: [120 + i * 30, 140 + i * 30, 120 + i * 30],
                     opacity: [0.5 - i * 0.08, 0.3 - i * 0.05, 0.5 - i * 0.08],
                     rotate: [0, i % 2 === 0 ? 5 : -5, 0],
                   }
-                : {
-                    width: [140 + i * 35, 190 + i * 45, 140 + i * 35],
-                    height: [140 + i * 35, 190 + i * 45, 140 + i * 35],
-                    opacity: [0.6 - i * 0.08, 0.25 - i * 0.04, 0.6 - i * 0.08],
-                    rotate: [0, i % 2 === 0 ? 8 : -8, 0],
-                  }
+                : hasLiveText
+                  ? {
+                      width: [120 + i * 30, 170 + i * 40, 120 + i * 30],
+                      height: [120 + i * 30, 170 + i * 40, 120 + i * 30],
+                      opacity: [0.7 - i * 0.08, 0.35 - i * 0.04, 0.7 - i * 0.08],
+                      rotate: [0, i % 2 === 0 ? 10 : -10, 0],
+                    }
+                  : {
+                      width: [120 + i * 30, 170 + i * 40, 120 + i * 30],
+                      height: [120 + i * 30, 170 + i * 40, 120 + i * 30],
+                      opacity: [0.6 - i * 0.08, 0.25 - i * 0.04, 0.6 - i * 0.08],
+                      rotate: [0, i % 2 === 0 ? 8 : -8, 0],
+                    }
             }
             transition={{
-              duration: isTranscribing ? 2 + i * 0.3 : 3 + i * 0.5,
+              duration: isTranscribing ? 2 + i * 0.3 : hasLiveText ? 2 + i * 0.3 : 3 + i * 0.5,
               repeat: Infinity,
               ease: "easeInOut",
               delay: i * 0.2,
@@ -146,14 +163,14 @@ function ListeningOverlay({ onStop, isTranscribing }: { onStop: () => void; isTr
           <img
             src={logoUrl}
             alt="Orbia"
-            className="w-32 h-32 object-contain"
+            className="w-28 h-28 object-contain"
           />
         </motion.div>
 
-        {!isTranscribing && (
+        {!isTranscribing && !hasLiveText && (
           <motion.div
             className="absolute z-20"
-            style={{ bottom: 20 }}
+            style={{ bottom: 15 }}
             animate={{
               scale: [1, 1.15, 1],
               opacity: [0.9, 1, 0.9],
@@ -182,39 +199,74 @@ function ListeningOverlay({ onStop, isTranscribing }: { onStop: () => void; isTr
         )}
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.p
-          key={messageIndex}
-          initial={{ opacity: 0, y: 8 }}
+      {!isTranscribing && !hasLiveText && (
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={idleMsgIndex}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.5 }}
+            className="text-violet-200/90 text-xl font-light tracking-wide mt-2 mb-2"
+          >
+            {idleMessages[idleMsgIndex % idleMessages.length]}
+          </motion.p>
+        </AnimatePresence>
+      )}
+
+      {!isTranscribing && hasLiveText && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.5 }}
-          className="text-violet-200/90 text-xl font-light tracking-wide mt-2 mb-2"
+          className="mt-4 mb-2 px-8 max-w-lg w-full"
         >
-          {messages[messageIndex % messages.length]}
-        </motion.p>
-      </AnimatePresence>
+          <div className="relative rounded-2xl bg-white/[0.03] backdrop-blur-md border border-violet-500/10 px-5 py-4 min-h-[60px] max-h-[160px] overflow-y-auto">
+            <p className="text-violet-100/90 text-base leading-relaxed font-light">
+              {liveTranscript}
+              {interimText && (
+                <span className="text-violet-300/50">{liveTranscript ? " " : ""}{interimText}</span>
+              )}
+              <motion.span
+                className="inline-block w-0.5 h-4 bg-violet-400/70 ml-0.5 align-text-bottom"
+                animate={{ opacity: [1, 0, 1] }}
+                transition={{ duration: 1, repeat: Infinity, ease: "steps(2)" }}
+              />
+            </p>
+          </div>
+        </motion.div>
+      )}
+
+      {isTranscribing && (
+        <motion.div
+          className="mt-4 mb-2 px-8 max-w-lg w-full"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          {displayText && (
+            <div className="rounded-2xl bg-white/[0.03] backdrop-blur-md border border-violet-500/10 px-5 py-4 mb-3 max-h-[120px] overflow-y-auto">
+              <p className="text-violet-200/60 text-sm leading-relaxed font-light italic">
+                {displayText}
+              </p>
+            </div>
+          )}
+          <div className="flex items-center justify-center gap-2">
+            <Loader2 className="w-3.5 h-3.5 text-violet-400/60 animate-spin" />
+            <span className="text-violet-300/40 text-xs">
+              {transcribingMessages[Math.floor(Math.random() * transcribingMessages.length)]}
+            </span>
+          </div>
+        </motion.div>
+      )}
 
       {!isTranscribing && (
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="text-white/25 text-xs mb-10"
+          className="text-white/25 text-xs mb-6 mt-1"
         >
           {formatTime(elapsed)}
         </motion.p>
-      )}
-
-      {isTranscribing && (
-        <motion.div
-          className="flex items-center gap-2 mb-10 mt-1"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <Loader2 className="w-3.5 h-3.5 text-violet-400/60 animate-spin" />
-          <span className="text-violet-300/40 text-xs">Transcribing...</span>
-        </motion.div>
       )}
 
       {!isTranscribing && (
@@ -251,10 +303,76 @@ export function VoiceInputButton({
 }: VoiceInputButtonProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const [interimText, setInterimText] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const stoppingRef = useRef(false);
+  const recognitionRef = useRef<any>(null);
+  const finalTranscriptRef = useRef("");
+
+  const stopSpeechRecognition = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+      recognitionRef.current = null;
+    }
+  }, []);
+
+  const startSpeechRecognition = useCallback(() => {
+    if (!SpeechRecognitionAPI) {
+      console.log("[Voice] SpeechRecognition not supported — live transcript unavailable");
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognitionAPI();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = (event: any) => {
+        let finalText = finalTranscriptRef.current;
+        let interim = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalText += (finalText ? " " : "") + transcript.trim();
+            finalTranscriptRef.current = finalText;
+          } else {
+            interim += transcript;
+          }
+        }
+
+        setLiveTranscript(finalText);
+        setInterimText(interim);
+      };
+
+      recognition.onerror = (event: any) => {
+        if (event.error !== "aborted" && event.error !== "no-speech") {
+          console.warn("[Voice] SpeechRecognition error:", event.error);
+        }
+      };
+
+      recognition.onend = () => {
+        if (!stoppingRef.current && recognitionRef.current) {
+          try {
+            recognition.start();
+          } catch (e) {}
+        }
+      };
+
+      recognition.start();
+      recognitionRef.current = recognition;
+      console.log("[Voice] SpeechRecognition started for live transcript");
+    } catch (e) {
+      console.warn("[Voice] Could not start SpeechRecognition:", e);
+    }
+  }, []);
 
   const processRecording = useCallback(async (chunks: Blob[], mimeType: string) => {
     const blob = new Blob(chunks, { type: mimeType });
@@ -264,11 +382,14 @@ export function VoiceInputButton({
       console.error("[Voice] Blob too small:", blob.size, "bytes from", chunks.length, "chunks");
       toast.error("Recording too short, try again");
       setIsRecording(false);
+      setLiveTranscript("");
+      setInterimText("");
       return;
     }
 
     setIsTranscribing(true);
     setIsRecording(false);
+    setInterimText("");
 
     try {
       const arrayBuffer = await blob.arrayBuffer();
@@ -306,11 +427,18 @@ export function VoiceInputButton({
       toast.error(err.message || "Voice transcription failed");
     } finally {
       setIsTranscribing(false);
+      setLiveTranscript("");
+      setInterimText("");
+      finalTranscriptRef.current = "";
     }
   }, [onTranscript]);
 
   const startRecording = useCallback(async () => {
     if (stoppingRef.current) return;
+
+    setLiveTranscript("");
+    setInterimText("");
+    finalTranscriptRef.current = "";
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -350,7 +478,6 @@ export function VoiceInputButton({
       stoppingRef.current = false;
 
       mediaRecorder.ondataavailable = (e) => {
-        console.log("[Voice] Data chunk received:", e.data.size, "bytes");
         if (e.data.size > 0) {
           chunksRef.current.push(e.data);
         }
@@ -372,6 +499,7 @@ export function VoiceInputButton({
         console.error("[Voice] MediaRecorder error:", e.error || e);
         toast.error("Recording error occurred");
         setIsRecording(false);
+        stopSpeechRecognition();
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((t) => t.stop());
           streamRef.current = null;
@@ -381,6 +509,8 @@ export function VoiceInputButton({
       mediaRecorder.start(500);
       setIsRecording(true);
       console.log("[Voice] Recording started");
+
+      startSpeechRecognition();
     } catch (err: any) {
       console.error("[Voice] Microphone error:", err);
       if (err.name === "NotAllowedError") {
@@ -389,7 +519,7 @@ export function VoiceInputButton({
         toast.error("Could not access microphone");
       }
     }
-  }, [processRecording]);
+  }, [processRecording, startSpeechRecognition, stopSpeechRecognition]);
 
   const stopRecording = useCallback(() => {
     if (stoppingRef.current) return;
@@ -398,6 +528,8 @@ export function VoiceInputButton({
 
     stoppingRef.current = true;
     console.log("[Voice] Stopping recording...");
+
+    stopSpeechRecognition();
 
     try {
       recorder.requestData();
@@ -416,7 +548,7 @@ export function VoiceInputButton({
         stoppingRef.current = false;
       }
     }, 100);
-  }, []);
+  }, [stopSpeechRecognition]);
 
   const handleClick = () => {
     if (isRecording) {
@@ -450,7 +582,12 @@ export function VoiceInputButton({
 
       <AnimatePresence>
         {(isRecording || isTranscribing) && (
-          <ListeningOverlay onStop={stopRecording} isTranscribing={isTranscribing} />
+          <ListeningOverlay
+            onStop={stopRecording}
+            isTranscribing={isTranscribing}
+            liveTranscript={liveTranscript}
+            interimText={interimText}
+          />
         )}
       </AnimatePresence>
     </>
