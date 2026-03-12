@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 import { 
   insertTrackerEntrySchema, 
   insertHabitSchema,
@@ -4886,17 +4888,15 @@ ${unifiedContext}${extraMedContext}`;
     }
   });
 
-  const pendingOAuthStates = new Map<string, { userId: string; expiresAt: number }>();
-
   app.get("/api/work/microsoft/auth", async (req, res) => {
     try {
       const { getAuthUrl } = await import("./lib/microsoft-graph");
       const { randomBytes } = await import("crypto");
       const oauthState = randomBytes(32).toString("hex");
-      pendingOAuthStates.set(oauthState, {
-        userId: req.session.userId!,
-        expiresAt: Date.now() + 10 * 60 * 1000,
-      });
+      const expiresAt = Date.now() + 10 * 60 * 1000;
+      await db.execute(sql`
+        INSERT INTO oauth_states (state, user_id, expires_at) VALUES (${oauthState}, ${req.session.userId!}, ${expiresAt})
+      `);
       const authUrl = getAuthUrl(oauthState);
       res.json({ authUrl });
     } catch (error: any) {
@@ -4911,13 +4911,16 @@ ${unifiedContext}${extraMedContext}`;
         return res.status(400).send("Missing code or state");
       }
 
-      const pending = pendingOAuthStates.get(state as string);
-      if (!pending || Date.now() > pending.expiresAt) {
-        pendingOAuthStates.delete(state as string);
+      const result = await db.execute(sql`
+        SELECT user_id, expires_at FROM oauth_states WHERE state = ${state as string}
+      `);
+      const pending = result.rows[0] as { user_id: string; expires_at: string } | undefined;
+      await db.execute(sql`DELETE FROM oauth_states WHERE state = ${state as string}`);
+
+      if (!pending || Date.now() > Number(pending.expires_at)) {
         return res.status(403).send("Invalid or expired OAuth state");
       }
-      const userId = pending.userId;
-      pendingOAuthStates.delete(state as string);
+      const userId = pending.user_id;
 
       const { exchangeCodeForTokens, getProfile } = await import("./lib/microsoft-graph");
       const tokens = await exchangeCodeForTokens(code as string);
