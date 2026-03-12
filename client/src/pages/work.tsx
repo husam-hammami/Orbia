@@ -674,8 +674,43 @@ function EmailInbox({ userEmail }: { userEmail?: string }) {
   );
 }
 
+function WorkstationClock() {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const hours = time.getHours();
+  const mins = time.getMinutes().toString().padStart(2, "0");
+  const secs = time.getSeconds().toString().padStart(2, "0");
+  const period = hours >= 12 ? "PM" : "AM";
+  const h12 = hours % 12 || 12;
+
+  return (
+    <div className="flex flex-col items-center" data-testid="workstation-clock">
+      <div className="flex items-baseline gap-1">
+        <span className="text-2xl lg:text-3xl font-display font-bold text-foreground tabular-nums tracking-tight">
+          {h12}:{mins}
+        </span>
+        <span className="text-xs lg:text-sm font-medium text-indigo-400 tabular-nums">{secs}</span>
+        <span className="text-xs lg:text-sm font-semibold text-muted-foreground ml-0.5">{period}</span>
+      </div>
+      <p className="text-[10px] text-muted-foreground/60 tracking-wide uppercase">
+        {time.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+      </p>
+    </div>
+  );
+}
+
 function MeetingsStrip({ events }: { events: any[] }) {
-  const now = new Date();
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const nextMeetings = useMemo(() => {
     return events
@@ -687,7 +722,7 @@ function MeetingsStrip({ events }: { events: any[] }) {
       .filter((e) => e._end > now)
       .sort((a, b) => a._start.getTime() - b._start.getTime())
       .slice(0, 4);
-  }, [events]);
+  }, [events, now]);
 
   if (!nextMeetings.length) return null;
 
@@ -1169,6 +1204,8 @@ export default function WorkPage() {
                 </p>
               </div>
             </div>
+
+            <WorkstationClock />
 
             <div className="flex items-center gap-3">
               {connected && workView === "office" && (
