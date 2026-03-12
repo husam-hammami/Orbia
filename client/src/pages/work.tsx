@@ -226,9 +226,16 @@ function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendM
                     {msg.createdDateTime ? new Date(msg.createdDateTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : ""}
                   </span>
                 </div>
-                <p className="text-foreground/70 leading-relaxed break-words overflow-hidden" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
-                  {(msg.body?.content || "").replace(/<[^>]*>/g, "")}
-                </p>
+                <p className="text-foreground/70 leading-relaxed break-words overflow-hidden [&_img.emoji]:inline [&_img.emoji]:w-4 [&_img.emoji]:h-4 [&_img.emoji]:align-text-bottom [&_img]:inline [&_img]:max-h-5" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}
+                  dangerouslySetInnerHTML={{ __html: (msg.body?.content || "")
+                    .replace(/<\/?div[^>]*>/gi, "")
+                    .replace(/<\/?p[^>]*>/gi, "")
+                    .replace(/<\/?span[^>]*>/gi, "")
+                    .replace(/<br\s*\/?>/gi, " ")
+                    .replace(/<attachment[^>]*>.*?<\/attachment>/gi, "[attachment]")
+                    .trim()
+                  }}
+                />
               </div>
             ))
           )}
