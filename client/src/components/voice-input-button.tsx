@@ -648,7 +648,8 @@ export function VoiceInputButton({
       } else {
         setOrbiaResponse(responseText);
         setPhase("speaking");
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        const readTimeMs = Math.max(3000, Math.min(15000, responseText.split(/\s+/).length * 200));
+        await new Promise(resolve => setTimeout(resolve, readTimeMs));
       }
 
       cleanup();
