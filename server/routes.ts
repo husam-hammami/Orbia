@@ -3385,6 +3385,93 @@ MERCHANT FIELD:
     }
   });
 
+  // Orbit Chat History — Conversations
+  app.get("/api/orbit/conversations", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const conversations = await storage.getAllOrbitConversations(userId);
+      res.json(conversations);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch conversations" });
+    }
+  });
+
+  app.post("/api/orbit/conversations", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { title, therapyMode } = req.body;
+      const conversation = await storage.createOrbitConversation(userId, {
+        userId,
+        title: title || "New conversation",
+        therapyMode: therapyMode ? 1 : 0,
+      });
+      res.status(201).json(conversation);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create conversation" });
+    }
+  });
+
+  app.get("/api/orbit/conversations/:id", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const conversation = await storage.getOrbitConversation(userId, req.params.id);
+      if (!conversation) return res.status(404).json({ error: "Not found" });
+      res.json(conversation);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch conversation" });
+    }
+  });
+
+  app.patch("/api/orbit/conversations/:id", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const updated = await storage.updateOrbitConversation(userId, req.params.id, req.body);
+      if (!updated) return res.status(404).json({ error: "Not found" });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update conversation" });
+    }
+  });
+
+  app.delete("/api/orbit/conversations/:id", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const deleted = await storage.deleteOrbitConversation(userId, req.params.id);
+      if (!deleted) return res.status(404).json({ error: "Not found" });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete conversation" });
+    }
+  });
+
+  // Orbit Chat History — Messages
+  app.get("/api/orbit/conversations/:id/messages", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const messages = await storage.getOrbitMessages(userId, req.params.id);
+      res.json(messages);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+
+  app.post("/api/orbit/conversations/:id/messages", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { role, content } = req.body;
+      if (!role || !content) return res.status(400).json({ error: "role and content are required" });
+      const message = await storage.createOrbitMessage(userId, {
+        userId,
+        conversationId: req.params.id,
+        role,
+        content,
+      });
+      res.status(201).json(message);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save message" });
+    }
+  });
+
   // Orbit Chat Route - Enhanced with comprehensive data like Deep Mind
   app.post("/api/orbit/chat", async (req, res) => {
     try {

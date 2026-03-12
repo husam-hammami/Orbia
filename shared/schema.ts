@@ -838,3 +838,38 @@ export const memoryProcessingLog = pgTable("memory_processing_log", {
 });
 
 export type MemoryProcessingLogEntry = typeof memoryProcessingLog.$inferSelect;
+
+// Orbit Chat Conversations
+export const orbitConversations = pgTable("orbit_conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  title: text("title").notNull(),
+  therapyMode: integer("therapy_mode").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertOrbitConversationSchema = createInsertSchema(orbitConversations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type OrbitConversation = typeof orbitConversations.$inferSelect;
+export type InsertOrbitConversation = z.infer<typeof insertOrbitConversationSchema>;
+
+// Orbit Chat Messages
+export const orbitMessages = pgTable("orbit_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  conversationId: varchar("conversation_id").notNull().references(() => orbitConversations.id, { onDelete: "cascade" }),
+  role: text("role").notNull(), // "user" | "assistant"
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertOrbitMessageSchema = createInsertSchema(orbitMessages).omit({
+  id: true,
+  createdAt: true,
+});
+export type OrbitMessage = typeof orbitMessages.$inferSelect;
+export type InsertOrbitMessage = z.infer<typeof insertOrbitMessageSchema>;

@@ -122,6 +122,12 @@ import {
   type MemoryNarrative,
   type InsertMemoryNarrative,
   type MemoryProcessingLogEntry,
+  orbitConversations,
+  orbitMessages,
+  type OrbitConversation,
+  type InsertOrbitConversation,
+  type OrbitMessage,
+  type InsertOrbitMessage,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, asc, inArray } from "drizzle-orm";
@@ -386,6 +392,15 @@ export interface IStorage {
   getMemoryProcessingLog(userId: string): Promise<MemoryProcessingLogEntry[]>;
   markMemoryProcessed(userId: string, sourceType: string, sourceId: string): Promise<void>;
   clearMemoryGraph(userId: string): Promise<void>;
+
+  // Orbit Chat History
+  getAllOrbitConversations(userId: string): Promise<OrbitConversation[]>;
+  getOrbitConversation(userId: string, id: string): Promise<OrbitConversation | undefined>;
+  createOrbitConversation(userId: string, conversation: InsertOrbitConversation): Promise<OrbitConversation>;
+  updateOrbitConversation(userId: string, id: string, updates: Partial<InsertOrbitConversation>): Promise<OrbitConversation | undefined>;
+  deleteOrbitConversation(userId: string, id: string): Promise<boolean>;
+  getOrbitMessages(userId: string, conversationId: string): Promise<OrbitMessage[]>;
+  createOrbitMessage(userId: string, message: InsertOrbitMessage): Promise<OrbitMessage>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1447,6 +1462,58 @@ export class DatabaseStorage implements IStorage {
     await db.delete(memoryEntities).where(eq(memoryEntities.userId, userId));
     await db.delete(memoryNarratives).where(eq(memoryNarratives.userId, userId));
     await db.delete(memoryProcessingLog).where(eq(memoryProcessingLog.userId, userId));
+  }
+
+  // Orbit Chat History
+  async getAllOrbitConversations(userId: string): Promise<OrbitConversation[]> {
+    return await db.select().from(orbitConversations)
+      .where(eq(orbitConversations.userId, userId))
+      .orderBy(desc(orbitConversations.updatedAt));
+  }
+
+  async getOrbitConversation(userId: string, id: string): Promise<OrbitConversation | undefined> {
+    const result = await db.select().from(orbitConversations)
+      .where(and(eq(orbitConversations.id, id), eq(orbitConversations.userId, userId)));
+    return result[0];
+  }
+
+  async createOrbitConversation(userId: string, conversation: InsertOrbitConversation): Promise<OrbitConversation> {
+    const result = await db.insert(orbitConversations)
+      .values({ ...conversation, userId })
+      .returning();
+    return result[0];
+  }
+
+  async updateOrbitConversation(userId: string, id: string, updates: Partial<InsertOrbitConversation>): Promise<OrbitConversation | undefined> {
+    const result = await db.update(orbitConversations)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(orbitConversations.id, id), eq(orbitConversations.userId, userId)))
+      .returning();
+    return result[0];
+  }
+
+  async deleteOrbitConversation(userId: string, id: string): Promise<boolean> {
+    const result = await db.delete(orbitConversations)
+      .where(and(eq(orbitConversations.id, id), eq(orbitConversations.userId, userId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getOrbitMessages(userId: string, conversationId: string): Promise<OrbitMessage[]> {
+    return await db.select().from(orbitMessages)
+      .where(and(eq(orbitMessages.conversationId, conversationId), eq(orbitMessages.userId, userId)))
+      .orderBy(asc(orbitMessages.createdAt));
+  }
+
+  async createOrbitMessage(userId: string, message: InsertOrbitMessage): Promise<OrbitMessage> {
+    const result = await db.insert(orbitMessages)
+      .values({ ...message, userId })
+      .returning();
+    // Touch the conversation's updatedAt
+    await db.update(orbitConversations)
+      .set({ updatedAt: new Date() })
+      .where(eq(orbitConversations.id, message.conversationId));
+    return result[0];
   }
 }
 

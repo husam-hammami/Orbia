@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Layout } from "@/components/layout";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +24,11 @@ import {
   X,
   Bell,
   Brain,
-  Heart
+  Heart,
+  MessageSquare,
+  Trash2,
+  PanelLeftClose,
+  PanelLeftOpen
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -304,17 +308,11 @@ export default function OrbitPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/food-options"] }),
   });
 
-  const [messages, setMessages] = useState<OrbitMessage[]>(() => {
-    const saved = localStorage.getItem("orbit_messages");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
-      } catch { return []; }
-    }
-    return [];
-  });
-  
+  // Conversation state
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<OrbitMessage[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ action: OrbitAction; messageId: string } | null>(null);
@@ -322,13 +320,61 @@ export default function OrbitPage() {
     const saved = sessionStorage.getItem("orbit_dismissed_nudges");
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
-  
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch conversation list
+  const { data: conversations, refetch: refetchConversations } = useQuery<{
+    id: string; title: string; therapyMode: number; createdAt: string; updatedAt: string;
+  }[]>({
+    queryKey: ["/api/orbit/conversations"],
+  });
+
+  // Load messages when switching conversations
   useEffect(() => {
-    localStorage.setItem("orbit_messages", JSON.stringify(messages));
-  }, [messages]);
+    if (!activeConversationId) {
+      setMessages([]);
+      return;
+    }
+    (async () => {
+      try {
+        const res = await fetch(`/api/orbit/conversations/${activeConversationId}/messages`);
+        if (!res.ok) return;
+        const serverMessages = await res.json();
+        setMessages(serverMessages.map((m: any) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          timestamp: new Date(m.createdAt),
+        })));
+      } catch {}
+    })();
+  }, [activeConversationId]);
+
+  // Helper to persist a message to the server
+  const persistMessage = useCallback(async (conversationId: string, role: string, content: string) => {
+    try {
+      await fetch(`/api/orbit/conversations/${conversationId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role, content }),
+      });
+    } catch {}
+  }, []);
+
+  // Helper to create a new conversation
+  const createConversation = useCallback(async (firstMessage: string): Promise<string> => {
+    const title = firstMessage.length > 50 ? firstMessage.slice(0, 50) + "..." : firstMessage;
+    const res = await fetch("/api/orbit/conversations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, therapyMode }),
+    });
+    const conv = await res.json();
+    refetchConversations();
+    return conv.id;
+  }, [therapyMode, refetchConversations]);
 
   useEffect(() => {
     const scrollToBottom = () => {
@@ -856,6 +902,13 @@ export default function OrbitPage() {
     const messageText = prompt || input.trim();
     if (!messageText || isLoading) return;
 
+    // Auto-create conversation if none active
+    let convId = activeConversationId;
+    if (!convId) {
+      convId = await createConversation(messageText);
+      setActiveConversationId(convId);
+    }
+
     const userMessage: OrbitMessage = {
       id: crypto.randomUUID(),
       role: "user",
@@ -867,9 +920,12 @@ export default function OrbitPage() {
     setInput("");
     setIsLoading(true);
 
+    // Persist user message
+    persistMessage(convId, "user", messageText);
+
     try {
       const context = buildContext();
-      
+
       const response = await fetch("/api/orbit/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -901,7 +957,7 @@ export default function OrbitPage() {
       while (reader) {
         const { done, value } = await reader.read();
         if (done) break;
-        
+
         const chunk = decoder.decode(value, { stream: true });
         sseBuffer += chunk;
 
@@ -914,8 +970,8 @@ export default function OrbitPage() {
             const data = JSON.parse(line.slice(6));
             if (data.content) {
               fullContent += data.content;
-              setMessages(prev => prev.map(m => 
-                m.id === assistantMessage.id 
+              setMessages(prev => prev.map(m =>
+                m.id === assistantMessage.id
                   ? { ...m, content: fullContent }
                   : m
               ));
@@ -935,25 +991,31 @@ export default function OrbitPage() {
         }
       }
 
+      let finalContent = fullContent;
+
       if (workActionResults.length > 0) {
-        const suffix = "\n\n" + workActionResults.map(r => `✓ ${r}`).join("\n");
-        setMessages(prev => prev.map(m => 
-          m.id === assistantMessage.id 
-            ? { ...m, content: fullContent + suffix }
+        finalContent = fullContent + "\n\n" + workActionResults.map(r => `✓ ${r}`).join("\n");
+        setMessages(prev => prev.map(m =>
+          m.id === assistantMessage.id
+            ? { ...m, content: finalContent }
             : m
         ));
         queryClient.invalidateQueries();
       }
 
+      // Persist assistant message
+      const textForStorage = finalContent.replace(/\{[\s\S]*"type"\s*:\s*"action"[\s\S]*\}/, "").trim();
+      persistMessage(convId, "assistant", textForStorage || fullContent);
+
       const actionMatch = fullContent.match(/\{[\s\S]*"type"\s*:\s*"action"[\s\S]*\}/);
       if (actionMatch) {
         try {
           const action = JSON.parse(actionMatch[0]) as OrbitAction;
-          
+
           const textContent = fullContent.replace(actionMatch[0], "").trim();
-          
-          setMessages(prev => prev.map(m => 
-            m.id === assistantMessage.id 
+
+          setMessages(prev => prev.map(m =>
+            m.id === assistantMessage.id
               ? { ...m, content: textContent || "Processing action...", action }
               : m
           ));
@@ -962,12 +1024,12 @@ export default function OrbitPage() {
             setPendingAction({ action, messageId: assistantMessage.id });
           } else {
             const result = await executeAction(action);
-            setMessages(prev => prev.map(m => 
-              m.id === assistantMessage.id 
+            setMessages(prev => prev.map(m =>
+              m.id === assistantMessage.id
                 ? { ...m, actionResult: result }
                 : m
             ));
-            
+
             queryClient.invalidateQueries();
           }
         } catch (e) {
@@ -1010,9 +1072,20 @@ export default function OrbitPage() {
     setPendingAction(null);
   };
 
-  const clearChat = () => {
+  const startNewConversation = () => {
+    setActiveConversationId(null);
     setMessages([]);
-    localStorage.removeItem("orbit_messages");
+    setPendingAction(null);
+  };
+
+  const deleteConversation = async (id: string) => {
+    try {
+      await fetch(`/api/orbit/conversations/${id}`, { method: "DELETE" });
+      if (activeConversationId === id) {
+        startNewConversation();
+      }
+      refetchConversations();
+    } catch {}
   };
 
   const dismissNudge = (nudgeId: string) => {
@@ -1082,19 +1155,85 @@ export default function OrbitPage() {
 
   return (
     <Layout>
-      <div className={cn(
-        "h-[calc(100vh-120px)] flex flex-col animate-in fade-in duration-500 transition-all",
-        therapyMode && "relative"
-      )}>
-        {/* Therapy mode ambient glow */}
-        {therapyMode && (
-          <div className="absolute inset-0 pointer-events-none z-0">
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: "8s" }} />
-            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: "12s" }} />
-          </div>
-        )}
+      <div className="h-[calc(100vh-120px)] flex gap-0 animate-in fade-in duration-500">
+        {/* Conversation Sidebar */}
+        <AnimatePresence>
+          {sidebarOpen && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 260, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="h-full flex-shrink-0 overflow-hidden"
+            >
+              <div className="w-[260px] h-full flex flex-col border-r border-border/50 pr-3">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground">History</h3>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="w-7 h-7" onClick={startNewConversation}>
+                      <Plus className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => setSidebarOpen(false)}>
+                      <PanelLeftClose className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                <ScrollArea className="flex-1">
+                  <div className="space-y-1">
+                    {conversations?.map((conv) => (
+                      <div
+                        key={conv.id}
+                        className={cn(
+                          "group flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer transition-colors text-sm",
+                          activeConversationId === conv.id
+                            ? "bg-primary/10 text-foreground"
+                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                        )}
+                        onClick={() => setActiveConversationId(conv.id)}
+                      >
+                        <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span className="truncate flex-1">{conv.title}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                          onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }}
+                        >
+                          <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                    {(!conversations || conversations.length === 0) && (
+                      <p className="text-xs text-muted-foreground/60 px-2.5 py-4 text-center">
+                        No conversations yet
+                      </p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Main Chat Area */}
+        <div className={cn(
+          "flex-1 flex flex-col min-w-0 transition-all",
+          therapyMode && "relative"
+        )}>
+          {/* Therapy mode ambient glow */}
+          {therapyMode && (
+            <div className="absolute inset-0 pointer-events-none z-0">
+              <div className="absolute top-0 left-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: "8s" }} />
+              <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: "12s" }} />
+            </div>
+          )}
         <div className="flex items-center justify-between mb-4 relative z-10">
           <div className="flex items-center gap-3">
+            {!sidebarOpen && (
+              <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => setSidebarOpen(true)}>
+                <PanelLeftOpen className="w-4 h-4" />
+              </Button>
+            )}
             <div className={cn(
               "w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all duration-500",
               therapyMode
@@ -1142,8 +1281,8 @@ export default function OrbitPage() {
             >
               <Brain className="w-3.5 h-3.5" /> Unload
             </Button>
-            <Button variant="ghost" size="sm" onClick={clearChat} className="text-xs text-muted-foreground">
-              <RefreshCw className="w-3 h-3 mr-1" /> Clear
+            <Button variant="ghost" size="sm" onClick={startNewConversation} className="text-xs text-muted-foreground">
+              <Plus className="w-3 h-3 mr-1" /> New Chat
             </Button>
           </div>
         </div>
@@ -1321,6 +1460,7 @@ export default function OrbitPage() {
             </Button>
           </div>
         </div>
+      </div>
       </div>
 
       <UnloadSheet
