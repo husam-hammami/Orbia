@@ -6,13 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { 
   Settings as SettingsIcon, 
   User, 
-  Shield, 
   Database, 
   Download,
   Loader2,
@@ -272,32 +270,6 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Shield className="w-5 h-5 text-emerald-500" />
-                Privacy
-              </CardTitle>
-              <CardDescription>
-                Control how sensitive information is displayed.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Discreet Mode</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Use neutral labels and hide sensitive terminology when others might see your screen.
-                  </p>
-                </div>
-                <Switch 
-                  checked={privacyMode} 
-                  onCheckedChange={(val) => handleFieldChange(setPrivacyMode, val)}
-                  data-testid="switch-privacy-mode"
-                />
-              </div>
-            </CardContent>
-          </Card>
 
           <Card>
             <CardHeader>
