@@ -559,7 +559,7 @@ export default function NewsPage() {
 
   return (
     <Layout>
-      <div className="max-w-2xl mx-auto px-4 py-6 pb-24">
+      <div className="max-w-6xl mx-auto w-full px-3 md:px-4 py-6 pb-24">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <motion.div 
@@ -700,26 +700,26 @@ export default function NewsPage() {
                 )}
 
                 <AnimatePresence mode="popLayout">
-                  <div className="space-y-3">
-                    {filteredArticles?.length === 0 ? (
-                      <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-center py-16"
-                        data-testid="empty-state-news"
-                      >
-                        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted/50 flex items-center justify-center">
-                          <Newspaper className="w-8 h-8 text-muted-foreground/50" />
-                        </div>
-                        <p className="text-muted-foreground font-medium" data-testid="text-empty-message">No articles found</p>
-                        <p className="text-sm text-muted-foreground/70 mt-1">Try adding more topics to your feed</p>
-                      </motion.div>
-                    ) : (
-                      filteredArticles?.map((article, idx) => (
+                  {filteredArticles?.length === 0 ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-center py-16"
+                      data-testid="empty-state-news"
+                    >
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted/50 flex items-center justify-center">
+                        <Newspaper className="w-8 h-8 text-muted-foreground/50" />
+                      </div>
+                      <p className="text-muted-foreground font-medium" data-testid="text-empty-message">No articles found</p>
+                      <p className="text-sm text-muted-foreground/70 mt-1">Try adding more topics to your feed</p>
+                    </motion.div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                      {filteredArticles?.map((article, idx) => (
                         <ArticleCard key={`${article.link}-${idx}`} article={article} index={idx} />
-                      ))
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </AnimatePresence>
 
                 {data?.lastUpdated && (
@@ -741,7 +741,7 @@ export default function NewsPage() {
                 <p className="text-sm text-muted-foreground/70 mt-1">Tap the bookmark icon to save articles for later</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {savedArticles?.map((article, idx) => (
                   <SavedArticleCard key={article.id} article={article} index={idx} />
                 ))}
