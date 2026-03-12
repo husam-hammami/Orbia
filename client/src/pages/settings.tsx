@@ -29,18 +29,11 @@ import { cn } from "@/lib/utils";
 
 export default function Settings() {
   const queryClient = useQueryClient();
-  const [systemName, setSystemName] = useState("");
-  const [privacyMode, setPrivacyMode] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
-  const [hasChanges, setHasChanges] = useState(false);
   const [hasProfileChanges, setHasProfileChanges] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const { themeId, themes, isDark, setTheme, toggleDarkMode } = useTheme();
-
-  const { data: settings, isLoading } = useQuery<{ systemName?: string; privacyMode?: number }>({
-    queryKey: ["/api/settings"],
-  });
 
   const { data: profile, isLoading: profileLoading } = useQuery<{ displayName: string | null; bio: string | null }>({
     queryKey: ["/api/user/profile"],
@@ -51,33 +44,11 @@ export default function Settings() {
   });
 
   useEffect(() => {
-    if (settings) {
-      setSystemName(settings.systemName || "My System");
-      setPrivacyMode(settings.privacyMode === 1);
-    }
-  }, [settings]);
-
-  useEffect(() => {
     if (profile) {
       setDisplayName(profile.displayName || "");
       setBio(profile.bio || "");
     }
   }, [profile]);
-
-  const updateSettings = useMutation({
-    mutationFn: async (data: { systemName?: string; privacyMode?: number }) => {
-      const res = await apiRequest("PATCH", "/api/settings", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      setHasChanges(false);
-      toast.success("Settings saved");
-    },
-    onError: () => {
-      toast.error("Failed to save settings");
-    }
-  });
 
   const updateProfile = useMutation({
     mutationFn: async (data: { displayName?: string; bio?: string }) => {
@@ -93,13 +64,6 @@ export default function Settings() {
       toast.error("Failed to save profile");
     }
   });
-
-  const handleSave = () => {
-    updateSettings.mutate({
-      systemName,
-      privacyMode: privacyMode ? 1 : 0,
-    });
-  };
 
   const handleProfileSave = () => {
     updateProfile.mutate({ displayName, bio });
@@ -135,12 +99,7 @@ export default function Settings() {
     }
   };
 
-  const handleFieldChange = (setter: (val: any) => void, value: any) => {
-    setter(value);
-    setHasChanges(true);
-  };
-
-  if (isLoading) {
+  if (profileLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
@@ -163,18 +122,6 @@ export default function Settings() {
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">Settings</h1>
             <p className="text-muted-foreground text-lg">Customize your Orbia experience.</p>
           </div>
-          <Button 
-            onClick={handleSave} 
-            disabled={!hasChanges || updateSettings.isPending}
-            data-testid="button-save-settings"
-          >
-            {updateSettings.isPending ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : hasChanges ? null : (
-              <Check className="w-4 h-4 mr-2" />
-            )}
-            {hasChanges ? "Save Changes" : "Saved"}
-          </Button>
         </div>
 
         <div className="space-y-6">
@@ -236,32 +183,6 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <SettingsIcon className="w-5 h-5 text-muted-foreground" />
-                System
-              </CardTitle>
-              <CardDescription>
-                Basic information about your setup.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="system-name">System Display Name</Label>
-                <Input
-                  id="system-name"
-                  value={systemName}
-                  onChange={(e) => handleFieldChange(setSystemName, e.target.value)}
-                  placeholder="e.g. My Wellness Tracker"
-                  data-testid="input-system-name"
-                />
-                <p className="text-[0.8rem] text-muted-foreground">
-                  This name appears on your dashboard.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
 
           <Card>
             <CardHeader>
