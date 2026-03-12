@@ -5678,25 +5678,33 @@ ${unifiedContext}`;
         return res.status(400).json({ error: "audioData is required" });
       }
 
+      const audioBuffer = Buffer.from(audioData, "base64");
+      console.log("[voice] Received audio:", { base64Length: audioData.length, bufferSize: audioBuffer.length, mimeType });
+
+      if (audioBuffer.length < 100) {
+        return res.status(400).json({ error: "Audio data too small" });
+      }
+
       const OpenAI = (await import("openai")).default;
       const openai = new OpenAI({
         apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
         baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
       });
 
-      const audioBuffer = Buffer.from(audioData, "base64");
-      const ext = mimeType?.includes("webm") ? "webm" : mimeType?.includes("mp4") ? "mp4" : "webm";
+      const ext = mimeType?.includes("webm") ? "webm" : mimeType?.includes("mp4") ? "mp4" : mimeType?.includes("ogg") ? "ogg" : "webm";
       const { toFile } = await import("openai");
       const file = await toFile(audioBuffer, `audio.${ext}`, { type: mimeType || "audio/webm" });
 
+      console.log("[voice] Sending to transcription API with model gpt-4o-mini-transcribe...");
       const transcription = await openai.audio.transcriptions.create({
         file,
         model: "gpt-4o-mini-transcribe",
       });
 
+      console.log("[voice] Transcription result:", transcription.text?.substring(0, 100));
       res.json({ text: transcription.text });
     } catch (error: any) {
-      console.error("Transcription error:", error);
+      console.error("[voice] Transcription error:", error?.message || error);
       res.status(500).json({ error: error.message || "Transcription failed" });
     }
   });

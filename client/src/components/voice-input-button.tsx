@@ -253,95 +253,175 @@ export function VoiceInputButton({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const stoppingRef = useRef(false);
+
+  const processRecording = useCallback(async (chunks: Blob[], mimeType: string) => {
+    const blob = new Blob(chunks, { type: mimeType });
+    console.log("[Voice] Processing recording:", { chunkCount: chunks.length, blobSize: blob.size, mimeType });
+
+    if (blob.size < 100) {
+      console.error("[Voice] Blob too small:", blob.size, "bytes from", chunks.length, "chunks");
+      toast.error("Recording too short, try again");
+      setIsRecording(false);
+      return;
+    }
+
+    setIsTranscribing(true);
+    setIsRecording(false);
+
+    try {
+      const arrayBuffer = await blob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < uint8Array.length; i++) {
+        binary += String.fromCharCode(uint8Array[i]);
+      }
+      const base64 = btoa(binary);
+      console.log("[Voice] Base64 size:", base64.length, "chars");
+
+      const res = await fetch("/api/voice/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ audioData: base64, mimeType }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Transcription failed" }));
+        throw new Error(err.error || "Transcription failed");
+      }
+
+      const data = await res.json();
+      const text = data.text?.trim();
+      console.log("[Voice] Transcription result:", text ? text.substring(0, 50) + "..." : "(empty)");
+
+      if (text) {
+        onTranscript(text);
+      } else {
+        toast.error("Could not understand the audio, try again");
+      }
+    } catch (err: any) {
+      console.error("[Voice] Transcription error:", err);
+      toast.error(err.message || "Voice transcription failed");
+    } finally {
+      setIsTranscribing(false);
+    }
+  }, [onTranscript]);
 
   const startRecording = useCallback(async () => {
+    if (stoppingRef.current) return;
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 16000,
+        },
+      });
+      streamRef.current = stream;
 
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/webm")
-          ? "audio/webm"
-          : "audio/mp4";
+      const supportedTypes = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+        "audio/ogg;codecs=opus",
+        "audio/ogg",
+      ];
+      let mimeType = "";
+      for (const type of supportedTypes) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          mimeType = type;
+          break;
+        }
+      }
+      if (!mimeType) {
+        mimeType = "audio/webm";
+      }
+      console.log("[Voice] Using MIME type:", mimeType);
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType,
+        audioBitsPerSecond: 128000,
+      });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
+      stoppingRef.current = false;
 
       mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: mimeType });
-
-        if (blob.size < 100) {
-          toast.error("Recording too short, try again");
-          return;
-        }
-
-        setIsTranscribing(true);
-        try {
-          const reader = new FileReader();
-          const base64 = await new Promise<string>((resolve, reject) => {
-            reader.onloadend = () => {
-              const result = reader.result as string;
-              resolve(result.split(",")[1]);
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-
-          const res = await fetch("/api/voice/transcribe", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ audioData: base64, mimeType }),
-          });
-
-          if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error || "Transcription failed");
-          }
-
-          const { text } = await res.json();
-          if (text?.trim()) {
-            onTranscript(text.trim());
-          } else {
-            toast.error("Could not understand the audio, try again");
-          }
-        } catch (err: any) {
-          console.error("Transcription error:", err);
-          toast.error(err.message || "Voice transcription failed");
-        } finally {
-          setIsTranscribing(false);
+        console.log("[Voice] Data chunk received:", e.data.size, "bytes");
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
         }
       };
 
-      mediaRecorder.start(250);
+      mediaRecorder.onstop = () => {
+        console.log("[Voice] MediaRecorder stopped. Total chunks:", chunksRef.current.length);
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((t) => t.stop());
+          streamRef.current = null;
+        }
+
+        const chunks = [...chunksRef.current];
+        const mt = mimeType;
+        processRecording(chunks, mt);
+      };
+
+      mediaRecorder.onerror = (e: any) => {
+        console.error("[Voice] MediaRecorder error:", e.error || e);
+        toast.error("Recording error occurred");
+        setIsRecording(false);
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((t) => t.stop());
+          streamRef.current = null;
+        }
+      };
+
+      mediaRecorder.start(500);
       setIsRecording(true);
+      console.log("[Voice] Recording started");
     } catch (err: any) {
-      console.error("Microphone error:", err);
+      console.error("[Voice] Microphone error:", err);
       if (err.name === "NotAllowedError") {
         toast.error("Microphone access denied. Please allow microphone access in your browser settings.");
       } else {
         toast.error("Could not access microphone");
       }
     }
-  }, [onTranscript]);
+  }, [processRecording]);
 
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
+    if (stoppingRef.current) return;
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state !== "recording") return;
+
+    stoppingRef.current = true;
+    console.log("[Voice] Stopping recording...");
+
+    try {
+      recorder.requestData();
+    } catch (e) {
+      console.warn("[Voice] requestData failed (harmless):", e);
     }
+
+    setTimeout(() => {
+      try {
+        if (recorder.state === "recording") {
+          recorder.stop();
+        }
+      } catch (e) {
+        console.error("[Voice] stop() failed:", e);
+        setIsRecording(false);
+        stoppingRef.current = false;
+      }
+    }, 100);
   }, []);
 
   const handleClick = () => {
     if (isRecording) {
       stopRecording();
-    } else {
+    } else if (!isTranscribing) {
       startRecording();
     }
   };
