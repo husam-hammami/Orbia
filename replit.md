@@ -133,6 +133,22 @@ const parsed = JSON.parse(clean);
 - Toast notifications on all user-triggered mutations (create, update, delete).
 - Mobile-first responsive design with tab-based fallback.
 
+### Mobile App (Android / Capacitor)
+- **Architecture**: Capacitor WebView wrapper loading the deployed Orbia web app at `myorbia.com`. Not a native rebuild — the web app IS the app.
+- **Package**: `com.orbia.app`, Capacitor 8, targets SDK 35, min SDK 23.
+- **Plugins**: SplashScreen (dark theme, immersive), StatusBar (dark), LocalNotifications, Haptics, App.
+- **Watch Communication**: `OrbitMessageService` (WearableListenerService) receives `/open-orbit` messages from the watch and deep-links into the Orbit page. Capability declared as `open_orbit` in `res/values/wear.xml`.
+- **Deep Links**: Handles `https://myorbia.com/orbit` intent filter to open directly to Orbit chat.
+- **Files**: `android/app/`, `capacitor.config.ts`.
+
+### Wear OS Watch App
+- **Purpose**: Single-screen companion app — Orbia orb logo button that activates Orbit on the phone.
+- **Package**: `com.orbia.wear`, min SDK 30 (Wear OS 3+), standalone=false (requires phone app).
+- **UI**: Centered orb vector graphic with animated pulse rings (3 concentric rings, staggered fade/scale). "O R B I T" label below. Status text shows connection state.
+- **Interaction**: Tap orb → haptic feedback → activation burst animation → sends Wearable MessageClient message to phone → phone opens Orbit. Fallback: if phone not connected, opens `myorbia.com/orbit` in watch browser.
+- **Colors**: Matches Orbia DNA — `#0f0f1a` background, `#e879f9` glow, `#818cf8` indigo, `#a78bfa` violet.
+- **Files**: `android/wear/`.
+
 ## External Dependencies
 
 - **Database**: PostgreSQL (via `DATABASE_URL`), `connect-pg-simple` for session storage.

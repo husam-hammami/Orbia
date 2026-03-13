@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Orbia</string>
+    <string name="orbit_label">O R B I T</string>
+    <string name="orb_description">Tap to activate Orbit</string>
+    <string name="status_connecting">Connecting...</string>
+    <string name="status_connected">Phone connected</string>
+    <string name="status_disconnected">Open Orbia on phone</string>
+    <string name="status_activated">Orbit activated</string>
+</resources>

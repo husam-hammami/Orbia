@@ -1,0 +1,2 @@
+-keep class com.orbia.wear.** { *; }
+-keep class com.google.android.gms.wearable.** { *; }

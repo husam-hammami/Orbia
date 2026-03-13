@@ -5,10 +5,10 @@ const config: CapacitorConfig = {
   appName: 'Orbia',
   webDir: 'dist/public',
   server: {
-    url: 'https://orbia-f.replit.app',
+    url: 'https://myorbia.com',
     cleartext: false,
     androidScheme: 'https',
-    allowNavigation: ['orbia-f.replit.app', '*.replit.app']
+    allowNavigation: ['myorbia.com', '*.replit.app']
   },
   plugins: {
     SplashScreen: {

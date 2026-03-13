@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="OrbitWatchTheme" parent="@android:style/Theme.DeviceDefault">
+        <item name="android:windowBackground">@color/orbia_bg</item>
+        <item name="android:colorPrimary">@color/orbia_indigo</item>
+        <item name="android:colorAccent">@color/orbia_glow</item>
+        <item name="android:textColorPrimary">@color/orbia_text</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>

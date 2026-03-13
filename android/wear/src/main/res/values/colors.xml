@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="orbia_bg">#0f0f1a</color>
+    <color name="orbia_surface">#1a1a2e</color>
+    <color name="orbia_glow">#e879f9</color>
+    <color name="orbia_indigo">#818cf8</color>
+    <color name="orbia_violet">#a78bfa</color>
+    <color name="orbia_text">#e2e8f0</color>
+    <color name="orbia_muted">#64748b</color>
+    <color name="orbia_ring">#88e879f9</color>
+    <color name="ic_launcher_background">#0f0f1a</color>
+</resources>
