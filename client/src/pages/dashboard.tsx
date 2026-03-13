@@ -242,7 +242,7 @@ export default function Dashboard() {
               <div className="flex items-center gap-3 mt-2">
                 <p className="text-muted-foreground">Wellness score</p>
                 <div className="flex items-center gap-2">
-                  <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div className="w-24 h-2 bg-border rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${wellnessScore}%` }}
@@ -333,7 +333,7 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3">
                   <div className="relative w-12 h-12">
                     <svg className="w-12 h-12 -rotate-90">
-                      <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="none" className="text-slate-200" />
+                      <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="none" className="text-border" />
                       <circle cx="24" cy="24" r="20" stroke="url(#gradient)" strokeWidth="4" fill="none"
                         strokeDasharray={`${insights.habits.completionRate7Day * 1.256} 125.6`} strokeLinecap="round" />
                       <defs>

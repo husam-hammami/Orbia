@@ -393,7 +393,7 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                   <motion.span 
                     className={cn(
                       "font-display text-lg font-bold tracking-[0.3em] uppercase",
-                      isDark ? "text-white" : "text-slate-800"
+                      isDark ? "text-white" : "text-foreground"
                     )}
                     animate={{ 
                       textShadow: isDark 

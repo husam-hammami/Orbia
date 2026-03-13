@@ -157,7 +157,7 @@ function RingGauge({ value, max = 100, label, size = 80 }: { value: number; max?
             r="35"
             fill="none"
             strokeWidth="4"
-            className="stroke-slate-200"
+            className="stroke-border"
           />
           <motion.circle
             cx="40"
@@ -175,7 +175,7 @@ function RingGauge({ value, max = 100, label, size = 80 }: { value: number; max?
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-mono font-bold text-slate-900">{value}%</span>
+          <span className="text-xl font-mono font-bold text-foreground">{value}%</span>
         </div>
       </div>
       <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider mt-2">{label}</span>
@@ -191,7 +191,7 @@ function GlassCard({ children, className, glow = false, glowColor = "cyan" }: {
 }) {
   return (
     <div className={cn(
-      "bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-lg",
+      "bg-card/80 backdrop-blur-xl border border-border/60 rounded-2xl shadow-lg",
       className
     )}>
       {children}
@@ -203,17 +203,17 @@ function SkeletonCard() {
   return (
     <GlassCard className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <Skeleton className="h-5 w-24 bg-slate-200" />
-        <Skeleton className="h-5 w-20 bg-slate-200" />
+        <Skeleton className="h-5 w-24 bg-muted" />
+        <Skeleton className="h-5 w-20 bg-muted" />
       </div>
       <div className="space-y-3">
-        <Skeleton className="h-4 w-full bg-slate-200" />
-        <Skeleton className="h-4 w-3/4 bg-slate-200" />
-        <Skeleton className="h-4 w-1/2 bg-slate-200" />
+        <Skeleton className="h-4 w-full bg-muted" />
+        <Skeleton className="h-4 w-3/4 bg-muted" />
+        <Skeleton className="h-4 w-1/2 bg-muted" />
       </div>
       <div className="flex gap-4">
-        <Skeleton className="h-20 w-20 rounded-full bg-slate-200" />
-        <Skeleton className="h-20 w-20 rounded-full bg-slate-200" />
+        <Skeleton className="h-20 w-20 rounded-full bg-muted" />
+        <Skeleton className="h-20 w-20 rounded-full bg-muted" />
       </div>
     </GlassCard>
   );
@@ -222,10 +222,10 @@ function SkeletonCard() {
 function EmptyState({ icon: Icon, title, description }: { icon: any; title: string; description: string }) {
   return (
     <div className="py-16 text-center">
-      <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center">
-        <Icon className="w-8 h-8 text-slate-400" />
+      <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted flex items-center justify-center">
+        <Icon className="w-8 h-8 text-muted-foreground" />
       </div>
-      <p className="text-slate-700 font-medium">{title}</p>
+      <p className="text-foreground font-medium">{title}</p>
       <p className="text-muted-foreground text-sm mt-1 max-w-xs mx-auto">{description}</p>
     </div>
   );
@@ -278,10 +278,10 @@ function AIInsightDisplay({ content }: { content: string }) {
     };
     return { 
       icon: Brain, 
-      bg: "bg-slate-50/60",
-      border: "border-slate-200/60",
-      iconBg: "bg-slate-100",
-      iconColor: "text-slate-500"
+      bg: "bg-muted/60",
+      border: "border-border/60",
+      iconBg: "bg-muted",
+      iconColor: "text-muted-foreground"
     };
   };
 
@@ -297,9 +297,9 @@ function AIInsightDisplay({ content }: { content: string }) {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.15 }}
-                className="px-3 py-1.5 rounded-lg bg-white border border-[#E5DCCB] shadow-sm"
+                className="px-3 py-1.5 rounded-lg bg-card border border-[#E5DCCB] dark:border-border shadow-sm"
               >
-                <span className="text-sm font-medium text-slate-700">{step.replace(/[\[\]]/g, '')}</span>
+                <span className="text-sm font-medium text-foreground">{step.replace(/[\[\]]/g, '')}</span>
               </motion.div>
               {i < steps.length - 1 && (
                 <motion.div
@@ -340,7 +340,7 @@ function AIInsightDisplay({ content }: { content: string }) {
             </div>
             <div>
               <span className="text-xs font-semibold text-[#4D7A63] uppercase">Do</span>
-              <p className="text-sm text-slate-700 mt-0.5">{item.replace(/^[•\-]\s*Do:\s*/i, '')}</p>
+              <p className="text-sm text-foreground mt-0.5">{item.replace(/^[•\-]\s*Do:\s*/i, '')}</p>
             </div>
           </motion.div>
         ))}
@@ -357,7 +357,7 @@ function AIInsightDisplay({ content }: { content: string }) {
             </div>
             <div>
               <span className="text-xs font-semibold text-[#8F6264] uppercase">Avoid</span>
-              <p className="text-sm text-slate-700 mt-0.5">{item.replace(/^[•\-]\s*Avoid:\s*/i, '')}</p>
+              <p className="text-sm text-foreground mt-0.5">{item.replace(/^[•\-]\s*Avoid:\s*/i, '')}</p>
             </div>
           </motion.div>
         ))}
@@ -390,7 +390,7 @@ function AIInsightDisplay({ content }: { content: string }) {
               <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", config.iconBg)}>
                 <Icon className={cn("w-4 h-4", config.iconColor)} />
               </div>
-              <h3 className="text-sm font-semibold text-slate-700">{section.title}</h3>
+              <h3 className="text-sm font-semibold text-foreground">{section.title}</h3>
             </div>
             
             {isPattern && renderPatternFlow(section.content)}
@@ -404,10 +404,10 @@ function AIInsightDisplay({ content }: { content: string }) {
                   
                   if (trimmed.toLowerCase().includes('confidence:')) {
                     const conf = trimmed.includes('High') ? 'High' : trimmed.includes('Medium') ? 'Medium' : 'Low';
-                    const confColor = conf === 'High' ? 'bg-[#E5F2EB] text-[#4D7A63] border-[#C4E1D1]' : conf === 'Medium' ? 'bg-[#F7F3EF] text-[#8B6A45] border-[#E1D7C7]' : 'bg-slate-100 text-slate-600 border-slate-200';
+                    const confColor = conf === 'High' ? 'bg-[#E5F2EB] text-[#4D7A63] border-[#C4E1D1]' : conf === 'Medium' ? 'bg-[#F7F3EF] text-[#8B6A45] border-[#E1D7C7]' : 'bg-muted text-muted-foreground border-border';
                     return (
                       <div key={i} className="flex items-center gap-2">
-                        <span className="text-sm text-slate-600">Confidence:</span>
+                        <span className="text-sm text-muted-foreground">Confidence:</span>
                         <Badge className={cn("text-xs", confColor)}>{conf}</Badge>
                       </div>
                     );
@@ -416,13 +416,13 @@ function AIInsightDisplay({ content }: { content: string }) {
                   if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
                     return (
                       <div key={i} className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0" />
-                        <span className="text-sm text-slate-600">{trimmed.replace(/^[•\-]\s*/, '')}</span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground mt-2 flex-shrink-0" />
+                        <span className="text-sm text-muted-foreground">{trimmed.replace(/^[•\-]\s*/, '')}</span>
                       </div>
                     );
                   }
                   
-                  return <p key={i} className="text-sm text-slate-600">{trimmed}</p>;
+                  return <p key={i} className="text-sm text-muted-foreground">{trimmed}</p>;
                 })}
               </div>
             )}
@@ -432,7 +432,7 @@ function AIInsightDisplay({ content }: { content: string }) {
                 {section.content.split('\n').map((line, i) => {
                   const trimmed = line.trim();
                   if (!trimmed) return null;
-                  return <p key={i} className="text-sm text-slate-600">{trimmed.replace(/^[•\-]\s*/, '')}</p>;
+                  return <p key={i} className="text-sm text-muted-foreground">{trimmed.replace(/^[•\-]\s*/, '')}</p>;
                 })}
               </div>
             )}
@@ -579,7 +579,7 @@ export default function DeepMind() {
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-6"
+          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border pb-6"
         >
           <div>
             <div className="flex items-center gap-3 mb-1">
@@ -597,31 +597,31 @@ export default function DeepMind() {
         </motion.div>
 
         <Tabs defaultValue="now" value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="bg-white/90 backdrop-blur-xl border border-slate-200/60 p-1.5 rounded-xl shadow-sm">
+          <TabsList className="bg-card/90 backdrop-blur-xl border border-border/60 p-1.5 rounded-xl shadow-sm">
             <TabsTrigger 
               value="now" 
-              className="gap-2 data-[state=active]:bg-slate-100 data-[state=active]:text-teal-600 data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all" 
+              className="gap-2 data-[state=active]:bg-muted data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all" 
               data-testid="tab-now"
             >
               <Zap className="w-4 h-4" /> Now
             </TabsTrigger>
             <TabsTrigger 
               value="loops" 
-              className="gap-2 data-[state=active]:bg-slate-100 data-[state=active]:text-teal-600 data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all" 
+              className="gap-2 data-[state=active]:bg-muted data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all" 
               data-testid="tab-loops"
             >
               <RefreshCw className="w-4 h-4" /> Your 3 Loops
             </TabsTrigger>
             <TabsTrigger 
               value="visuals" 
-              className="gap-2 data-[state=active]:bg-slate-100 data-[state=active]:text-teal-600 data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all" 
+              className="gap-2 data-[state=active]:bg-muted data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all" 
               data-testid="tab-visuals"
             >
               <BarChart2 className="w-4 h-4" /> Visualizations
             </TabsTrigger>
             <TabsTrigger 
               value="analysis" 
-              className="gap-2 data-[state=active]:bg-slate-100 data-[state=active]:text-teal-600 data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all" 
+              className="gap-2 data-[state=active]:bg-muted data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all" 
               data-testid="tab-analysis"
             >
               <Sparkles className="w-4 h-4" /> AI Analysis
@@ -661,7 +661,7 @@ export default function DeepMind() {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-5 relative">
-                      <div className="flex items-center justify-between py-3 px-4 bg-slate-50 rounded-xl border border-slate-200">
+                      <div className="flex items-center justify-between py-3 px-4 bg-muted/50 rounded-xl border border-border">
                         <span className="text-sm text-muted-foreground">Current Driver</span>
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center">
@@ -671,7 +671,7 @@ export default function DeepMind() {
                         </div>
                       </div>
                       
-                      <div className="flex items-center justify-between py-3 px-4 bg-slate-50 rounded-xl border border-slate-200">
+                      <div className="flex items-center justify-between py-3 px-4 bg-muted/50 rounded-xl border border-border">
                         <span className="text-sm text-muted-foreground">Active State</span>
                         <div className="flex items-center gap-3">
                           <span className="text-sm font-bold text-foreground">{nowData.state}</span>
@@ -721,7 +721,7 @@ export default function DeepMind() {
                           </div>
                           <div className="flex-1">
                             <span className="text-xs uppercase font-bold text-[#4D7A63] tracking-wider">Do This</span>
-                            <p className="text-sm text-slate-700 mt-1.5 leading-relaxed">{nowData.suggestion.do}</p>
+                            <p className="text-sm text-foreground mt-1.5 leading-relaxed">{nowData.suggestion.do}</p>
                           </div>
                         </div>
                       </div>
@@ -733,7 +733,7 @@ export default function DeepMind() {
                           </div>
                           <div className="flex-1">
                             <span className="text-xs uppercase font-bold text-[#8F6264] tracking-wider">Avoid (Next 12-24h)</span>
-                            <p className="text-sm text-slate-700 mt-1.5 leading-relaxed">{nowData.suggestion.avoid}</p>
+                            <p className="text-sm text-foreground mt-1.5 leading-relaxed">{nowData.suggestion.avoid}</p>
                           </div>
                         </div>
                       </div>
@@ -796,16 +796,16 @@ export default function DeepMind() {
                         {loopsData.triggers.length > 0 ? (
                           <ul className="space-y-3">
                             {loopsData.triggers.map((trigger, i) => (
-                              <li key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                              <li key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-xl border border-border">
                                 <div className="flex items-center gap-3">
                                   <span className="w-6 h-6 rounded-lg bg-[#F3E8E8] flex items-center justify-center text-[11px] font-bold text-[#8F6264] border border-[#E2CBCD]">
                                     {i + 1}
                                   </span>
-                                  <span className="text-sm font-medium text-slate-700">{trigger.name}</span>
+                                  <span className="text-sm font-medium text-foreground">{trigger.name}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <span className="text-xs text-muted-foreground font-mono">{trigger.count}×</span>
-                                  <Badge variant="outline" className="text-[9px] bg-slate-100 text-slate-600 border-slate-300 px-1.5">
+                                  <Badge variant="outline" className="text-[9px] bg-muted text-muted-foreground border-border px-1.5">
                                     {trigger.recency === 0 ? "today" : `${trigger.recency}d`}
                                   </Badge>
                                 </div>
@@ -843,12 +843,12 @@ export default function DeepMind() {
                         {loopsData.stabilizers.length > 0 ? (
                           <ul className="space-y-3">
                             {loopsData.stabilizers.map((stabilizer, i) => (
-                              <li key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                              <li key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-xl border border-border">
                                 <div className="flex items-center gap-3">
                                   <span className="w-6 h-6 rounded-lg bg-[#E5F2EB] flex items-center justify-center text-[11px] font-bold text-[#4D7A63] border border-[#C4E1D1]">
                                     {i + 1}
                                   </span>
-                                  <span className="text-sm font-medium text-slate-700">{stabilizer.name}</span>
+                                  <span className="text-sm font-medium text-foreground">{stabilizer.name}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <span className="text-xs text-muted-foreground font-mono">{stabilizer.count}×</span>
@@ -860,7 +860,7 @@ export default function DeepMind() {
                                         ? "bg-[#E5F2EB] text-[#4D7A63] border-[#C4E1D1]" 
                                         : stabilizer.effect === "Moderate"
                                         ? "bg-[#F2F5F9] text-[#4F6E8F] border-[#D4DEE8]"
-                                        : "bg-slate-100 text-slate-600 border-slate-300"
+                                        : "bg-muted text-muted-foreground border-border"
                                     )}
                                   >
                                     {stabilizer.effect}
@@ -900,12 +900,12 @@ export default function DeepMind() {
                         {loopsData.crashLoops.length > 0 ? (
                           <ul className="space-y-4">
                             {loopsData.crashLoops.map((loop, i) => (
-                              <li key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                              <li key={i} className="p-3 bg-muted/50 rounded-xl border border-border space-y-2">
                                 <div className="flex items-start gap-3">
                                   <span className="w-6 h-6 rounded-lg bg-[#F7F3EF] flex items-center justify-center text-[11px] font-bold text-[#8B6A45] border border-[#E1D7C7] shrink-0">
                                     {i + 1}
                                   </span>
-                                  <span className="text-sm font-mono text-slate-700">{loop.pattern}</span>
+                                  <span className="text-sm font-mono text-foreground">{loop.pattern}</span>
                                 </div>
                                 <div className="flex items-center justify-between pl-9">
                                   <span className="text-xs text-muted-foreground">
@@ -977,7 +977,7 @@ export default function DeepMind() {
                         </div>
                         <ConfidenceBadge confidence={visualsData.sleepImpact.confidence} sampleSize={visualsData.sleepImpact.sampleSize} />
                       </div>
-                      <div className="flex gap-1 mt-4 p-1 bg-slate-100 rounded-xl border border-slate-200 w-fit">
+                      <div className="flex gap-1 mt-4 p-1 bg-muted rounded-xl border border-border w-fit">
                         {(["mood", "stress", "urges"] as const).map((metric) => (
                           <button
                             key={metric}
@@ -985,8 +985,8 @@ export default function DeepMind() {
                             className={cn(
                               "px-4 py-2 text-xs font-medium rounded-lg transition-all",
                               sleepMetric === metric
-                                ? "bg-white text-teal-600 border border-slate-200 shadow-sm"
-                                : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
+                                ? "bg-card text-primary border border-border shadow-sm"
+                                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
                             )}
                             data-testid={`toggle-${metric}`}
                           >
@@ -1013,29 +1013,29 @@ export default function DeepMind() {
                                 <stop offset="100%" stopColor="#ef4444" stopOpacity={0.6}/>
                               </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                             <XAxis 
                               dataKey="sleepHours" 
-                              tick={{ fill: '#64748b', fontSize: 12 }} 
-                              axisLine={{ stroke: '#cbd5e1' }}
-                              tickLine={{ stroke: '#cbd5e1' }}
-                              label={{ value: 'Hours of Sleep', position: 'bottom', fill: '#64748b', fontSize: 11, offset: -5 }}
+                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} 
+                              axisLine={{ stroke: 'hsl(var(--border))' }}
+                              tickLine={{ stroke: 'hsl(var(--border))' }}
+                              label={{ value: 'Hours of Sleep', position: 'bottom', fill: 'hsl(var(--muted-foreground))', fontSize: 11, offset: -5 }}
                             />
                             <YAxis 
-                              tick={{ fill: '#64748b', fontSize: 12 }} 
-                              axisLine={{ stroke: '#cbd5e1' }}
-                              tickLine={{ stroke: '#cbd5e1' }}
+                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} 
+                              axisLine={{ stroke: 'hsl(var(--border))' }}
+                              tickLine={{ stroke: 'hsl(var(--border))' }}
                               domain={sleepMetric === "mood" ? [0, 10] : [0, 100]}
                             />
                             <Tooltip 
                               contentStyle={{ 
-                                backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                                border: '1px solid #e2e8f0', 
+                                backgroundColor: 'hsl(var(--card))', 
+                                border: '1px solid hsl(var(--border))', 
                                 borderRadius: '12px',
                                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                               }}
-                              labelStyle={{ color: '#1e293b', fontWeight: 600, marginBottom: '4px' }}
-                              itemStyle={{ color: '#64748b' }}
+                              labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600, marginBottom: '4px' }}
+                              itemStyle={{ color: 'hsl(var(--muted-foreground))' }}
                               formatter={(value: number) => [
                                 `${value}${sleepMetric === "mood" ? "/10" : "%"}`,
                                 sleepMetric === "mood" ? "Avg Mood" : sleepMetric === "stress" ? "Avg Stress" : "Avg Stress"
@@ -1081,31 +1081,31 @@ export default function DeepMind() {
                         <>
                           <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={visualsData.driverFrequency.data} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                               <XAxis 
                                 dataKey="week" 
-                                tick={{ fill: '#64748b', fontSize: 11 }} 
-                                axisLine={{ stroke: '#cbd5e1' }}
-                                tickLine={{ stroke: '#cbd5e1' }}
+                                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} 
+                                axisLine={{ stroke: 'hsl(var(--border))' }}
+                                tickLine={{ stroke: 'hsl(var(--border))' }}
                               />
                               <YAxis 
-                                tick={{ fill: '#64748b', fontSize: 12 }} 
-                                axisLine={{ stroke: '#cbd5e1' }}
-                                tickLine={{ stroke: '#cbd5e1' }}
+                                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} 
+                                axisLine={{ stroke: 'hsl(var(--border))' }}
+                                tickLine={{ stroke: 'hsl(var(--border))' }}
                               />
                               <Tooltip 
                                 contentStyle={{ 
-                                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                                  border: '1px solid #e2e8f0', 
+                                  backgroundColor: 'hsl(var(--card))', 
+                                  border: '1px solid hsl(var(--border))', 
                                   borderRadius: '12px',
                                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                                 }}
-                                labelStyle={{ color: '#1e293b', fontWeight: 600, marginBottom: '4px' }}
+                                labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600, marginBottom: '4px' }}
                                 cursor={{ fill: 'rgba(20, 184, 166, 0.1)' }}
                               />
                               <Legend 
                                 wrapperStyle={{ paddingTop: '20px' }}
-                                formatter={(value) => <span className="text-slate-600 text-xs">{value}</span>}
+                                formatter={(value) => <span className="text-muted-foreground text-xs">{value}</span>}
                               />
                               <Bar dataKey="sleep" stackId="a" fill="#6366f1" name="Sleep" radius={[0, 0, 0, 0]} />
                               <Bar dataKey="work" stackId="a" fill="#f59e0b" name="Work" />
@@ -1115,7 +1115,7 @@ export default function DeepMind() {
                               <Bar dataKey="anxiety" stackId="a" fill="#14b8a6" name="Anxiety" radius={[4, 4, 0, 0]} />
                             </BarChart>
                           </ResponsiveContainer>
-                          <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-200">
+                          <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-border">
                             {[
                               { color: "#6366f1", label: "Sleep" },
                               { color: "#f59e0b", label: "Work" },
@@ -1126,7 +1126,7 @@ export default function DeepMind() {
                             ].map(({ color, label }) => (
                               <div key={label} className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-                                <span className="text-xs text-slate-600">{label}</span>
+                                <span className="text-xs text-muted-foreground">{label}</span>
                               </div>
                             ))}
                           </div>
@@ -1203,15 +1203,15 @@ export default function DeepMind() {
                         >
                           <Brain className="w-8 h-8 text-[#4F6E8F]" />
                         </motion.div>
-                        <p className="text-sm text-slate-600 font-medium">Analyzing your patterns...</p>
+                        <p className="text-sm text-muted-foreground font-medium">Analyzing your patterns...</p>
                         <p className="text-xs text-muted-foreground mt-1">This may take a moment</p>
                       </div>
                     ) : (
                       <div className="text-center py-16 px-6">
-                        <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-slate-100 flex items-center justify-center">
-                          <Brain className="w-7 h-7 text-slate-400" />
+                        <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-muted flex items-center justify-center">
+                          <Brain className="w-7 h-7 text-muted-foreground" />
                         </div>
-                        <p className="text-sm text-slate-600 font-medium">Ready to analyze your patterns</p>
+                        <p className="text-sm text-muted-foreground font-medium">Ready to analyze your patterns</p>
                         <p className="text-xs text-muted-foreground mt-1">Click "Analyze" to get AI-powered insights</p>
                       </div>
                     )}
