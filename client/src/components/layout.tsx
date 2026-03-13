@@ -157,9 +157,6 @@ function Sidebar({ className }: SidebarProps) {
                 "text-sm",
                 isActive ? "font-semibold" : "font-medium"
               )}>{link.label}</span>
-              {isActive && (
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white/40 rounded-l-full" />
-              )}
             </Link>
           );
         })}
