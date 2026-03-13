@@ -12,19 +12,35 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 public class WatchAuthActivity extends Activity {
 
     private static final String TAG = "WatchAuth";
-    private static final String TRUSTED_HOST = "myorbia.com";
-    private static final String LOGIN_URL = "https://" + TRUSTED_HOST + "/auth";
+
+    private static final Set<String> OAUTH_PROVIDER_HOSTS = new HashSet<>(Arrays.asList(
+            "login.microsoftonline.com",
+            "accounts.google.com",
+            "appleid.apple.com",
+            "github.com",
+            "login.live.com"
+    ));
 
     private WebView webView;
     private OrbitApiClient apiClient;
+    private String trustedHost;
+    private String loginUrl;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_watch_auth);
+
+        String baseUrl = getString(R.string.api_base_url);
+        trustedHost = Uri.parse(baseUrl).getHost();
+        loginUrl = baseUrl + "/auth";
 
         apiClient = new OrbitApiClient(this);
 
@@ -36,7 +52,7 @@ public class WatchAuthActivity extends Activity {
 
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
-        cookieManager.setAcceptThirdPartyCookies(webView, false);
+        cookieManager.setAcceptThirdPartyCookies(webView, true);
 
         webView.setWebChromeClient(new WebChromeClient());
 
@@ -44,10 +60,10 @@ public class WatchAuthActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                if (!isTrustedUrl(uri)) {
+                if (!isAllowedUrl(uri)) {
                     return true;
                 }
-                if (isPostAuthUrl(uri)) {
+                if (isOrbiaPostAuth(uri)) {
                     extractAndSaveCookie();
                 }
                 return false;
@@ -57,30 +73,37 @@ public class WatchAuthActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 Uri uri = Uri.parse(url);
-                if (isTrustedUrl(uri) && isPostAuthUrl(uri)) {
+                if (isOrbiaPostAuth(uri)) {
                     extractAndSaveCookie();
                 }
             }
         });
 
-        webView.loadUrl(LOGIN_URL);
+        webView.loadUrl(loginUrl);
     }
 
-    private boolean isTrustedUrl(Uri uri) {
+    private boolean isAllowedUrl(Uri uri) {
         if (uri == null) return false;
         String scheme = uri.getScheme();
+        if (!"https".equals(scheme)) return false;
         String host = uri.getHost();
-        return "https".equals(scheme) && TRUSTED_HOST.equals(host);
+        if (host == null) return false;
+        if (host.equals(trustedHost)) return true;
+        return OAUTH_PROVIDER_HOSTS.contains(host);
     }
 
-    private boolean isPostAuthUrl(Uri uri) {
+    private boolean isOrbiaPostAuth(Uri uri) {
+        if (uri == null) return false;
+        String host = uri.getHost();
+        if (!trustedHost.equals(host)) return false;
+        if (!"https".equals(uri.getScheme())) return false;
         String path = uri.getPath();
         return path == null || !path.startsWith("/auth");
     }
 
     private void extractAndSaveCookie() {
         CookieManager cookieManager = CookieManager.getInstance();
-        String cookies = cookieManager.getCookie("https://" + TRUSTED_HOST);
+        String cookies = cookieManager.getCookie("https://" + trustedHost);
 
         if (cookies != null && !cookies.isEmpty()) {
             String sessionCookie = null;

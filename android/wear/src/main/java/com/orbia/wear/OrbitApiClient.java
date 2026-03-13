@@ -18,11 +18,11 @@ import java.util.concurrent.Executors;
 public class OrbitApiClient {
 
     private static final String TAG = "OrbitApiClient";
-    private static final String BASE_URL = "https://myorbia.com";
     private static final String PREFS_NAME = "orbia_auth";
     private static final String KEY_SESSION_COOKIE = "session_cookie";
 
     private final Context context;
+    private final String baseUrl;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     public interface ConversationCallback {
@@ -32,6 +32,7 @@ public class OrbitApiClient {
 
     public OrbitApiClient(Context context) {
         this.context = context.getApplicationContext();
+        this.baseUrl = this.context.getString(R.string.api_base_url);
     }
 
     public void shutdown() {
@@ -62,7 +63,7 @@ public class OrbitApiClient {
         executor.execute(() -> {
             HttpURLConnection conn = null;
             try {
-                URL url = new URL(BASE_URL + "/api/voice/converse");
+                URL url = new URL(baseUrl + "/api/voice/converse");
                 conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json");

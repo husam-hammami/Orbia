@@ -19,6 +19,8 @@
     <string name="status_network_error">No connection</string>
     <string name="status_try_again">Try again</string>
 
+    <string name="api_base_url">https://myorbia.com</string>
+
     <string name="state_listening">L I S T E N I N G</string>
     <string name="state_thinking">T H I N K I N G</string>
     <string name="state_speaking">S P E A K I N G</string>
