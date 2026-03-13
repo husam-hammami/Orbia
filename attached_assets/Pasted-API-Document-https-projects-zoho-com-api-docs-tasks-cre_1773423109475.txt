@@ -1,0 +1,294 @@
+API Document: 
+https://projects.zoho.com/api-docs#tasks#create-a-task 
+ 
+Client ID : 1000.NQ65VXGCQ53SKCI63VM3ZEVIHMIJ0P 
+Client Secret : 53f967485836e71a461ae505def02ab0de3e9aa864 
+Refresh Token : 1000.27e4469506290b7f346d19d4431aa685.fc2cdc2bf1de960d60a9fdf6bb0d3e10 
+ 
+Notes: 
+Access tokens expire every 1 hour. Please use the refresh token to generate a new access token. My advice is to generate the access token when creating tasks initially, store it in a variable, and use the stored token to create all tasks. 
+ 
+1.Create Access Token: 
+
+curl --location --request POST 'https://accounts.zoho.com/oauth/v2/token?client_id=1000.NQ65VXGCQ53SKCI63VM3ZEVIHMIJ0P&client_secret=53f967485836e71a461ae505def02ab0de3e9aa864&grant_type=refresh_token&refresh_token=1000.27e4469506290b7f346d19d4431aa685.fc2cdc2bf1de960d60a9fdf6bb0d3e10' \ 
+
+--header 'Content-Type: application/x-www-form-urlencoded' \ 
+
+--header 'Cookie: JSESSIONID=F223BEF2B4849C3810A08D48559059EA; iamcsr=f85ecb73-6efd-44b9-844e-56fa15b9cb0b; zalb_b266a5bf57=eec3a75d333f4bdde33eea5371b7c1c4' 
+ 
+Sample RES: 
+
+{ 
+
+    "access_token": "1000.8c1295da176e3eb04da6bbdecaba2dca.4663d7453b39c3623826e83a385d0730", 
+
+    "scope": "ZohoProjects.projects.ALL ZohoProjects.tasks.ALL ZohoProjects.milestones.ALL", 
+
+    "api_domain": "https://www.zohoapis.com", 
+
+    "token_type": "Bearer", 
+
+    "expires_in": 3600 
+
+} 
+
+ 
+
+2.Create a Task In Projects: 
+ 
+
+curl --location 'https://projectsapi.zoho.com/api/v3/portal/905717188/projects/[PROJECTID]/tasks' \ 
+
+--header 'Authorization: Zoho-oauthtoken 1000.101fce7e7f6f56e3ec9acbbe5a5bb3d7.eeab856d9823fd805a2fb584c64fa210' \ 
+
+--header 'Content-Type: application/json' \ 
+
+--header 'Cookie: CROSSCDNCOUNTRY=IN; JSESSIONID=F117FF0C8FAE08DF5EE33D51AB8D8ED5; ZPCROSSCDNID=99a17f1a5ab5ac5d05c38a6b7d5689491ccba7c67a8b634b26f73441010e730fd5b2cfb8553e530e422437a55d8774f8; zalb_bf42f62d55=c32f58f87f582711f6bc2d8fd780aa4a; zpct=b4c7e4d5-669c-48c5-a802-578f4d74563f' \ 
+
+--data '{ 
+
+  "name": "Demo Try Admin", 
+
+  "tasklist": { 
+
+    "id": "2596023000000864168" 
+
+  }, 
+
+  "description": "Content Try", 
+
+  "priority": "medium", 
+
+  "start_date": "2026-03-13T21:00:00.000Z", 
+
+  "end_date": "2026-03-16T21:00:00.000Z", 
+
+  "duration": { 
+
+    "value": "3", 
+
+    "type": "days" 
+
+  }, 
+
+  "billing_type": "none" 
+
+}' 
+ 
+Sample RES: 
+
+{ 
+
+    "project": { 
+
+        "id": "2596023000000864003", 
+
+        "name": "Test - Project" 
+
+    }, 
+
+    "milestone": { 
+
+        "id": "2596023000000000073", 
+
+        "name": "None" 
+
+    }, 
+
+    "tasklist": { 
+
+        "id": "2596023000000864168", 
+
+        "name": "Test Task List" 
+
+    }, 
+
+    "id": "2596023000000865001", 
+
+    "prefix": "T-2-T1", 
+
+    "name": "Demo Try Admin", 
+
+    "description": "Content Try", 
+
+    "status": { 
+
+        "id": "2596023000000016068", 
+
+        "name": "Open", 
+
+        "color": "#74cb80", 
+
+        "color_hexcode": "#74cb80", 
+
+        "is_closed_type": false 
+
+    }, 
+
+    "priority": "medium", 
+
+    "owners_and_work": { 
+
+        "work_type": "standard", 
+
+        "total_work": "00:00", 
+
+        "unit": "hours", 
+
+        "copy_task_duration": false, 
+
+        "owners": [ 
+
+            { 
+
+                "zuid": 0, 
+
+                "zpuid": "2596023000000062926", 
+
+                "name": "Unassigned User", 
+
+                "email": "Unassigned User", 
+
+                "first_name": "Unassigned User", 
+
+                "last_name": "", 
+
+                "work_values": "0" 
+
+            } 
+
+        ], 
+
+        "refresh_business_hours": false 
+
+    }, 
+
+    "start_date": "2026-03-13T21:00:00.000Z", 
+
+    "end_date": "2026-03-16T21:00:00.000Z", 
+
+    "duration": { 
+
+        "value": "3", 
+
+        "type": "days" 
+
+    }, 
+
+    "completion_percentage": 0, 
+
+    "sequence": { 
+
+        "sequence": 1 
+
+    }, 
+
+    "depth": 0, 
+
+    "created_time": "2026-03-13T17:02:26.515Z", 
+
+    "last_modified_time": "2026-03-13T17:02:26.515Z", 
+
+    "is_completed": false, 
+
+    "created_via": "api", 
+
+    "created_by": { 
+
+        "zuid": 905717548, 
+
+        "zpuid": "2596023000000060003", 
+
+        "name": "Ganesh", 
+
+        "email": "g.tadi@asm.net", 
+
+        "first_name": "Ganesh", 
+
+        "last_name": "Tadi" 
+
+    }, 
+
+    "updated_by": { 
+
+        "zuid": 905717548, 
+
+        "zpuid": "2596023000000060003", 
+
+        "name": "Ganesh", 
+
+        "email": "g.tadi@asm.net", 
+
+        "first_name": "Ganesh", 
+
+        "last_name": "Tadi" 
+
+    }, 
+
+    "billing_type": "none", 
+
+    "budget_info": { 
+
+        "cost_budget_info": { 
+
+            "planned_cost": "0.000", 
+
+            "actual_cost": "0.000", 
+
+            "forecasted_cost": "0.000", 
+
+            "balance": "0.000" 
+
+        }, 
+
+        "hourly_budget_info": { 
+
+            "actual_hours": "0:00", 
+
+            "planned_hours": "0:00", 
+
+            "difference": "0:00", 
+
+            "forecasted_hours": "0:00" 
+
+        }, 
+
+        "revenue_budget_info": { 
+
+            "planned_revenue": "0.000", 
+
+            "actual_revenue": "0.000", 
+
+            "forecasted_revenue": "0.000" 
+
+        } 
+
+    }, 
+
+    "log_hours": { 
+
+        "billable_hours": "00:00", 
+
+        "non_billable_hours": "00:00", 
+
+        "total_hours": "00:00" 
+
+    }, 
+
+    "association_info": { 
+
+        "has_reminder": false, 
+
+        "has_recurrence": false, 
+
+        "has_comments": false, 
+
+        "has_attachments": false, 
+
+        "has_forums": false, 
+
+        "has_subtasks": false 
+
+    } 
+
+} 
