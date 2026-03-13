@@ -200,13 +200,13 @@ const moreNavItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-const allNavHrefs = [...primaryNavItems.filter(i => !i.isMore).map(i => i.href), ...moreNavItems.map(i => i.href)];
-
 function MobileBottomNav() {
   const [location] = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const isMoreActive = moreNavItems.some(item => location === item.href);
+  const isMoreActive = moreNavItems.some(item =>
+    location === item.href || (item.href === "/journal" && location === "/" && window.location.search.includes("tab=journal"))
+  );
 
   return (
     <>
@@ -244,7 +244,7 @@ function MobileBottomNav() {
                   <div className="grid grid-cols-3 gap-1 px-3 pb-4">
                     {moreNavItems.map((item, idx) => {
                       const Icon = item.icon;
-                      const isActive = location === item.href;
+                      const isActive = location === item.href || (item.href === "/journal" && location === "/" && window.location.search.includes("tab=journal"));
                       return (
                         <Link
                           key={item.href}
