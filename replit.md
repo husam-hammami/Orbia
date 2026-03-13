@@ -70,8 +70,9 @@ Orbia is a personal AI companion and holistic wellness/productivity app. It feat
 
 ### AI Integration
 - **Provider**: Anthropic Claude via Replit AI Integrations (claude-sonnet-4-6 primary, claude-haiku-4-5 fast) — no API key required, billed to Replit credits. OpenAI kept for image generation only. All AI routed through `server/lib/ai-client.ts` (`aiComplete`, `aiStream`, `createRawStream`, `createRawCompletion`). Anti-hallucination patterns baked into system prompts (see `buildUnifiedSystemPrompt` in `unified-context.ts`). Memory graph context injected into all chat modes via `buildUnifiedContextWithMemory`.
-- **Unified Context Layer**: `server/lib/unified-context.ts` — single `buildUnifiedContext(userId)` function assembles ALL user data (wellness, habits, tasks, calendar, Teams, emails, medical, finance, system members) into XML-tagged context blocks. Used by all 3 AI chat endpoints.
-- **Unified System Prompt**: `buildUnifiedSystemPrompt(mode)` generates mode-specific prompts ("orbit", "work", "medical") with shared cross-domain intelligence rules and privacy boundaries.
+- **Unified Context Layer**: `server/lib/unified-context.ts` — single `buildUnifiedContext(userId)` function assembles ALL user data (wellness, habits, tasks, calendar, Teams, emails, medical, finance, Zoho Projects, system members) into XML-tagged context blocks. Used by all 3 AI chat endpoints.
+- **Unified System Prompt**: `buildUnifiedSystemPrompt(mode)` generates mode-specific prompts ("orbit", "work", "medical") with shared cross-domain intelligence rules and privacy boundaries. Orbit mode has full CRUD action catalog for ALL modules.
+- **Orbit Universal Actions**: Orbit can CRUD everything — habits, todos, routines, career projects/tasks, vision, tracker, journal, meals/food, expenses/transactions, loans, income streams, medical (diagnoses, medications, priorities, timeline, network), news topics/articles, scheduled messages, and Zoho Projects tasks. Actions split between frontend JSON actions (app data) and server-side action tags (Microsoft Teams/Calendar/Email, Zoho, career projects).
 - **Endpoints**:
   - `GET /api/insights`: Structured JSON insights.
   - `POST /api/insights/analyze`: Streaming custom pattern analysis.

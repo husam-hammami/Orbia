@@ -424,6 +424,48 @@ ${visionItems.map((v: any) => `- ${v.title} (${v.timeframe}): ${v.description ||
     sections.push(visBlock);
   }
 
+  try {
+    const zohoClient = (await import("./zoho-client")).default;
+    const zohoStatus = await zohoClient.getZohoStatus();
+    if (zohoStatus.configured) {
+      const zohoProjects = await zohoClient.getProjects();
+      const projectList = zohoProjects?.projects || zohoProjects || [];
+      if (projectList.length > 0) {
+        let zohoBlock = "<ZOHO_PROJECTS>\n";
+        for (const proj of projectList.slice(0, 3)) {
+          zohoBlock += `Project: "${proj.name}" (ID: ${proj.id})\n`;
+          try {
+            const tasksData = await zohoClient.getTasks(proj.id);
+            const tasks = tasksData?.tasks || tasksData || [];
+            const open = tasks.filter((t: any) => !t.is_completed && !t.status?.is_closed_type);
+            const done = tasks.filter((t: any) => t.is_completed || t.status?.is_closed_type);
+            zohoBlock += `  Open: ${open.length}, Done: ${done.length}\n`;
+            for (const t of open.slice(0, 15)) {
+              const owner = t.owners_and_work?.owners?.find((o: any) => o.name !== "Unassigned User");
+              const overdue = t.end_date && !t.is_completed && new Date(t.end_date) < new Date();
+              zohoBlock += `  - [${t.priority || "none"}] "${t.name}" (ID: ${t.id})${owner ? ` assigned: ${owner.first_name || owner.name}` : ""}${t.end_date ? ` due: ${new Date(t.end_date).toLocaleDateString()}` : ""}${overdue ? " [OVERDUE]" : ""}${t.tasklist?.name ? ` [${t.tasklist.name}]` : ""}\n`;
+            }
+            if (open.length > 15) zohoBlock += `  ... and ${open.length - 15} more open tasks\n`;
+
+            const membersData = await zohoClient.getMembers(proj.id);
+            const members = membersData?.users || membersData || [];
+            if (members.length > 0) {
+              zohoBlock += `  Members: ${members.map((m: any) => `${m.name} (ZPUID: ${m.zpuid || m.id})`).join(", ")}\n`;
+            }
+
+            const tlData = await zohoClient.getTasklists(proj.id);
+            const tasklists = tlData?.tasklists || tlData || [];
+            if (tasklists.length > 0) {
+              zohoBlock += `  Tasklists: ${tasklists.map((tl: any) => `"${tl.name}" (ID: ${tl.id})`).join(", ")}\n`;
+            }
+          } catch {}
+        }
+        zohoBlock += "</ZOHO_PROJECTS>";
+        sections.push(zohoBlock);
+      }
+    }
+  } catch {}
+
   if (projects.length > 0) {
     const projLines = projects.map((p: any) => {
       const tasks = projectTasks.filter((t: any) => t.projectId === p.id);
@@ -643,13 +685,19 @@ CRITICAL: The memory graph makes you SMARTER, not CHATTIER. Use it to give short
 ### Complete Task
 [COMPLETE_TASK task="<exact task title>"]
 
+### Zoho Projects Actions (if ZOHO_PROJECTS context exists)
+[ZOHO_CREATE name="task name" project_id="PROJECT_ID" tasklist_id="TASKLIST_ID" priority="none/low/medium/high" end_date="YYYY-MM-DD" person="ZPUID"]
+[ZOHO_UPDATE id="TASK_ID" project_id="PROJECT_ID" name="new name" priority="high" end_date="YYYY-MM-DD" person="ZPUID"]
+[ZOHO_COMPLETE id="TASK_ID" project_id="PROJECT_ID"]
+
 ACTION RULES:
 - When asked to send/create/schedule, ALWAYS use the action tag — never just suggest
 - After each action, briefly confirm what you did
 - For scheduled/recurring messages, ALWAYS use SCHEDULE_MESSAGE
 - Match people to chatIds from TEAMS_RECENT
 - For project actions, match project/task titles exactly as they exist
-- You can create projects, add tasks, update statuses, and complete tasks directly`;
+- You can create projects, add tasks, update statuses, and complete tasks directly
+- For Zoho actions, use the task IDs and project IDs from ZOHO_PROJECTS context. Always include project_id.`;
 
   const orbitActions = `
 ## APP ACTIONS — JSON FORMAT
@@ -709,6 +757,44 @@ MEALS:
 
 TRACKER:
 - create_tracker_entry: {"mood": 1-10, "energy": 1-10, "stress": 0-100, "sleepHours": 0-24, "capacity": 0-5, "pain": 0-10, "notes": "..."}
+
+MEDICAL:
+- create_diagnosis: {"label": "...", "severity": "mild/moderate/severe", "description": "...", "onsetDate": "YYYY-MM-DD"}
+- update_diagnosis: {"diagnosis_id": "...", "label": "...", "severity": "...", "description": "..."}
+- delete_diagnosis: {"diagnosis_id": "..."} - ALWAYS set confirm:true
+- create_medication: {"name": "...", "dosage": "...", "purpose": "...", "frequency": "daily/twice daily/as needed/etc", "startDate": "YYYY-MM-DD"}
+- update_medication: {"medication_id": "...", "name": "...", "dosage": "...", "purpose": "..."}
+- delete_medication: {"medication_id": "..."} - ALWAYS set confirm:true
+- create_med_priority: {"label": "...", "description": "...", "severity": "low/medium/high/critical"}
+- update_med_priority: {"priority_id": "...", "label": "...", "description": "..."}
+- delete_med_priority: {"priority_id": "..."} - ALWAYS set confirm:true
+- create_timeline_event: {"title": "...", "date": "YYYY-MM-DD", "type": "diagnosis/procedure/test/medication/symptom/appointment", "description": "...", "provider": "..."}
+- update_timeline_event: {"event_id": "...", "title": "...", "date": "YYYY-MM-DD", "type": "...", "description": "..."}
+- delete_timeline_event: {"event_id": "..."} - ALWAYS set confirm:true
+- create_med_contact: {"name": "...", "specialty": "...", "hospital": "...", "phone": "...", "notes": "..."}
+- update_med_contact: {"contact_id": "...", "name": "...", "specialty": "...", "phone": "..."}
+- delete_med_contact: {"contact_id": "..."} - ALWAYS set confirm:true
+
+NEWS:
+- create_news_topic: {"name": "...", "isCustom": true}
+- delete_news_topic: {"topic_id": "..."} - ALWAYS set confirm:true
+- save_article: {"title": "...", "url": "...", "source": "...", "description": "..."}
+- delete_saved_article: {"article_id": "..."} - ALWAYS set confirm:true
+
+SCHEDULED MESSAGES:
+- create_scheduled_message: {"chatId": "...", "recipientName": "...", "message": "...", "timeOfDay": "HH:MM", "recurrence": "daily/weekdays"}
+- update_scheduled_message: {"message_id": "...", "message": "...", "timeOfDay": "...", "recurrence": "...", "active": true/false}
+- delete_scheduled_message: {"message_id": "..."} - ALWAYS set confirm:true
+
+INCOME STREAMS:
+- create_income_stream: {"name": "...", "amount": number, "frequency": "monthly/weekly/biweekly/annual", "category": "salary/freelance/rental/investment/other"}
+- update_income_stream: {"stream_id": "...", "name": "...", "amount": number, "isActive": 0/1}
+- delete_income_stream: {"stream_id": "..."} - ALWAYS set confirm:true
+
+LOANS:
+- create_loan: {"name": "...", "originalAmount": number, "currentBalance": number, "interestRate": number, "monthlyPayment": number, "type": "personal/mortgage/auto/student/credit/other", "lender": "...", "startDate": "YYYY-MM-DD"}
+- update_loan: {"loan_id": "...", "currentBalance": number, "monthlyPayment": number, "status": "active/paid_off"}
+- delete_loan: {"loan_id": "..."} - ALWAYS set confirm:true
 
 CONFIRMATION: set confirm:true and confirm_text for all delete actions.
 When user asks to ADD, CREATE, EDIT, UPDATE, CHANGE, DELETE, MARK, or TOGGLE something, output the action JSON. NEVER tell the user to do it manually.`;

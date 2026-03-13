@@ -3208,7 +3208,20 @@ ${JSON.stringify(context, null, 2)}`;
         { name: "add_project_task", regex: /\[ADD_TASK\s+project="([^"]+)"\s+title="([^"]+)"(?:\s+priority="([^"]*)")?(?:\s+due="([^"]*)")?\]/ },
         { name: "update_project_status", regex: /\[UPDATE_PROJECT_STATUS\s+project="([^"]+)"\s+status="([^"]+)"\]/ },
         { name: "complete_task", regex: /\[COMPLETE_TASK\s+task="([^"]+)"\]/ },
+        { name: "zoho_create", regex: /\[ZOHO_CREATE\s+([^\]]+)\]/ },
+        { name: "zoho_update", regex: /\[ZOHO_UPDATE\s+([^\]]+)\]/ },
+        { name: "zoho_complete", regex: /\[ZOHO_COMPLETE\s+([^\]]+)\]/ },
       ];
+
+      function parseZohoAttrs(str: string): Record<string, string> {
+        const attrs: Record<string, string> = {};
+        const re = /(\w+)="([^"]*)"/g;
+        let m;
+        while ((m = re.exec(str)) !== null) {
+          attrs[m[1]] = m[2];
+        }
+        return attrs;
+      }
 
       async function executeWorkActions(text: string): Promise<void> {
         const graphLib = msToken ? await import("./lib/microsoft-graph") : null;
@@ -3305,6 +3318,67 @@ ${JSON.stringify(context, null, 2)}`;
                   res.write(`data: ${JSON.stringify({ action: "task_completed", task: match[1] })}\n\n`);
                   break;
                 }
+                case "zoho_create": {
+                  const zohoClient = (await import("./lib/zoho-client")).default;
+                  const attrs = parseZohoAttrs(match[1]);
+                  if (!attrs.name || !attrs.project_id) {
+                    res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "name and project_id required for ZOHO_CREATE" })}\n\n`);
+                    break;
+                  }
+                  const payload: any = { name: attrs.name.trim() };
+                  if (attrs.tasklist_id) payload.tasklist = { id: attrs.tasklist_id };
+                  if (attrs.priority && attrs.priority !== "none") payload.priority = attrs.priority;
+                  if (attrs.end_date) payload.end_date = attrs.end_date + "T00:00:00.000Z";
+                  if (attrs.person) payload.person_responsible = attrs.person;
+                  await zohoClient.createTask(attrs.project_id, payload);
+                  res.write(`data: ${JSON.stringify({ action: "zoho_task_created", name: attrs.name })}\n\n`);
+                  break;
+                }
+                case "zoho_update": {
+                  const zohoClient = (await import("./lib/zoho-client")).default;
+                  const attrs = parseZohoAttrs(match[1]);
+                  if (!attrs.id || !attrs.project_id) {
+                    res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "id and project_id required for ZOHO_UPDATE" })}\n\n`);
+                    break;
+                  }
+                  const payload: any = {};
+                  if (attrs.name) payload.name = attrs.name;
+                  if (attrs.priority) payload.priority = attrs.priority;
+                  if (attrs.end_date) payload.end_date = attrs.end_date + "T00:00:00.000Z";
+                  if (attrs.person) payload.person_responsible = attrs.person;
+                  if (Object.keys(payload).length === 0) {
+                    res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "No fields to update" })}\n\n`);
+                    break;
+                  }
+                  await zohoClient.updateTask(attrs.project_id, attrs.id, payload);
+                  res.write(`data: ${JSON.stringify({ action: "zoho_task_updated", id: attrs.id })}\n\n`);
+                  break;
+                }
+                case "zoho_complete": {
+                  const zohoClient = (await import("./lib/zoho-client")).default;
+                  const attrs = parseZohoAttrs(match[1]);
+                  if (!attrs.id || !attrs.project_id) {
+                    res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "id and project_id required for ZOHO_COMPLETE" })}\n\n`);
+                    break;
+                  }
+                  const allZohoTasks = await zohoClient.getTasks(attrs.project_id);
+                  const zohoTasks = allZohoTasks?.tasks || allZohoTasks || [];
+                  const zohoTask = zohoTasks.find((t: any) => t.id === attrs.id);
+                  if (!zohoTask) {
+                    res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: `Zoho task ${attrs.id} not found` })}\n\n`);
+                    break;
+                  }
+                  const statuses = new Map<string, string>();
+                  zohoTasks.forEach((t: any) => { if (t.status?.id && t.status?.name) statuses.set(t.status.id, t.status.name); });
+                  const closedStatus = Array.from(statuses.entries()).find(([, n]) => n.toLowerCase().includes("close") || n.toLowerCase().includes("done") || n.toLowerCase().includes("complete"));
+                  if (!closedStatus) {
+                    res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "No closed/done status found in project" })}\n\n`);
+                    break;
+                  }
+                  await zohoClient.updateTask(attrs.project_id, attrs.id, { status: { id: closedStatus[0] } });
+                  res.write(`data: ${JSON.stringify({ action: "zoho_task_completed", id: attrs.id })}\n\n`);
+                  break;
+                }
               }
             } catch (err: any) {
               console.error(`Orbit action ${name} failed:`, err.message);
@@ -3314,7 +3388,7 @@ ${JSON.stringify(context, null, 2)}`;
         }
       }
 
-      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE|CREATE_PROJECT|ADD_TASK|UPDATE_PROJECT_STATUS|COMPLETE_TASK)\s[^\]]+\]/g;
+      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE|CREATE_PROJECT|ADD_TASK|UPDATE_PROJECT_STATUS|COMPLETE_TASK|ZOHO_CREATE|ZOHO_UPDATE|ZOHO_COMPLETE)\s[^\]]+\]/g;
       let bufferedContent = "";
       let hasActionTag = false;
 
@@ -4739,7 +4813,18 @@ ${unifiedContext}`;
         { name: "add_project_task", regex: /\[ADD_TASK\s+project="([^"]+)"\s+title="([^"]+)"(?:\s+priority="([^"]*)")?(?:\s+due="([^"]*)")?\]/ },
         { name: "update_project_status", regex: /\[UPDATE_PROJECT_STATUS\s+project="([^"]+)"\s+status="([^"]+)"\]/ },
         { name: "complete_task", regex: /\[COMPLETE_TASK\s+task="([^"]+)"\]/ },
+        { name: "zoho_create", regex: /\[ZOHO_CREATE\s+([^\]]+)\]/ },
+        { name: "zoho_update", regex: /\[ZOHO_UPDATE\s+([^\]]+)\]/ },
+        { name: "zoho_complete", regex: /\[ZOHO_COMPLETE\s+([^\]]+)\]/ },
       ];
+
+      function parseWorkZohoAttrs(str: string): Record<string, string> {
+        const attrs: Record<string, string> = {};
+        const re = /(\w+)="([^"]*)"/g;
+        let m;
+        while ((m = re.exec(str)) !== null) { attrs[m[1]] = m[2]; }
+        return attrs;
+      }
 
       async function executeActions(text: string): Promise<void> {
         const graphLib = msToken ? await import("./lib/microsoft-graph") : null;
@@ -4847,6 +4932,59 @@ ${unifiedContext}`;
                   res.write(`data: ${JSON.stringify({ action: "task_completed", task: match[1] })}\n\n`);
                   break;
                 }
+                case "zoho_create": {
+                  const zohoClient = (await import("./lib/zoho-client")).default;
+                  const attrs = parseWorkZohoAttrs(match[1]);
+                  if (!attrs.name || !attrs.project_id) {
+                    res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "name and project_id required" })}\n\n`);
+                    break;
+                  }
+                  const payload: any = { name: attrs.name.trim() };
+                  if (attrs.tasklist_id) payload.tasklist = { id: attrs.tasklist_id };
+                  if (attrs.priority && attrs.priority !== "none") payload.priority = attrs.priority;
+                  if (attrs.end_date) payload.end_date = attrs.end_date + "T00:00:00.000Z";
+                  if (attrs.person) payload.person_responsible = attrs.person;
+                  await zohoClient.createTask(attrs.project_id, payload);
+                  res.write(`data: ${JSON.stringify({ action: "zoho_task_created", name: attrs.name })}\n\n`);
+                  break;
+                }
+                case "zoho_update": {
+                  const zohoClient = (await import("./lib/zoho-client")).default;
+                  const attrs = parseWorkZohoAttrs(match[1]);
+                  if (!attrs.id || !attrs.project_id) {
+                    res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "id and project_id required" })}\n\n`);
+                    break;
+                  }
+                  const payload: any = {};
+                  if (attrs.name) payload.name = attrs.name;
+                  if (attrs.priority) payload.priority = attrs.priority;
+                  if (attrs.end_date) payload.end_date = attrs.end_date + "T00:00:00.000Z";
+                  if (attrs.person) payload.person_responsible = attrs.person;
+                  if (Object.keys(payload).length === 0) break;
+                  await zohoClient.updateTask(attrs.project_id, attrs.id, payload);
+                  res.write(`data: ${JSON.stringify({ action: "zoho_task_updated", id: attrs.id })}\n\n`);
+                  break;
+                }
+                case "zoho_complete": {
+                  const zohoClient = (await import("./lib/zoho-client")).default;
+                  const attrs = parseWorkZohoAttrs(match[1]);
+                  if (!attrs.id || !attrs.project_id) {
+                    res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "id and project_id required" })}\n\n`);
+                    break;
+                  }
+                  const allZohoTasks = await zohoClient.getTasks(attrs.project_id);
+                  const zohoTasks = allZohoTasks?.tasks || allZohoTasks || [];
+                  const statuses = new Map<string, string>();
+                  zohoTasks.forEach((t: any) => { if (t.status?.id && t.status?.name) statuses.set(t.status.id, t.status.name); });
+                  const closedStatus = Array.from(statuses.entries()).find(([, n]) => n.toLowerCase().includes("close") || n.toLowerCase().includes("done") || n.toLowerCase().includes("complete"));
+                  if (!closedStatus) {
+                    res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "No closed status found" })}\n\n`);
+                    break;
+                  }
+                  await zohoClient.updateTask(attrs.project_id, attrs.id, { status: { id: closedStatus[0] } });
+                  res.write(`data: ${JSON.stringify({ action: "zoho_task_completed", id: attrs.id })}\n\n`);
+                  break;
+                }
               }
             } catch (err: any) {
               console.error(`Action ${name} failed:`, err.message);
@@ -4856,7 +4994,7 @@ ${unifiedContext}`;
         }
       }
 
-      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE|CREATE_PROJECT|ADD_TASK|UPDATE_PROJECT_STATUS|COMPLETE_TASK)\s[^\]]+\]/g;
+      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE|CREATE_PROJECT|ADD_TASK|UPDATE_PROJECT_STATUS|COMPLETE_TASK|ZOHO_CREATE|ZOHO_UPDATE|ZOHO_COMPLETE)\s[^\]]+\]/g;
       let bufferedContent = "";
       let hasActionTag = false;
 

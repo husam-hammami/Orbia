@@ -818,6 +818,344 @@ export default function OrbitPage() {
           return { success: true, message: `Work action noted: ${action.args.details || action.args.type}` };
         }
 
+        // MEDICAL DIAGNOSES
+        case "create_diagnosis": {
+          const { label, severity, description, onsetDate } = action.args;
+          const resp = await fetch("/api/medical/diagnoses", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ label, severity: severity || "moderate", description: description || "", onsetDate: onsetDate || null }),
+          });
+          if (!resp.ok) throw new Error("Failed to create diagnosis");
+          queryClient.invalidateQueries({ queryKey: ["/api/medical/diagnoses"] });
+          return { success: true, message: `Added diagnosis: "${label}"` };
+        }
+        case "update_diagnosis": {
+          const { diagnosis_id, ...diagUpdates } = action.args;
+          const resp = await fetch(`/api/medical/diagnoses/${diagnosis_id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(diagUpdates),
+          });
+          if (!resp.ok) throw new Error("Failed to update diagnosis");
+          queryClient.invalidateQueries({ queryKey: ["/api/medical/diagnoses"] });
+          return { success: true, message: `Updated diagnosis` };
+        }
+        case "delete_diagnosis": {
+          const resp = await fetch(`/api/medical/diagnoses/${action.args.diagnosis_id}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+          if (!resp.ok) throw new Error("Failed to delete diagnosis");
+          queryClient.invalidateQueries({ queryKey: ["/api/medical/diagnoses"] });
+          return { success: true, message: `Deleted diagnosis` };
+        }
+
+        // MEDICAL MEDICATIONS
+        case "create_medication": {
+          const { name: medName, dosage, purpose, frequency, startDate } = action.args;
+          const resp = await fetch("/api/medical/medications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ name: medName, dosage: dosage || "", purpose: purpose || "", frequency: frequency || "daily", startDate: startDate || null }),
+          });
+          if (!resp.ok) throw new Error("Failed to create medication");
+          queryClient.invalidateQueries({ queryKey: ["/api/medical/medications"] });
+          return { success: true, message: `Added medication: "${medName}"` };
+        }
+        case "update_medication": {
+          const { medication_id, ...medUpdates } = action.args;
+          const resp = await fetch(`/api/medical/medications/${medication_id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(medUpdates),
+          });
+          if (!resp.ok) throw new Error("Failed to update medication");
+          queryClient.invalidateQueries({ queryKey: ["/api/medical/medications"] });
+          return { success: true, message: `Updated medication` };
+        }
+        case "delete_medication": {
+          const resp = await fetch(`/api/medical/medications/${action.args.medication_id}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+          if (!resp.ok) throw new Error("Failed to delete medication");
+          queryClient.invalidateQueries({ queryKey: ["/api/medical/medications"] });
+          return { success: true, message: `Deleted medication` };
+        }
+
+        // MEDICAL PRIORITIES
+        case "create_med_priority": {
+          const { label: prioLabel, description: prioDesc, severity: prioSev } = action.args;
+          const resp = await fetch("/api/medical/priorities", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ label: prioLabel, description: prioDesc || "", severity: prioSev || "medium" }),
+          });
+          if (!resp.ok) throw new Error("Failed to create priority");
+          queryClient.invalidateQueries({ queryKey: ["/api/medical/priorities"] });
+          return { success: true, message: `Added medical priority: "${prioLabel}"` };
+        }
+        case "update_med_priority": {
+          const { priority_id, ...prioUpdates } = action.args;
+          const resp = await fetch(`/api/medical/priorities/${priority_id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(prioUpdates),
+          });
+          if (!resp.ok) throw new Error("Failed to update priority");
+          queryClient.invalidateQueries({ queryKey: ["/api/medical/priorities"] });
+          return { success: true, message: `Updated medical priority` };
+        }
+        case "delete_med_priority": {
+          const resp = await fetch(`/api/medical/priorities/${action.args.priority_id}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+          if (!resp.ok) throw new Error("Failed to delete priority");
+          queryClient.invalidateQueries({ queryKey: ["/api/medical/priorities"] });
+          return { success: true, message: `Deleted medical priority` };
+        }
+
+        // MEDICAL TIMELINE EVENTS
+        case "create_timeline_event": {
+          const { title: tlTitle, date: tlDate, type: tlType, description: tlDesc, provider } = action.args;
+          const resp = await fetch("/api/medical/timeline-events", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ title: tlTitle, eventDate: tlDate, eventType: tlType || "appointment", description: tlDesc || "", provider: provider || null }),
+          });
+          if (!resp.ok) throw new Error("Failed to create timeline event");
+          queryClient.invalidateQueries({ queryKey: ["/api/medical/timeline-events"] });
+          return { success: true, message: `Added timeline event: "${tlTitle}"` };
+        }
+        case "update_timeline_event": {
+          const { event_id: tlEvtId, ...tlEvtUpdates } = action.args;
+          const resp = await fetch(`/api/medical/timeline-events/${tlEvtId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(tlEvtUpdates),
+          });
+          if (!resp.ok) throw new Error("Failed to update timeline event");
+          queryClient.invalidateQueries({ queryKey: ["/api/medical/timeline-events"] });
+          return { success: true, message: `Updated timeline event` };
+        }
+        case "delete_timeline_event": {
+          const resp = await fetch(`/api/medical/timeline-events/${action.args.event_id}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+          if (!resp.ok) throw new Error("Failed to delete timeline event");
+          queryClient.invalidateQueries({ queryKey: ["/api/medical/timeline-events"] });
+          return { success: true, message: `Deleted timeline event` };
+        }
+
+        // MEDICAL NETWORK (DOCTORS)
+        case "create_med_contact": {
+          const { name: docName, specialty, hospital, phone, notes: docNotes } = action.args;
+          const resp = await fetch("/api/medical/medical-network", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ name: docName, specialty: specialty || "", hospital: hospital || "", phone: phone || "", notes: docNotes || "" }),
+          });
+          if (!resp.ok) throw new Error("Failed to add contact");
+          queryClient.invalidateQueries({ queryKey: ["/api/medical/medical-network"] });
+          return { success: true, message: `Added doctor: "${docName}"` };
+        }
+        case "update_med_contact": {
+          const { contact_id, ...contactUpdates } = action.args;
+          const resp = await fetch(`/api/medical/medical-network/${contact_id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(contactUpdates),
+          });
+          if (!resp.ok) throw new Error("Failed to update contact");
+          queryClient.invalidateQueries({ queryKey: ["/api/medical/medical-network"] });
+          return { success: true, message: `Updated doctor contact` };
+        }
+        case "delete_med_contact": {
+          const resp = await fetch(`/api/medical/medical-network/${action.args.contact_id}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+          if (!resp.ok) throw new Error("Failed to delete contact");
+          queryClient.invalidateQueries({ queryKey: ["/api/medical/medical-network"] });
+          return { success: true, message: `Deleted doctor contact` };
+        }
+
+        // NEWS TOPICS
+        case "create_news_topic": {
+          const { name: topicName } = action.args;
+          const resp = await fetch("/api/news/topics", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ topic: topicName, isCustom: true }),
+          });
+          if (!resp.ok) throw new Error("Failed to create topic");
+          queryClient.invalidateQueries({ queryKey: ["/api/news/topics"] });
+          return { success: true, message: `Added news topic: "${topicName}"` };
+        }
+        case "delete_news_topic": {
+          const resp = await fetch(`/api/news/topics/${action.args.topic_id}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+          if (!resp.ok) throw new Error("Failed to delete topic");
+          queryClient.invalidateQueries({ queryKey: ["/api/news/topics"] });
+          return { success: true, message: `Removed news topic` };
+        }
+
+        // SAVED ARTICLES
+        case "save_article": {
+          const { title: artTitle, url: artUrl, source, description: artDesc } = action.args;
+          const resp = await fetch("/api/news/saved", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ title: artTitle, link: artUrl, source: source || "", description: artDesc || "" }),
+          });
+          if (!resp.ok) throw new Error("Failed to save article");
+          queryClient.invalidateQueries({ queryKey: ["/api/news/saved"] });
+          return { success: true, message: `Saved article: "${artTitle}"` };
+        }
+        case "delete_saved_article": {
+          const resp = await fetch(`/api/news/saved/${action.args.article_id}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+          if (!resp.ok) throw new Error("Failed to delete saved article");
+          queryClient.invalidateQueries({ queryKey: ["/api/news/saved"] });
+          return { success: true, message: `Removed saved article` };
+        }
+
+        // SCHEDULED MESSAGES
+        case "create_scheduled_message": {
+          const { chatId, recipientName, message: schedMsg, timeOfDay, recurrence } = action.args;
+          const resp = await fetch("/api/work/scheduled-messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ chatId, recipientName, message: schedMsg, timeOfDay, recurrence: recurrence || "daily", active: true }),
+          });
+          if (!resp.ok) throw new Error("Failed to create scheduled message");
+          queryClient.invalidateQueries({ queryKey: ["/api/work/scheduled-messages"] });
+          return { success: true, message: `Scheduled message to ${recipientName} at ${timeOfDay}` };
+        }
+        case "update_scheduled_message": {
+          const { message_id, ...schedUpdates } = action.args;
+          const resp = await fetch(`/api/work/scheduled-messages/${message_id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(schedUpdates),
+          });
+          if (!resp.ok) throw new Error("Failed to update scheduled message");
+          queryClient.invalidateQueries({ queryKey: ["/api/work/scheduled-messages"] });
+          return { success: true, message: `Updated scheduled message` };
+        }
+        case "delete_scheduled_message": {
+          const resp = await fetch(`/api/work/scheduled-messages/${action.args.message_id}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+          if (!resp.ok) throw new Error("Failed to delete scheduled message");
+          queryClient.invalidateQueries({ queryKey: ["/api/work/scheduled-messages"] });
+          return { success: true, message: `Deleted scheduled message` };
+        }
+
+        // INCOME STREAMS
+        case "create_income_stream": {
+          const { name: streamName, amount: streamAmt, frequency: streamFreq, category: streamCat } = action.args;
+          const resp = await fetch("/api/income-streams", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ name: streamName, amount: Math.round(Number(streamAmt)), frequency: streamFreq || "monthly", category: streamCat || "other", isActive: 1 }),
+          });
+          if (!resp.ok) throw new Error("Failed to create income stream");
+          queryClient.invalidateQueries({ queryKey: ["/api/income-streams"] });
+          return { success: true, message: `Added income stream: "${streamName}"` };
+        }
+        case "update_income_stream": {
+          const { stream_id, ...streamUpdates } = action.args;
+          if (streamUpdates.amount) streamUpdates.amount = Math.round(Number(streamUpdates.amount));
+          const resp = await fetch(`/api/income-streams/${stream_id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(streamUpdates),
+          });
+          if (!resp.ok) throw new Error("Failed to update income stream");
+          queryClient.invalidateQueries({ queryKey: ["/api/income-streams"] });
+          return { success: true, message: `Updated income stream` };
+        }
+        case "delete_income_stream": {
+          const resp = await fetch(`/api/income-streams/${action.args.stream_id}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+          if (!resp.ok) throw new Error("Failed to delete income stream");
+          queryClient.invalidateQueries({ queryKey: ["/api/income-streams"] });
+          return { success: true, message: `Deleted income stream` };
+        }
+
+        // LOANS
+        case "create_loan": {
+          const { name: loanName, originalAmount, currentBalance, interestRate, monthlyPayment, type: loanType, lender, startDate: loanStart } = action.args;
+          const resp = await fetch("/api/loans", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              name: loanName,
+              originalAmount: Math.round(Number(originalAmount)),
+              currentBalance: Math.round(Number(currentBalance || originalAmount)),
+              interestRate: Number(interestRate || 0),
+              monthlyPayment: Math.round(Number(monthlyPayment || 0)),
+              type: loanType || "personal",
+              lender: lender || "",
+              startDate: loanStart || new Date().toISOString().split("T")[0],
+              status: "active",
+            }),
+          });
+          if (!resp.ok) throw new Error("Failed to create loan");
+          queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
+          return { success: true, message: `Added loan: "${loanName}"` };
+        }
+        case "update_loan": {
+          const { loan_id, ...loanUpdates } = action.args;
+          if (loanUpdates.currentBalance) loanUpdates.currentBalance = Math.round(Number(loanUpdates.currentBalance));
+          if (loanUpdates.monthlyPayment) loanUpdates.monthlyPayment = Math.round(Number(loanUpdates.monthlyPayment));
+          const resp = await fetch(`/api/loans/${loan_id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(loanUpdates),
+          });
+          if (!resp.ok) throw new Error("Failed to update loan");
+          queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
+          return { success: true, message: `Updated loan` };
+        }
+        case "delete_loan": {
+          const resp = await fetch(`/api/loans/${action.args.loan_id}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+          if (!resp.ok) throw new Error("Failed to delete loan");
+          queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
+          return { success: true, message: `Deleted loan` };
+        }
 
         // ROADMAP ACTION
         case "refresh_roadmap": {
