@@ -598,7 +598,7 @@ function AnimatedBackground() {
         </>
       )}
       
-      {/* Light mode: Visible animated gradients */}
+      {/* Light mode: Visible animated gradients with stronger presence */}
       {!isDark && (
         <>
           <motion.div
@@ -611,8 +611,8 @@ function AnimatedBackground() {
             className="absolute -top-1/4 -left-1/4 w-[150%] h-[80%]"
             style={{
               background: `
-                radial-gradient(ellipse 80% 60% at 20% 30%, hsl(var(--primary) / 0.18), transparent 60%),
-                radial-gradient(ellipse 60% 50% at 70% 20%, hsl(var(--accent) / 0.15), transparent 55%)
+                radial-gradient(ellipse 80% 60% at 20% 30%, hsl(var(--primary) / 0.22), transparent 60%),
+                radial-gradient(ellipse 60% 50% at 70% 20%, hsl(var(--accent) / 0.18), transparent 55%)
               `,
               filter: 'blur(60px)',
             }}
@@ -627,10 +627,27 @@ function AnimatedBackground() {
             className="absolute top-1/4 -right-1/4 w-[120%] h-[70%]"
             style={{
               background: `
-                radial-gradient(ellipse 70% 55% at 80% 40%, hsl(var(--accent) / 0.16), transparent 55%),
-                radial-gradient(ellipse 55% 45% at 30% 70%, hsl(var(--primary) / 0.12), transparent 50%)
+                radial-gradient(ellipse 70% 55% at 80% 40%, hsl(var(--accent) / 0.2), transparent 55%),
+                radial-gradient(ellipse 55% 45% at 30% 70%, hsl(var(--primary) / 0.15), transparent 50%)
               `,
               filter: 'blur(70px)',
+            }}
+          />
+          
+          <motion.div
+            animate={{ 
+              opacity: [0.5, 0.8, 0.5],
+              scale: [1, 1.06, 1],
+              y: [-8, 8, -8]
+            }}
+            transition={{ duration: 16, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+            className="absolute top-1/3 left-1/4 w-[80%] h-[60%]"
+            style={{
+              background: `
+                radial-gradient(ellipse 60% 50% at 50% 50%, hsl(var(--primary) / 0.12), transparent 60%),
+                radial-gradient(ellipse 40% 35% at 60% 40%, hsl(var(--accent) / 0.1), transparent 50%)
+              `,
+              filter: 'blur(80px)',
             }}
           />
           
@@ -640,12 +657,12 @@ function AnimatedBackground() {
               scale: [1, 1.1, 1],
               y: [-10, 10, -10]
             }}
-            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 5 }}
             className="absolute bottom-0 left-0 w-full h-[50%]"
             style={{
               background: `
-                radial-gradient(ellipse 90% 50% at 50% 100%, hsl(var(--primary) / 0.14), transparent 60%),
-                radial-gradient(ellipse 60% 40% at 20% 80%, hsl(var(--accent) / 0.1), transparent 55%)
+                radial-gradient(ellipse 90% 50% at 50% 100%, hsl(var(--primary) / 0.16), transparent 60%),
+                radial-gradient(ellipse 60% 40% at 20% 80%, hsl(var(--accent) / 0.12), transparent 55%)
               `,
               filter: 'blur(50px)',
             }}
