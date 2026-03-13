@@ -967,699 +967,666 @@ export default function CareerPage() {
 
   return (
     <Layout>
-      <div className="space-y-4 pb-12 max-w-6xl mx-auto w-full px-3 md:px-4">
+      <div className="max-w-6xl mx-auto w-full px-4 md:px-6 h-[calc(100vh-4rem)] flex flex-col overflow-hidden">
         
-        {/* Compact Header */}
+        {/* Header Row — vision inline */}
         <motion.div 
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between"
+          className="flex items-center justify-between py-3 shrink-0"
         >
-          <div>
-            <h1 className="text-xl md:text-3xl font-display font-bold text-primary">Career Roadmap</h1>
-            <p className="text-xs md:text-sm text-muted-foreground">Your growth dashboard</p>
+          <div className="flex items-center gap-4 min-w-0">
+            <h1 className="text-2xl font-display font-bold text-primary shrink-0">Career Roadmap</h1>
+            {vision.length > 0 && (
+              <div className="hidden md:flex items-center gap-2 min-w-0">
+                <span className="text-xs text-muted-foreground shrink-0">Vision:</span>
+                {vision.map((item, index) => (
+                  <Badge key={item.id} variant="secondary" className="text-xs font-medium bg-primary/10 text-primary border-primary/20 shrink-0">
+                    {item.title}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={openEditVision}
-            className="text-muted-foreground hover:text-foreground h-8 px-2"
-          >
-            <Pencil className="w-3.5 h-3.5 md:mr-1.5" />
-            <span className="hidden md:inline text-xs">Edit</span>
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={openEditVision}
+              className="text-muted-foreground hover:text-foreground h-8 px-3 text-sm"
+              data-testid="button-edit-vision"
+            >
+              <Pencil className="w-3.5 h-3.5 mr-1.5" />
+              Edit Vision
+            </Button>
+            <Button
+              onClick={fetchCoach}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+              data-testid="button-refresh-coach"
+            >
+              <RefreshCw className={cn("w-4 h-4", coachLoading && "animate-spin")} />
+            </Button>
+          </div>
         </motion.div>
 
-        {/* North Star Vision - Horizontal Scroll on Mobile */}
-        <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-            <Target className="w-4 h-4 text-primary" />
-            North Star Vision
-          </h2>
-          
-          {vision.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cn(glassCard, "p-6 md:p-8 text-center")}
-              data-testid="panel-vision-onboarding"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Target className="w-7 h-7 text-primary" />
-              </div>
-              <h3 className="text-base font-semibold text-foreground mb-2">Define Your North Star</h3>
-              <p className="text-sm text-muted-foreground mb-1 max-w-sm mx-auto">
-                Where do you want to be in 1, 3, and 5 years?
-              </p>
-              <p className="text-xs text-muted-foreground/70 mb-5 max-w-sm mx-auto">
-                Set your career vision and Orbia will create a personalized roadmap with actionable steps to get you there.
-              </p>
-              <Button 
-                onClick={openEditVision}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 h-9 text-sm px-5"
-                data-testid="button-setup-vision"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Set Up Your Vision
-              </Button>
-            </motion.div>
-          ) : (
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-3 px-3 md:mx-0 md:px-0 md:grid md:grid-cols-3 scrollbar-hide">
-              {vision.map((item, index) => {
-                const Icon = VISION_ICONS[index] || Sparkles;
-                return (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className={cn(
-                      glassCard,
-                      "p-3 md:p-4 shrink-0 w-[200px] md:w-auto group hover:border-primary/40 transition-all duration-300"
-                    )}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Icon className="w-4 h-4 md:w-4.5 md:h-4.5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-foreground text-xs md:text-sm leading-tight line-clamp-2">{item.title}</h3>
-                        <span className="text-[10px] md:text-xs text-primary/70 font-medium">{item.timeframe}</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
+        {/* FTUX: No Vision */}
+        {vision.length === 0 && !coachData && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(glassCard, "p-8 text-center mx-auto max-w-md mt-12")}
+            data-testid="panel-vision-onboarding"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <Target className="w-7 h-7 text-primary" />
             </div>
-          )}
-        </section>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Define Your North Star</h3>
+            <p className="text-sm text-muted-foreground mb-1 max-w-sm mx-auto">
+              Where do you want to be in 1, 3, and 5 years?
+            </p>
+            <p className="text-xs text-muted-foreground/70 mb-5 max-w-sm mx-auto">
+              Set your career vision and Orbia will create a personalized roadmap with actionable steps.
+            </p>
+            <Button 
+              onClick={openEditVision}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 h-10 text-sm px-6"
+              data-testid="button-setup-vision"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Set Up Your Vision
+            </Button>
+          </motion.div>
+        )}
 
-        {/* Coach Section */}
-        <section className="mt-4 space-y-3">
-            {(isLoadingStoredCoach || coachLoading) && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={cn(glassCard, "p-4 flex items-center justify-center gap-2")}
-              >
-                <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                <p className="text-xs text-muted-foreground">
-                  {isLoadingStoredCoach ? "Loading..." : "Generating guidance..."}
-                </p>
-              </motion.div>
-            )}
+        {/* FTUX: Has vision but no coach data */}
+        {vision.length > 0 && !coachData && !coachLoading && !coachError && !isLoadingStoredCoach && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(glassCard, "p-8 text-center mx-auto max-w-md mt-12")}
+            data-testid="panel-coach-onboarding"
+          >
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <Compass className="w-6 h-6 text-primary" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Ready for your roadmap?</h3>
+            <p className="text-sm text-muted-foreground mb-5 max-w-xs mx-auto">
+              Based on your vision, Orbia will build a personalized career roadmap.
+            </p>
+            <Button 
+              onClick={fetchCoach}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 h-10 text-sm px-6"
+              data-testid="button-start-coach"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Generate Roadmap
+            </Button>
+          </motion.div>
+        )}
 
-            {!coachData && !coachLoading && !coachError && !isLoadingStoredCoach && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={cn(glassCard, "p-5 text-center")}
-                data-testid="panel-coach-onboarding"
-              >
+        {/* Loading State */}
+        {(isLoadingStoredCoach || coachLoading) && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(glassCard, "p-8 flex items-center justify-center gap-3 mx-auto max-w-md mt-12")}
+          >
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">
+              {isLoadingStoredCoach ? "Loading your roadmap..." : "Generating guidance..."}
+            </p>
+          </motion.div>
+        )}
+
+        {/* Error State */}
+        {coachError && !coachLoading && !isLoadingStoredCoach && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(glassCard, "p-6 text-center mx-auto max-w-md mt-12")}
+            data-testid="panel-coach-error"
+          >
+            {coachError.includes("vision") ? (
+              <>
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                  <Compass className="w-5 h-5 text-primary" />
+                  <Target className="w-5 h-5 text-primary" />
                 </div>
-                {vision.length === 0 ? (
-                  <>
-                    <h3 className="text-sm font-medium text-foreground mb-1">Set your vision first</h3>
-                    <p className="text-xs text-muted-foreground mb-4 max-w-xs mx-auto">
-                      Define your North Star above, then come back here for a personalized AI-powered roadmap.
-                    </p>
-                    <Button 
-                      onClick={openEditVision}
-                      variant="outline"
-                      className="border-primary/30 text-primary h-8 text-xs"
-                      data-testid="button-coach-setup-vision"
-                    >
-                      <Target className="w-3.5 h-3.5 mr-1.5" />
-                      Define Vision
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <h3 className="text-sm font-medium text-foreground mb-1">Ready for personalized guidance?</h3>
-                    <p className="text-xs text-muted-foreground mb-4 max-w-xs mx-auto">
-                      I'll create a focused roadmap based on your vision.
-                    </p>
-                    <Button 
-                      onClick={fetchCoach}
-                      className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 h-8 text-xs"
-                      data-testid="button-start-coach"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                      Get Started
-                    </Button>
-                  </>
-                )}
-              </motion.div>
+                <h4 className="font-medium text-foreground text-base mb-1">Vision needed first</h4>
+                <p className="text-sm text-muted-foreground mb-4 max-w-xs mx-auto">
+                  Set up your North Star Vision so Orbia can build a personalized roadmap.
+                </p>
+                <Button 
+                  onClick={openEditVision}
+                  variant="outline"
+                  className="border-primary/30 text-primary h-9 text-sm px-4"
+                  data-testid="button-error-setup-vision"
+                >
+                  <Target className="w-4 h-4 mr-1.5" />
+                  Define Vision
+                </Button>
+              </>
+            ) : (
+              <div className="flex items-center gap-3 text-left">
+                <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-4 h-4 text-amber-500" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-foreground text-sm mb-0.5">Something went wrong</h4>
+                  <p className="text-xs text-muted-foreground">This is usually temporary.</p>
+                </div>
+                <Button 
+                  onClick={fetchCoach}
+                  variant="outline"
+                  size="sm"
+                  className="border-primary/40 text-primary h-8 text-xs px-3 shrink-0"
+                  data-testid="button-retry-coach"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                  Retry
+                </Button>
+              </div>
             )}
+          </motion.div>
+        )}
 
-            {coachError && !coachLoading && !isLoadingStoredCoach && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={cn(glassCard, "p-4 text-center")}
-                data-testid="panel-coach-error"
-              >
-                {coachError.includes("vision") ? (
-                  <>
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                      <Target className="w-5 h-5 text-primary" />
+        {/* ═══════ MAIN 2-COLUMN LAYOUT ═══════ */}
+        {coachData && !coachLoading && !isLoadingStoredCoach && (
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 flex-1 min-h-0 pb-4">
+
+            {/* ── LEFT: Active Sprint (3/5 width) ── */}
+            <div className="lg:col-span-3 flex flex-col min-h-0">
+              {activePhase && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cn(glassCard, "p-5 flex flex-col flex-1 min-h-0")}
+                >
+                  {/* Sprint Header */}
+                  <div className="flex items-center justify-between mb-3 shrink-0">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-5 h-5 text-amber-500" />
+                      <h2 className="font-semibold text-foreground text-base">Active Sprint</h2>
                     </div>
-                    <h4 className="font-medium text-foreground text-sm mb-1">Vision needed first</h4>
-                    <p className="text-xs text-muted-foreground mb-3 max-w-xs mx-auto">
-                      Set up your North Star Vision above so Orbia can build a personalized roadmap for you.
-                    </p>
-                    <Button 
-                      onClick={openEditVision}
-                      variant="outline"
-                      size="sm"
-                      className="border-primary/30 text-primary h-7 text-xs px-3"
-                      data-testid="button-error-setup-vision"
-                    >
-                      <Target className="w-3 h-3 mr-1.5" />
-                      Define Vision
-                    </Button>
-                  </>
-                ) : (
-                  <div className="flex items-start gap-2 text-left">
-                    <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0 mt-0.5">
-                      <AlertCircle className="w-3 h-3 text-amber-500" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-foreground text-xs mb-0.5">Something went wrong</h4>
-                      <p className="text-[10px] text-muted-foreground mb-2">This is usually temporary. Give it another shot.</p>
-                      <Button 
-                        onClick={fetchCoach}
-                        variant="outline"
-                        size="sm"
-                        className="border-primary/40 text-primary h-6 text-[10px] px-2"
-                        data-testid="button-retry-coach"
-                      >
-                        <RefreshCw className="w-2.5 h-2.5 mr-1" />
-                        Try Again
-                      </Button>
+                    <div className="flex items-center gap-2">
+                      <Select value={String(activePhaseIndex)} onValueChange={(v) => setActivePhaseOverride(Number(v))}>
+                        <SelectTrigger className="h-8 w-[120px] text-sm border-border/50 bg-muted/40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {coachData?.roadmap?.map((phase, idx) => (
+                            <SelectItem key={idx} value={String(idx)} className="text-sm">
+                              Phase {idx + 1}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                )}
-              </motion.div>
-            )}
-
-            {coachData && !coachLoading && !isLoadingStoredCoach && (
-              <div className="space-y-3">
-                {/* Active Sprint FIRST - Main Focus */}
-                {activePhase && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={cn(glassCard, "p-3")}
-                  >
-                    {/* Sprint Header */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-1.5">
-                        <Zap className="w-4 h-4 text-amber-500" />
-                        <h4 className="font-medium text-foreground text-xs">Active Sprint</h4>
+                  
+                  {/* Phase Title & Progress */}
+                  <div className="mb-4 shrink-0">
+                    <p className="text-sm font-medium text-foreground mb-2">{activePhase.phase}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${getPhaseProgressPercent(activePhaseIndex)}%` }}
+                          className="h-full bg-primary rounded-full"
+                        />
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <Select value={String(activePhaseIndex)} onValueChange={(v) => setActivePhaseOverride(Number(v))}>
-                          <SelectTrigger className="h-6 w-[100px] text-[10px] border-0 bg-muted/50">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {coachData?.roadmap?.map((phase, idx) => (
-                              <SelectItem key={idx} value={String(idx)} className="text-xs">
-                                Phase {idx + 1}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          onClick={fetchCoach}
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                        >
-                          <RefreshCw className={cn("w-3 h-3", coachLoading && "animate-spin")} />
-                        </Button>
-                      </div>
+                      <span className="text-sm text-primary font-semibold tabular-nums">
+                        {getPhaseCompletedCount(activePhaseIndex)}/{activePhase.milestones?.length || 0}
+                      </span>
                     </div>
-                    
-                    {/* Phase Title & Progress Bar */}
-                    <div className="mb-2">
-                      <p className="text-xs font-medium text-foreground line-clamp-1">{activePhase.phase}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${getPhaseProgressPercent(activePhaseIndex)}%` }}
-                            className="h-full bg-primary rounded-full"
-                          />
-                        </div>
-                        <span className="text-[10px] text-primary font-medium">
-                          {getPhaseCompletedCount(activePhaseIndex)}/{activePhase.milestones?.length || 0}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Up Next Milestones - Compact List */}
-                    <div className="space-y-1">
-                      {activePhase.milestones?.map((milestone, mIdx) => {
-                        const isCompleted = isMilestoneCompleted(activePhaseIndex, milestone);
-                        const milestoneTasks = getMilestoneTasks(activePhaseIndex);
-                        const milestoneTask = milestoneTasks.find(t => t.title === milestone);
-                        const isEditing = milestoneTask && editingMilestoneId === milestoneTask.id;
-                        const isRegenerating = milestoneTask && regeneratingMilestoneId === milestoneTask.id;
-                        
-                        if (isEditing) {
-                          return (
-                            <div key={mIdx} className="flex items-center gap-1 p-1 rounded-lg bg-muted">
-                              <Input
-                                value={editingMilestoneText}
-                                onChange={(e) => setEditingMilestoneText(e.target.value)}
-                                className="h-7 text-[11px] flex-1"
-                                autoFocus
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') saveMilestoneEdit();
-                                  if (e.key === 'Escape') cancelMilestoneEdit();
-                                }}
-                              />
-                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveMilestoneEdit}>
-                                <Check className="w-3 h-3 text-primary" />
-                              </Button>
-                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelMilestoneEdit}>
-                                <X className="w-3 h-3 text-muted-foreground" />
-                              </Button>
-                            </div>
-                          );
-                        }
-                        
+                  </div>
+                  
+                  {/* Milestone List — scrollable */}
+                  <div className="flex-1 overflow-y-auto min-h-0 space-y-1.5 pr-1">
+                    {activePhase.milestones?.map((milestone, mIdx) => {
+                      const isCompleted = isMilestoneCompleted(activePhaseIndex, milestone);
+                      const milestoneTasks = getMilestoneTasks(activePhaseIndex);
+                      const milestoneTask = milestoneTasks.find(t => t.title === milestone);
+                      const isEditing = milestoneTask && editingMilestoneId === milestoneTask.id;
+                      const isRegenerating = milestoneTask && regeneratingMilestoneId === milestoneTask.id;
+                      
+                      if (isEditing) {
                         return (
-                          <div
-                            key={mIdx}
-                            className={cn(
-                              "flex items-start gap-2 p-1.5 rounded-lg transition-colors group",
-                              isCompleted ? "bg-primary/10" : "bg-muted/50 hover:bg-muted"
-                            )}
+                          <div key={mIdx} className="flex items-center gap-2 p-2 rounded-xl bg-muted">
+                            <Input
+                              value={editingMilestoneText}
+                              onChange={(e) => setEditingMilestoneText(e.target.value)}
+                              className="h-9 text-sm flex-1"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveMilestoneEdit();
+                                if (e.key === 'Escape') cancelMilestoneEdit();
+                              }}
+                            />
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={saveMilestoneEdit}>
+                              <Check className="w-4 h-4 text-primary" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={cancelMilestoneEdit}>
+                              <X className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <div
+                          key={mIdx}
+                          className={cn(
+                            "flex items-start gap-3 px-3 py-2.5 rounded-xl transition-colors group",
+                            isCompleted ? "bg-primary/5" : "bg-muted/40 hover:bg-muted/70"
+                          )}
+                        >
+                          <div 
+                            className="flex items-start gap-3 flex-1 cursor-pointer min-w-0"
+                            onClick={() => toggleMilestone(activePhaseIndex, milestone)}
                           >
-                            <div 
-                              className="flex items-start gap-2 flex-1 cursor-pointer"
-                              onClick={() => toggleMilestone(activePhaseIndex, milestone)}
-                            >
+                            <div className="mt-0.5 shrink-0">
                               <AnimatedCheckbox
                                 checked={isCompleted}
                                 onChange={() => toggleMilestone(activePhaseIndex, milestone)}
                               />
-                              <span className={cn(
-                                "text-[11px] leading-tight flex-1",
-                                isCompleted ? "text-muted-foreground line-through" : "text-foreground"
-                              )}>{milestone}</span>
                             </div>
-                            
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {isRegenerating ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                  ) : (
-                                    <MoreHorizontal className="w-3 h-3" />
-                                  )}
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-32">
-                                <DropdownMenuItem onClick={() => startEditMilestone(activePhaseIndex, milestone)}>
-                                  <Pencil className="w-3 h-3 mr-2" />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => deleteMilestone(activePhaseIndex, milestone)}
-                                  className="text-destructive focus:text-destructive"
-                                >
-                                  <Trash2 className="w-3 h-3 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <span className={cn(
+                              "text-sm leading-relaxed flex-1",
+                              isCompleted ? "text-muted-foreground line-through" : "text-foreground"
+                            )}>{milestone}</span>
                           </div>
-                        );
-                      })}
-                      {activePhase.milestones?.filter(m => !isMilestoneCompleted(activePhaseIndex, m)).length === 0 && (
-                        <div className="p-2 text-center rounded-lg bg-primary/10 border border-primary/20">
-                          <Check className="w-4 h-4 text-primary mx-auto mb-0.5" />
-                          <p className="text-[10px] font-medium text-primary">Phase Complete!</p>
+                          
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {isRegenerating ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <MoreHorizontal className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-36">
+                              <DropdownMenuItem onClick={() => startEditMilestone(activePhaseIndex, milestone)}>
+                                <Pencil className="w-3.5 h-3.5 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => deleteMilestone(activePhaseIndex, milestone)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                      )}
-                      
-                      {/* Add Milestone */}
-                      {addingMilestoneToPhase === activePhaseIndex ? (
-                        <div className="flex items-center gap-1 p-1 rounded-lg bg-muted mt-1">
-                          <Input
-                            value={newMilestoneText}
-                            onChange={(e) => setNewMilestoneText(e.target.value)}
-                            placeholder="New milestone..."
-                            className="h-7 text-[11px] flex-1"
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') addMilestone(activePhaseIndex);
-                              if (e.key === 'Escape') {
-                                setAddingMilestoneToPhase(null);
-                                setNewMilestoneText("");
-                              }
-                            }}
-                          />
-                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => addMilestone(activePhaseIndex)}>
-                            <Check className="w-3 h-3 text-primary" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => {
-                            setAddingMilestoneToPhase(null);
-                            setNewMilestoneText("");
-                          }}>
-                            <X className="w-3 h-3 text-muted-foreground" />
-                          </Button>
-                        </div>
-                      ) : (
+                      );
+                    })}
+                    {activePhase.milestones?.filter(m => !isMilestoneCompleted(activePhaseIndex, m)).length === 0 && (
+                      <div className="p-4 text-center rounded-xl bg-primary/10 border border-primary/20">
+                        <Check className="w-5 h-5 text-primary mx-auto mb-1" />
+                        <p className="text-sm font-medium text-primary">Phase Complete!</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Bottom Actions */}
+                  <div className="flex gap-2 mt-3 pt-3 border-t border-border/40 shrink-0">
+                    {addingMilestoneToPhase === activePhaseIndex ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <Input
+                          value={newMilestoneText}
+                          onChange={(e) => setNewMilestoneText(e.target.value)}
+                          placeholder="New milestone..."
+                          className="h-9 text-sm flex-1"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') addMilestone(activePhaseIndex);
+                            if (e.key === 'Escape') {
+                              setAddingMilestoneToPhase(null);
+                              setNewMilestoneText("");
+                            }
+                          }}
+                        />
+                        <Button size="sm" className="h-9 px-3" onClick={() => addMilestone(activePhaseIndex)}>
+                          <Check className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-9 px-3" onClick={() => {
+                          setAddingMilestoneToPhase(null);
+                          setNewMilestoneText("");
+                        }}>
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="w-full h-6 text-[10px] text-muted-foreground hover:text-foreground mt-1"
+                          className="h-9 text-sm flex-1 border-dashed"
                           onClick={() => setAddingMilestoneToPhase(activePhaseIndex)}
                         >
-                          <Plus className="w-3 h-3 mr-1" />
+                          <Plus className="w-4 h-4 mr-1.5" />
                           Add Milestone
                         </Button>
-                      )}
-                    </div>
-                    
-                    {/* Quick Actions Row */}
-                    <div className="flex gap-1.5 mt-2 pt-2 border-t border-border/50">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="flex-1 h-7 text-[10px] bg-muted/50"
-                        onClick={() => setIsLogWinDialogOpen(true)}
-                      >
-                        <Trophy className="w-3 h-3 mr-1" />
-                        Log Win
-                      </Button>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Roadmap Phases - Horizontal Pills */}
-                {coachData.roadmap && coachData.roadmap.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Map className="w-3.5 h-3.5 text-primary" />
-                        <h4 className="font-medium text-foreground text-xs">Roadmap</h4>
-                      </div>
-                      <span className="text-[9px] text-muted-foreground">
-                        {getTotalCompletedMilestones()}/{getTotalMilestones()} total
-                      </span>
-                    </div>
-                    
-                    {/* Horizontal Phase Pills */}
-                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3 scrollbar-hide">
-                      {coachData.roadmap.map((phase, index) => {
-                        const progress = getPhaseProgressPercent(index);
-                        const isActive = index === activePhaseIndex;
-                        return (
-                          <motion.button
-                            key={index}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            onClick={() => setActivePhaseOverride(index)}
-                            className={cn(
-                              "shrink-0 p-2 rounded-xl border transition-all",
-                              isActive 
-                                ? "bg-primary/10 border-primary/40" 
-                                : "bg-card/60 border-border/40 hover:border-primary/30"
-                            )}
-                          >
-                            <div className="flex items-center gap-2 min-w-[120px]">
-                              <div className="relative w-8 h-8">
-                                <svg className="w-8 h-8 -rotate-90">
-                                  <circle cx="16" cy="16" r="12" stroke="currentColor" strokeWidth="3" fill="none" className="text-muted" />
-                                  <circle 
-                                    cx="16" cy="16" r="12" 
-                                    stroke="currentColor" 
-                                    strokeWidth="3" 
-                                    fill="none" 
-                                    strokeLinecap="round"
-                                    strokeDasharray={75.4}
-                                    strokeDashoffset={75.4 - (progress / 100) * 75.4}
-                                    className="text-primary"
-                                  />
-                                </svg>
-                                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-foreground">
-                                  {progress}%
-                                </span>
-                              </div>
-                              <div className="text-left">
-                                <p className="text-[10px] font-medium text-foreground line-clamp-1">Phase {index + 1}</p>
-                                <p className="text-[8px] text-muted-foreground">{phase.timeframe}</p>
-                              </div>
-                            </div>
-                          </motion.button>
-                        );
-                      })}
-                    </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 text-sm border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
+                          onClick={() => setIsLogWinDialogOpen(true)}
+                        >
+                          <Trophy className="w-4 h-4 mr-1.5" />
+                          Log Win
+                        </Button>
+                      </>
+                    )}
                   </div>
-                )}
+                </motion.div>
+              )}
+            </div>
 
-                {/* Coach's Note */}
-                {coachData?.coachingNote && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-2.5 rounded-xl border-l-4 border-primary/30 bg-primary/10"
-                  >
-                    <div className="flex items-center gap-1 mb-0.5">
-                      <Lightbulb className="w-3 h-3 text-primary" />
-                      <span className="text-[9px] font-semibold text-primary uppercase">Coach's Note</span>
-                    </div>
-                    <p className="text-[11px] text-primary">{coachData.coachingNote}</p>
-                  </motion.div>
-                )}
+            {/* ── RIGHT: Roadmap + Coach + Learning (2/5 width) ── */}
+            <div className="lg:col-span-2 flex flex-col gap-4 min-h-0 overflow-y-auto pb-1 pr-1">
 
-                {/* Learning Resources Section */}
-                {coachData?.learningPath && coachData.learningPath.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-3"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <GraduationCap className="w-3.5 h-3.5 text-primary" />
-                      <h4 className="font-medium text-foreground text-xs">Recommended Learning</h4>
+              {/* Roadmap Phases — vertical stepper */}
+              {coachData.roadmap && coachData.roadmap.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cn(glassCard, "p-4")}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Map className="w-4 h-4 text-primary" />
+                      <h3 className="font-semibold text-foreground text-sm">Roadmap</h3>
                     </div>
-                    
-                    <div className="space-y-2">
-                      {coachData.learningPath.map((skill, sIdx) => (
-                        <Collapsible key={sIdx} className={cn(glassCard, "overflow-hidden")}>
-                          <CollapsibleTrigger className="w-full p-2.5 flex items-center justify-between hover:bg-muted/50 transition-colors">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                                <BookOpen className="w-3 h-3 text-primary" />
-                              </div>
-                              <div className="text-left">
-                                <p className="text-xs font-medium text-foreground">{skill.skill}</p>
-                                <p className="text-[10px] text-muted-foreground line-clamp-1">{skill.importance}</p>
-                              </div>
+                    <span className="text-xs text-muted-foreground font-medium tabular-nums">
+                      {getTotalCompletedMilestones()}/{getTotalMilestones()}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    {coachData.roadmap.map((phase, index) => {
+                      const progress = getPhaseProgressPercent(index);
+                      const isActive = index === activePhaseIndex;
+                      const completed = getPhaseCompletedCount(index);
+                      const total = phase.milestones?.length || 0;
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => setActivePhaseOverride(index)}
+                          className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left",
+                            isActive 
+                              ? "bg-primary/10 border border-primary/30" 
+                              : "hover:bg-muted/60 border border-transparent"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                            progress === 100 
+                              ? "bg-green-500/20 text-green-600" 
+                              : isActive 
+                                ? "bg-primary/20 text-primary" 
+                                : "bg-muted text-muted-foreground"
+                          )}>
+                            {progress === 100 ? <Check className="w-3.5 h-3.5" /> : index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={cn(
+                              "text-sm font-medium line-clamp-1",
+                              isActive ? "text-foreground" : "text-muted-foreground"
+                            )}>Phase {index + 1}</p>
+                            <p className="text-xs text-muted-foreground">{phase.timeframe}</p>
+                          </div>
+                          <span className={cn(
+                            "text-xs font-semibold tabular-nums shrink-0",
+                            progress === 100 ? "text-green-600" : isActive ? "text-primary" : "text-muted-foreground"
+                          )}>
+                            {completed}/{total}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Coach's Note */}
+              {coachData?.coachingNote && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-4 rounded-xl border-l-4 border-primary/30 bg-primary/5"
+                >
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Lightbulb className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-semibold text-primary uppercase tracking-wide">Coach's Note</span>
+                  </div>
+                  <p className="text-sm text-foreground/80 leading-relaxed">{coachData.coachingNote}</p>
+                </motion.div>
+              )}
+
+              {/* Learning Resources — collapsed by default */}
+              {coachData?.learningPath && coachData.learningPath.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cn(glassCard, "overflow-hidden")}
+                >
+                  <div className="flex items-center gap-2 p-4 pb-3">
+                    <GraduationCap className="w-4 h-4 text-primary" />
+                    <h3 className="font-semibold text-foreground text-sm">Learning Path</h3>
+                  </div>
+                  
+                  <div className="px-2 pb-2 space-y-1">
+                    {coachData.learningPath.map((skill, sIdx) => (
+                      <Collapsible key={sIdx}>
+                        <CollapsibleTrigger className="w-full px-3 py-2.5 flex items-center justify-between rounded-xl hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                              <BookOpen className="w-3.5 h-3.5 text-primary" />
                             </div>
-                            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-                          </CollapsibleTrigger>
-                          <CollapsibleContent className="px-2.5 pb-2.5">
-                            <div className="space-y-1.5 pt-1 border-t border-border/30">
-                              {skill.resources.map((resource, rIdx) => {
-                                const isEditing = editingLearningSkillIdx === sIdx && editingLearningResourceIdx === rIdx;
-                                
-                                if (isEditing) {
-                                  return (
-                                    <div key={rIdx} className="p-2 rounded-lg bg-muted/80 space-y-2">
-                                      <Input
-                                        value={editingLearningResource.title}
-                                        onChange={(e) => setEditingLearningResource(prev => ({ ...prev, title: e.target.value }))}
-                                        placeholder="Resource title"
-                                        className="h-7 text-xs"
-                                        autoFocus
-                                      />
-                                      <Input
-                                        value={editingLearningResource.url}
-                                        onChange={(e) => setEditingLearningResource(prev => ({ ...prev, url: e.target.value }))}
-                                        placeholder="URL (or search: query)"
-                                        className="h-7 text-xs"
-                                      />
-                                      <div className="flex gap-2">
-                                        <select
-                                          value={editingLearningResource.type}
-                                          onChange={(e) => setEditingLearningResource(prev => ({ ...prev, type: e.target.value }))}
-                                          className="h-7 px-2 text-xs rounded border border-border bg-background flex-1"
-                                        >
-                                          <option value="course">Course</option>
-                                          <option value="book">Book</option>
-                                          <option value="tutorial">Tutorial</option>
-                                          <option value="practice">Practice</option>
-                                        </select>
-                                        <Input
-                                          value={editingLearningResource.timeCommitment}
-                                          onChange={(e) => setEditingLearningResource(prev => ({ ...prev, timeCommitment: e.target.value }))}
-                                          placeholder="Time (e.g., 2 hours)"
-                                          className="h-7 text-xs flex-1"
-                                        />
-                                      </div>
-                                      <div className="flex gap-1 justify-end">
-                                        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={cancelLearningResourceEdit}>
-                                          Cancel
-                                        </Button>
-                                        <Button size="sm" className="h-6 px-2 text-xs" onClick={saveLearningResourceEdit}>
-                                          Save
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  );
-                                }
-                                
+                            <div className="text-left min-w-0">
+                              <p className="text-sm font-medium text-foreground line-clamp-1">{skill.skill}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-1">{skill.importance}</p>
+                            </div>
+                          </div>
+                          <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0 ml-2" />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="px-3 pb-3">
+                          <div className="space-y-1.5 pt-2 border-t border-border/30">
+                            {skill.resources.map((resource, rIdx) => {
+                              const isEditing = editingLearningSkillIdx === sIdx && editingLearningResourceIdx === rIdx;
+                              
+                              if (isEditing) {
                                 return (
-                                  <div
-                                    key={rIdx}
-                                    className="flex items-center gap-2 p-1.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
-                                  >
-                                    <div className={cn(
-                                      "w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0",
-                                      resource.type === 'course' && "bg-blue-500/20 text-blue-600",
-                                      resource.type === 'book' && "bg-amber-500/20 text-amber-600",
-                                      resource.type === 'tutorial' && "bg-green-500/20 text-green-600",
-                                      resource.type === 'practice' && "bg-purple-500/20 text-purple-600"
-                                    )}>
-                                      {resource.type === 'course' && '📚'}
-                                      {resource.type === 'book' && '📖'}
-                                      {resource.type === 'tutorial' && '🎓'}
-                                      {resource.type === 'practice' && '✍️'}
+                                  <div key={rIdx} className="p-3 rounded-xl bg-muted/80 space-y-2">
+                                    <Input
+                                      value={editingLearningResource.title}
+                                      onChange={(e) => setEditingLearningResource(prev => ({ ...prev, title: e.target.value }))}
+                                      placeholder="Resource title"
+                                      className="h-9 text-sm"
+                                      autoFocus
+                                    />
+                                    <Input
+                                      value={editingLearningResource.url}
+                                      onChange={(e) => setEditingLearningResource(prev => ({ ...prev, url: e.target.value }))}
+                                      placeholder="URL"
+                                      className="h-9 text-sm"
+                                    />
+                                    <div className="flex gap-2">
+                                      <select
+                                        value={editingLearningResource.type}
+                                        onChange={(e) => setEditingLearningResource(prev => ({ ...prev, type: e.target.value }))}
+                                        className="h-9 px-2 text-sm rounded-lg border border-border bg-background flex-1"
+                                      >
+                                        <option value="course">Course</option>
+                                        <option value="book">Book</option>
+                                        <option value="tutorial">Tutorial</option>
+                                        <option value="practice">Practice</option>
+                                      </select>
+                                      <Input
+                                        value={editingLearningResource.timeCommitment}
+                                        onChange={(e) => setEditingLearningResource(prev => ({ ...prev, timeCommitment: e.target.value }))}
+                                        placeholder="Time"
+                                        className="h-9 text-sm flex-1"
+                                      />
                                     </div>
-                                    <a
-                                      href={resource.url.startsWith('search:') ? `https://www.google.com/search?q=${encodeURIComponent(resource.url.replace('search: ', ''))}` : resource.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex-1 min-w-0"
-                                    >
-                                      <p className="text-[11px] font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                                        {resource.title}
-                                      </p>
-                                      <p className="text-[9px] text-muted-foreground">{resource.timeCommitment}</p>
-                                    </a>
-                                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-5 w-5"
-                                        onClick={(e) => { e.stopPropagation(); startEditLearningResource(sIdx, rIdx); }}
-                                      >
-                                        <Pencil className="w-2.5 h-2.5 text-muted-foreground hover:text-primary" />
+                                    <div className="flex gap-2 justify-end">
+                                      <Button size="sm" variant="ghost" className="h-8 text-sm" onClick={cancelLearningResourceEdit}>
+                                        Cancel
                                       </Button>
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-5 w-5"
-                                        onClick={(e) => { e.stopPropagation(); deleteLearningResource(sIdx, rIdx); }}
-                                      >
-                                        <Trash2 className="w-2.5 h-2.5 text-muted-foreground hover:text-rose-500" />
+                                      <Button size="sm" className="h-8 text-sm" onClick={saveLearningResourceEdit}>
+                                        Save
                                       </Button>
                                     </div>
-                                    <a
-                                      href={resource.url.startsWith('search:') ? `https://www.google.com/search?q=${encodeURIComponent(resource.url.replace('search: ', ''))}` : resource.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                    >
-                                      <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-primary shrink-0" />
-                                    </a>
                                   </div>
                                 );
-                              })}
+                              }
                               
-                              {addingResourceToSkill === sIdx ? (
-                                <div className="p-2 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
-                                  <Input
-                                    value={newResourceData.title}
-                                    onChange={(e) => setNewResourceData(prev => ({ ...prev, title: e.target.value }))}
-                                    placeholder="Resource title"
-                                    className="h-7 text-xs"
-                                    autoFocus
-                                  />
-                                  <Input
-                                    value={newResourceData.url}
-                                    onChange={(e) => setNewResourceData(prev => ({ ...prev, url: e.target.value }))}
-                                    placeholder="URL (or search: query for search)"
-                                    className="h-7 text-xs"
-                                  />
-                                  <div className="flex gap-2">
-                                    <select
-                                      value={newResourceData.type}
-                                      onChange={(e) => setNewResourceData(prev => ({ ...prev, type: e.target.value }))}
-                                      className="h-7 px-2 text-xs rounded border border-border bg-background flex-1"
-                                    >
-                                      <option value="course">Course</option>
-                                      <option value="book">Book</option>
-                                      <option value="tutorial">Tutorial</option>
-                                      <option value="practice">Practice</option>
-                                    </select>
-                                    <Input
-                                      value={newResourceData.timeCommitment}
-                                      onChange={(e) => setNewResourceData(prev => ({ ...prev, timeCommitment: e.target.value }))}
-                                      placeholder="Time (e.g., 2 hours)"
-                                      className="h-7 text-xs flex-1"
-                                    />
-                                  </div>
-                                  <div className="flex gap-1 justify-end">
-                                    <Button 
-                                      size="sm" 
-                                      variant="ghost" 
-                                      className="h-6 px-2 text-xs" 
-                                      onClick={() => {
-                                        setAddingResourceToSkill(null);
-                                        setNewResourceData({ title: "", type: "course", url: "", timeCommitment: "1-2 hours" });
-                                      }}
-                                    >
-                                      Cancel
-                                    </Button>
-                                    <Button 
-                                      size="sm" 
-                                      className="h-6 px-2 text-xs" 
-                                      onClick={() => addLearningResource(sIdx)}
-                                      disabled={!newResourceData.title.trim()}
-                                    >
-                                      Add
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="w-full h-7 text-xs text-muted-foreground hover:text-primary"
-                                  onClick={() => setAddingResourceToSkill(sIdx)}
+                              return (
+                                <div
+                                  key={rIdx}
+                                  className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted/60 transition-colors group"
                                 >
-                                  <Plus className="w-3 h-3 mr-1" />
-                                  Add Resource
-                                </Button>
-                              )}
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-            )}
-        </section>
+                                  <div className={cn(
+                                    "w-6 h-6 rounded-md flex items-center justify-center text-xs shrink-0",
+                                    resource.type === 'course' && "bg-blue-500/15 text-blue-500",
+                                    resource.type === 'book' && "bg-amber-500/15 text-amber-500",
+                                    resource.type === 'tutorial' && "bg-green-500/15 text-green-500",
+                                    resource.type === 'practice' && "bg-purple-500/15 text-purple-500"
+                                  )}>
+                                    {resource.type === 'course' && <BookOpen className="w-3 h-3" />}
+                                    {resource.type === 'book' && <BookOpen className="w-3 h-3" />}
+                                    {resource.type === 'tutorial' && <GraduationCap className="w-3 h-3" />}
+                                    {resource.type === 'practice' && <Pencil className="w-3 h-3" />}
+                                  </div>
+                                  <a
+                                    href={resource.url.startsWith('search:') ? `https://www.google.com/search?q=${encodeURIComponent(resource.url.replace('search: ', ''))}` : resource.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 min-w-0"
+                                  >
+                                    <p className="text-sm font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                      {resource.title}
+                                    </p>
+                                  </a>
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6"
+                                      onClick={(e) => { e.stopPropagation(); startEditLearningResource(sIdx, rIdx); }}
+                                    >
+                                      <Pencil className="w-3 h-3 text-muted-foreground" />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6"
+                                      onClick={(e) => { e.stopPropagation(); deleteLearningResource(sIdx, rIdx); }}
+                                    >
+                                      <Trash2 className="w-3 h-3 text-muted-foreground" />
+                                    </Button>
+                                  </div>
+                                  <a
+                                    href={resource.url.startsWith('search:') ? `https://www.google.com/search?q=${encodeURIComponent(resource.url.replace('search: ', ''))}` : resource.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary shrink-0" />
+                                  </a>
+                                </div>
+                              );
+                            })}
+                            
+                            {addingResourceToSkill === sIdx ? (
+                              <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
+                                <Input
+                                  value={newResourceData.title}
+                                  onChange={(e) => setNewResourceData(prev => ({ ...prev, title: e.target.value }))}
+                                  placeholder="Resource title"
+                                  className="h-9 text-sm"
+                                  autoFocus
+                                />
+                                <Input
+                                  value={newResourceData.url}
+                                  onChange={(e) => setNewResourceData(prev => ({ ...prev, url: e.target.value }))}
+                                  placeholder="URL"
+                                  className="h-9 text-sm"
+                                />
+                                <div className="flex gap-2">
+                                  <select
+                                    value={newResourceData.type}
+                                    onChange={(e) => setNewResourceData(prev => ({ ...prev, type: e.target.value }))}
+                                    className="h-9 px-2 text-sm rounded-lg border border-border bg-background flex-1"
+                                  >
+                                    <option value="course">Course</option>
+                                    <option value="book">Book</option>
+                                    <option value="tutorial">Tutorial</option>
+                                    <option value="practice">Practice</option>
+                                  </select>
+                                  <Input
+                                    value={newResourceData.timeCommitment}
+                                    onChange={(e) => setNewResourceData(prev => ({ ...prev, timeCommitment: e.target.value }))}
+                                    placeholder="Time"
+                                    className="h-9 text-sm flex-1"
+                                  />
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    className="h-8 text-sm" 
+                                    onClick={() => {
+                                      setAddingResourceToSkill(null);
+                                      setNewResourceData({ title: "", type: "course", url: "", timeCommitment: "1-2 hours" });
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    className="h-8 text-sm" 
+                                    onClick={() => addLearningResource(sIdx)}
+                                    disabled={!newResourceData.title.trim()}
+                                  >
+                                    Add
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full h-8 text-sm text-muted-foreground hover:text-primary"
+                                onClick={() => setAddingResourceToSkill(sIdx)}
+                              >
+                                <Plus className="w-3.5 h-3.5 mr-1.5" />
+                                Add Resource
+                              </Button>
+                            )}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          </div>
+        )}
 
-        {/* Keep dialogs below */}
+        {/* ═══════ DIALOGS ═══════ */}
         <Dialog open={isVisionDialogOpen} onOpenChange={setIsVisionDialogOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
