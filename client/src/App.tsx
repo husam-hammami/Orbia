@@ -16,11 +16,8 @@ import { LockScreen, useLockScreen } from "@/components/lock-screen";
 
 import Settings from "@/pages/settings";
 import TrackerPage from "@/pages/tracker";
-import AdminSeed from "@/pages/admin-seed";
 import MedicalPage from "@/pages/medical";
 import WorkPage from "@/pages/work";
-import DeepMind from "@/pages/deep-mind";
-import Analytics from "@/pages/analytics";
 
 interface LockContextType {
   isLocked: boolean;
@@ -64,10 +61,7 @@ function Router() {
       <Route path="/news" component={NewsPage} />
       <Route path="/medical" component={MedicalPage} />
       <Route path="/work" component={WorkPage} />
-      <Route path="/deep-mind" component={DeepMind} />
-      <Route path="/analytics" component={Analytics} />
       <Route path="/settings" component={Settings} />
-      <Route path="/admin/seed" component={AdminSeed} />
       <Route component={NotFound} />
     </Switch>
   );

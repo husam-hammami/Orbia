@@ -88,11 +88,6 @@ Orbia is a personal AI companion and holistic wellness/productivity app. It feat
 - **Low-Capacity Mode**: Simplifies UI to 3 core actions when activated.
 - **Frontend SSE Parsing**: Both `orbit.tsx` and `orbit-fab.tsx` parse SSE events for content streaming + work action confirmations.
 
-### Deep Mind (System Intelligence Dashboard)
-- **Purpose**: Provides insights into system health and driving factors.
-- **Tabs**: "Now" (snapshot + suggestion), "Your 3 Loops" (triggers, stabilizers, crash loops), "Visualizations" (Sleep vs Mood, Driver frequency), "State Timeline" (state distribution and associations).
-- **Confidence System**: Insights are tagged with Low/Medium/High confidence based on sample size.
-
 ## Development Quality Standards — ALWAYS FOLLOW
 
 ### First-Time User Experience (FTUX) — MANDATORY
