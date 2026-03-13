@@ -8,5 +8,6 @@
     <color name="orbia_text">#e2e8f0</color>
     <color name="orbia_muted">#64748b</color>
     <color name="orbia_ring">#88e879f9</color>
+    <color name="orbia_error">#f87171</color>
     <color name="ic_launcher_background">#0f0f1a</color>
 </resources>

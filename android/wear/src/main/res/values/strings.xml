@@ -2,9 +2,24 @@
 <resources>
     <string name="app_name">Orbia</string>
     <string name="orbit_label">O R B I T</string>
-    <string name="orb_description">Tap to activate Orbit</string>
-    <string name="status_connecting">Connecting...</string>
-    <string name="status_connected">Phone connected</string>
-    <string name="status_disconnected">Open Orbia on phone</string>
-    <string name="status_activated">Orbit activated</string>
+    <string name="orb_description">Tap to activate Orbit voice assistant</string>
+    <string name="sign_in_label">Sign In</string>
+
+    <string name="status_ready">Tap to speak</string>
+    <string name="status_sign_in">Tap to sign in</string>
+    <string name="status_listening">Listening…</string>
+    <string name="status_thinking">Thinking…</string>
+    <string name="status_speaking">Speaking…</string>
+    <string name="status_done">Done</string>
+    <string name="status_error">Something went wrong</string>
+    <string name="status_session_expired">Session expired</string>
+    <string name="status_mic_denied">Microphone access needed</string>
+    <string name="status_no_speech">Speech not available</string>
+    <string name="status_no_speech_detected">Didn\'t catch that</string>
+    <string name="status_network_error">No connection</string>
+    <string name="status_try_again">Try again</string>
+
+    <string name="state_listening">L I S T E N I N G</string>
+    <string name="state_thinking">T H I N K I N G</string>
+    <string name="state_speaking">S P E A K I N G</string>
 </resources>
