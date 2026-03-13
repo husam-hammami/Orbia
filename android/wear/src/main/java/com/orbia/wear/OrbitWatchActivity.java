@@ -390,6 +390,7 @@ public class OrbitWatchActivity extends Activity {
             mediaPlayer.setOnPreparedListener(mp -> mp.start());
             mediaPlayer.setOnCompletionListener(mp -> {
                 handler.post(() -> {
+                    tempFile.delete();
                     setState(State.IDLE);
                     statusText.setText(R.string.status_ready);
                     statusText.setTextColor(getColor(R.color.orbia_glow));
@@ -398,6 +399,7 @@ public class OrbitWatchActivity extends Activity {
             mediaPlayer.setOnErrorListener((mp, what, extra) -> {
                 Log.e(TAG, "MediaPlayer error: " + what + ", " + extra);
                 handler.post(() -> {
+                    tempFile.delete();
                     setState(State.IDLE);
                     statusText.setText(R.string.status_ready);
                     statusText.setTextColor(getColor(R.color.orbia_glow));
@@ -406,6 +408,11 @@ public class OrbitWatchActivity extends Activity {
             });
             mediaPlayer.prepareAsync();
 
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Invalid audio data", e);
+            setState(State.IDLE);
+            statusText.setText(R.string.status_ready);
+            statusText.setTextColor(getColor(R.color.orbia_glow));
         } catch (IOException e) {
             Log.e(TAG, "Audio playback failed", e);
             setState(State.IDLE);
