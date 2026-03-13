@@ -123,21 +123,19 @@ function Sidebar({ className }: SidebarProps) {
       "flex flex-col h-full pt-0 pb-4 px-3",
       className
     )}>
-      <div className="flex flex-col items-center pt-3 pb-1">
+      <div className="flex flex-col items-center -mx-3 -mt-2 mb-1">
         <img 
           src={sphereUrl} 
           alt="Orbia Sphere" 
-          className="w-20 h-20 object-contain animate-logo-pulse drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]" 
+          className="w-36 h-36 object-contain animate-logo-pulse drop-shadow-[0_0_16px_hsl(var(--primary)/0.5)]" 
         />
         <span 
-          className="text-lg font-bold tracking-[0.25em] mt-1 bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--accent))] to-[hsl(var(--primary))] bg-clip-text text-transparent"
+          className="-mt-2 text-xl font-extrabold tracking-[0.3em] text-foreground"
           style={{ fontFamily: "'Orbitron', sans-serif" }}
         >
           ORBIA
         </span>
       </div>
-      
-      <CurrentTime />
 
       <nav className="space-y-1 flex-1">
         {links.map((link) => {
