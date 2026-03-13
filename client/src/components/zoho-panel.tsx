@@ -665,11 +665,21 @@ export default function ZohoPanel() {
   const [showCreate, setShowCreate] = useState(false);
   const [showDone, setShowDone] = useState(false);
 
+  const { data: zohoStatus, isLoading: loadingStatus } = useQuery({
+    queryKey: ["/api/zoho/status"],
+    queryFn: () => zohoApi("/api/zoho/status"),
+    retry: false,
+    staleTime: 60 * 1000,
+  });
+
+  const isConfigured = zohoStatus?.configured === true;
+
   const { data: projectsData, isLoading: loadingProjects, isError: projectsError, refetch: refetchProjects } = useQuery({
     queryKey: ["/api/zoho/projects"],
     queryFn: () => zohoApi("/api/zoho/projects"),
     refetchInterval: 5 * 60 * 1000,
     retry: 2,
+    enabled: isConfigured,
   });
 
   const projects: ZohoProject[] = useMemo(() => {
@@ -772,10 +782,27 @@ export default function ZohoPanel() {
     }
   }, [statusFilter, openTasks, inProgressTasks, overdueTasks, doneTasks]);
 
-  if (loadingProjects) {
+  if (loadingStatus || (isConfigured && loadingProjects)) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-6 h-6 animate-spin text-indigo-400/40" />
+      </div>
+    );
+  }
+
+  if (!isConfigured) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center" data-testid="panel-zoho-onboarding">
+        <div className={cn(cmdPanel, "p-5 inline-flex mb-4")}>
+          <FolderOpen className="w-8 h-8 text-indigo-400/40" />
+        </div>
+        <h3 className="text-sm font-medium text-foreground mb-1">Zoho Projects not connected</h3>
+        <p className="text-xs text-muted-foreground/70 mt-1 max-w-xs">
+          Connect your Zoho account to manage projects and tasks directly from Orbia.
+        </p>
+        <p className="text-[10px] text-muted-foreground/40 mt-3">
+          Ask your admin to configure Zoho credentials in settings.
+        </p>
       </div>
     );
   }
@@ -786,8 +813,8 @@ export default function ZohoPanel() {
         <div className={cn(cmdPanel, "p-5 inline-flex mb-4")}>
           <AlertCircle className="w-8 h-8 text-red-400/40" />
         </div>
-        <p className="text-sm text-muted-foreground">Failed to connect to Zoho</p>
-        <p className="text-xs text-muted-foreground/50 mt-1 mb-3">Check credentials or try again</p>
+        <p className="text-sm text-muted-foreground">Unable to reach Zoho right now</p>
+        <p className="text-xs text-muted-foreground/50 mt-1 mb-3">This may be a temporary issue. Try again in a moment.</p>
         <Button
           size="sm"
           variant="outline"
@@ -808,8 +835,8 @@ export default function ZohoPanel() {
         <div className={cn(cmdPanel, "p-5 inline-flex mb-4")}>
           <FolderOpen className="w-8 h-8 text-indigo-400/30" />
         </div>
-        <p className="text-sm text-muted-foreground">No Zoho projects found</p>
-        <p className="text-xs text-muted-foreground/50 mt-1">Check your Zoho credentials</p>
+        <p className="text-sm text-muted-foreground">No active projects in Zoho</p>
+        <p className="text-xs text-muted-foreground/50 mt-1">Create a project in Zoho to see it here.</p>
       </div>
     );
   }

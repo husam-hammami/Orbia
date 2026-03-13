@@ -5,7 +5,7 @@ import {
   Plus, Target, Rocket, Sparkles, ChevronDown, Check, 
   Calendar, Clock, Pencil, Loader2, X, Map, Zap, Lightbulb, RefreshCw,
   GraduationCap, ExternalLink, BookOpen, TrendingUp, Compass, Star,
-  MoreHorizontal, Trash2, MessageCircle, Trophy
+  MoreHorizontal, Trash2, MessageCircle, Trophy, AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -997,33 +997,61 @@ export default function CareerPage() {
             North Star Vision
           </h2>
           
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-3 px-3 md:mx-0 md:px-0 md:grid md:grid-cols-3 scrollbar-hide">
-            {vision.map((item, index) => {
-              const Icon = VISION_ICONS[index] || Sparkles;
-              return (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className={cn(
-                    glassCard,
-                    "p-3 md:p-4 shrink-0 w-[200px] md:w-auto group hover:border-primary/40 transition-all duration-300"
-                  )}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Icon className="w-4 h-4 md:w-4.5 md:h-4.5 text-primary" />
+          {vision.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn(glassCard, "p-6 md:p-8 text-center")}
+              data-testid="panel-vision-onboarding"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Target className="w-7 h-7 text-primary" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground mb-2">Define Your North Star</h3>
+              <p className="text-sm text-muted-foreground mb-1 max-w-sm mx-auto">
+                Where do you want to be in 1, 3, and 5 years?
+              </p>
+              <p className="text-xs text-muted-foreground/70 mb-5 max-w-sm mx-auto">
+                Set your career vision and Orbia will create a personalized roadmap with actionable steps to get you there.
+              </p>
+              <Button 
+                onClick={openEditVision}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 h-9 text-sm px-5"
+                data-testid="button-setup-vision"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Set Up Your Vision
+              </Button>
+            </motion.div>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-3 px-3 md:mx-0 md:px-0 md:grid md:grid-cols-3 scrollbar-hide">
+              {vision.map((item, index) => {
+                const Icon = VISION_ICONS[index] || Sparkles;
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className={cn(
+                      glassCard,
+                      "p-3 md:p-4 shrink-0 w-[200px] md:w-auto group hover:border-primary/40 transition-all duration-300"
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <Icon className="w-4 h-4 md:w-4.5 md:h-4.5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-foreground text-xs md:text-sm leading-tight line-clamp-2">{item.title}</h3>
+                        <span className="text-[10px] md:text-xs text-primary/70 font-medium">{item.timeframe}</span>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-foreground text-xs md:text-sm leading-tight line-clamp-2">{item.title}</h3>
-                      <span className="text-[10px] md:text-xs text-primary/70 font-medium">{item.timeframe}</span>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* Coach Section */}
@@ -1046,21 +1074,43 @@ export default function CareerPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(glassCard, "p-5 text-center")}
+                data-testid="panel-coach-onboarding"
               >
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
                   <Compass className="w-5 h-5 text-primary" />
                 </div>
-                <h3 className="text-sm font-medium text-foreground mb-1">Ready for personalized guidance?</h3>
-                <p className="text-xs text-muted-foreground mb-4 max-w-xs mx-auto">
-                  I'll create a focused roadmap based on your vision.
-                </p>
-                <Button 
-                  onClick={fetchCoach}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 h-8 text-xs"
-                >
-                  <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                  Get Started
-                </Button>
+                {vision.length === 0 ? (
+                  <>
+                    <h3 className="text-sm font-medium text-foreground mb-1">Set your vision first</h3>
+                    <p className="text-xs text-muted-foreground mb-4 max-w-xs mx-auto">
+                      Define your North Star above, then come back here for a personalized AI-powered roadmap.
+                    </p>
+                    <Button 
+                      onClick={openEditVision}
+                      variant="outline"
+                      className="border-primary/30 text-primary h-8 text-xs"
+                      data-testid="button-coach-setup-vision"
+                    >
+                      <Target className="w-3.5 h-3.5 mr-1.5" />
+                      Define Vision
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-sm font-medium text-foreground mb-1">Ready for personalized guidance?</h3>
+                    <p className="text-xs text-muted-foreground mb-4 max-w-xs mx-auto">
+                      I'll create a focused roadmap based on your vision.
+                    </p>
+                    <Button 
+                      onClick={fetchCoach}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 h-8 text-xs"
+                      data-testid="button-start-coach"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                      Get Started
+                    </Button>
+                  </>
+                )}
               </motion.div>
             )}
 
@@ -1068,26 +1118,50 @@ export default function CareerPage() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={cn(glassCard, "p-3 border-red-200/60 dark:border-red-700/40")}
+                className={cn(glassCard, "p-4 text-center")}
+                data-testid="panel-coach-error"
               >
-                <div className="flex items-start gap-2">
-                  <div className="w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
-                    <X className="w-3 h-3 text-red-500" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-foreground text-xs mb-0.5">Unable to Generate</h4>
-                    <p className="text-[10px] text-muted-foreground mb-1.5">{coachError}</p>
+                {coachError.includes("vision") ? (
+                  <>
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                      <Target className="w-5 h-5 text-primary" />
+                    </div>
+                    <h4 className="font-medium text-foreground text-sm mb-1">Vision needed first</h4>
+                    <p className="text-xs text-muted-foreground mb-3 max-w-xs mx-auto">
+                      Set up your North Star Vision above so Orbia can build a personalized roadmap for you.
+                    </p>
                     <Button 
-                      onClick={fetchCoach}
+                      onClick={openEditVision}
                       variant="outline"
                       size="sm"
-                      className="border-primary/40 text-primary h-6 text-[10px] px-2"
+                      className="border-primary/30 text-primary h-7 text-xs px-3"
+                      data-testid="button-error-setup-vision"
                     >
-                      <RefreshCw className="w-2.5 h-2.5 mr-1" />
-                      Retry
+                      <Target className="w-3 h-3 mr-1.5" />
+                      Define Vision
                     </Button>
+                  </>
+                ) : (
+                  <div className="flex items-start gap-2 text-left">
+                    <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0 mt-0.5">
+                      <AlertCircle className="w-3 h-3 text-amber-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-foreground text-xs mb-0.5">Something went wrong</h4>
+                      <p className="text-[10px] text-muted-foreground mb-2">This is usually temporary. Give it another shot.</p>
+                      <Button 
+                        onClick={fetchCoach}
+                        variant="outline"
+                        size="sm"
+                        className="border-primary/40 text-primary h-6 text-[10px] px-2"
+                        data-testid="button-retry-coach"
+                      >
+                        <RefreshCw className="w-2.5 h-2.5 mr-1" />
+                        Try Again
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
               </motion.div>
             )}
 
