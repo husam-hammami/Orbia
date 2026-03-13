@@ -2507,7 +2507,10 @@ Based on this vision and current project state, create a strategic roadmap and s
         ],
         { maxTokens: 2048 }
       );
-      const parsed = JSON.parse(content || "{}");
+      let cleanRoadmap = (content || "{}").trim();
+      const rmFence = cleanRoadmap.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+      if (rmFence) cleanRoadmap = rmFence[1].trim();
+      const parsed = JSON.parse(cleanRoadmap);
 
       res.json({
         ...parsed,

@@ -6,7 +6,11 @@ Orbia is a personal AI companion and holistic wellness/productivity app. It feat
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+- Preferred communication style: Simple, everyday language.
+- Be proactive: anticipate edge cases, empty states, and UX problems BEFORE the user has to point them out.
+- Every feature must be tested from a fresh user's perspective, not just the happy path.
+- Fix problems holistically — when fixing a bug in one place, check if the same pattern exists elsewhere and fix all instances.
+- Never deliver half-done work. If touching a feature, make sure all states (empty, loading, error, success) are polished.
 
 ## System Architecture
 
@@ -88,6 +92,49 @@ Preferred communication style: Simple, everyday language.
 - **Purpose**: Provides insights into system health and driving factors.
 - **Tabs**: "Now" (snapshot + suggestion), "Your 3 Loops" (triggers, stabilizers, crash loops), "Visualizations" (Sleep vs Mood, Driver frequency), "State Timeline" (state distribution and associations).
 - **Confidence System**: Insights are tagged with Low/Medium/High confidence based on sample size.
+
+## Development Quality Standards — ALWAYS FOLLOW
+
+### First-Time User Experience (FTUX) — MANDATORY
+Every feature MUST handle the "empty state" or "not configured" state gracefully. Before building ANY feature, answer these questions:
+1. **What does a brand-new user see?** No data, no configuration — the UI must show a welcoming onboarding state, NOT an error.
+2. **What if a service isn't connected?** (e.g., Zoho, Microsoft) — Show a calm "not connected" message with guidance, NOT red error icons or "Failed to connect."
+3. **What if required data is missing?** (e.g., no vision set for Career Coach) — Guide the user to set it up with a clear CTA button, don't let them hit a failing action.
+4. **What if AI returns bad data?** — Strip markdown fences from JSON, handle malformed responses, show user-friendly retry states.
+
+### Error Handling — NO RAW ERRORS TO USERS
+- Never show raw error messages, stack traces, or technical error codes to users.
+- API errors → friendly "Something went wrong, try again" with retry button.
+- Missing configuration → onboarding/setup guidance, not "Check credentials."
+- AI parse failures → strip markdown fences (```json...```), retry gracefully.
+- Distinguish between "not configured" (onboarding) vs "configured but failing" (temporary error).
+
+### AI JSON Parsing Pattern
+All AI-generated JSON responses MUST be cleaned before parsing:
+```typescript
+let clean = content.trim();
+const fence = clean.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+if (fence) clean = fence[1].trim();
+const parsed = JSON.parse(clean);
+```
+
+### Testing Checklist — BEFORE MARKING DONE
+1. Does the feature work for a user with existing data?
+2. Does the feature work for a brand-new user with NO data?
+3. Does every unconfigured/disconnected state show a welcoming message?
+4. Are all error states user-friendly (no raw errors)?
+5. Do all API endpoints validate input and return sanitized error responses?
+
+### Zoho API Rules
+- Zoho Projects v3 API rejects trailing slashes — NEVER use trailing slashes in API paths.
+- OAuth credentials go in POST body, never URL query params.
+- Portal ID: env var `ZOHO_PORTAL_ID` (default 905717188).
+
+### Design Principles
+- Dark mode is the primary design mode; light mode must also look polished.
+- Use glassmorphic cards with the established `glassCard` / `cmdPanel` patterns.
+- Toast notifications on all user-triggered mutations (create, update, delete).
+- Mobile-first responsive design with tab-based fallback.
 
 ## External Dependencies
 
