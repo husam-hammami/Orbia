@@ -5906,5 +5906,86 @@ ${rawText}`
     }
   });
 
+  // ===== ZOHO PROJECTS ROUTES =====
+  const zoho = await import("./lib/zoho-client");
+
+  app.get("/api/zoho/status", async (req, res) => {
+    try {
+      const status = await zoho.getZohoStatus();
+      res.json(status);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/zoho/projects", async (req, res) => {
+    try {
+      const data = await zoho.getProjects();
+      res.json(data);
+    } catch (error: any) {
+      console.error("[zoho] Failed to fetch projects:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/zoho/projects/:pid/tasklists", async (req, res) => {
+    try {
+      const data = await zoho.getTasklists(req.params.pid);
+      res.json(data);
+    } catch (error: any) {
+      console.error("[zoho] Failed to fetch tasklists:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/zoho/projects/:pid/tasks", async (req, res) => {
+    try {
+      const data = await zoho.getTasks(req.params.pid, {
+        status: req.query.status as string | undefined,
+        tasklist: req.query.tasklist as string | undefined,
+      });
+      res.json(data);
+    } catch (error: any) {
+      console.error("[zoho] Failed to fetch tasks:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/zoho/projects/:pid/tasks", async (req, res) => {
+    try {
+      const { name, tasklist, description, priority, start_date, end_date, person_responsible } = req.body;
+      if (!name || typeof name !== "string" || !name.trim()) {
+        return res.status(400).json({ error: "Task name is required" });
+      }
+      const data = await zoho.createTask(req.params.pid, { name: name.trim(), tasklist, description, priority, start_date, end_date, person_responsible });
+      res.json(data);
+    } catch (error: any) {
+      console.error("[zoho] Failed to create task:", error.message);
+      const status = error.message?.includes("401") ? 401 : error.message?.includes("404") ? 404 : 500;
+      res.status(status).json({ error: "Failed to create task" });
+    }
+  });
+
+  app.put("/api/zoho/projects/:pid/tasks/:tid", async (req, res) => {
+    try {
+      const data = await zoho.updateTask(req.params.pid, req.params.tid, req.body);
+      res.json(data);
+    } catch (error: any) {
+      console.error("[zoho] Failed to update task:", error.message);
+      const status = error.message?.includes("401") ? 401 : error.message?.includes("404") ? 404 : 500;
+      res.status(status).json({ error: "Failed to update task" });
+    }
+  });
+
+  app.get("/api/zoho/projects/:pid/members", async (req, res) => {
+    try {
+      const data = await zoho.getProjectMembers(req.params.pid);
+      res.json(data);
+    } catch (error: any) {
+      console.error("[zoho] Failed to fetch members:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

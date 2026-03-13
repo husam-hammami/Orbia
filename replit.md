@@ -54,6 +54,15 @@ Preferred communication style: Simple, everyday language.
 - **Scheduled Messages**: `scheduledMessages` table stores recurring message schedules. Server-side scheduler checks every 60s and sends messages at the right time. Supports daily and weekdays-only recurrence. API: `/api/work/scheduled-messages` (GET, POST, PATCH, DELETE).
 - **Files**: `server/lib/microsoft-graph.ts` (Graph API client), `client/src/pages/work.tsx` (frontend).
 
+### Zoho Projects Integration
+- **Purpose**: Dedicated "Zoho" tab in Workstation for viewing, creating, and editing Zoho Projects tasks.
+- **Env Secrets Required**: `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN` (secrets), `ZOHO_PORTAL_ID` (env var, default 905717188).
+- **Token Management**: In-memory token cache with auto-refresh via Zoho OAuth2 refresh token flow. Token cached for ~1 hour, auto-retry on 401.
+- **API Endpoints**: `GET /api/zoho/status`, `GET /api/zoho/projects`, `GET /api/zoho/projects/:pid/tasklists`, `GET /api/zoho/projects/:pid/tasks`, `POST /api/zoho/projects/:pid/tasks`, `PUT /api/zoho/projects/:pid/tasks/:tid`, `GET /api/zoho/projects/:pid/members`.
+- **Frontend**: Glassmorphic card-based UI matching Orbia design language. Pulse cards (Open/Active/Overdue/Done) → grouped task card sections (Needs Attention → In Progress → Up Next → Completed). Inline expand for task detail/edit. Create task panel slides down from top. Project selector + task list filter chips.
+- **Design**: Uses Workstation's command-center aesthetic (cmdPanel, CmdLabel, mono tokens, indigo accents). Task cards in 2-col grid (desktop) / 1-col (mobile). Overdue cards get red left border accent, in-progress get amber.
+- **Files**: `server/lib/zoho-client.ts` (Zoho API client), `client/src/components/zoho-panel.tsx` (frontend), `client/src/pages/work.tsx` (tab wiring).
+
 ### AI Integration
 - **Provider**: Anthropic Claude via Replit AI Integrations (claude-sonnet-4-6 primary, claude-haiku-4-5 fast) — no API key required, billed to Replit credits. OpenAI kept for image generation only. All AI routed through `server/lib/ai-client.ts` (`aiComplete`, `aiStream`, `createRawStream`, `createRawCompletion`). Anti-hallucination patterns baked into system prompts (see `buildUnifiedSystemPrompt` in `unified-context.ts`). Memory graph context injected into all chat modes via `buildUnifiedContextWithMemory`.
 - **Unified Context Layer**: `server/lib/unified-context.ts` — single `buildUnifiedContext(userId)` function assembles ALL user data (wellness, habits, tasks, calendar, Teams, emails, medical, finance, system members) into XML-tagged context blocks. Used by all 3 AI chat endpoints.

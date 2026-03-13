@@ -6,9 +6,10 @@ import {
   MapPin, Users, Sparkles, ArrowRight, Zap,
   RefreshCw, ExternalLink, BarChart3, Coffee,
   ChevronDown, AlertCircle, Mail, MailOpen,
-  Reply, ArrowLeft, Paperclip, Rocket
+  Reply, ArrowLeft, Paperclip, Rocket, FolderKanban
 } from "lucide-react";
 import ProjectsTab from "@/components/projects-tab";
+import ZohoPanel from "@/components/zoho-panel";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1089,8 +1090,8 @@ function SetupScreen({ onConnect, isConnecting }: { onConnect: () => void; isCon
   );
 }
 
-type MobileTab = "today" | "nexus" | "comms" | "projects";
-type WorkView = "office" | "projects";
+type MobileTab = "today" | "nexus" | "comms" | "zoho" | "projects";
+type WorkView = "office" | "zoho" | "projects";
 
 export default function WorkPage() {
   const queryClient = useQueryClient();
@@ -1217,6 +1218,7 @@ export default function WorkPage() {
     { key: "today", label: "Today", icon: Calendar },
     { key: "nexus", label: "Professional", icon: Sparkles },
     { key: "comms", label: "Comms", icon: MessageSquare },
+    { key: "zoho", label: "Zoho", icon: FolderKanban },
     { key: "projects", label: "Projects", icon: Rocket },
   ];
 
@@ -1270,6 +1272,7 @@ export default function WorkPage() {
           <div className="hidden lg:flex gap-1 mb-4 p-1 bg-black/30 rounded-xl border border-indigo-500/10 w-fit">
             {([
               { key: "office" as WorkView, label: "Office", icon: Monitor },
+              { key: "zoho" as WorkView, label: "Zoho", icon: FolderKanban },
               { key: "projects" as WorkView, label: "Projects", icon: Rocket },
             ]).map((tab) => (
               <button
@@ -1372,6 +1375,13 @@ export default function WorkPage() {
             </>
           )}
 
+          {/* === ZOHO VIEW (Desktop) === */}
+          {workView === "zoho" && (
+            <div className="hidden lg:block" style={{ minHeight: "calc(100vh - 220px)" }}>
+              <ZohoPanel />
+            </div>
+          )}
+
           {/* === PROJECTS VIEW (Desktop) === */}
           {workView === "projects" && (
             <div className="hidden lg:block" style={{ minHeight: "calc(100vh - 220px)" }}>
@@ -1446,6 +1456,17 @@ export default function WorkPage() {
                     loadingChats={loadingTeams}
                     error={teamsError ? "Failed to load" : null}
                   />
+                </motion.div>
+              )}
+
+              {mobileTab === "zoho" && (
+                <motion.div
+                  key="zoho"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                >
+                  <ZohoPanel />
                 </motion.div>
               )}
 
