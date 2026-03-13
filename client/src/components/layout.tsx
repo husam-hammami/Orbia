@@ -17,7 +17,7 @@ interface SidebarProps {
   className?: string;
 }
 
-import logoUrl from '@assets/ChatGPT_Image_Jan_10,_2026,_05_13_01_PM_1768050787078.png';
+import sphereUrl from '@assets/orbia_sphere_transparent.png';
 import orbCleanUrl from '@assets/orbia_orb_clean.png';
 
 const AFFIRMATIONS = [
@@ -123,12 +123,18 @@ function Sidebar({ className }: SidebarProps) {
       "flex flex-col h-full pt-0 pb-4 px-3",
       className
     )}>
-      <div className="-mb-2 -mx-3 -mt-4">
+      <div className="flex flex-col items-center pt-3 pb-1">
         <img 
-          src={logoUrl} 
-          alt="Orbia Logo" 
-          className="w-[160%] max-w-none h-auto object-contain -ml-[30%] animate-logo-pulse" 
+          src={sphereUrl} 
+          alt="Orbia Sphere" 
+          className="w-20 h-20 object-contain animate-logo-pulse drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]" 
         />
+        <span 
+          className="text-lg font-bold tracking-[0.25em] mt-1 bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--accent))] to-[hsl(var(--primary))] bg-clip-text text-transparent"
+          style={{ fontFamily: "'Orbitron', sans-serif" }}
+        >
+          ORBIA
+        </span>
       </div>
       
       <CurrentTime />

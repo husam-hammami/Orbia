@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Lock, Unlock, Eye, EyeOff, Heart, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import logoUrl from '@assets/ChatGPT_Image_Jan_10,_2026,_05_13_01_PM_1768050787078.png';
+import sphereUrl from '@assets/orbia_sphere_transparent.png';
 
 interface LockScreenProps {
   onUnlock: () => void;
@@ -121,8 +121,15 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             className="inline-block mb-4"
           >
-            <img src={logoUrl} alt="Orbia" className="w-40 h-40 object-contain mx-auto" />
+            <img src={sphereUrl} alt="Orbia" className="w-32 h-32 object-contain mx-auto drop-shadow-[0_0_16px_hsl(var(--primary)/0.4)]" />
           </motion.div>
+          
+          <span 
+            className="text-xl font-bold tracking-[0.25em] mb-3 bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--accent))] to-[hsl(var(--primary))] bg-clip-text text-transparent"
+            style={{ fontFamily: "'Orbitron', sans-serif" }}
+          >
+            ORBIA
+          </span>
           
           <div className="flex items-center justify-center gap-2 mb-2">
             <Lock className="w-5 h-5 text-primary" />

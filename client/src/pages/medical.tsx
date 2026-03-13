@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Layout } from "@/components/layout";
 import { cn } from "@/lib/utils";
-import logoUrl from '@assets/ChatGPT_Image_Jan_10,_2026,_05_13_01_PM_1768050787078.png';
+import sphereUrl from '@assets/orbia_sphere_transparent.png';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || "";
 
@@ -672,7 +672,7 @@ function MedicalChatPanel() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
-            <img src={logoUrl} alt="Orbia" className="w-12 h-12 rounded-2xl object-cover opacity-20 mb-3" />
+            <img src={sphereUrl} alt="Orbia" className="w-12 h-12 object-contain opacity-20 mb-3" />
             <p className="text-sm text-muted-foreground/50 mb-1">Your health, understood.</p>
             <p className="text-xs text-muted-foreground/30 mb-5 max-w-[280px]">Ask anything about your conditions, medications, or care plan.</p>
             <div className="flex flex-wrap gap-2 justify-center">
@@ -885,7 +885,7 @@ export default function MedicalPage() {
           className="flex items-center justify-between mb-4"
         >
           <div className="flex items-center gap-3">
-            <img src={logoUrl} alt="Orbia" className="w-10 h-10 rounded-xl object-cover glow-sm" />
+            <img src={sphereUrl} alt="Orbia" className="w-10 h-10 object-contain glow-sm" />
             <div>
               <h1 className="text-xl font-display font-bold tracking-[0.08em]">MEDICAL</h1>
               <p className="text-[10px] text-primary/40 tracking-wide" style={mono}>Health records & AI assistant</p>

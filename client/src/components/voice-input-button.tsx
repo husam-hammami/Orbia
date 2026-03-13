@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { createPortal } from "react-dom";
-import logoUrl from "@assets/ChatGPT_Image_Jan_10,_2026,_05_13_01_PM_1768050787078.png";
+import sphereUrl from "@assets/orbia_sphere_transparent.png";
 
 interface SpeechRecognitionEvent {
   resultIndex: number;
@@ -238,9 +238,9 @@ function ListeningOverlay({ phase, onStop, onInterrupt, liveTranscript, interimT
           }}
         >
           <img
-            src={logoUrl}
+            src={sphereUrl}
             alt="Orbia"
-            className="w-28 h-28 object-contain"
+            className="w-28 h-28 object-contain drop-shadow-[0_0_16px_hsl(var(--primary)/0.4)]"
           />
         </motion.div>
 

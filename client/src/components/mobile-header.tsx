@@ -5,7 +5,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { themePresets } from "@/lib/themePresets";
 import { useState } from "react";
 import { SetPasswordDialog } from "@/components/lock-screen";
-import logoUrl from '@assets/ChatGPT_Image_Jan_10,_2026,_05_13_01_PM_1768050787078.png';
+import sphereUrl from '@assets/orbia_sphere_transparent.png';
 import {
   Popover,
   PopoverContent,
@@ -34,10 +34,16 @@ export function MobileHeader({ lockContext }: MobileHeaderProps) {
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center gap-2">
             <img 
-              src={logoUrl} 
+              src={sphereUrl} 
               alt="Orbia" 
-              className="h-10 w-auto object-contain" 
+              className="h-9 w-9 object-contain drop-shadow-[0_0_6px_hsl(var(--primary)/0.3)]" 
             />
+            <span 
+              className="text-sm font-bold tracking-[0.2em] bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--accent))] to-[hsl(var(--primary))] bg-clip-text text-transparent"
+              style={{ fontFamily: "'Orbitron', sans-serif" }}
+            >
+              ORBIA
+            </span>
           </div>
           
           <div className="flex items-center gap-2">

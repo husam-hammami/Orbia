@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Heart, Star, ArrowRight, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import logoUrl from '@assets/ChatGPT_Image_Jan_10,_2026,_05_13_01_PM_1768050787078.png';
+import sphereUrl from '@assets/orbia_sphere_transparent.png';
 
 interface WelcomePageProps {
   onAuthenticated: () => void;
@@ -97,9 +97,9 @@ export default function WelcomePage({ onAuthenticated }: WelcomePageProps) {
         className="flex flex-col items-center max-w-md w-full z-10"
       >
         <motion.img
-          src={logoUrl}
+          src={sphereUrl}
           alt="Orbia"
-          className="w-80 h-auto mb-2"
+          className="w-40 h-40 mb-2 drop-shadow-[0_0_20px_hsl(var(--primary)/0.5)]"
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ 
             scale: [1, 1.06, 1],
@@ -116,6 +116,16 @@ export default function WelcomePage({ onAuthenticated }: WelcomePageProps) {
             opacity: { duration: 0.6, ease: "easeOut" }
           }}
         />
+
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="text-2xl font-bold tracking-[0.3em] mb-4 bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--accent))] to-[hsl(var(--primary))] bg-clip-text text-transparent"
+          style={{ fontFamily: "'Orbitron', sans-serif" }}
+        >
+          ORBIA
+        </motion.span>
 
         <motion.p
           initial={{ opacity: 0 }}
