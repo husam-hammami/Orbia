@@ -32,19 +32,19 @@ async function medApi(url: string, opts?: RequestInit) {
 }
 
 const mono = { fontFamily: "'JetBrains Mono', monospace" } as const;
-const hudPanel = "bg-black/40 backdrop-blur-xl border border-violet-500/15 shadow-[0_0_15px_rgba(139,92,246,0.04)] rounded-2xl";
-const hudPanelGlow = "bg-black/40 backdrop-blur-xl border border-violet-500/20 shadow-[0_0_20px_rgba(139,92,246,0.06)] rounded-2xl";
+const hudPanel = "bg-card/40 backdrop-blur-xl border border-primary/15 shadow-sm rounded-2xl";
+const hudPanelGlow = "bg-card/40 backdrop-blur-xl border border-primary/20 shadow-md rounded-2xl";
 
 const severityStyles: Record<string, { bg: string; border: string; text: string; dot: string }> = {
   critical: { bg: "bg-red-500/8", border: "border-red-500/25", text: "text-red-400", dot: "bg-red-400 shadow-[0_0_6px_rgba(255,100,100,0.5)]" },
   high: { bg: "bg-orange-500/8", border: "border-orange-500/25", text: "text-orange-400", dot: "bg-orange-400 shadow-[0_0_6px_rgba(255,165,0,0.5)]" },
-  medium: { bg: "bg-violet-500/8", border: "border-violet-500/20", text: "text-violet-400", dot: "bg-violet-400 shadow-[0_0_6px_rgba(139,92,246,0.5)]" },
+  medium: { bg: "bg-primary/8", border: "border-primary/20", text: "text-primary", dot: "bg-primary glow-sm" },
   low: { bg: "bg-emerald-500/8", border: "border-emerald-500/20", text: "text-emerald-400", dot: "bg-emerald-400 shadow-[0_0_6px_rgba(0,200,100,0.5)]" },
 };
 
 function HudLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <span className={cn("text-[10px] uppercase tracking-[0.15em] text-violet-400/60", className)} style={mono}>
+    <span className={cn("text-[10px] uppercase tracking-[0.15em] text-primary/60", className)} style={mono}>
       {children}
     </span>
   );
@@ -68,7 +68,7 @@ function AddItemDialog({ title, fields, onSave, trigger }: {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-md bg-[#0a1020] border-violet-500/20">
+      <DialogContent className="max-w-md bg-card border-primary/20">
         <DialogHeader>
           <DialogTitle className="font-display">{title}</DialogTitle>
         </DialogHeader>
@@ -78,14 +78,14 @@ function AddItemDialog({ title, fields, onSave, trigger }: {
               <HudLabel className="mb-1.5 block">{field.label}</HudLabel>
               {field.type === "textarea" ? (
                 <textarea
-                  className="w-full rounded-lg border border-violet-500/15 bg-black/30 px-3 py-2 text-sm resize-none h-20 focus:outline-none focus:ring-1 focus:ring-violet-500/30 focus:border-violet-500/30 text-foreground placeholder:text-muted-foreground/40"
+                  className="w-full rounded-lg border border-primary/15 bg-muted/30 px-3 py-2 text-sm resize-none h-20 focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/30 text-foreground placeholder:text-muted-foreground/40"
                   placeholder={field.placeholder}
                   value={formData[field.key] || ""}
                   onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
                 />
               ) : field.type === "select-severity" ? (
                 <select
-                  className="w-full rounded-lg border border-violet-500/15 bg-black/30 px-3 py-2 text-sm text-foreground"
+                  className="w-full rounded-lg border border-primary/15 bg-muted/30 px-3 py-2 text-sm text-foreground"
                   value={formData[field.key] || "medium"}
                   onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
                 >
@@ -96,7 +96,7 @@ function AddItemDialog({ title, fields, onSave, trigger }: {
                 </select>
               ) : (
                 <Input
-                  className="rounded-lg border-violet-500/15 bg-black/30 focus:ring-violet-500/30 focus:border-violet-500/30"
+                  className="rounded-lg border-primary/15 bg-muted/30 focus:ring-primary/30 focus:border-primary/30"
                   placeholder={field.placeholder}
                   value={formData[field.key] || ""}
                   onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
@@ -104,7 +104,7 @@ function AddItemDialog({ title, fields, onSave, trigger }: {
               )}
             </div>
           ))}
-          <Button onClick={handleSave} className="w-full rounded-lg bg-violet-600 hover:bg-violet-700 text-white" data-testid="button-save-medical-item">
+          <Button onClick={handleSave} className="w-full rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground" data-testid="button-save-medical-item">
             <Save className="w-4 h-4 mr-2" /> Save
           </Button>
         </div>
@@ -126,9 +126,9 @@ function AccordionSection({ label, count, icon: Icon, isOpen, onToggle, onAdd, a
 }) {
   return (
     <div className={cn(hudPanel, "overflow-hidden")}>
-      <div className="flex items-center justify-between p-3.5 hover:bg-violet-500/5 transition-colors cursor-pointer" onClick={onToggle}>
+      <div className="flex items-center justify-between p-3.5 hover:bg-primary/5 transition-colors cursor-pointer" onClick={onToggle}>
         <div className="flex items-center gap-2.5">
-          <Icon className="w-3.5 h-3.5 text-violet-400/70" />
+          <Icon className="w-3.5 h-3.5 text-primary/70" />
           <span className="text-xs font-medium tracking-wide" style={mono}>{count !== undefined ? `${count} ` : ""}{label.toUpperCase()}</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -139,7 +139,7 @@ function AccordionSection({ label, count, icon: Icon, isOpen, onToggle, onAdd, a
               onSave={(data) => onAdd.mutate(data)}
               trigger={
                 <button
-                  className="p-1.5 hover:bg-violet-500/10 rounded-lg text-violet-400/40 hover:text-violet-400 transition-colors"
+                  className="p-1.5 hover:bg-primary/10 rounded-lg text-primary/40 hover:text-primary transition-colors"
                   onClick={(e) => e.stopPropagation()}
                   data-testid={`button-add-${addTitle.toLowerCase().replace(/\s+/g, '-')}`}
                 >
@@ -148,7 +148,7 @@ function AccordionSection({ label, count, icon: Icon, isOpen, onToggle, onAdd, a
               }
             />
           )}
-          <ChevronDown className={`w-3.5 h-3.5 text-violet-400/40 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-3.5 h-3.5 text-primary/40 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </div>
       <AnimatePresence>
@@ -230,7 +230,7 @@ function MyHealthPanel() {
           <div className="space-y-2.5">
             <div className="flex items-center justify-between mb-2">
               <HudLabel>Edit Profile</HudLabel>
-              <Button variant="ghost" size="sm" className="text-violet-400/60 hover:text-violet-400" onClick={() => setEditingProfile(false)}>
+              <Button variant="ghost" size="sm" className="text-primary/60 hover:text-primary" onClick={() => setEditingProfile(false)}>
                 <ArrowLeft className="w-3.5 h-3.5" />
               </Button>
             </div>
@@ -245,13 +245,13 @@ function MyHealthPanel() {
               <div key={f.key} className="flex items-center gap-2">
                 <HudLabel className="w-24 shrink-0">{f.label}</HudLabel>
                 <Input
-                  className="h-8 text-sm rounded-lg border-violet-500/15 bg-black/30"
+                  className="h-8 text-sm rounded-lg border-primary/15 bg-muted/30"
                   value={profileForm[f.key] || ""}
                   onChange={(e) => setProfileForm({ ...profileForm, [f.key]: e.target.value })}
                 />
               </div>
             ))}
-            <Button size="sm" className="w-full rounded-lg mt-2 bg-violet-600 hover:bg-violet-700 text-white" onClick={() => profileMutation.mutate(profileForm)} data-testid="button-save-profile">
+            <Button size="sm" className="w-full rounded-lg mt-2 bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => profileMutation.mutate(profileForm)} data-testid="button-save-profile">
               <Save className="w-3.5 h-3.5 mr-1" /> Save Profile
             </Button>
           </div>
@@ -259,19 +259,19 @@ function MyHealthPanel() {
           <>
             <div className="flex items-start justify-between mb-4">
               <div className="flex gap-4 items-center">
-                <div className="w-14 h-14 rounded-xl bg-violet-500/5 border border-violet-500/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(139,92,246,0.08)]">
-                  <User className="w-7 h-7 text-violet-400/50" />
+                <div className="w-14 h-14 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-center shrink-0 glow-sm">
+                  <User className="w-7 h-7 text-primary/50" />
                 </div>
                 <div>
                   <h2 className="text-lg font-display font-bold tracking-tight leading-tight">
                     {hasProfile ? profile.patientName : "Set Up Profile"}
                   </h2>
-                  <p className="text-xs text-violet-400/40 mt-0.5" style={mono}>
+                  <p className="text-xs text-primary/40 mt-0.5" style={mono}>
                     {hasProfile ? [profile.sex?.toUpperCase(), profileAge, profile.dateOfBirth ? `DOB: ${profile.dateOfBirth}` : null].filter(Boolean).join(" | ") : "Tap edit to add your information"}
                   </p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" className="text-violet-400/40 hover:text-violet-400" onClick={() => setEditingProfile(true)} data-testid="button-edit-profile">
+              <Button variant="ghost" size="sm" className="text-primary/40 hover:text-primary" onClick={() => setEditingProfile(true)} data-testid="button-edit-profile">
                 <Edit className="w-3.5 h-3.5" />
               </Button>
             </div>
@@ -282,7 +282,7 @@ function MyHealthPanel() {
                 { label: "Medications", value: medications.length },
                 { label: "Conditions", value: diagnoses.length },
               ].map((stat) => (
-                <div key={stat.label} className="p-3 rounded-xl bg-black/30 border border-violet-500/10">
+                <div key={stat.label} className="p-3 rounded-xl bg-muted/30 border border-primary/10">
                   <HudLabel className="mb-1 block">{stat.label}</HudLabel>
                   <div className="text-lg font-bold text-foreground">{stat.value}</div>
                 </div>
@@ -307,8 +307,8 @@ function MyHealthPanel() {
             className={cn(
               "flex-1 py-2 text-[10px] font-medium rounded-lg transition-all uppercase tracking-wider",
               activeTab === tab
-                ? "bg-violet-500/15 text-violet-400 border border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.1)]"
-                : "bg-black/20 text-muted-foreground/50 hover:text-violet-400/60 hover:bg-violet-500/5 border border-transparent"
+                ? "bg-primary/15 text-primary border border-primary/30 glow-sm"
+                : "bg-muted/20 text-muted-foreground/50 hover:text-primary/60 hover:bg-primary/5 border border-transparent"
             )}
             style={mono}
             data-testid={`tab-hud-${tab}`}
@@ -346,12 +346,12 @@ function MyHealthPanel() {
               { key: "purpose", label: "Purpose", placeholder: "e.g. Blood sugar control" },
             ]}>
               {medications.map((m: any) => (
-                <div key={m.id} className="p-3 bg-black/20 border border-white/5 rounded-xl group/item relative">
+                <div key={m.id} className="p-3 bg-muted/20 border border-border/20 rounded-xl group/item relative">
                   <div className="absolute top-2 right-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
                     <button className="p-1 hover:bg-red-500/10 rounded" onClick={() => delMedication.mutate(m.id)}><Trash2 className="w-3 h-3 text-red-400/50" /></button>
                   </div>
                   <div className="text-sm font-semibold mb-0.5">{m.name}</div>
-                  <div className="text-xs text-violet-400/60 font-medium mb-0.5" style={mono}>{m.dosage}</div>
+                  <div className="text-xs text-primary/60 font-medium mb-0.5" style={mono}>{m.dosage}</div>
                   <div className="text-xs text-muted-foreground/60">{m.purpose}</div>
                 </div>
               ))}
@@ -366,12 +366,12 @@ function MyHealthPanel() {
             { key: "description", label: "Details", placeholder: "More context", type: "textarea" },
             { key: "eventType", label: "Type", placeholder: "surgery / appointment / scan / diagnosis" },
           ]}>
-            <div className="relative pl-5 border-l border-violet-500/20 space-y-4">
+            <div className="relative pl-5 border-l border-primary/20 space-y-4">
               {timelineEvents.map((event: any, idx: number) => (
                 <div key={event.id} className="relative group/item" style={{ opacity: Math.max(0.4, 1 - idx * 0.1) }}>
                   <div className={cn(
-                    "absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-[#0a1020]",
-                    idx === 0 ? "bg-violet-400 shadow-[0_0_8px_rgba(139,92,246,0.5)]" : "bg-muted-foreground/30"
+                    "absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-card",
+                    idx === 0 ? "bg-primary glow-sm" : "bg-muted-foreground/30"
                   )} />
                   <div className="flex items-start justify-between">
                     <div>
@@ -403,14 +403,14 @@ function MyHealthPanel() {
             {medicalNetwork.map((doc: any) => (
               <div key={doc.id} className={cn(
                 "p-3 rounded-xl flex justify-between items-center group/item relative border",
-                doc.status === "current" ? "bg-violet-500/5 border-violet-500/15" : "bg-black/20 border-white/5"
+                doc.status === "current" ? "bg-primary/5 border-primary/15" : "bg-muted/20 border-border/20"
               )}>
                 <div className="absolute top-2 right-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
                   <button className="p-1 hover:bg-red-500/10 rounded" onClick={() => delNetwork.mutate(doc.id)}><Trash2 className="w-3 h-3 text-red-400/50" /></button>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-violet-500/10 border border-violet-500/15 flex items-center justify-center">
-                    <User className="w-4 h-4 text-violet-400/50" />
+                  <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/15 flex items-center justify-center">
+                    <User className="w-4 h-4 text-primary/50" />
                   </div>
                   <div>
                     <div className="text-sm font-medium">{doc.name}</div>
@@ -419,7 +419,7 @@ function MyHealthPanel() {
                 </div>
                 <span className={cn(
                   "text-[9px] font-medium px-2 py-0.5 rounded border uppercase tracking-wider",
-                  doc.status === "current" ? "text-violet-400 border-violet-500/30 bg-violet-500/10" : "text-muted-foreground/50 bg-black/30 border-white/10"
+                  doc.status === "current" ? "text-primary border-primary/30 bg-primary/10" : "text-muted-foreground/50 bg-muted/30 border-border/20"
                 )} style={mono}>{doc.status}</span>
               </div>
             ))}
@@ -518,9 +518,9 @@ function UploadZone() {
         <p className="text-xs text-foreground/70 mb-3 leading-relaxed">{result.analysis}</p>
         {total > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {ac.diagnoses > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-violet-500/20 bg-violet-500/5 text-violet-400" style={mono}>{ac.diagnoses} condition{ac.diagnoses > 1 ? "s" : ""}</span>}
+            {ac.diagnoses > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-primary/20 bg-primary/5 text-primary" style={mono}>{ac.diagnoses} condition{ac.diagnoses > 1 ? "s" : ""}</span>}
             {ac.medications > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-blue-500/20 bg-blue-500/5 text-blue-400" style={mono}>{ac.medications} medication{ac.medications > 1 ? "s" : ""}</span>}
-            {ac.timeline > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-purple-500/20 bg-purple-500/5 text-purple-400" style={mono}>{ac.timeline} event{ac.timeline > 1 ? "s" : ""}</span>}
+            {ac.timeline > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-primary/20 bg-primary/5 text-primary" style={mono}>{ac.timeline} event{ac.timeline > 1 ? "s" : ""}</span>}
             {ac.priorities > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-orange-500/20 bg-orange-500/5 text-orange-400" style={mono}>{ac.priorities} action{ac.priorities > 1 ? "s" : ""}</span>}
           </div>
         )}
@@ -532,10 +532,10 @@ function UploadZone() {
     return (
       <div className={cn(hudPanel, "p-6 flex flex-col items-center justify-center gap-3")}>
         <div className="relative">
-          <Loader2 className="w-8 h-8 text-violet-400 animate-spin" />
-          <div className="absolute inset-0 w-8 h-8 rounded-full bg-violet-400/5 animate-ping" />
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          <div className="absolute inset-0 w-8 h-8 rounded-full bg-primary/5 animate-ping" />
         </div>
-        <span className="text-xs text-violet-400/70" style={mono}>
+        <span className="text-xs text-primary/70" style={mono}>
           {uploadState === "uploading" ? "UPLOADING..." : "AI ANALYZING..."}
         </span>
         {uploadFileName && (
@@ -554,7 +554,7 @@ function UploadZone() {
     <div
       className={cn(
         hudPanel, "p-4 transition-all cursor-pointer group",
-        isDragging && "border-violet-500/40 bg-violet-500/5 shadow-[0_0_20px_rgba(139,92,246,0.1)]"
+        isDragging && "border-primary/40 bg-primary/5 glow-sm"
       )}
       onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
       onDragLeave={() => setIsDragging(false)}
@@ -570,8 +570,8 @@ function UploadZone() {
         onChange={handleFileSelect}
       />
       <div className="flex flex-col items-center gap-2 py-2">
-        <div className="w-10 h-10 rounded-xl bg-violet-500/5 border border-violet-500/15 flex items-center justify-center group-hover:border-violet-500/30 group-hover:bg-violet-500/10 transition-all">
-          <Upload className="w-4 h-4 text-violet-400/50 group-hover:text-violet-400 transition-colors" />
+        <div className="w-10 h-10 rounded-xl bg-primary/5 border border-primary/15 flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/10 transition-all">
+          <Upload className="w-4 h-4 text-primary/50 group-hover:text-primary transition-colors" />
         </div>
         <div className="text-center">
           <p className="text-xs font-medium text-foreground/70">Upload medical document</p>
@@ -679,7 +679,7 @@ function MedicalChatPanel() {
               {["What should I ask my doctor?", "Review my medications", "Summarize my health"].map((q) => (
                 <button
                   key={q}
-                  className="text-[11px] px-3 py-1.5 rounded-lg bg-violet-500/5 border border-violet-500/15 text-violet-400/70 hover:bg-violet-500/10 hover:text-violet-400 transition-colors"
+                  className="text-[11px] px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/15 text-primary/70 hover:bg-primary/10 hover:text-primary transition-colors"
                   style={mono}
                   onClick={() => setInput(q)}
                   data-testid={`chip-${q.slice(0, 15)}`}
@@ -701,13 +701,13 @@ function MedicalChatPanel() {
             <div className={cn(
               "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
               msg.role === "user"
-                ? "bg-violet-600/80 text-white shadow-[0_0_10px_rgba(139,92,246,0.1)]"
-                : "bg-black/40 text-foreground border border-violet-500/10"
+                ? "bg-primary/80 text-primary-foreground glow-sm"
+                : "bg-card/40 text-foreground border border-primary/10"
             )}>
               <p className="whitespace-pre-wrap">
                 {msg.content}
                 {msg.isStreaming && !msg.content && "..."}
-                {msg.isStreaming && msg.content && <span className="inline-block w-1.5 h-4 bg-violet-400/60 ml-0.5 animate-pulse rounded-sm"></span>}
+                {msg.isStreaming && msg.content && <span className="inline-block w-1.5 h-4 bg-primary/60 ml-0.5 animate-pulse rounded-sm"></span>}
               </p>
             </div>
           </motion.div>
@@ -715,28 +715,28 @@ function MedicalChatPanel() {
 
         {isProcessing && !messages[messages.length - 1]?.isStreaming && (
           <div className="flex justify-start">
-            <div className="bg-black/40 border border-violet-500/10 rounded-2xl px-4 py-3 flex items-center gap-2">
+            <div className="bg-card/40 border border-primary/10 rounded-2xl px-4 py-3 flex items-center gap-2">
               <div className="flex space-x-1">
-                <div className="w-1.5 h-1.5 bg-violet-400/50 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                <div className="w-1.5 h-1.5 bg-violet-400/50 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-                <div className="w-1.5 h-1.5 bg-violet-400/50 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      <div className="p-4 border-t border-violet-500/10 shrink-0">
+      <div className="p-4 border-t border-primary/10 shrink-0">
         <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about your health..."
             disabled={isProcessing}
-            className="flex-1 rounded-lg border-violet-500/15 bg-black/30 focus:ring-violet-500/20 focus:border-violet-500/30 placeholder:text-muted-foreground/30"
+            className="flex-1 rounded-lg border-primary/15 bg-muted/30 focus:ring-primary/20 focus:border-primary/30 placeholder:text-muted-foreground/30"
             data-testid="input-medical-chat"
           />
-          <Button type="submit" size="icon" disabled={!input.trim() || isProcessing} className="rounded-lg bg-violet-600 hover:bg-violet-700 text-white shrink-0 shadow-[0_0_10px_rgba(139,92,246,0.15)]" data-testid="button-send-medical-chat">
+          <Button type="submit" size="icon" disabled={!input.trim() || isProcessing} className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shrink-0 glow-sm" data-testid="button-send-medical-chat">
             <Send className="w-4 h-4" />
           </Button>
         </form>
@@ -770,7 +770,7 @@ function ActionItemsPanel() {
       <div className={cn(hudPanel, "p-4 flex-1 min-h-0 flex flex-col overflow-hidden")}>
         <div className="flex items-center justify-between mb-3 shrink-0">
           <div className="flex items-center gap-2">
-            <CalendarCheck className="w-3.5 h-3.5 text-violet-400/70" />
+            <CalendarCheck className="w-3.5 h-3.5 text-primary/70" />
             <HudLabel>Action Items</HudLabel>
             {priorities.length > 0 && (
               <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20" style={mono}>{priorities.length}</span>
@@ -785,7 +785,7 @@ function ActionItemsPanel() {
             ]}
             onSave={(data) => addPriority.mutate(data)}
             trigger={
-              <button className="p-1.5 hover:bg-violet-500/10 rounded-lg text-violet-400/40 hover:text-violet-400 transition-colors" data-testid="button-add-action-item">
+              <button className="p-1.5 hover:bg-primary/10 rounded-lg text-primary/40 hover:text-primary transition-colors" data-testid="button-add-action-item">
                 <PlusCircle className="w-3.5 h-3.5" />
               </button>
             }
@@ -818,7 +818,7 @@ function ActionItemsPanel() {
 
       <div className={cn(hudPanel, "p-4 shrink-0 max-h-[200px] overflow-hidden flex flex-col")}>
         <div className="flex items-center gap-2 mb-2 shrink-0">
-          <Database className="w-3.5 h-3.5 text-violet-400/70" />
+          <Database className="w-3.5 h-3.5 text-primary/70" />
           <HudLabel>Documents</HudLabel>
           {vaultDocuments.length > 0 && (
             <span className="text-[9px] text-muted-foreground/40" style={mono}>{vaultDocuments.length}</span>
@@ -831,9 +831,9 @@ function ActionItemsPanel() {
             </div>
           ) : (
             vaultDocuments.map((doc: any) => (
-              <div key={doc.id} className="flex items-center justify-between p-2 rounded-lg bg-black/20 border border-white/5 group/item">
+              <div key={doc.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/20 border border-border/20 group/item">
                 <div className="flex items-center gap-2 min-w-0">
-                  <FileText className="w-3 h-3 text-violet-400/40 shrink-0" />
+                  <FileText className="w-3 h-3 text-primary/40 shrink-0" />
                   <div className="min-w-0">
                     <div className="text-[11px] font-medium truncate">{doc.name}</div>
                     <div className="text-[9px] text-muted-foreground/40" style={mono}>{doc.docType} · {doc.date}</div>
@@ -874,9 +874,9 @@ export default function MedicalPage() {
     <Layout>
       <div className="h-[calc(100vh-120px)] flex flex-col animate-in fade-in duration-500 relative">
         <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl -z-10">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(139,92,246,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(139,92,246,0.015)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-[40%] bg-violet-500/[0.02] blur-[100px] rounded-full"></div>
-          <div className="absolute bottom-0 right-0 w-[40%] h-[30%] bg-blue-600/[0.02] blur-[80px] rounded-full"></div>
+          <div className="absolute inset-0 bg-[linear-gradient(hsl(var(--primary)/0.015)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--primary)/0.015)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-[40%] bg-primary/[0.02] blur-[100px] rounded-full"></div>
+          <div className="absolute bottom-0 right-0 w-[40%] h-[30%] bg-accent/[0.02] blur-[80px] rounded-full"></div>
         </div>
 
         <motion.div
@@ -885,24 +885,24 @@ export default function MedicalPage() {
           className="flex items-center justify-between mb-4"
         >
           <div className="flex items-center gap-3">
-            <img src={logoUrl} alt="Orbia" className="w-10 h-10 rounded-xl object-cover shadow-[0_0_15px_rgba(139,92,246,0.1)]" />
+            <img src={logoUrl} alt="Orbia" className="w-10 h-10 rounded-xl object-cover glow-sm" />
             <div>
               <h1 className="text-xl font-display font-bold tracking-[0.08em]">MEDICAL</h1>
-              <p className="text-[10px] text-violet-400/40 tracking-wide" style={mono}>Health records & AI assistant</p>
+              <p className="text-[10px] text-primary/40 tracking-wide" style={mono}>Health records & AI assistant</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowResetConfirm(true)}
-              className="flex items-center gap-1.5 text-[9px] text-red-400/50 hover:text-red-400 border border-red-500/15 hover:border-red-500/30 bg-black/20 hover:bg-red-500/5 px-2.5 py-1.5 rounded-lg backdrop-blur-md tracking-widest transition-all"
+              className="flex items-center gap-1.5 text-[9px] text-red-400/50 hover:text-red-400 border border-red-500/15 hover:border-red-500/30 bg-muted/20 hover:bg-red-500/5 px-2.5 py-1.5 rounded-lg backdrop-blur-md tracking-widest transition-all"
               style={mono}
               data-testid="button-reset-medical"
             >
               <RotateCcw className="w-3 h-3" />
               RESET
             </button>
-            <div className="hidden md:flex items-center gap-2 text-[9px] text-violet-400/50 border border-violet-500/15 bg-black/20 px-3 py-1.5 rounded-lg backdrop-blur-md tracking-widest" style={mono}>
-              <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse shadow-[0_0_6px_rgba(139,92,246,0.6)]"></div>
+            <div className="hidden md:flex items-center gap-2 text-[9px] text-primary/50 border border-primary/15 bg-muted/20 px-3 py-1.5 rounded-lg backdrop-blur-md tracking-widest" style={mono}>
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse glow-sm"></div>
               SYSTEM NOMINAL
             </div>
           </div>
@@ -968,8 +968,8 @@ export default function MedicalPage() {
                 className={cn(
                   "flex-1 py-2 text-[10px] font-medium rounded-lg transition-all uppercase tracking-wider",
                   mobileTab === tab
-                    ? "bg-violet-500/15 text-violet-400 border border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.1)]"
-                    : "bg-black/20 text-muted-foreground/50 hover:text-violet-400/60 border border-transparent"
+                    ? "bg-primary/15 text-primary border border-primary/30 glow-sm"
+                    : "bg-muted/20 text-muted-foreground/50 hover:text-primary/60 border border-transparent"
                 )}
                 style={mono}
               >
