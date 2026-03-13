@@ -130,7 +130,7 @@ function Sidebar({ className }: SidebarProps) {
           className="w-44 h-44 object-contain animate-logo-pulse drop-shadow-[0_0_20px_hsl(var(--primary)/0.5)]" 
         />
         <span 
-          className="-mt-3 text-2xl font-bold tracking-[0.22em] text-foreground"
+          className="-mt-3 text-[1.7rem] font-bold tracking-[0.45em] text-foreground"
           style={{ fontFamily: "'Exo 2', sans-serif" }}
         >
           ORBIA
