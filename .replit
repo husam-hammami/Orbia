@@ -48,3 +48,7 @@ integrations = ["javascript_openai_ai_integrations:2.0.0", "javascript_anthropic
 [userenv.shared]
 ADMIN_SEED_KEY = "neurozen-seed-2026"
 ADMIN_PASSWORD = "eedcef207f284b8af1474b1dde51bca8"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 120000
