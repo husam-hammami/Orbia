@@ -2612,7 +2612,12 @@ Based on my North Star vision, create a comprehensive career coaching plan. Be s
       
       let parsed;
       try {
-        parsed = JSON.parse(content);
+        let cleanContent = content.trim();
+        const fenceMatch = cleanContent.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+        if (fenceMatch) {
+          cleanContent = fenceMatch[1].trim();
+        }
+        parsed = JSON.parse(cleanContent);
       } catch (parseError) {
         console.error("[Career Coach] JSON parse error:", parseError);
         console.error("[Career Coach] Raw content:", content.substring(0, 500));
@@ -2813,7 +2818,10 @@ Generate a fresh version of this phase with new, specific milestones that still 
         return res.status(500).json({ error: "Failed to generate new phase" });
       }
 
-      const newPhase = JSON.parse(content);
+      let cleanPhase = content.trim();
+      const phFence = cleanPhase.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+      if (phFence) cleanPhase = phFence[1].trim();
+      const newPhase = JSON.parse(cleanPhase);
       res.json({ newPhase });
     } catch (error) {
       console.error("Regenerate phase error:", error);
@@ -3073,7 +3081,10 @@ MERCHANT FIELD:
         return res.status(500).json({ error: "Failed to parse document" });
       }
 
-      const parsed = JSON.parse(content);
+      let cleanFinance = content.trim();
+      const finFence = cleanFinance.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+      if (finFence) cleanFinance = finFence[1].trim();
+      const parsed = JSON.parse(cleanFinance);
       const extractedTransactions = parsed.transactions || parsed || [];
       
       const now = new Date();

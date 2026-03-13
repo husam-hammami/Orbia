@@ -95,11 +95,11 @@ export async function getZohoStatus(): Promise<{ configured: boolean }> {
 }
 
 export async function getProjects(): Promise<any> {
-  return zohoRequest("GET", "/projects/?status=active");
+  return zohoRequest("GET", "/projects?status=active");
 }
 
 export async function getTasklists(projectId: string): Promise<any> {
-  return zohoRequest("GET", `/projects/${projectId}/tasklists/`);
+  return zohoRequest("GET", `/projects/${projectId}/tasklists`);
 }
 
 export async function getTasks(projectId: string, params?: { status?: string; tasklist?: string }): Promise<any> {
@@ -114,7 +114,7 @@ export async function getTasks(projectId: string, params?: { status?: string; ta
   }
   if (params?.tasklist) query.set("tasklist_id", params.tasklist);
 
-  return zohoRequest("GET", `/projects/${projectId}/tasks/?${query.toString()}`);
+  return zohoRequest("GET", `/projects/${projectId}/tasks?${query.toString()}`);
 }
 
 export async function createTask(projectId: string, taskData: {
@@ -126,7 +126,7 @@ export async function createTask(projectId: string, taskData: {
   end_date?: string;
   person_responsible?: string;
 }): Promise<any> {
-  return zohoRequest("POST", `/projects/${projectId}/tasks/`, taskData);
+  return zohoRequest("POST", `/projects/${projectId}/tasks`, taskData);
 }
 
 export async function updateTask(projectId: string, taskId: string, taskData: {
@@ -142,5 +142,5 @@ export async function updateTask(projectId: string, taskId: string, taskData: {
 }
 
 export async function getProjectMembers(projectId: string): Promise<any> {
-  return zohoRequest("GET", `/projects/${projectId}/users/`);
+  return zohoRequest("GET", `/projects/${projectId}/users`);
 }
