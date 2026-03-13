@@ -40,7 +40,7 @@ export function MobileHeader({ lockContext }: MobileHeaderProps) {
             />
             <span 
               className="text-sm font-bold tracking-[0.2em] bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--accent))] to-[hsl(var(--primary))] bg-clip-text text-transparent"
-              style={{ fontFamily: "'Orbitron', sans-serif" }}
+              style={{ fontFamily: "'Exo 2', sans-serif" }}
             >
               ORBIA
             </span>

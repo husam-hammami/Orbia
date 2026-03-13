@@ -127,11 +127,11 @@ function Sidebar({ className }: SidebarProps) {
         <img 
           src={sphereUrl} 
           alt="Orbia Sphere" 
-          className="w-36 h-36 object-contain animate-logo-pulse drop-shadow-[0_0_16px_hsl(var(--primary)/0.5)]" 
+          className="w-44 h-44 object-contain animate-logo-pulse drop-shadow-[0_0_20px_hsl(var(--primary)/0.5)]" 
         />
         <span 
-          className="-mt-2 text-xl font-extrabold tracking-[0.3em] text-foreground"
-          style={{ fontFamily: "'Orbitron', sans-serif" }}
+          className="-mt-3 text-2xl font-bold tracking-[0.22em] text-foreground"
+          style={{ fontFamily: "'Exo 2', sans-serif" }}
         >
           ORBIA
         </span>

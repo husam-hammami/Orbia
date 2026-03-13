@@ -126,7 +126,7 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
           
           <span 
             className="text-xl font-bold tracking-[0.25em] mb-3 bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--accent))] to-[hsl(var(--primary))] bg-clip-text text-transparent"
-            style={{ fontFamily: "'Orbitron', sans-serif" }}
+            style={{ fontFamily: "'Exo 2', sans-serif" }}
           >
             ORBIA
           </span>
