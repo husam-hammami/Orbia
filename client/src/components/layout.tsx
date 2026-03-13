@@ -111,7 +111,7 @@ function Sidebar({ className }: SidebarProps) {
     { href: "/", label: "Daily Tracker", icon: ClipboardList },
     { href: "/work", label: "Workstation", icon: Monitor },
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/career", label: "Vision & Coach", icon: Briefcase },
+    { href: "/career", label: "Career Roadmap", icon: Briefcase },
     { href: "/medical", label: "Medical", icon: Stethoscope },
     { href: "/finance", label: "Finance", icon: Wallet },
     { href: "/news", label: "Orbital News", icon: Newspaper },
@@ -187,7 +187,7 @@ const mobileNavItems = [
   { href: "/", label: "Today", icon: ClipboardList },
   { href: "/dashboard", label: "Insights", icon: LayoutDashboard },
   { href: "/orbit", label: "Orbia", icon: Orbit, special: true },
-  { href: "/career", label: "Goals", icon: Briefcase },
+  { href: "/career", label: "Career Roadmap", icon: Briefcase },
   { href: "/news", label: "News", icon: Newspaper },
 ];
 
@@ -209,7 +209,7 @@ function MobileBottomNav() {
                     key={item.href}
                     href={item.href}
                     className="relative -mt-6"
-                    data-testid={`nav-${item.label.toLowerCase()}`}
+                    data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                   >
                     <motion.div
                       whileTap={{ scale: 0.9 }}
@@ -236,7 +236,7 @@ function MobileBottomNav() {
                     "relative flex flex-col items-center justify-center gap-0.5 flex-1 py-2 transition-all",
                     isActive ? "text-primary" : "text-muted-foreground"
                   )}
-                  data-testid={`nav-${item.label.toLowerCase()}`}
+                  data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                 >
                   <motion.div
                     whileTap={{ scale: 0.85 }}

@@ -1876,7 +1876,9 @@ Provide supportive analysis. Be specific about patterns you observe in the data.
   app.post("/api/vision", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = z.array(insertCareerVisionSchema).parse(req.body);
+      const clientItemSchema = insertCareerVisionSchema.omit({ userId: true });
+      const clientItems = z.array(clientItemSchema).parse(req.body);
+      const validatedData = clientItems.map(item => ({ ...item, userId }));
       const vision = await storage.updateVision(userId, validatedData);
       res.json(vision);
     } catch (error) {

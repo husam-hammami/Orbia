@@ -7,7 +7,7 @@ const navItems = [
   { href: "/", label: "Today", icon: ClipboardList },
   { href: "/dashboard", label: "Insights", icon: LayoutDashboard },
   { href: "/orbit", label: "Orbia", icon: Orbit },
-  { href: "/career", label: "Vision", icon: Briefcase },
+  { href: "/career", label: "Career Roadmap", icon: Briefcase },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -30,7 +30,7 @@ export function MobileBottomNav() {
                   "relative flex flex-col items-center justify-center gap-1 flex-1 h-full py-2 transition-colors",
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
-                data-testid={`nav-${item.label.toLowerCase()}`}
+                data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
               >
                 <div className="relative">
                   {isActive && (

@@ -976,7 +976,7 @@ export default function CareerPage() {
           className="flex items-center justify-between"
         >
           <div>
-            <h1 className="text-xl md:text-3xl font-display font-bold text-primary">Vision & Coach</h1>
+            <h1 className="text-xl md:text-3xl font-display font-bold text-primary">Career Roadmap</h1>
             <p className="text-xs md:text-sm text-muted-foreground">Your growth dashboard</p>
           </div>
           <Button 
@@ -1595,70 +1595,60 @@ export default function CareerPage() {
             <div className="space-y-4 py-4">
               {editingVision.map((item, index) => (
                 <div key={item.id} className="space-y-2 p-4 rounded-xl bg-muted/50">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    {index === 0 && <Target className="w-4 h-4" />}
-                    {index === 1 && <Rocket className="w-4 h-4" />}
-                    {index === 2 && <Sparkles className="w-4 h-4" />}
-                    Vision {index + 1}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      {index === 0 && <Target className="w-4 h-4" />}
+                      {index === 1 && <Rocket className="w-4 h-4" />}
+                      {index === 2 && <Sparkles className="w-4 h-4" />}
+                      {index > 2 && <Star className="w-4 h-4" />}
+                      Vision {index + 1}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => setEditingVision(editingVision.filter(v => v.id !== item.id))}
+                      data-testid={`button-remove-vision-${index}`}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
                   </div>
                   <Input
                     value={item.title}
                     onChange={(e) => setEditingVision(editingVision.map(v => v.id === item.id ? { ...v, title: e.target.value } : v))}
                     placeholder="Vision title"
                     className="font-medium"
+                    data-testid={`input-vision-title-${index}`}
                   />
                   <Input
                     value={item.timeframe}
                     onChange={(e) => setEditingVision(editingVision.map(v => v.id === item.id ? { ...v, timeframe: e.target.value } : v))}
                     placeholder="Timeframe (e.g., 2 Years, Ongoing)"
                     className="text-sm"
+                    data-testid={`input-vision-timeframe-${index}`}
                   />
                 </div>
               ))}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsVisionDialogOpen(false)}>Cancel</Button>
-              <Button onClick={saveVision} disabled={updateVisionMutation.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground border-0">
-                {updateVisionMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                Save Changes
+              {editingVision.length === 0 && (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No vision items yet. Add your first one below.</p>
+                </div>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => setEditingVision([...editingVision, { id: `new-${Date.now()}`, title: "", timeframe: "", color: "blue", order: editingVision.length }])}
+                data-testid="button-add-vision"
+              >
+                <Plus className="w-4 h-4 mr-1.5" />
+                Add Vision
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={isVisionDialogOpen} onOpenChange={setIsVisionDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Edit North Star Vision</DialogTitle>
-              <DialogDescription>Define your guiding principles and long-term goals.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              {editingVision.map((item, index) => (
-                <div key={item.id} className="space-y-2 p-4 rounded-xl bg-muted/50">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    {index === 0 && <Target className="w-4 h-4" />}
-                    {index === 1 && <Rocket className="w-4 h-4" />}
-                    {index === 2 && <Sparkles className="w-4 h-4" />}
-                    Vision {index + 1}
-                  </div>
-                  <Input
-                    value={item.title}
-                    onChange={(e) => setEditingVision(editingVision.map(v => v.id === item.id ? { ...v, title: e.target.value } : v))}
-                    placeholder="Vision title"
-                    className="font-medium"
-                  />
-                  <Input
-                    value={item.timeframe}
-                    onChange={(e) => setEditingVision(editingVision.map(v => v.id === item.id ? { ...v, timeframe: e.target.value } : v))}
-                    placeholder="Timeframe (e.g., 2 Years, Ongoing)"
-                    className="text-sm"
-                  />
-                </div>
-              ))}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsVisionDialogOpen(false)}>Cancel</Button>
-              <Button onClick={saveVision} disabled={updateVisionMutation.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground border-0">
+              <Button onClick={saveVision} disabled={updateVisionMutation.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground border-0" data-testid="button-save-vision">
                 {updateVisionMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 Save Changes
               </Button>
