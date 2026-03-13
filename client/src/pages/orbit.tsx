@@ -122,78 +122,6 @@ function formatMarkdown(text: string): React.ReactNode {
   });
 }
 
-const ORBIT_SYSTEM_PROMPT = `You are Orbia, the user's personal companion and supportive friend. You help them stay organized and on track with their goals.
-
-TONE: Warm, encouraging, and playful - like a supportive big sister. Be practical and helpful. Reference their interests when you learn about them through conversation.
-
-WHAT YOU DO:
-- Help organize their goals and tasks
-- Celebrate small wins genuinely
-- When they're overwhelmed, help pick ONE thing to focus on
-- Be gentle about moods - ups and downs are normal
-
-WHEN TO USE ACTIONS:
-If the user asks to mark something done, add/edit/delete a habit, task, or routine activity, output ONLY a JSON action object like:
-{"type":"action","name":"mark_habit","args":{"habit_id":"...","date":"YYYY-MM-DD","done":true},"confirm":false}
-
-SUPPORTED ACTIONS:
-
-HABITS:
-- mark_habit: {"habit_id": "...", "date": "YYYY-MM-DD", "done": true/false}
-- create_habit: {"title": "...", "category": "health/movement/mental/work/mindfulness/creativity", "description": "..." (optional), "target": number (optional), "unit": "times/minutes/ml/etc" (optional)}
-- update_habit: {"habit_id": "...", "title": "..." (optional), "category": "..." (optional), "description": "..." (optional)}
-- delete_habit: {"habit_id": "..."} - ALWAYS set confirm:true for this
-
-TASKS:
-- add_task: {"title": "...", "priority": "low/medium/high"}
-- mark_task: {"task_id": "...", "completed": true/false}
-- update_task: {"task_id": "...", "title": "..." (optional), "priority": "..." (optional)}
-- delete_task: {"task_id": "..."} - ALWAYS set confirm:true for this
-
-ROUTINE ACTIVITIES:
-- mark_routine_activity: {"activity_id": "...", "date": "YYYY-MM-DD", "done": true/false, "habit_id": "..." or null}
-- create_routine_activity: {"block_id": "...", "name": "...", "time": "HH:MM" (optional), "description": "..." (optional), "habit_id": "..." (optional to link to habit)}
-- update_routine_activity: {"activity_id": "...", "name": "..." (optional), "time": "..." (optional), "description": "..." (optional)}
-- delete_routine_activity: {"activity_id": "..."} - ALWAYS set confirm:true for this
-
-CAREER PROJECTS:
-- create_career_project: {"title": "...", "description": "...", "status": "planning/in_progress/ongoing/completed", "deadline": "YYYY-MM-DD", "color": "bg-indigo-500/bg-rose-500/bg-emerald-500"}
-- update_career_project: {"project_id": "...", "title": "...", "status": "...", "progress": 0-100, "description": "...", "nextAction": "..."}
-- delete_career_project: {"project_id": "..."} - ALWAYS set confirm:true for this
-
-CAREER TASKS:
-- create_career_task: {"title": "...", "project_id": "..." or null, "priority": "low/medium/high", "due": "Today/Tomorrow/YYYY-MM-DD", "description": "..."}
-- update_career_task: {"task_id": "...", "title": "...", "priority": "...", "completed": 0/1}
-- delete_career_task: {"task_id": "..."} - ALWAYS set confirm:true for this
-
-EXPENSES:
-- create_expense: {"name": "...", "amount": number, "budget": number, "category": "Fixed/Variable/Savings/Debt", "status": "paid/pending/variable", "date": "Jan 1", "month": "January"}
-- update_expense: {"expense_id": "...", "amount": number, "status": "paid/pending/variable", "name": "..."}
-- delete_expense: {"expense_id": "..."} - ALWAYS set confirm:true for this
-
-JOURNAL ENTRIES:
-- create_journal: {"content": "...", "entry_type": "reflection/vent/gratitude/grounding/memory", "mood": 1-10 (optional), "energy": 1-10 (optional), "tags": ["anxiety", "calm", etc] (optional), "is_private": true/false (optional)}
-- update_journal: {"entry_id": "...", "content": "...", "entry_type": "...", "mood": ..., "energy": ..., "tags": [...]}
-- delete_journal: {"entry_id": "..."} - ALWAYS set confirm:true for this
-
-MEALS/FOOD:
-- log_meal: {"date": "YYYY-MM-DD", "breakfast": "meal name" (optional), "lunch": "meal name" (optional), "dinner": "meal name" (optional)} - Updates today's meal selections
-- add_meal_option: {"name": "...", "meal_type": "breakfast/lunch/dinner", "recipe": "..." (optional, for dinner)}
-- delete_meal_option: {"option_id": "..."} - ALWAYS set confirm:true for this
-
-CONFIRMATION RULES:
-- ALWAYS set confirm:true and confirm_text for: delete_habit, delete_task, delete_routine_activity, delete_career_project, delete_career_task, delete_expense, delete_journal, delete_meal_option
-- Set confirm:true for any action that seems risky or the user expressed uncertainty about
-- confirm_text should briefly describe what will happen, e.g. "Delete project 'Portfolio Redesign'?"
-
-DASHBOARD INSIGHTS: When the user asks about patterns, trends, or insights, reference the dashboardInsights in context which includes:
-- moodCorrelation: habits that correlate with good mood days
-- recommendations: actionable suggestions based on data patterns
-- trend7Day: whether mood is improving, stable, or declining
-
-Reference these patterns when relevant to help the user understand their data.
-
-If unsure about user intent, ask ONE clarifying question. Keep responses brief and operational.`;
 
 export default function OrbitPage() {
   const today = format(new Date(), "yyyy-MM-dd");
@@ -781,6 +709,33 @@ export default function OrbitPage() {
           return { success: true, message: `Logged ${type || "expense"}: ${name} (${amount})` };
         }
 
+        case "delete_transaction": {
+          const resp = await fetch(`/api/transactions/${action.args.transaction_id}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+          if (!resp.ok) throw new Error("Failed to delete transaction");
+          queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
+          return { success: true, message: `Deleted transaction` };
+        }
+
+        case "log_income_payment": {
+          const { income_stream_id, amount: incPayAmt } = action.args;
+          const now = new Date();
+          await createTransaction.mutateAsync({
+            type: "income",
+            name: `Income payment`,
+            amount: Math.round(Number(incPayAmt)),
+            category: "salary",
+            date: now,
+            month: now.toLocaleString("en-US", { month: "long" }),
+            isRecurring: 0,
+            incomeStreamId: income_stream_id,
+            notes: null,
+          });
+          return { success: true, message: `Logged income payment: ${incPayAmt}` };
+        }
+
         // LOAN PAYMENT
         case "add_loan_payment": {
           const { loan_id, amount: payAmount, notes: payNotes } = action.args;
@@ -925,12 +880,12 @@ export default function OrbitPage() {
 
         // MEDICAL TIMELINE EVENTS
         case "create_timeline_event": {
-          const { title: tlTitle, date: tlDate, type: tlType, description: tlDesc, provider } = action.args;
+          const { title: tlTitle, date: tlDate, type: tlType, description: tlDesc } = action.args;
           const resp = await fetch("/api/medical/timeline-events", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({ title: tlTitle, eventDate: tlDate, eventType: tlType || "appointment", description: tlDesc || "", provider: provider || null }),
+            body: JSON.stringify({ title: tlTitle, date: tlDate || new Date().toISOString().split("T")[0], eventType: tlType || "standard", description: tlDesc || "" }),
           });
           if (!resp.ok) throw new Error("Failed to create timeline event");
           queryClient.invalidateQueries({ queryKey: ["/api/medical/timeline-events"] });
@@ -960,16 +915,16 @@ export default function OrbitPage() {
 
         // MEDICAL NETWORK (DOCTORS)
         case "create_med_contact": {
-          const { name: docName, specialty, hospital, phone, notes: docNotes } = action.args;
+          const { name: docName, role, facility, category, status: contactStatus } = action.args;
           const resp = await fetch("/api/medical/medical-network", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({ name: docName, specialty: specialty || "", hospital: hospital || "", phone: phone || "", notes: docNotes || "" }),
+            body: JSON.stringify({ name: docName, role: role || "doctor", facility: facility || "", category: category || "treating", status: contactStatus || "current" }),
           });
           if (!resp.ok) throw new Error("Failed to add contact");
           queryClient.invalidateQueries({ queryKey: ["/api/medical/medical-network"] });
-          return { success: true, message: `Added doctor: "${docName}"` };
+          return { success: true, message: `Added to medical network: "${docName}"` };
         }
         case "update_med_contact": {
           const { contact_id, ...contactUpdates } = action.args;

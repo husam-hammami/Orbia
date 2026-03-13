@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Settings, Briefcase, Wallet, ClipboardList, Orbit, Lock, Sun, Moon, Newspaper, Clock, Stethoscope, Monitor } from "lucide-react";
+import { LayoutDashboard, Settings, Briefcase, Wallet, ClipboardList, Orbit, Lock, Sun, Moon, Newspaper, Clock, Stethoscope, Monitor, MoreHorizontal, BookOpen, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GardenTopBar } from "@/components/garden-top-bar";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/hooks/useTheme";
 import { themePresets } from "@/lib/themePresets";
 import { SetPasswordDialog } from "@/components/lock-screen";
@@ -183,90 +183,218 @@ function Sidebar({ className }: SidebarProps) {
   );
 }
 
-const mobileNavItems = [
+const primaryNavItems = [
   { href: "/", label: "Today", icon: ClipboardList },
   { href: "/dashboard", label: "Insights", icon: LayoutDashboard },
   { href: "/orbit", label: "Orbia", icon: Orbit, special: true },
-  { href: "/career", label: "Career Roadmap", icon: Briefcase },
-  { href: "/news", label: "News", icon: Newspaper },
+  { href: "/work", label: "Work", icon: Monitor },
+  { href: "more", label: "More", icon: MoreHorizontal, isMore: true },
 ];
+
+const moreNavItems = [
+  { href: "/medical", label: "Medical", icon: Stethoscope },
+  { href: "/career", label: "Career", icon: Briefcase },
+  { href: "/finance", label: "Finance", icon: Wallet },
+  { href: "/news", label: "News", icon: Newspaper },
+  { href: "/journal", label: "Journal", icon: BookOpen },
+  { href: "/settings", label: "Settings", icon: Settings },
+];
+
+const allNavHrefs = [...primaryNavItems.filter(i => !i.isMore).map(i => i.href), ...moreNavItems.map(i => i.href)];
 
 function MobileBottomNav() {
   const [location] = useLocation();
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  const isMoreActive = moreNavItems.some(item => location === item.href);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-      <div className="mx-3 mb-3">
-        <div className="bg-background/90 backdrop-blur-2xl rounded-2xl border border-border/40 shadow-xl shadow-black/5">
-          <div className="flex items-center justify-around h-16 px-1">
-            {mobileNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location === item.href;
-              
-              if (item.special) {
+    <>
+      <AnimatePresence>
+        {moreOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 md:hidden"
+              onClick={() => setMoreOpen(false)}
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 350 }}
+              className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
+            >
+              <div className="mx-3 mb-3">
+                <div className="bg-background/95 backdrop-blur-2xl rounded-2xl border border-border/40 shadow-2xl shadow-black/20 overflow-hidden">
+                  <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">All Modules</span>
+                    <motion.button
+                      whileTap={{ scale: 0.85 }}
+                      onClick={() => setMoreOpen(false)}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+                      data-testid="button-close-more-menu"
+                    >
+                      <X className="w-4 h-4" />
+                    </motion.button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1 px-3 pb-4">
+                    {moreNavItems.map((item, idx) => {
+                      const Icon = item.icon;
+                      const isActive = location === item.href;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMoreOpen(false)}
+                          className={cn(
+                            "flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl transition-all",
+                            isActive
+                              ? "bg-primary/15 text-primary"
+                              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                          )}
+                          data-testid={`nav-more-${item.label.toLowerCase()}`}
+                        >
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.04 }}
+                          >
+                            <Icon className={cn(
+                              "w-6 h-6 transition-all",
+                              isActive && "scale-110"
+                            )} />
+                          </motion.div>
+                          <span className={cn(
+                            "text-[11px] transition-all",
+                            isActive ? "font-semibold" : "font-medium"
+                          )}>
+                            {item.label}
+                          </span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+        <div className="mx-3 mb-3">
+          <div className="bg-background/90 backdrop-blur-2xl rounded-2xl border border-border/40 shadow-xl shadow-black/5">
+            <div className="flex items-center justify-around h-16 px-1">
+              {primaryNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = item.isMore ? isMoreActive : location === item.href;
+                
+                if (item.special) {
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="relative -mt-6"
+                      data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      <motion.div
+                        whileTap={{ scale: 0.9 }}
+                        className={cn(
+                          "w-14 h-14 rounded-full flex items-center justify-center shadow-lg",
+                          "bg-gradient-to-br from-primary to-accent",
+                          "border-4 border-background"
+                        )}
+                      >
+                        <Icon className="w-6 h-6 text-white" />
+                      </motion.div>
+                      <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[10px] font-medium text-primary whitespace-nowrap">
+                        {item.label}
+                      </span>
+                    </Link>
+                  );
+                }
+
+                if (item.isMore) {
+                  return (
+                    <button
+                      key="more"
+                      onClick={() => setMoreOpen(!moreOpen)}
+                      className={cn(
+                        "relative flex flex-col items-center justify-center gap-0.5 flex-1 py-2 transition-all",
+                        isActive || moreOpen ? "text-primary" : "text-muted-foreground"
+                      )}
+                      data-testid="nav-more"
+                    >
+                      <motion.div
+                        whileTap={{ scale: 0.85 }}
+                        className="relative"
+                      >
+                        {(isActive && !moreOpen) && (
+                          <motion.div
+                            layoutId="mobile-nav-indicator"
+                            className="absolute -inset-2 rounded-xl bg-primary/10"
+                            transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                          />
+                        )}
+                        <Icon className={cn(
+                          "w-5 h-5 relative z-10 transition-all",
+                          (isActive || moreOpen) && "scale-110"
+                        )} />
+                      </motion.div>
+                      <span className={cn(
+                        "text-[10px] transition-all",
+                        (isActive || moreOpen) ? "font-semibold" : "font-medium"
+                      )}>
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                }
+                
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="relative -mt-6"
+                    className={cn(
+                      "relative flex flex-col items-center justify-center gap-0.5 flex-1 py-2 transition-all",
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    )}
                     data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                   >
                     <motion.div
-                      whileTap={{ scale: 0.9 }}
-                      className={cn(
-                        "w-14 h-14 rounded-full flex items-center justify-center shadow-lg",
-                        "bg-gradient-to-br from-primary to-accent",
-                        "border-4 border-background"
-                      )}
+                      whileTap={{ scale: 0.85 }}
+                      className="relative"
                     >
-                      <Icon className="w-6 h-6 text-white" />
+                      {isActive && (
+                        <motion.div
+                          layoutId="mobile-nav-indicator"
+                          className="absolute -inset-2 rounded-xl bg-primary/10"
+                          transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                        />
+                      )}
+                      <Icon className={cn(
+                        "w-5 h-5 relative z-10 transition-all",
+                        isActive && "scale-110"
+                      )} />
                     </motion.div>
-                    <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[10px] font-medium text-primary whitespace-nowrap">
+                    <span className={cn(
+                      "text-[10px] transition-all",
+                      isActive ? "font-semibold" : "font-medium"
+                    )}>
                       {item.label}
                     </span>
                   </Link>
                 );
-              }
-              
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "relative flex flex-col items-center justify-center gap-0.5 flex-1 py-2 transition-all",
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  )}
-                  data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                >
-                  <motion.div
-                    whileTap={{ scale: 0.85 }}
-                    className="relative"
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="mobile-nav-indicator"
-                        className="absolute -inset-2 rounded-xl bg-primary/10"
-                        transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                      />
-                    )}
-                    <Icon className={cn(
-                      "w-5 h-5 relative z-10 transition-all",
-                      isActive && "scale-110"
-                    )} />
-                  </motion.div>
-                  <span className={cn(
-                    "text-[10px] transition-all",
-                    isActive ? "font-semibold" : "font-medium"
-                  )}>
-                    {item.label}
-                  </span>
-                </Link>
-              );
-            })}
+              })}
+            </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 }
 

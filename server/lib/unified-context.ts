@@ -21,6 +21,8 @@ export async function buildUnifiedContext(userId: string): Promise<{
     diagnosesResult,
     medicationsResult,
     medPrioritiesResult,
+    medTimelineResult,
+    medNetworkResult,
     transactionsResult,
     loansResult,
     incomeResult,
@@ -29,6 +31,7 @@ export async function buildUnifiedContext(userId: string): Promise<{
     visionResult,
     projectsResult,
     projectTasksResult,
+    newsTopicsResult,
   ] = await Promise.allSettled([
     storage.getUserProfile(userId),
     storage.getRecentTrackerEntries(userId, 30),
@@ -40,6 +43,8 @@ export async function buildUnifiedContext(userId: string): Promise<{
     storage.getMedDiagnoses(userId),
     storage.getMedMedications(userId),
     storage.getMedPriorities(userId),
+    storage.getMedTimelineEvents(userId),
+    storage.getMedMedicalNetwork(userId),
     storage.getAllTransactions(userId),
     storage.getAllLoans(userId),
     storage.getAllIncomeStreams(userId),
@@ -48,6 +53,7 @@ export async function buildUnifiedContext(userId: string): Promise<{
     storage.getVision(userId),
     storage.getAllCareerProjects(userId),
     storage.getAllCareerTasks(userId),
+    storage.getAllNewsTopics(userId),
   ]);
 
   const val = <T,>(r: PromiseSettledResult<T>, fallback: T): T =>
@@ -63,12 +69,15 @@ export async function buildUnifiedContext(userId: string): Promise<{
   const diagnoses = val(diagnosesResult, []);
   const medications = val(medicationsResult, []);
   const medPriorities = val(medPrioritiesResult, []);
+  const medTimeline = val(medTimelineResult, []) as any[];
+  const medNetwork = val(medNetworkResult, []) as any[];
   const allTransactions = val(transactionsResult, []);
   const loans = val(loansResult, []);
   const incomeStreams = val(incomeResult, []);
   const financeSettings = val(finSettingsResult, undefined);
   const scheduledMsgs = val(scheduledResult, []);
   const visionItems = val(visionResult, []);
+  const newsTopics = val(newsTopicsResult, []) as any[];
   const projects = val(projectsResult, []) as any[];
   const projectTasks = val(projectTasksResult, []) as any[];
 
@@ -345,13 +354,26 @@ ${unread > 0 ? `${unread} unread emails\n` : ""}${emails
       medBlock += "\n";
     }
     if (diagnoses.length > 0) {
-      medBlock += `Diagnoses:\n${diagnoses.map((d) => `- ${d.label} (${d.severity}): ${d.description}`).join("\n")}\n`;
+      medBlock += `Diagnoses:\n${diagnoses.map((d) => `- ${d.label} (${d.severity}): ${d.description} (ID: ${d.id})`).join("\n")}\n`;
     }
     if (medications.length > 0) {
-      medBlock += `Medications:\n${medications.map((m) => `- ${m.name} ${m.dosage}: ${m.purpose}`).join("\n")}\n`;
+      medBlock += `Medications:\n${medications.map((m) => `- ${m.name} ${m.dosage}: ${m.purpose} (ID: ${m.id})`).join("\n")}\n`;
     }
     if (medPriorities.length > 0) {
-      medBlock += `Priorities:\n${medPriorities.map((p) => `- ${p.label}: ${p.description}`).join("\n")}\n`;
+      medBlock += `Priorities:\n${medPriorities.map((p) => `- ${p.label}: ${p.description} (ID: ${p.id})`).join("\n")}\n`;
+    }
+    if (medTimeline.length > 0) {
+      const recentEvents = [...medTimeline]
+        .sort((a: any, b: any) => {
+          const da = a.date ? new Date(a.date).getTime() : 0;
+          const db = b.date ? new Date(b.date).getTime() : 0;
+          return db - da;
+        })
+        .slice(0, 10);
+      medBlock += `Timeline:\n${recentEvents.map((e: any) => `- [${e.date || "unknown"}] ${e.eventType || "event"}: ${e.title}${e.description ? ` — ${e.description.substring(0, 80)}` : ""} (ID: ${e.id})`).join("\n")}\n`;
+    }
+    if (medNetwork.length > 0) {
+      medBlock += `Medical Network:\n${medNetwork.map((c: any) => `- ${c.name}${c.role ? ` (${c.role})` : ""}${c.facility ? ` at ${c.facility}` : ""} [${c.status || "current"}] (ID: ${c.id})`).join("\n")}\n`;
     }
     medBlock += "</MEDICAL>";
     sections.push(medBlock);
@@ -422,6 +444,14 @@ ${activeScheduled.map((s) => `- #${s.id}: "${s.message}" → ${s.recipientName} 
 ${visionItems.map((v: any) => `- ${v.title} (${v.timeframe}): ${v.description || ""}`).join("\n")}
 </VISION>`;
     sections.push(visBlock);
+  }
+
+  if (newsTopics.length > 0) {
+    const customTopics = newsTopics.filter((t: any) => t.isCustom);
+    let newsBlock = `<NEWS_TOPICS>\nFollowed topics: ${newsTopics.map((t: any) => `"${t.topic}" (ID: ${t.id})`).join(", ")}`;
+    if (customTopics.length > 0) newsBlock += `\nCustom: ${customTopics.map((t: any) => t.topic).join(", ")}`;
+    newsBlock += "\n</NEWS_TOPICS>";
+    sections.push(newsBlock);
   }
 
   try {
@@ -768,11 +798,11 @@ MEDICAL:
 - create_med_priority: {"label": "...", "description": "...", "severity": "low/medium/high/critical"}
 - update_med_priority: {"priority_id": "...", "label": "...", "description": "..."}
 - delete_med_priority: {"priority_id": "..."} - ALWAYS set confirm:true
-- create_timeline_event: {"title": "...", "date": "YYYY-MM-DD", "type": "diagnosis/procedure/test/medication/symptom/appointment", "description": "...", "provider": "..."}
+- create_timeline_event: {"title": "...", "date": "YYYY-MM-DD", "type": "standard/diagnosis/procedure/test/medication/symptom/appointment", "description": "..."}
 - update_timeline_event: {"event_id": "...", "title": "...", "date": "YYYY-MM-DD", "type": "...", "description": "..."}
 - delete_timeline_event: {"event_id": "..."} - ALWAYS set confirm:true
-- create_med_contact: {"name": "...", "specialty": "...", "hospital": "...", "phone": "...", "notes": "..."}
-- update_med_contact: {"contact_id": "...", "name": "...", "specialty": "...", "phone": "..."}
+- create_med_contact: {"name": "...", "role": "...", "facility": "...", "category": "treating/specialist/pharmacy/lab/emergency/other", "status": "current/past"}
+- update_med_contact: {"contact_id": "...", "name": "...", "role": "...", "facility": "...", "status": "..."}
 - delete_med_contact: {"contact_id": "..."} - ALWAYS set confirm:true
 
 NEWS:
