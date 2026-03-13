@@ -62,9 +62,10 @@ Orbia is a personal AI companion and holistic wellness/productivity app. It feat
 - **Purpose**: Dedicated "Zoho" tab in Workstation for viewing, creating, and editing Zoho Projects tasks.
 - **Env Secrets Required**: `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN` (secrets), `ZOHO_PORTAL_ID` (env var, default 905717188).
 - **Token Management**: In-memory token cache with auto-refresh via Zoho OAuth2 refresh token flow. Token cached for ~1 hour, auto-retry on 401.
-- **API Endpoints**: `GET /api/zoho/status`, `GET /api/zoho/projects`, `GET /api/zoho/projects/:pid/tasklists`, `GET /api/zoho/projects/:pid/tasks`, `POST /api/zoho/projects/:pid/tasks`, `PUT /api/zoho/projects/:pid/tasks/:tid`, `GET /api/zoho/projects/:pid/members`.
-- **Frontend**: Glassmorphic card-based UI matching Orbia design language. Pulse cards (Open/Active/Overdue/Done) → grouped task card sections (Needs Attention → In Progress → Up Next → Completed). Inline expand for task detail/edit. Create task panel slides down from top. Project selector + task list filter chips.
-- **Design**: Uses Workstation's command-center aesthetic (cmdPanel, CmdLabel, mono tokens, indigo accents). Task cards in 2-col grid (desktop) / 1-col (mobile). Overdue cards get red left border accent, in-progress get amber.
+- **API Endpoints**: `GET /api/zoho/status`, `GET /api/zoho/projects`, `GET /api/zoho/projects/:pid/tasklists`, `GET /api/zoho/projects/:pid/tasks`, `POST /api/zoho/projects/:pid/tasks`, `PUT /api/zoho/projects/:pid/tasks/:tid`, `GET /api/zoho/projects/:pid/members`, `POST /api/zoho/chat` (SSE streaming AI assistant).
+- **Zoho AI Assistant**: Dedicated chat in Zoho panel. Receives full task/member/tasklist context. Can create tasks (`[ZOHO_CREATE]`), update tasks (`[ZOHO_UPDATE]`), and complete tasks (`[ZOHO_COMPLETE]`) via action tags in AI responses. Uses MODEL_FAST.
+- **Frontend**: Two-column layout: left = task list with pulse cards + sections, right = Zoho AI chat. Default project persisted to localStorage. Project selector auto-saves. Mobile: tab-based (Tasks | Assistant). Pulse cards (Open/Active/Overdue/Done), grouped sections (Needs Attention → In Progress → Up Next → Completed), inline expand/edit, create task panel.
+- **Design**: Uses Workstation's command-center aesthetic (cmdPanel, cmdPanelGlow, mono tokens, indigo accents). Overdue tasks highlighted in sections.
 - **Files**: `server/lib/zoho-client.ts` (Zoho API client), `client/src/components/zoho-panel.tsx` (frontend), `client/src/pages/work.tsx` (tab wiring).
 
 ### AI Integration

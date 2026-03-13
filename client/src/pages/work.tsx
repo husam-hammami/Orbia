@@ -1377,7 +1377,7 @@ export default function WorkPage() {
 
           {/* === ZOHO VIEW (Desktop) === */}
           {workView === "zoho" && (
-            <div className="hidden lg:block" style={{ minHeight: "calc(100vh - 220px)" }}>
+            <div className="hidden lg:block" style={{ height: "calc(100vh - 220px)" }}>
               <ZohoPanel />
             </div>
           )}

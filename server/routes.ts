@@ -5286,6 +5286,202 @@ ${rawText}`
   // ===== ZOHO PROJECTS ROUTES =====
   const zoho = await import("./lib/zoho-client");
 
+  app.post("/api/zoho/chat", async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { messages: chatMessages, projectId } = req.body;
+      if (!chatMessages || !Array.isArray(chatMessages)) {
+        return res.status(400).json({ error: "Messages array required" });
+      }
+      if (!projectId) {
+        return res.status(400).json({ error: "Project ID required" });
+      }
+
+      let tasksContext = "";
+      let membersContext = "";
+      let tasklistsContext = "";
+      try {
+        const [tasksData, membersData, tasklistsData] = await Promise.all([
+          zoho.getTasks(projectId),
+          zoho.getProjectMembers(projectId),
+          zoho.getTasklists(projectId),
+        ]);
+        const tasks = tasksData?.tasks || tasksData || [];
+        const members = membersData?.users || membersData || [];
+        const tasklists = tasklistsData?.tasklists || tasklistsData || [];
+
+        tasklistsContext = tasklists.map((tl: any) => `- "${tl.name}" (id: ${tl.id})`).join("\n");
+
+        membersContext = members.map((m: any) => `- ${m.name} (zpuid: ${m.zpuid || m.id}${m.email ? `, email: ${m.email}` : ""})`).join("\n");
+
+        const openTasks = tasks.filter((t: any) => !t.is_completed && !t.status?.is_closed_type);
+        const doneTasks = tasks.filter((t: any) => t.is_completed || t.status?.is_closed_type);
+
+        tasksContext = `OPEN TASKS (${openTasks.length}):\n` + openTasks.map((t: any) => {
+          const owners = t.owners_and_work?.owners?.filter((o: any) => o.name !== "Unassigned User").map((o: any) => o.name).join(", ") || "Unassigned";
+          const overdue = t.end_date && !t.is_completed && new Date(t.end_date) < new Date() ? " [OVERDUE]" : "";
+          return `- "${t.name}" (id: ${t.id}) | Status: ${t.status?.name || "Open"} | Priority: ${t.priority || "None"} | Owner: ${owners} | Due: ${t.end_date ? new Date(t.end_date).toLocaleDateString() : "No date"} | Tasklist: ${t.tasklist?.name || "N/A"}${overdue}`;
+        }).join("\n") + `\n\nCOMPLETED TASKS (${doneTasks.length}): ${doneTasks.length} tasks done`;
+      } catch (e) {
+        tasksContext = "Unable to fetch tasks - API may be temporarily unavailable.";
+      }
+
+      const systemPrompt = `You are Orbia Zoho Assistant — a professional project management AI embedded in the Orbia app. You help users manage their Zoho Projects tasks efficiently.
+
+## YOUR CAPABILITIES
+You can view, create, update, and complete tasks in the user's Zoho project. You have full context of all current tasks, team members, and task lists.
+
+## CURRENT PROJECT CONTEXT
+
+### Task Lists:
+${tasklistsContext || "No task lists found"}
+
+### Team Members:
+${membersContext || "No members found"}
+
+### Tasks:
+${tasksContext}
+
+## ACTION FORMAT
+When the user asks you to do something, perform the action using these tags. Include them naturally in your response:
+
+1. Create a task:
+[ZOHO_CREATE name="Task name" tasklist_id="LIST_ID" priority="none|low|medium|high" end_date="YYYY-MM-DD" person="ZPUID"]
+- tasklist_id, priority, end_date, person are optional
+
+2. Update a task:
+[ZOHO_UPDATE id="TASK_ID" name="New name" priority="high" end_date="YYYY-MM-DD" person="ZPUID"]
+- Only include fields being changed
+
+3. Complete a task:
+[ZOHO_COMPLETE id="TASK_ID"]
+
+## RULES
+- Be concise and professional. Use short paragraphs.
+- When listing tasks, format them clearly with status indicators.
+- When creating/updating tasks, confirm what you did.
+- If the user asks about tasks, use the context above — don't say you can't see them.
+- Match task names case-insensitively when the user references them.
+- If you can't find a referenced task, suggest the closest match.
+- Never fabricate task IDs or data not in the context.`;
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      const msgs = chatMessages.map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
+      const stream = await createRawStream(systemPrompt, msgs, { model: MODEL_FAST, maxTokens: 1500 });
+
+      let fullResponse = "";
+      const executedActions = new Set<string>();
+
+      const ZOHO_ACTIONS = [
+        { name: "create", regex: /\[ZOHO_CREATE\s+([^\]]+)\]/g },
+        { name: "update", regex: /\[ZOHO_UPDATE\s+([^\]]+)\]/g },
+        { name: "complete", regex: /\[ZOHO_COMPLETE\s+([^\]]+)\]/g },
+      ];
+
+      function parseAttrs(str: string): Record<string, string> {
+        const attrs: Record<string, string> = {};
+        const re = /(\w+)="([^"]*)"/g;
+        let m;
+        while ((m = re.exec(str)) !== null) {
+          attrs[m[1]] = m[2];
+        }
+        return attrs;
+      }
+
+      async function executeZohoActions(text: string) {
+        for (const { name, regex } of ZOHO_ACTIONS) {
+          const r = new RegExp(regex.source, "g");
+          let match;
+          while ((match = r.exec(text)) !== null) {
+            const actionKey = match[0];
+            if (executedActions.has(actionKey)) continue;
+            executedActions.add(actionKey);
+            const attrs = parseAttrs(match[1]);
+
+            try {
+              if (name === "create") {
+                if (!attrs.name || !attrs.name.trim()) {
+                  res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "Task name is required for create" })}\n\n`);
+                  continue;
+                }
+                const payload: any = { name: attrs.name.trim() };
+                if (attrs.tasklist_id) payload.tasklist = { id: attrs.tasklist_id };
+                if (attrs.priority && attrs.priority !== "none") payload.priority = attrs.priority;
+                if (attrs.end_date) payload.end_date = attrs.end_date + "T00:00:00.000Z";
+                if (attrs.person) payload.person_responsible = attrs.person;
+                await zoho.createTask(projectId, payload);
+                res.write(`data: ${JSON.stringify({ action: "zoho_task_created", name: attrs.name })}\n\n`);
+              } else if (name === "update") {
+                if (!attrs.id) {
+                  res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "Task ID is required for update" })}\n\n`);
+                  continue;
+                }
+                const payload: any = {};
+                if (attrs.name) payload.name = attrs.name;
+                if (attrs.priority) payload.priority = attrs.priority;
+                if (attrs.end_date) payload.end_date = attrs.end_date + "T00:00:00.000Z";
+                if (attrs.person) payload.person_responsible = attrs.person;
+                if (Object.keys(payload).length === 0) {
+                  res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "No fields to update" })}\n\n`);
+                  continue;
+                }
+                await zoho.updateTask(projectId, attrs.id, payload);
+                res.write(`data: ${JSON.stringify({ action: "zoho_task_updated", id: attrs.id, changes: payload })}\n\n`);
+              } else if (name === "complete") {
+                if (!attrs.id) {
+                  res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "Task ID is required for complete" })}\n\n`);
+                  continue;
+                }
+                const allTasks = await zoho.getTasks(projectId);
+                const tasks = allTasks?.tasks || allTasks || [];
+                const task = tasks.find((t: any) => t.id === attrs.id);
+                if (!task) {
+                  res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: `Task ${attrs.id} not found in project` })}\n\n`);
+                  continue;
+                }
+                const statuses = new Map<string, string>();
+                tasks.forEach((t: any) => { if (t.status?.id && t.status?.name) statuses.set(t.status.id, t.status.name); });
+                const closedStatus = Array.from(statuses.entries()).find(([, n]) => n.toLowerCase().includes("close") || n.toLowerCase().includes("done") || n.toLowerCase().includes("complete"));
+                if (!closedStatus) {
+                  res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "No closed/done status found in project workflow" })}\n\n`);
+                  continue;
+                }
+                await zoho.updateTask(projectId, attrs.id, { status: { id: closedStatus[0] } });
+                res.write(`data: ${JSON.stringify({ action: "zoho_task_completed", id: attrs.id })}\n\n`);
+              }
+            } catch (err: any) {
+              console.error(`[zoho-chat] Action ${name} failed:`, err.message);
+              res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: err.message })}\n\n`);
+            }
+          }
+        }
+      }
+
+      for await (const event of stream) {
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          const text = event.delta.text;
+          fullResponse += text;
+          res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
+        }
+      }
+
+      await executeZohoActions(fullResponse);
+      res.write("data: [DONE]\n\n");
+      res.end();
+    } catch (error: any) {
+      console.error("[zoho-chat] Error:", error?.message || error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to process chat" });
+      } else {
+        res.end();
+      }
+    }
+  });
+
   app.get("/api/zoho/status", async (req, res) => {
     try {
       const status = await zoho.getZohoStatus();
