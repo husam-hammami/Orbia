@@ -57,13 +57,14 @@ class AgentProcessManager extends EventEmitter {
       "-p",
       "--output-format", "stream-json",
       "--verbose",
+      "--dangerously-skip-permissions",
     ];
     if (options.conversationId) {
       args.push("--resume", options.conversationId);
     }
     args.push(options.prompt);
 
-    console.log(`[agent-pm] Starting claude for agent ${options.agentId}, cwd: ${options.workdir}, args:`, args);
+    console.log(`[agent-pm] Starting claude for agent ${options.agentId}, cwd: ${options.workdir}`);
 
     const proc = spawn("claude", args, {
       cwd: options.workdir,
@@ -85,8 +86,21 @@ class AgentProcessManager extends EventEmitter {
     this.emit("agent:started", { agentId: options.agentId, taskId: options.taskId });
 
     let jsonBuffer = "";
+    let hasReceivedOutput = false;
+
+    const startupTimeout = setTimeout(() => {
+      if (!hasReceivedOutput && this.processes.has(options.agentId)) {
+        console.log(`[agent-pm] Startup timeout for agent ${options.agentId} — no output after 60s, killing process`);
+        proc.kill("SIGTERM");
+        setTimeout(() => {
+          if (this.processes.has(options.agentId)) proc.kill("SIGKILL");
+        }, 5000);
+      }
+    }, 60000);
 
     proc.stdout?.on("data", (chunk: Buffer) => {
+      hasReceivedOutput = true;
+      clearTimeout(startupTimeout);
       const text = chunk.toString();
       jsonBuffer += text;
 
@@ -123,6 +137,7 @@ class AgentProcessManager extends EventEmitter {
     });
 
     proc.on("close", (code) => {
+      clearTimeout(startupTimeout);
       console.log(`[agent-pm] Process closed for agent ${options.agentId}, exit code: ${code}`);
       this.processes.delete(options.agentId);
       this.emit("agent:completed", {
@@ -134,6 +149,7 @@ class AgentProcessManager extends EventEmitter {
     });
 
     proc.on("error", (err) => {
+      clearTimeout(startupTimeout);
       console.log(`[agent-pm] Process error for agent ${options.agentId}: ${err.message}`);
       this.processes.delete(options.agentId);
       this.emit("agent:error", {
