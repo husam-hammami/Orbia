@@ -1,0 +1,60 @@
+2026-03-14T22:12:25Z info: Deployment: 08498ed9-f706-48e3-87e9-19c3184f7651
+2026-03-14T22:12:25Z info: Build: b3c54d2a-7d31-40d6-ab09-5bd4aa6c0585
+2026-03-14T22:12:25Z info: Running Security Scan
+2026-03-14T22:12:36Z info: Security Scan Complete
+2026-03-14T22:12:36Z info: Connecting to builder
+2026-03-14T22:12:37Z info: Builder connected
+2026-03-14T22:12:40Z info: Installing packages
+2026-03-14T22:12:41Z info: Starting Build
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+
+building client...
+
+vite v7.1.12 building for production...
+
+transforming...
+
+✓ 3824 modules transformed.
+
+[plugin vite:reporter] 
+(!) /home/runner/workspace/client/src/lib/queryClient.ts is dynamically imported by /home/runner/workspace/client/src/pages/welcome.tsx but also statically imported by /home/runner/workspace/client/src/App.tsx, /home/runner/workspace/client/src/components/food-tracker.tsx, /home/runner/workspace/client/src/pages/agents.tsx, /home/runner/workspace/client/src/pages/settings.tsx, dynamic import will not move module into another chunk.
+
+
+rendering chunks...
+
+[meta-images] using internal app domain: https://Myorbia.replit.app
+
+[meta-images] updating meta image tags to: https://Myorbia.replit.app/opengraph.jpg
+
+computing gzip size...
+
+../dist/public/index.html                                        1.72 kB │ gzip:   0.68 kB
+
+../dist/public/assets/orbia_orb_clean-BN0QlktK.png             100.89 kB
+../dist/public/assets/orbia_sphere_transparent-GH4asZ51.png    874.74 kB
+../dist/public/assets/index-wbXYxwpD.css                       257.04 kB │ gzip:  34.24 kB
+../dist/public/assets/index-D8MKxOEe.js                      2,761.42 kB │ gzip: 682.18 kB
+
+building server...
+
+
+  dist/index.cjs  1.5mb ⚠️
+
+⚡ Done in 292ms
+
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 11.11.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.11.1
+npm notice To update run: npm install -g npm@11.11.1
+npm notice
+
+2026-03-14T22:12:54Z info: Pushing pid1 binary layer...
+2026-03-14T22:13:01Z info: Pushing Repl layer...
+2026-03-14T22:13:01Z info: Pushing hosting layer...
+2026-03-14T22:13:02Z info: Retrieved cached nix layer
+2026-03-14T22:13:20Z info: Created pid1 binary layer
+2026-03-14T22:15:29Z info: Created Repl layer
+{"level":"fatal","msg":"failed to push layers: failed to push hosting layer: blob commit failed: client.Do(\"PUT\", \"https://deployer.replit.com/registry/cloudrun/v2/replit-user-deployments/gcr.io/pkg/blobs/uploads/ABmYrfCYb7716gWfTSsVC0VC3XkdGo1atk4b7-A6Q8e8lYkbB7x6_B3XICTJkF8bcnfKS9mV8GtlTWXCvUiv-oCQvO8tUVipZqZ8KFmS3EFpiOxeZXzmO5KNorGW_vkGB1WPA_DL2-5zdRd-utaQGL1nW_S8lSZFWwSmtlfboVh6HU4R-RMBVdHL5w96iSQAa8EvQIV5XXtWXdrEWSrA1RLoMIpWOpu_vtStGMOiKWVvxEPJVDNT8ohv_iclPXX555MGiDbVfBgt4tw05NpbAc2cfKnIO8Bn6B7Q0Et64u-jzFpLgkRxr6iKvYySE9qNzJ72Bo2ITsx2VezfIHcvzclp8C0ELUZIFk7H_gmVpJUhRDmi2ygZ8iUJd3V-Y1nWxGRlqth2pzIW0mVK1J2fRk2qOVduc6KWTwnuBiWP3MrSauY9m35EuAf7fTwPrE915wvCAXGxBSYhqa99-MxpsUIxBQRYUJ8k9PfBvFlsmsLpi0VZEdC0_jpheP5C31nk5gMwa3vuk9FleTwkiD8wmmFGjS8Wbh7KTKV1MJD532xMBn4zXYvMfpAdmGjPf2AjkygvQUp6Hbk4KqBWy8gZgHbzHS4OkQ1oHyYa6Qbunc4DzSDRl7Wvl3FRMPU7MCgeWfyTk8bHKz3gv-wgGPhWbmSPvIddJzx8ZZ7BW9Lv_JlHQ4cqvi0DtLy0Iu1xXBndD6OZNWKg7KnpsNnDR_YcDMQ5dc6RMDYu7hRTfYKhH-hFxqVM7MH9bIlPdH6P4p22gawpD3O0jzEauNmOblWlcBIdPEbNLT3sjDm_nbeuyRUVeTDACEgmgtXJcsekecI8wbblsCoTkXwL9wWSKjetYs1iC721QoErRz2MexThcKqydp10kQvaeNbw_2Jl3pl9XTnM8nGVwZWW3_SL0bwWgJR9w0C8-xGYR7Z-FAEvLJ4xvRxp4MQxQx3uAwsxm04k8JtZWPfdDpKAW692c2U2oGAiE0GWyc4lOmj-dVWmDHx0FPNW-BLa63ASRJKYJLSYHYwHH-rSjACqa0KN6ternlaEX1Oob1oLQuSvALzcEFwaNKaVfp4WU4qkZx7Baaita3COAFT8A3Q_g6KN3zstn3WVEkPnA4N86tlVKgebyZLvPNAEZcGt1LE9R68ZM6C6OmDX0dfKvl4KS3rRcV1-lhH5GFFEzEfSnPVCgqKHE8KL0CM89O1Abo5W6N0WeVsuw4QnDItRUY4MnK5cy-bgIBpwgHBZxmGFKVkRyw4e4wjZ_Hw0xUiU9UKnHeBboamGjUNRee_nWK79Ve19EZ2NZS9GKsRcPqdJWadld_rEJV05rte58HS_l-UI46Q0121Z-_7Ch3crroVpTQh4SIkc2vOKrhvNOX7IGaH7a-nhy0us6I_PNF6qPHf3zPB9qyxvvv4la8ZMQbI_Q2v5V94bFG8VpvMt4aqb_hSVcx8Lz0SocAhBt9xPrbXbXOa40GTbzHwgqfHH8CdURpkBdHWBE0tfeRgamdQF9Egd9QcNBQ_psnZIJadu6BRX2qU0rYPRisdd7ON3rc4eSXksR3kdouJJd_Tlq_588N9GijIK7Xr3zOgzmXNSgUShmRKdEek-XUcuV-5OsjDvHuoP6VL4ZJxsp53MQfuXJA7LuJReSsB4qPnk-DS4yToi2ZCphUNgSgesDOu1M25wRQtt_fBJqGk0hxJFr7VGK1H_7uxIebyvG_O3dPWNURo_a2BkdWCRWUd-cylGQqm23dJM8zLAOvpbzWrk5RSDv3ktsC1MU2hsCw1UchkBAre_f1GHWjCpkwts4dP5aO4nniNR5HEjdusCJf65ZMfP7LQmp9L5yz_zks3HmTMvlTYmtejLIuq6gG89MhMGB6AlkRa8lDaeWyNGMILYge09aVddnqCl4yZXwp-uRaGbIaZRqvnlPomyJKegqLWEppwmN1WhGqjm2ZkRgmuWVlMIfP4-4hg8SNcczeGc4GgHNcmW9g68eek_GQi11ANgQeGovEEEBA4npLxbgNSyQO-31HnTbZ9k0fWocXZQ8a6xEALiu_FpXFt-ABvrjigZfUq6AjHhqwVXhvweUpUWPbVMDQvnDSuxdn3uDj7DsEGjV4w1QzasO9Nd-hBM5w9J8ioo7cIdZTdgmAGpcZHApwmjgpNFR1c28BwkfGf9GGL0PMWS_-kVl8TiJfXF9CEGFI_VDe_rkvCfRqseuoyqsxZA4WyXzbD2UzR3cWJyxfYvGScyMO3puPET75GEj2YYn55IZR7qpBLy2UwJv941iKARH8rQOQM-TeQBn9oUlPrTOw2IG2oxgy9G-eg80XbWfpnODfNe_S0ATvo9OLHAgyQCR5YgW5de2AhRV-isjX76QzZ2bNWEqujjw11c9LLX3d9j6zQUMkCGf5hm0eC8Ft4OFlXe76I3nl8n-a7FJd3uEbnISgoqeHY6GDm_SSqYydU_-1HE4qcVZpix272gbwioSf1ALNrXPS2SBKd8wPQ6YV-lI5K_FISUh6rzFjDWvalAYv3Fp5kwP-ayt_TUsFpAY_nUhG3P6RFVp9TuPz4Ss41kYts9ANdTXhC9qTi4fSn2gYEIfIMEmKUJ4fCB1-qRknnvGRSpfmMrEFSkJG2w7-8wgCCzf2lItQWxeOFGvQStfCELzLYsqQJAwc8yC6WJ5OvlIbJ2Sqo5jcOxZRL6XwP4nb5JjGsDdmYDpi72GxLMyd1neIg5xOr4vKt7IL8XEBwbj-O0kMh0efSyv6GTZxvpIc33B2NBKQxRGQEG32FpSeW4bgBrKj_DghPzCqzLhZjFU--2SaUIIEeBrC3TfrqqVrRrSQwQ4xryEYhjNOvRFwyuW-deQ6Zv1BsqEYD6HEb0XEHHJbAIoYMxGqzp_h8iJAxFQXOup5F9L5MAMU9kG_KChA18HKqs79ZxDMxPR9qmYJKlgBvS8WZsb-GAESwd2t-xEeAbfAwmRvO3g1PSP34m4a-aLsXsYuuiRU1rJGEGy85yI53S4HoB2dtx0ATBaepr20z1eBPd5ur-FMqVFWwnUXBgdJf_HUf7mgc1dC0oUo8bhz8csSLcgqvunfRwni9CequX5L03FDVzSdJDqEcna5YQJKQGaVsrk7UF1PpsqWridOpi_-p7QDReq0yo1g3PtVY9fNllztT_0Bi49c6HXH_7yETYKpFN08TiPiquiutOSNcZH_HYQDNUcNWuSM_jpskau9KWdGmIKLsiuFbWhAlqCgfFILMzDNETJCahUp-j9ZA0tXZjWNrC2mDqJfIXdlj_SEUjHYlrPBIaQxow7gAAse6w2w-69ExKxPZOLpBun8C57i2Xwg8zoo9LBcMsItaZRmotCrx4ZzjeZY9pK8ARBNVwIq7HSfSU5CniVtFnj98L4ES09x71gte0sIHCvv3_xuN-KQV0Br2Igaza0fgemOho8FMyz_-3o-oovwL_OdQGGwwGLc-Bxw9Of3SZHgidGRoITDcEOGvi0wpnBlkfTPYUjTz2jJUiBM4NdGsEfoa_KkE8Zuc8_8kcjyffnT7qv581N34mIyXLsA0TYSlvnOb-BmdI0j-MvP3lkw2eZzo5RxhbO24eHqXcviFDkkqnufw2KsJphXGT_cA54G7pYYSf0CsGoZgq9mMFiRRpP7IZfl9hU8n3akWpGSrkFNBYhWSiWlq32XGvH6kFeHV84U508q5g4oEhJVSv3fP8g0VXy1egPpa_-qRIHlOkVIoYiW5cnDyd9CTYQ7o6vvJQENceeuuFhWxF_Hai6L1D90NWfSEomore10cFmc3E64IGHWGXbq3rfhIEWxHoYh67YMjia-pg41cZaAjTMZCdFpJaTc12DDQ0gAck_EHN8hxB7tBGvkYP4-I3PuP-OfqGKppGRYUQ02j8f7KzYgaO
