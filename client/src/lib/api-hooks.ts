@@ -4,7 +4,10 @@ import type { DashboardInsights } from "../../../server/lib/dashboard-analytics"
 
 // Helper to handle API calls
 async function fetchAPI(url: string, options?: RequestInit) {
-  const response = await fetch(url, options);
+  const response = await fetch(url, {
+    ...options,
+    credentials: "include",
+  });
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: "Network error" }));
     throw new Error(error.error || `HTTP ${response.status}`);

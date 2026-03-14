@@ -1,7 +1,7 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { Capacitor } from "@capacitor/core";
 
-const PRODUCTION_API_URL = "https://orbia-f.replit.app";
+const PRODUCTION_API_URL = "https://myorbia.com";
 
 function getApiBaseUrl(): string {
   if (Capacitor.isNativePlatform()) {
