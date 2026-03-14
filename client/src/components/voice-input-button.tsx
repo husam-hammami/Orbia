@@ -85,8 +85,6 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
   const [idleMsgIndex, setIdleMsgIndex] = useState(0);
   const [thinkMsgIndex] = useState(() => Math.floor(Math.random() * thinkingMessages.length));
   const responseRef = useRef<HTMLDivElement>(null);
-  const [displayedWordCount, setDisplayedWordCount] = useState(0);
-  const streamingStartedRef = useRef(false);
 
   useEffect(() => {
     setIdleMsgIndex(Math.floor(Math.random() * idleMessages.length));
@@ -105,33 +103,6 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
     }, 4000);
     return () => clearInterval(interval);
   }, [phase]);
-
-  useEffect(() => {
-    if (phase === "speaking" && orbiaResponse && !streamingStartedRef.current) {
-      streamingStartedRef.current = true;
-      setDisplayedWordCount(0);
-      const words = orbiaResponse.split(/\s+/);
-      const totalWords = words.length;
-      const msPerWord = Math.max(60, Math.min(150, 8000 / totalWords));
-      let count = 0;
-      const interval = setInterval(() => {
-        count++;
-        setDisplayedWordCount(count);
-        if (count >= totalWords) clearInterval(interval);
-      }, msPerWord);
-      return () => clearInterval(interval);
-    }
-    if (phase !== "speaking") {
-      streamingStartedRef.current = false;
-      setDisplayedWordCount(0);
-    }
-  }, [phase, orbiaResponse]);
-
-  useEffect(() => {
-    if (responseRef.current) {
-      responseRef.current.scrollTop = responseRef.current.scrollHeight;
-    }
-  }, [displayedWordCount]);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -161,31 +132,10 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
   const ringDuration = isProcessing ? 3 : isSpeaking ? 1.5 : hasLiveText ? 2 : 3;
 
   const logoAnimation = isSpeaking
-    ? {
-        scale: [1, 1.08, 1],
-        filter: [
-          "brightness(1.05) drop-shadow(0 0 30px rgba(139,92,246,0.4))",
-          "brightness(1.15) drop-shadow(0 0 50px rgba(139,92,246,0.5))",
-          "brightness(1.05) drop-shadow(0 0 30px rgba(139,92,246,0.4))",
-        ],
-      }
+    ? { scale: [1, 1.06, 1] }
     : isProcessing
-      ? {
-          scale: [1, 1.04, 1],
-          filter: [
-            "brightness(1) drop-shadow(0 0 20px rgba(139,92,246,0.3))",
-            "brightness(1.08) drop-shadow(0 0 35px rgba(139,92,246,0.4))",
-            "brightness(1) drop-shadow(0 0 20px rgba(139,92,246,0.3))",
-          ],
-        }
-      : {
-          scale: [1, 1.06, 1],
-          filter: [
-            "brightness(1.02) drop-shadow(0 0 25px rgba(139,92,246,0.35))",
-            "brightness(1.12) drop-shadow(0 0 45px rgba(139,92,246,0.5))",
-            "brightness(1.02) drop-shadow(0 0 25px rgba(139,92,246,0.35))",
-          ],
-        };
+      ? { scale: [1, 1.03, 1] }
+      : { scale: [1, 1.05, 1] };
 
   return createPortal(
     <motion.div
@@ -200,33 +150,32 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
       onClick={handleOverlayClick}
     >
       <div className="relative flex items-center justify-center" style={{ width: 280, height: 280 }}>
-        {[0, 1, 2, 3, 4].map((i) => (
+        {[0, 1, 2].map((i) => (
           <motion.div
             key={i}
             className="absolute rounded-full"
             style={{
               background: `radial-gradient(circle, transparent 60%, ${
                 i % 2 === 0
-                  ? isSpeaking ? "rgba(168, 85, 247, 0.12)" : "rgba(139, 92, 246, 0.08)"
-                  : isSpeaking ? "rgba(216, 180, 254, 0.08)" : "rgba(192, 132, 252, 0.06)"
+                  ? "rgba(139, 92, 246, 0.08)"
+                  : "rgba(192, 132, 252, 0.06)"
               } 100%)`,
               border: `1px solid ${
                 i % 2 === 0
-                  ? isSpeaking ? "rgba(168, 85, 247, 0.25)" : "rgba(139, 92, 246, 0.15)"
-                  : isSpeaking ? "rgba(216, 180, 254, 0.15)" : "rgba(192, 132, 252, 0.1)"
+                  ? "rgba(139, 92, 246, 0.15)"
+                  : "rgba(192, 132, 252, 0.1)"
               }`,
             }}
             animate={{
-              width: [ringAnimation.width[0] + i * 30, ringAnimation.width[1] + i * (isSpeaking ? 45 : 40), ringAnimation.width[2] + i * 30],
-              height: [ringAnimation.height[0] + i * 30, ringAnimation.height[1] + i * (isSpeaking ? 45 : 40), ringAnimation.height[2] + i * 30],
-              opacity: [ringAnimation.opacity[0] - i * 0.08, ringAnimation.opacity[1] - i * 0.04, ringAnimation.opacity[2] - i * 0.08],
-              rotate: [0, i % 2 === 0 ? ringAnimation.rotate[1] : -ringAnimation.rotate[1], 0],
+              width: [ringAnimation.width[0] + i * 40, ringAnimation.width[1] + i * 50, ringAnimation.width[2] + i * 40],
+              height: [ringAnimation.height[0] + i * 40, ringAnimation.height[1] + i * 50, ringAnimation.height[2] + i * 40],
+              opacity: [ringAnimation.opacity[0] - i * 0.1, ringAnimation.opacity[1] - i * 0.05, ringAnimation.opacity[2] - i * 0.1],
             }}
             transition={{
-              duration: ringDuration + i * 0.3,
+              duration: ringDuration + i * 0.5,
               repeat: Infinity,
               ease: "easeInOut",
-              delay: i * 0.2,
+              delay: i * 0.3,
             }}
           />
         ))}
@@ -248,23 +197,18 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
         </motion.div>
 
         {isActive && !hasLiveText && (
-          <motion.div
-            className="absolute z-20"
+          <div
+            className="absolute z-20 flex items-center gap-1.5"
             style={{ bottom: 15 }}
-            animate={{ scale: [1, 1.15, 1], opacity: [0.9, 1, 0.9] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
           >
-            <div className="flex items-center gap-1.5">
-              {[0, 1, 2].map((i) => (
-                <motion.div
-                  key={i}
-                  className="w-1.5 h-1.5 rounded-full bg-violet-400"
-                  animate={{ scale: [1, 1.8, 1], opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
-                />
-              ))}
-            </div>
-          </motion.div>
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse"
+                style={{ animationDelay: `${i * 200}ms` }}
+              />
+            ))}
+          </div>
         )}
       </div>
 
@@ -357,31 +301,18 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
             className="relative rounded-2xl bg-violet-500/[0.06] backdrop-blur-md border border-violet-400/15 px-5 py-4 max-h-[180px] overflow-y-auto"
           >
             <p className="text-violet-100 text-base leading-relaxed font-light">
-              {orbiaResponse.split(/\s+/).slice(0, displayedWordCount).join(" ")}
-              {displayedWordCount < orbiaResponse.split(/\s+/).length && (
-                <motion.span
-                  className="inline-block w-0.5 h-4 bg-violet-400/70 ml-0.5 align-text-bottom"
-                  animate={{ opacity: [1, 0, 1] }}
-                  transition={{ duration: 0.8, repeat: Infinity, ease: "steps(2)" }}
-                />
-              )}
+              {orbiaResponse}
             </p>
           </div>
           <div className="flex items-center justify-center gap-2 mt-3">
-            <motion.div
-              className="flex items-center gap-1"
-              animate={{ opacity: [0.4, 1, 0.4] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-            >
+            <div className="flex items-center gap-1">
               {[0, 1, 2, 3].map((i) => (
-                <motion.div
+                <div
                   key={i}
-                  className="w-1 rounded-full bg-violet-400"
-                  animate={{ height: [3, 12 + Math.random() * 8, 3] }}
-                  transition={{ duration: 0.5 + Math.random() * 0.3, repeat: Infinity, ease: "easeInOut", delay: i * 0.1 }}
+                  className="w-1 h-2 rounded-full bg-violet-400/60"
                 />
               ))}
-            </motion.div>
+            </div>
             <span className="text-violet-300/40 text-xs ml-1">Speaking...</span>
           </div>
         </motion.div>
@@ -653,10 +584,6 @@ export function VoiceInputButton({
       const data = await res.json();
       const responseText = data.text || "";
 
-      if (onConversationResponse) {
-        onConversationResponse(transcribedText, responseText);
-      }
-
       if (data.audio) {
         setPhase("speaking");
         setOrbiaResponse(responseText);
@@ -670,6 +597,10 @@ export function VoiceInputButton({
         setPhase("speaking");
         const readTimeMs = Math.max(3000, Math.min(15000, responseText.split(/\s+/).length * 200));
         await new Promise(resolve => setTimeout(resolve, readTimeMs));
+      }
+
+      if (onConversationResponse && !userCanceledRef.current) {
+        onConversationResponse(transcribedText, responseText);
       }
 
       if (conversationMode && !userCanceledRef.current) {
