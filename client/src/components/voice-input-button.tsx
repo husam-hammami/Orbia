@@ -259,7 +259,7 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
           animate={{ opacity: 1 }}
         >
           <div className="flex items-center justify-center gap-2">
-            <Loader2 className="w-3.5 h-3.5 text-violet-400/60 animate-spin" />
+            <Loader2 className="w-3.5 h-3.5 text-primary/60 animate-spin" />
             <span className="text-muted-foreground/50 text-sm">Transcribing...</span>
           </div>
         </motion.div>
