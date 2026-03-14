@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/lib/queryClient";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,8 @@ import {
 import { cn } from "@/lib/utils";
 import { PixelAgent, EmptyDesk } from "@/components/agents/pixel-agent";
 import { agentAnimations, glassPanel, glassPanelGlow } from "@/lib/agent-animations";
+import { AgentTerminal } from "@/components/agents/agent-terminal";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Agent {
   id: string;
@@ -706,9 +708,7 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
   const [prompt, setPrompt] = useState("");
   const [mobileTab, setMobileTab] = useState<"terminal" | "chat" | "project">("terminal");
   const [showMenu, setShowMenu] = useState(false);
-  const [streamEvents, setStreamEvents] = useState<any[]>([]);
-  const [sseConnected, setSseConnected] = useState(false);
-  const terminalRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const color = agent.accentColor || "#6366f1";
   const status = (agent.status || "idle") as "idle" | "working" | "error" | "waiting";
@@ -772,16 +772,9 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
   useEffect(() => {
     const es = new EventSource(`${API_BASE_URL}/api/agents/${agent.id}/stream`);
     es.onopen = () => {
-      setSseConnected(true);
       queryClient.invalidateQueries({ queryKey: ["agents"] });
       queryClient.invalidateQueries({ queryKey: ["agent-tasks", agent.id] });
     };
-    es.addEventListener("output", (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        setStreamEvents(prev => [...prev.slice(-300), data]);
-      } catch {}
-    });
     es.addEventListener("completed", () => {
       queryClient.invalidateQueries({ queryKey: ["agents"] });
       queryClient.invalidateQueries({ queryKey: ["agent-tasks", agent.id] });
@@ -791,13 +784,8 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
       queryClient.invalidateQueries({ queryKey: ["agents"] });
       queryClient.invalidateQueries({ queryKey: ["agent-tasks", agent.id] });
     });
-    es.onerror = () => setSseConnected(false);
     return () => es.close();
   }, [agent.id]);
-
-  useEffect(() => {
-    if (terminalRef.current) terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-  }, [streamEvents]);
 
   const handleSend = () => {
     if (!prompt.trim()) return;
@@ -909,13 +897,9 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
       <div className="flex-1 overflow-hidden min-h-0">
         {/* DESKTOP: 3-column */}
         <div className="hidden md:grid md:grid-cols-[1fr_1.2fr_280px] h-full max-w-6xl mx-auto gap-0">
-          <TerminalPane
-            ref={terminalRef}
-            streamEvents={streamEvents}
-            sseConnected={sseConnected}
-            color={color}
-            className="border-r border-indigo-500/10"
-          />
+          <div className="border-r border-indigo-500/10 overflow-hidden">
+            {!isMobile && <AgentTerminal agentId={agent.id} agentName={agent.name} />}
+          </div>
           <ChatPane
             prompt={prompt}
             setPrompt={setPrompt}
@@ -939,8 +923,10 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
 
         {/* MOBILE: single pane */}
         <div className="md:hidden h-full flex flex-col">
-          {mobileTab === "terminal" && (
-            <TerminalPane ref={terminalRef} streamEvents={streamEvents} sseConnected={sseConnected} color={color} className="flex-1" />
+          {mobileTab === "terminal" && isMobile && (
+            <div className="flex-1 overflow-hidden">
+              <AgentTerminal agentId={agent.id} agentName={agent.name} />
+            </div>
           )}
           {mobileTab === "chat" && (
             <ChatPane
@@ -972,60 +958,6 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
   );
 }
 
-const TerminalPane = React.forwardRef<HTMLDivElement, {
-  streamEvents: any[];
-  sseConnected: boolean;
-  color: string;
-  className?: string;
-}>(({ streamEvents, sseConnected, color, className }, ref) => {
-  return (
-    <div className={cn("flex flex-col h-full bg-black/20", className)}>
-      <div className="px-3 py-2 flex items-center gap-2 border-b border-indigo-500/8 flex-shrink-0">
-        <Terminal className="w-3.5 h-3.5 text-indigo-400/50" />
-        <span className="text-[10px] text-indigo-400/40 uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-          Terminal
-        </span>
-        <div className="ml-auto flex items-center gap-1">
-          <div className={cn("w-1.5 h-1.5 rounded-full", sseConnected ? "bg-emerald-400" : "bg-gray-600")} />
-          <span className="text-[9px] text-gray-600" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            {sseConnected ? "live" : "offline"}
-          </span>
-        </div>
-      </div>
-      <div ref={ref} className="flex-1 overflow-y-auto p-3 space-y-0.5" style={{ fontFamily: "'JetBrains Mono', monospace" }} data-testid="terminal-output">
-        {streamEvents.length === 0 && (
-          <div className="text-gray-700 py-12 text-center text-xs">
-            <Terminal className="w-6 h-6 mx-auto mb-2 opacity-30" />
-            <p>awaiting instructions</p>
-            <p className="text-[10px] mt-1 text-gray-800">send a task to start the agent</p>
-          </div>
-        )}
-        {streamEvents.map((ev, i) => {
-          const ts = new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
-          return (
-            <div key={i} className="flex gap-2 text-[11px] leading-relaxed py-[1px] group hover:bg-white/[0.02] rounded px-1 -mx-1">
-              <span className="text-gray-800 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity select-none">{ts}</span>
-              <span className={cn(
-                ev.type === "text" && "text-gray-300",
-                ev.type === "tool_call" && "text-cyan-400/80",
-                ev.type === "stderr" && "text-yellow-500/80",
-                ev.type === "error" && "text-red-400",
-                ev.type === "result" && "text-emerald-400",
-                ev.type === "raw" && "text-gray-500",
-                ev.type === "stream" && "text-gray-600",
-              )}>
-                {ev.type === "tool_call" && <span className="text-cyan-600 mr-1">{"→"}</span>}
-                {ev.type === "result" && <span className="text-emerald-600 mr-1">{"✓"}</span>}
-                {ev.type === "error" && <span className="text-red-600 mr-1">{"✗"}</span>}
-                {ev.content}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-});
 
 function ChatPane({
   prompt,

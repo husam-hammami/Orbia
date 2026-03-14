@@ -9,6 +9,7 @@ import { users } from "@shared/schema";
 import { sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
+import { setupAgentTerminalWS } from "./lib/agent-terminal";
 
 const app = express();
 const httpServer = createServer(app);
@@ -187,6 +188,7 @@ async function startMessageScheduler() {
 (async () => {
   await ensureDefaultUsers();
   await registerRoutes(httpServer, app);
+  setupAgentTerminalWS(httpServer);
   startMessageScheduler();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
