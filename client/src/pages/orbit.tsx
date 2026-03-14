@@ -1155,6 +1155,7 @@ export default function OrbitPage() {
       const response = await fetch("/api/orbit/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           message: messageText,
           context,
