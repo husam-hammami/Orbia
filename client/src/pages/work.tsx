@@ -1320,10 +1320,6 @@ export default function WorkPage() {
           {/* === OFFICE VIEW (Desktop) === */}
           {workView === "office" && (
             <>
-              {!loadingCalendar && weekEvents.length > 0 && (
-                <MeetingsStrip events={weekEvents} />
-              )}
-
               <div className="hidden lg:grid lg:grid-cols-[minmax(280px,1fr)_minmax(350px,1.4fr)_minmax(280px,1fr)] gap-5" style={{ minHeight: "calc(100vh - 220px)" }}>
                 <div className="flex flex-col gap-4 min-h-0">
                   <div className="flex-1 min-h-0">
@@ -1405,9 +1401,6 @@ export default function WorkPage() {
                   exit={{ opacity: 0, x: 20 }}
                   className="space-y-4"
                 >
-                  {!loadingCalendar && weekEvents.length > 0 && (
-                    <MeetingsStrip events={weekEvents} />
-                  )}
                   {connected && <EmailInbox userEmail={connectionStatus?.email} />}
 
                   <ConnectionCard

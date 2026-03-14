@@ -1364,9 +1364,9 @@ export default function OrbitPage() {
   const activeNudges = generateNudges();
 
   return (
-    <Layout>
+    <Layout fullHeight>
       <div className={cn(
-        "h-[calc(100dvh-160px)] md:h-[calc(100vh-120px)] flex flex-col animate-in fade-in duration-500 transition-all",
+        "flex-1 min-h-0 flex flex-col animate-in fade-in duration-500 transition-all",
         therapyMode && "relative"
       )}>
         {/* Therapy mode ambient glow */}

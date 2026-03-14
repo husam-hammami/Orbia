@@ -818,12 +818,11 @@ function AnimatedBackground() {
   );
 }
 
-export function Layout({ children, lockContext }: LayoutProps) {
+export function Layout({ children, lockContext, fullHeight }: LayoutProps & { fullHeight?: boolean }) {
   return (
     <>
       <AnimatedBackground />
 
-      {/* Main layout container - transparent to show animated background */}
       <div className="flex h-screen w-full overflow-hidden relative z-10">
         <aside className="hidden md:block w-64 flex-shrink-0">
           <Sidebar />
@@ -836,11 +835,17 @@ export function Layout({ children, lockContext }: LayoutProps) {
             <GardenTopBar />
           </div>
 
-          <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 md:pb-0">
-            <div className="w-full px-3 md:px-6 lg:px-8 xl:px-10 py-3 md:py-6 lg:py-8 space-y-4 md:space-y-6">
+          {fullHeight ? (
+            <div className="flex-1 min-h-0 flex flex-col px-3 md:px-6 lg:px-8 xl:px-10 py-2 md:py-4 pb-[76px] md:pb-0">
               {children}
             </div>
-          </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 md:pb-0">
+              <div className="w-full px-3 md:px-6 lg:px-8 xl:px-10 py-3 md:py-6 lg:py-8 space-y-4 md:space-y-6">
+                {children}
+              </div>
+            </div>
+          )}
           
           <MobileBottomNav />
         </main>

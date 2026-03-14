@@ -464,6 +464,8 @@ export function VoiceInputButton({
   const finalTranscriptRef = useRef("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const startRecordingRef = useRef<(() => void) | null>(null);
+  const userCanceledRef = useRef(false);
 
   const cleanup = useCallback(() => {
     if (recognitionRef.current) {
@@ -516,6 +518,7 @@ export function VoiceInputButton({
   }, []);
 
   const interruptSpeaking = useCallback(() => {
+    userCanceledRef.current = true;
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.src = "";
@@ -652,7 +655,21 @@ export function VoiceInputButton({
         await new Promise(resolve => setTimeout(resolve, readTimeMs));
       }
 
-      cleanup();
+      if (conversationMode && !userCanceledRef.current) {
+        setOrbiaResponse("");
+        setLiveTranscript("");
+        setInterimText("");
+        finalTranscriptRef.current = "";
+        stoppingRef.current = false;
+        setPhase(null);
+        setTimeout(() => {
+          if (!userCanceledRef.current) {
+            startRecordingRef.current?.();
+          }
+        }, 300);
+      } else {
+        cleanup();
+      }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") return;
       const message = err instanceof Error ? err.message : "Voice conversation failed";
@@ -660,7 +677,7 @@ export function VoiceInputButton({
       toast.error(message);
       cleanup();
     }
-  }, [chatHistory, therapyMode, aiMode, onConversationResponse, playAudio, cleanup]);
+  }, [chatHistory, therapyMode, aiMode, onConversationResponse, playAudio, cleanup, conversationMode]);
 
   const processRecording = useCallback(async (chunks: Blob[], mimeType: string) => {
     const blob = new Blob(chunks, { type: mimeType });
@@ -726,6 +743,7 @@ export function VoiceInputButton({
   const startRecording = useCallback(async () => {
     if (stoppingRef.current || phase) return;
 
+    userCanceledRef.current = false;
     setLiveTranscript("");
     setInterimText("");
     setOrbiaResponse("");
@@ -779,11 +797,16 @@ export function VoiceInputButton({
     }
   }, [processRecording, startSpeechRecognition, cleanup, phase]);
 
+  useEffect(() => {
+    startRecordingRef.current = startRecording;
+  }, [startRecording]);
+
   const stopRecording = useCallback(() => {
     if (stoppingRef.current) return;
     const recorder = mediaRecorderRef.current;
     if (!recorder || recorder.state !== "recording") return;
 
+    userCanceledRef.current = true;
     stoppingRef.current = true;
     stopSpeechRecognition();
 
@@ -801,6 +824,7 @@ export function VoiceInputButton({
     if (phase === "listening") {
       stopRecording();
     } else if (phase === "thinking" || phase === "transcribing") {
+      userCanceledRef.current = true;
       cleanup();
     } else if (phase === "speaking") {
       interruptSpeaking();
