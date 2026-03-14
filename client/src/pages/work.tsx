@@ -1401,6 +1401,9 @@ export default function WorkPage() {
                   exit={{ opacity: 0, x: 20 }}
                   className="space-y-4"
                 >
+                  {!loadingCalendar && weekEvents.length > 0 && (
+                    <MeetingsStrip events={weekEvents} />
+                  )}
                   {connected && <EmailInbox userEmail={connectionStatus?.email} />}
 
                   <ConnectionCard

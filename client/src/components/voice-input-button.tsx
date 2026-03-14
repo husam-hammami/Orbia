@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Loader2, Square } from "lucide-react";
+import { Mic, MicOff, Loader2, Square, PhoneOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -73,13 +73,14 @@ interface ListeningOverlayProps {
   phase: OverlayPhase;
   onStop: () => void;
   onInterrupt: () => void;
+  onEndCall: () => void;
   liveTranscript: string;
   interimText: string;
   orbiaResponse: string;
   conversationMode: boolean;
 }
 
-function ListeningOverlay({ phase, onStop, onInterrupt, liveTranscript, interimText, orbiaResponse, conversationMode }: ListeningOverlayProps) {
+function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscript, interimText, orbiaResponse, conversationMode }: ListeningOverlayProps) {
   const [elapsed, setElapsed] = useState(0);
   const [idleMsgIndex, setIdleMsgIndex] = useState(0);
   const [thinkMsgIndex] = useState(() => Math.floor(Math.random() * thinkingMessages.length));
@@ -145,17 +146,19 @@ function ListeningOverlay({ phase, onStop, onInterrupt, liveTranscript, interimT
 
   const handleOverlayClick = () => {
     if (isActive) onStop();
-    else if (isProcessing) onInterrupt();
-    else if (isSpeaking) onInterrupt();
+    else if (isProcessing) onEndCall();
+    else if (isSpeaking) onEndCall();
   };
 
-  const ringAnimation = isProcessing || isSpeaking
-    ? { width: [120, 140, 120], height: [120, 140, 120], opacity: [0.5, 0.3, 0.5], rotate: [0, 5, 0] }
-    : hasLiveText
-      ? { width: [120, 170, 120], height: [120, 170, 120], opacity: [0.7, 0.35, 0.7], rotate: [0, 10, 0] }
-      : { width: [120, 170, 120], height: [120, 170, 120], opacity: [0.6, 0.25, 0.6], rotate: [0, 8, 0] };
+  const ringAnimation = isProcessing
+    ? { width: [125, 135, 125], height: [125, 135, 125], opacity: [0.3, 0.2, 0.3], rotate: [0, 2, 0] }
+    : isSpeaking
+      ? { width: [120, 140, 120], height: [120, 140, 120], opacity: [0.5, 0.3, 0.5], rotate: [0, 5, 0] }
+      : hasLiveText
+        ? { width: [120, 170, 120], height: [120, 170, 120], opacity: [0.7, 0.35, 0.7], rotate: [0, 10, 0] }
+        : { width: [120, 170, 120], height: [120, 170, 120], opacity: [0.6, 0.25, 0.6], rotate: [0, 8, 0] };
 
-  const ringDuration = isProcessing ? 2 : isSpeaking ? 1.5 : hasLiveText ? 2 : 3;
+  const ringDuration = isProcessing ? 3 : isSpeaking ? 1.5 : hasLiveText ? 2 : 3;
 
   const logoAnimation = isSpeaking
     ? {
@@ -333,11 +336,12 @@ function ListeningOverlay({ phase, onStop, onInterrupt, liveTranscript, interimT
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              onInterrupt();
+              onEndCall();
             }}
-            className="rounded-full border-violet-500/20 bg-violet-500/10 text-violet-200/60 hover:text-white hover:bg-violet-500/20 text-xs px-4"
+            className="rounded-full border-red-500/30 bg-red-500/15 text-red-300/80 hover:text-white hover:bg-red-500/30 text-xs px-4"
           >
-            Cancel
+            <PhoneOff className="w-3 h-3 mr-1" />
+            End Call
           </Button>
         </motion.div>
       )}
@@ -388,7 +392,7 @@ function ListeningOverlay({ phase, onStop, onInterrupt, liveTranscript, interimT
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="text-white/25 text-xs mb-6 mt-1"
+          className="text-white/25 text-xs mb-4 mt-1"
         >
           {formatTime(elapsed)}
         </motion.p>
@@ -399,6 +403,7 @@ function ListeningOverlay({ phase, onStop, onInterrupt, liveTranscript, interimT
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
+          className="flex items-center gap-4"
         >
           <Button
             variant="outline"
@@ -407,10 +412,22 @@ function ListeningOverlay({ phase, onStop, onInterrupt, liveTranscript, interimT
               e.stopPropagation();
               onStop();
             }}
-            className="rounded-full border-violet-500/20 bg-violet-500/10 text-violet-200/80 hover:text-white hover:bg-violet-500/20 gap-2 px-8 backdrop-blur-sm"
+            className="rounded-full border-violet-500/20 bg-violet-500/10 text-violet-200/80 hover:text-white hover:bg-violet-500/20 gap-2 px-6 backdrop-blur-sm"
           >
             <MicOff className="w-4 h-4" />
-            Done
+            Done Speaking
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEndCall();
+            }}
+            className="rounded-full border-red-500/30 bg-red-500/15 text-red-300/90 hover:text-white hover:bg-red-500/30 gap-2 px-6 backdrop-blur-sm"
+          >
+            <PhoneOff className="w-4 h-4" />
+            End Call
           </Button>
         </motion.div>
       )}
@@ -426,12 +443,12 @@ function ListeningOverlay({ phase, onStop, onInterrupt, liveTranscript, interimT
             size="lg"
             onClick={(e) => {
               e.stopPropagation();
-              onInterrupt();
+              onEndCall();
             }}
-            className="rounded-full border-violet-500/20 bg-violet-500/10 text-violet-200/80 hover:text-white hover:bg-violet-500/20 gap-2 px-8 backdrop-blur-sm"
+            className="rounded-full border-red-500/30 bg-red-500/15 text-red-300/90 hover:text-white hover:bg-red-500/30 gap-2 px-6 backdrop-blur-sm"
           >
-            <Square className="w-3 h-3 fill-current" />
-            Stop
+            <PhoneOff className="w-4 h-4" />
+            End Call
           </Button>
         </motion.div>
       )}
@@ -774,6 +791,7 @@ export function VoiceInputButton({
           streamRef.current.getTracks().forEach((t) => t.stop());
           streamRef.current = null;
         }
+        if (userCanceledRef.current) return;
         const chunks = [...chunksRef.current];
         processRecording(chunks, mimeType);
       };
@@ -806,7 +824,6 @@ export function VoiceInputButton({
     const recorder = mediaRecorderRef.current;
     if (!recorder || recorder.state !== "recording") return;
 
-    userCanceledRef.current = true;
     stoppingRef.current = true;
     stopSpeechRecognition();
 
@@ -820,6 +837,21 @@ export function VoiceInputButton({
     }, 100);
   }, [stopSpeechRecognition, cleanup]);
 
+  const endCall = useCallback(() => {
+    userCanceledRef.current = true;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      stoppingRef.current = true;
+      stopSpeechRecognition();
+      try { mediaRecorderRef.current.stop(); } catch (e) {}
+    }
+    cleanup();
+  }, [cleanup, stopSpeechRecognition]);
+
   const handleClick = () => {
     if (phase === "listening") {
       stopRecording();
@@ -827,7 +859,7 @@ export function VoiceInputButton({
       userCanceledRef.current = true;
       cleanup();
     } else if (phase === "speaking") {
-      interruptSpeaking();
+      endCall();
     } else if (!phase) {
       startRecording();
     }
@@ -863,6 +895,7 @@ export function VoiceInputButton({
             phase={phase}
             onStop={stopRecording}
             onInterrupt={interruptSpeaking}
+            onEndCall={endCall}
             liveTranscript={liveTranscript}
             interimText={interimText}
             orbiaResponse={orbiaResponse}

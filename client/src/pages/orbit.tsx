@@ -1563,26 +1563,28 @@ export default function OrbitPage() {
             </div>
           </ScrollArea>
 
-          <div className="flex flex-wrap gap-2 mb-3">
-            {(therapyMode ? THERAPY_CHIPS : QUICK_CHIPS).map((chip) => (
-              <Button
-                key={chip.label}
-                variant="outline"
-                size="sm"
-                onClick={() => handleSend(chip.prompt)}
-                disabled={isLoading}
-                className={cn(
-                  "text-xs",
-                  therapyMode
-                    ? "border-amber-400/30 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                    : "hover:bg-accent hover:text-accent-foreground"
-                )}
-                data-testid={`chip-${chip.label.toLowerCase().replace(/\s+/g, "-")}`}
-              >
-                {chip.label}
-              </Button>
-            ))}
-          </div>
+          {messages.length === 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {(therapyMode ? THERAPY_CHIPS : QUICK_CHIPS).map((chip) => (
+                <Button
+                  key={chip.label}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSend(chip.prompt)}
+                  disabled={isLoading}
+                  className={cn(
+                    "text-[11px] h-7 px-2.5",
+                    therapyMode
+                      ? "border-amber-400/30 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                      : "hover:bg-accent hover:text-accent-foreground"
+                  )}
+                  data-testid={`chip-${chip.label.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  {chip.label}
+                </Button>
+              ))}
+            </div>
+          )}
 
           <div className="flex gap-2 items-end">
             <Textarea
