@@ -111,32 +111,47 @@ export function setupAgentTerminalWS(server: Server) {
     }
 
     let repoDir: string;
+    let repoCloned = false;
     if (repoManager.isRepoCloned(agentId)) {
       repoDir = repoManager.getRepoDir(agentId);
+      repoCloned = true;
     } else {
       repoDir = "/tmp";
     }
 
+    // Map Replit AI Integration env vars to what Claude CLI expects
+    const shellEnv: Record<string, string> = {
+      ...process.env as Record<string, string>,
+      TERM: "xterm-256color",
+      COLUMNS: "120",
+      LINES: "30",
+      PS1: `\\[\\033[1;36m\\]${agent.name}\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]$ `,
+    };
+    if (process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY) {
+      shellEnv.ANTHROPIC_API_KEY = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
+    }
+    if (process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL) {
+      shellEnv.ANTHROPIC_BASE_URL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
+    }
+
     const shell = spawn("bash", ["--login"], {
       cwd: repoDir,
-      env: {
-        ...process.env,
-        TERM: "xterm-256color",
-        COLUMNS: "120",
-        LINES: "30",
-        PS1: `\\[\\033[1;36m\\]${agent.name}\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]$ `,
-      },
+      env: shellEnv,
       stdio: ["pipe", "pipe", "pipe"],
     });
 
     const termSession: TerminalSession = { ws, process: shell, agentId };
     sessions.set(agentId, termSession);
 
-    const welcome = `\x1b[1;36m=== Agent Terminal: ${agent.name} ===\x1b[0m\r\n` +
-      `\x1b[90mRepo: ${agent.repoUrl}\x1b[0m\r\n` +
-      `\x1b[90mDir: ${repoDir}\x1b[0m\r\n` +
-      `\x1b[90mTip: Run "claude -p 'your task' --dangerously-skip-permissions" to execute tasks\x1b[0m\r\n\r\n`;
-    ws.send(welcome);
+    if (repoCloned) {
+      ws.send(`\x1b[1;36m=== ${agent.name} ===\x1b[0m\r\n`);
+      ws.send(`\x1b[90mRepo: ${agent.repoUrl}\x1b[0m\r\n`);
+      ws.send(`\x1b[90mLaunching Claude CLI...\x1b[0m\r\n\r\n`);
+      shell.stdin?.write(`cd "${repoDir}" && claude --dangerously-skip-permissions\n`);
+    } else {
+      ws.send(`\x1b[1;36m=== ${agent.name} ===\x1b[0m\r\n`);
+      ws.send(`\x1b[33mRepo not cloned yet. Clone the repo first, then reopen the terminal.\x1b[0m\r\n\r\n`);
+    }
 
     shell.stdout?.on("data", (data: Buffer) => {
       if (ws.readyState === WebSocket.OPEN) {

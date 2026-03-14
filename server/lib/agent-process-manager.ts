@@ -64,11 +64,20 @@ class AgentProcessManager extends EventEmitter {
     }
     args.push(options.prompt);
 
-    console.log(`[agent-pm] Starting claude for agent ${options.agentId}, cwd: ${options.workdir}`);
+    // Map Replit AI Integration env vars to what Claude CLI expects
+    const cliEnv = { ...process.env };
+    if (process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY) {
+      cliEnv.ANTHROPIC_API_KEY = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
+    }
+    if (process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL) {
+      cliEnv.ANTHROPIC_BASE_URL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
+    }
+
+    console.log(`[agent-pm] Starting claude for agent ${options.agentId}, cwd: ${options.workdir}, apiKey: ${cliEnv.ANTHROPIC_API_KEY ? "set" : "MISSING"}, baseUrl: ${cliEnv.ANTHROPIC_BASE_URL || "default"}`);
 
     const proc = spawn("claude", args, {
       cwd: options.workdir,
-      env: { ...process.env },
+      env: cliEnv,
       stdio: ["pipe", "pipe", "pipe"],
     });
 
