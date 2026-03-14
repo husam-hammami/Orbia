@@ -1,8 +1,9 @@
 import { simpleGit, SimpleGit } from "simple-git";
 import * as fs from "fs";
 import * as path from "path";
+import * as os from "os";
 
-const REPOS_BASE = path.join(process.cwd(), ".agent-repos");
+const REPOS_BASE = path.join(os.tmpdir(), "orbia-agent-repos");
 
 function ensureBaseDir() {
   if (!fs.existsSync(REPOS_BASE)) {
@@ -24,7 +25,7 @@ export async function cloneRepo(agentId: string, repoUrl: string, branch = "main
   if (token && repoUrl.startsWith("https://github.com/")) {
     cloneUrl = repoUrl.replace("https://github.com/", `https://x-access-token:${token}@github.com/`);
   }
-  await simpleGit().clone(cloneUrl, dest, ["--branch", branch, "--single-branch"]);
+  await simpleGit().clone(cloneUrl, dest, ["--branch", branch, "--single-branch", "--depth", "1"]);
   return dest;
 }
 

@@ -5,6 +5,9 @@ import * as repoManager from "../lib/repo-manager";
 import * as githubOAuth from "../lib/github-oauth";
 import { requireAuth } from "../auth";
 import crypto from "crypto";
+import { db } from "../db";
+import { agentProfiles, agentTasks } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 const sseClients = new Map<string, Set<Response>>();
 
@@ -38,23 +41,58 @@ agentProcessManager.on("agent:output", async (data) => {
 agentProcessManager.on("agent:completed", async (data) => {
   broadcastToAgent(data.agentId, "completed", data);
   try {
-    await storage.updateAgentTask(data.taskId, {
-      status: data.exitCode === 0 ? "completed" : "failed",
-      completedAt: new Date(),
-      errorMessage: data.exitCode !== 0 ? `Process exited with code ${data.exitCode}` : undefined,
-    });
+    const success = data.exitCode === 0;
+    const task = await storage.getAgentTask(data.taskId);
+    const alreadyFailed = task?.status === "failed";
+    if (!alreadyFailed) {
+      await storage.updateAgentTask(data.taskId, {
+        status: success ? "completed" : "failed",
+        completedAt: new Date(),
+        errorMessage: !success ? `Process exited with code ${data.exitCode}` : undefined,
+      });
+    }
     await storage.updateAgentProfileInternal(data.agentId, {
-      status: "idle",
+      status: success ? "idle" : "error",
       currentTaskSummary: null,
     } as any);
-    if (data.exitCode === 0) {
+    if (success) {
       await storage.incrementAgentTasksCompleted(data.agentId);
     }
   } catch (err) {
     console.error("Failed to update agent on completion:", err);
   }
 });
-agentProcessManager.on("agent:error", (data) => broadcastToAgent(data.agentId, "error", data));
+agentProcessManager.on("agent:error", async (data) => {
+  broadcastToAgent(data.agentId, "error", data);
+  try {
+    await storage.updateAgentTask(data.taskId, {
+      status: "failed",
+      completedAt: new Date(),
+      errorMessage: data.error || "Agent process error",
+    });
+    await storage.updateAgentProfileInternal(data.agentId, {
+      status: "error",
+      currentTaskSummary: null,
+    } as any);
+  } catch (err) {
+    console.error("Failed to update agent on error:", err);
+  }
+});
+
+async function recoverStaleAgentStates() {
+  try {
+    await db.update(agentProfiles)
+      .set({ status: "idle", currentTaskSummary: null })
+      .where(eq(agentProfiles.status, "working"));
+    await db.update(agentTasks)
+      .set({ status: "failed", errorMessage: "Server restarted while task was running", completedAt: new Date() })
+      .where(eq(agentTasks.status, "running"));
+    console.log("[agents] Recovered stale agent states after restart");
+  } catch (err) {
+    console.error("[agents] Failed to recover stale states:", err);
+  }
+}
+recoverStaleAgentStates();
 
 async function requireAgentOwnership(req: Request, res: Response): Promise<{ userId: string; agentId: string } | null> {
   const userId = getUserId(req);
@@ -70,9 +108,16 @@ async function requireAgentOwnership(req: Request, res: Response): Promise<{ use
 export function registerAgentRoutes(app: Express) {
   // GitHub OAuth
   app.get("/api/agents/github/auth-url", requireAuth, (req: Request, res: Response) => {
+    if (!githubOAuth.isConfigured()) {
+      return res.status(503).json({ error: "GitHub OAuth is not configured. Contact admin to set up GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET." });
+    }
     const userId = getUserId(req);
     const state = `${userId}:${crypto.randomBytes(16).toString("hex")}`;
-    res.json({ url: githubOAuth.getAuthUrl(state) });
+    try {
+      res.json({ url: githubOAuth.getAuthUrl(state) });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.get("/api/agents/github/callback", async (req: Request, res: Response) => {
@@ -102,7 +147,12 @@ export function registerAgentRoutes(app: Express) {
   app.get("/api/agents/github/status", requireAuth, async (req: Request, res: Response) => {
     const userId = getUserId(req);
     const conn = await storage.getGithubConnection(userId);
-    res.json({ connected: !!conn, username: conn?.username, avatarUrl: conn?.avatarUrl });
+    res.json({
+      configured: githubOAuth.isConfigured(),
+      connected: !!conn,
+      username: conn?.username,
+      avatarUrl: conn?.avatarUrl,
+    });
   });
 
   app.delete("/api/agents/github/disconnect", requireAuth, async (req: Request, res: Response) => {

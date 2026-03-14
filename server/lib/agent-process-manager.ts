@@ -1,6 +1,5 @@
-import { spawn, ChildProcess } from "child_process";
+import { spawn, ChildProcess, execSync } from "child_process";
 import { EventEmitter } from "events";
-import * as path from "path";
 
 interface AgentProcess {
   process: ChildProcess;
@@ -23,6 +22,19 @@ class AgentProcessManager extends EventEmitter {
     return this.processes.size;
   }
 
+  private claudeAvailable: boolean | null = null;
+
+  private checkClaudeAvailable(): boolean {
+    if (this.claudeAvailable !== null) return this.claudeAvailable;
+    try {
+      execSync("which claude", { stdio: "pipe" });
+      this.claudeAvailable = true;
+    } catch {
+      this.claudeAvailable = false;
+    }
+    return this.claudeAvailable;
+  }
+
   async startAgent(options: {
     agentId: string;
     taskId: string;
@@ -31,6 +43,9 @@ class AgentProcessManager extends EventEmitter {
     prompt: string;
     conversationId?: string;
   }): Promise<void> {
+    if (!this.checkClaudeAvailable()) {
+      throw new Error("Claude CLI is not installed. Install it with: npm install -g @anthropic-ai/claude-code");
+    }
     if (this.processes.has(options.agentId)) {
       throw new Error(`Agent ${options.agentId} is already running`);
     }

@@ -71,12 +71,12 @@ Orbia is a personal AI companion and holistic wellness/productivity app. It feat
 ### AI Agents Office
 - **Purpose**: Visual command center for managing Claude Code AI agents across GitHub repos at `/agents`.
 - **Key Tables**: `githubConnections`, `agentProfiles`, `agentSessions`, `agentTasks`, `agentActivityLog` (all UUID PKs).
-- **GitHub OAuth**: `server/lib/github-oauth.ts` — OAuth flow, repo/branch listing via GitHub API.
-- **Repo Manager**: `server/lib/repo-manager.ts` — Uses `simple-git` for clone, pull, push, diff, commit, checkout, delete. Repos stored in `.agent-repos/<agentId>`.
-- **Agent Process Manager**: `server/lib/agent-process-manager.ts` — Spawns `claude` CLI with `--output-format stream-json`, parses stream events, manages max 3 concurrent agents, emits events via EventEmitter.
+- **Repo Manager**: `server/lib/repo-manager.ts` — Uses `simple-git` for clone (shallow `--depth 1`), pull, push, diff, commit, checkout, delete. Repos stored in `os.tmpdir()/orbia-agent-repos/<agentId>` (ephemeral, re-cloned after restart).
+- **Agent Process Manager**: `server/lib/agent-process-manager.ts` — Spawns `claude` CLI with `--output-format stream-json`, parses stream events, manages max 3 concurrent agents, emits events via EventEmitter. Validates Claude CLI availability before spawning (ENOENT guard).
 - **SSE Streaming**: Real-time agent output streamed to frontend via Server-Sent Events at `/api/agents/:id/stream`.
-- **API Routes**: `server/routes/agent-routes.ts` — All routes use `requireAuth` middleware + ownership checks. Includes agent CRUD, task management, git operations, SSE stream, quick-send prompt.
-- **Frontend**: `client/src/pages/agents.tsx` — Office floor view with agent cards, creation wizard (avatar/name/role/repo picker), interaction panel (terminal stream, task list, git status/log), prompt input.
+- **API Routes**: `server/routes/agent-routes.ts` — All routes use `requireAuth` middleware + ownership checks. Includes agent CRUD, task management, git operations, SSE stream, quick-send prompt. On startup, recovers stale "working" agent states and "running" tasks from prior server crashes.
+- **GitHub OAuth**: `server/lib/github-oauth.ts` — Runtime env var validation via `isConfigured()` (requires `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_REDIRECT_URI`). Auth URL, token exchange, user/repo listing.
+- **Frontend**: `client/src/pages/agents.tsx` — Office floor view with agent cards, creation wizard (avatar/name/role/repo picker), interaction panel (terminal stream, task list, git status/log), prompt input. Error toasts on all mutations, retry affordances, SSE disconnection handling, GitHub not-configured state.
 - **Auth**: Uses `express-session` (`req.session.userId`) consistent with rest of app. No `x-user-id` headers.
 
 ### AI Integration
