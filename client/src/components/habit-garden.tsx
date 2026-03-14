@@ -152,7 +152,7 @@ const PlantNode = ({ habit, onToggle, onDelete, isToggling }: { habit: Habit; on
 
        <div className="text-center w-full px-0.5 md:px-1">
           <h3 className="font-medium text-xs leading-tight line-clamp-2">{habit.title}</h3>
-          <p className="text-[10px] md:text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
              {habit.streak}d{habit.streak > 5 && <span className="text-amber-500">🔥</span>}
           </p>
        </div>

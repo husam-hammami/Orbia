@@ -335,7 +335,7 @@ function MyHealthPanel() {
                     </div>
                     <div className="flex items-center gap-2 mb-0.5 pr-6">
                       <div className={`text-sm font-semibold ${s.text}`}>{idx + 1}. {d.label}</div>
-                      <span className={`text-[10px] uppercase font-semibold tracking-wider ${s.text} opacity-70`}>{d.severity}</span>
+                      <span className={`text-xs uppercase font-semibold tracking-wider ${s.text} opacity-70`}>{d.severity}</span>
                     </div>
                     <div className="text-xs text-muted-foreground/60">{d.description}</div>
                   </div>

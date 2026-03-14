@@ -5,7 +5,8 @@
       "Bash(cat:*)",
       "Bash(ls:*)",
       "Bash(node:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(npx vite:*)"
     ]
   }
 }
