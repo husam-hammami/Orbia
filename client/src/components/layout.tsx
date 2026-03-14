@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { LayoutDashboard, Settings, Briefcase, Wallet, ClipboardList, Orbit, Lock, Sun, Moon, Newspaper, Clock, Stethoscope, Monitor, MoreHorizontal, BookOpen, X, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GardenTopBar } from "@/components/garden-top-bar";
+import { WatchIconButton } from "@/components/watch-companion";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/hooks/useTheme";
 import { themePresets } from "@/lib/themePresets";
@@ -426,7 +427,8 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
         <div className="relative">
           <div className="relative z-10 px-4 pt-3 pb-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 w-16">
+              <div className="flex items-center gap-1.5">
+                <WatchIconButton />
                 {lockContext && (
                   <motion.button
                     whileTap={{ scale: 0.85 }}

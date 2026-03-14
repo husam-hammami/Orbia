@@ -455,7 +455,7 @@ ${visionItems.map((v: any) => `- ${v.title} (${v.timeframe}): ${v.description ||
   }
 
   try {
-    const zohoClient = (await import("./zoho-client")).default;
+    const zohoClient = await import("./zoho-client");
     const zohoStatus = await zohoClient.getZohoStatus();
     if (zohoStatus.configured) {
       const zohoProjects = await zohoClient.getProjects();
@@ -477,7 +477,7 @@ ${visionItems.map((v: any) => `- ${v.title} (${v.timeframe}): ${v.description ||
             }
             if (open.length > 15) zohoBlock += `  ... and ${open.length - 15} more open tasks\n`;
 
-            const membersData = await zohoClient.getMembers(proj.id);
+            const membersData = await zohoClient.getProjectMembers(proj.id);
             const members = membersData?.users || membersData || [];
             if (members.length > 0) {
               zohoBlock += `  Members: ${members.map((m: any) => `${m.name} (ZPUID: ${m.zpuid || m.id})`).join(", ")}\n`;

@@ -159,28 +159,28 @@ function ListeningOverlay({ phase, onStop, onInterrupt, liveTranscript, interimT
 
   const logoAnimation = isSpeaking
     ? {
-        scale: [1, 1.12, 1],
+        scale: [1, 1.08, 1],
         filter: [
-          "brightness(1.1) drop-shadow(0 0 50px rgba(139,92,246,0.6))",
-          "brightness(1.35) drop-shadow(0 0 100px rgba(139,92,246,0.8)) drop-shadow(0 0 140px rgba(168,85,247,0.4))",
-          "brightness(1.1) drop-shadow(0 0 50px rgba(139,92,246,0.6))",
+          "brightness(1.05) drop-shadow(0 0 30px rgba(139,92,246,0.4))",
+          "brightness(1.15) drop-shadow(0 0 50px rgba(139,92,246,0.5))",
+          "brightness(1.05) drop-shadow(0 0 30px rgba(139,92,246,0.4))",
         ],
       }
     : isProcessing
       ? {
           scale: [1, 1.04, 1],
           filter: [
-            "brightness(1) drop-shadow(0 0 30px rgba(139,92,246,0.4))",
-            "brightness(1.1) drop-shadow(0 0 50px rgba(139,92,246,0.5))",
-            "brightness(1) drop-shadow(0 0 30px rgba(139,92,246,0.4))",
+            "brightness(1) drop-shadow(0 0 20px rgba(139,92,246,0.3))",
+            "brightness(1.08) drop-shadow(0 0 35px rgba(139,92,246,0.4))",
+            "brightness(1) drop-shadow(0 0 20px rgba(139,92,246,0.3))",
           ],
         }
       : {
-          scale: [1, 1.08, 1],
+          scale: [1, 1.06, 1],
           filter: [
-            "brightness(1.05) drop-shadow(0 0 40px rgba(139,92,246,0.5))",
-            "brightness(1.25) drop-shadow(0 0 80px rgba(139,92,246,0.7)) drop-shadow(0 0 120px rgba(168,85,247,0.3))",
-            "brightness(1.05) drop-shadow(0 0 40px rgba(139,92,246,0.5))",
+            "brightness(1.02) drop-shadow(0 0 25px rgba(139,92,246,0.35))",
+            "brightness(1.12) drop-shadow(0 0 45px rgba(139,92,246,0.5))",
+            "brightness(1.02) drop-shadow(0 0 25px rgba(139,92,246,0.35))",
           ],
         };
 
@@ -192,7 +192,7 @@ function ListeningOverlay({ phase, onStop, onInterrupt, liveTranscript, interimT
       transition={{ duration: 0.4 }}
       className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
       style={{
-        background: "radial-gradient(ellipse at center, rgba(88, 28, 135, 0.25) 0%, rgba(15, 10, 30, 0.95) 60%, rgba(5, 2, 15, 0.98) 100%)",
+        background: "radial-gradient(ellipse at center, rgba(30, 10, 60, 1) 0%, rgba(15, 10, 30, 1) 60%, rgba(5, 2, 15, 1) 100%)",
       }}
       onClick={handleOverlayClick}
     >
