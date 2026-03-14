@@ -543,11 +543,11 @@ export default function FinancePage() {
 
   return (
     <Layout>
-      <div className="space-y-8 animate-in fade-in duration-500 pb-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border/40 pb-6">
-          <div className="space-y-1">
-            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">Financial Wellness</h1>
-            <p className="text-muted-foreground text-lg">Track income, expenses, and cash flow.</p>
+      <div className="space-y-4 md:space-y-8 animate-in fade-in duration-500 pb-6 md:pb-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4 border-b border-border/40 pb-4 md:pb-6">
+          <div className="space-y-0.5 md:space-y-1">
+            <h1 className="text-2xl md:text-4xl font-display font-bold text-foreground tracking-tight">Financial Wellness</h1>
+            <p className="text-muted-foreground text-sm md:text-lg">Track income, expenses, and cash flow.</p>
           </div>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <DateScopeControl
@@ -579,67 +579,67 @@ export default function FinancePage() {
 
           <TabsContent value="summary" className="space-y-6">
             {/* Cash Flow Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <Card className="border-border/50 shadow-sm bg-gradient-to-br from-[hsl(var(--success))]/10 to-white dark:from-[hsl(var(--success))]/10 dark:to-background">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <ArrowDownLeft className="w-4 h-4 text-[hsl(var(--success))]" />
+            <CardHeader className="pb-1 md:pb-2 p-3 md:p-6">
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground flex items-center gap-1.5 md:gap-2">
+                <ArrowDownLeft className="w-3.5 h-3.5 md:w-4 md:h-4 text-[hsl(var(--success))]" />
                 Income
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-[hsl(var(--success))]">
+            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+              <div className="text-lg md:text-2xl font-bold text-[hsl(var(--success))] truncate">
                 {formatCurrency(monthlyIncome, currency)}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-[10px] md:text-xs text-muted-foreground mt-1 truncate">
                 Expected: {formatCurrency(expectedMonthlyIncome, currency)}
               </p>
             </CardContent>
           </Card>
 
           <Card className="border-border/50 shadow-sm bg-gradient-to-br from-destructive/10 to-white dark:from-destructive/10 dark:to-background">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <ArrowUpRight className="w-4 h-4 text-destructive" />
+            <CardHeader className="pb-1 md:pb-2 p-3 md:p-6">
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground flex items-center gap-1.5 md:gap-2">
+                <ArrowUpRight className="w-3.5 h-3.5 md:w-4 md:h-4 text-destructive" />
                 Expenses
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-destructive">
+            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+              <div className="text-lg md:text-2xl font-bold text-destructive truncate">
                 {formatCurrency(monthlyExpenses, currency)}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-[10px] md:text-xs text-muted-foreground mt-1">
                 {transactions.filter(t => t.type === "expense").length} transactions
               </p>
             </CardContent>
           </Card>
 
           <Card className="border-border/50 shadow-sm bg-gradient-to-br from-[hsl(var(--info))]/10 to-white dark:from-[hsl(var(--info))]/10 dark:to-background">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[hsl(var(--info))]" />
+            <CardHeader className="pb-1 md:pb-2 p-3 md:p-6">
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground flex items-center gap-1.5 md:gap-2">
+                <TrendingUp className="w-3.5 h-3.5 md:w-4 md:h-4 text-[hsl(var(--info))]" />
                 Net Flow
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className={cn("text-2xl font-bold", netCashFlow >= 0 ? "text-[hsl(var(--info))]" : "text-destructive")}>
+            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+              <div className={cn("text-lg md:text-2xl font-bold truncate", netCashFlow >= 0 ? "text-[hsl(var(--info))]" : "text-destructive")}>
                 {netCashFlow >= 0 ? "+" : ""}{formatCurrency(netCashFlow, currency)}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-[10px] md:text-xs text-muted-foreground mt-1">
                 {netCashFlow >= 0 ? "Surplus" : "Deficit"} this month
               </p>
             </CardContent>
           </Card>
 
           <Card className="border-border/50 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Wallet className="w-4 h-4 text-primary" />
+            <CardHeader className="pb-1 md:pb-2 p-3 md:p-6">
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground flex items-center gap-1.5 md:gap-2">
+                <Wallet className="w-3.5 h-3.5 md:w-4 md:h-4 text-primary" />
                 Savings Goal
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+              <div className="text-lg md:text-2xl font-bold">
                 {savingsProgress.toFixed(0)}%
               </div>
               {savingsGoal > 0 ? (
@@ -649,13 +649,13 @@ export default function FinancePage() {
                   indicatorClassName={savingsProgress >= 100 ? "bg-[hsl(var(--success))]" : "bg-primary"}
                 />
               ) : (
-                <p className="text-xs text-muted-foreground mt-1">No goal set</p>
+                <p className="text-[10px] md:text-xs text-muted-foreground mt-1">No goal set</p>
               )}
             </CardContent>
           </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
               {/* Main Content - Transactions */}
               <div className="lg:col-span-2 space-y-6">
             <Card className="border-border/50 shadow-sm">
@@ -773,7 +773,7 @@ export default function FinancePage() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-6">
             {/* Income Streams */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between pb-3">

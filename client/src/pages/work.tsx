@@ -1229,7 +1229,7 @@ export default function WorkPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen">
+      <div>
         <div className="p-4 lg:p-6">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
@@ -1427,7 +1427,7 @@ export default function WorkPage() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
-                  className={cn(cmdPanelGlow, "p-4 min-h-[500px] flex flex-col")}
+                  className={cn(cmdPanelGlow, "p-4 min-h-[300px] flex flex-col")}
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <Sparkles className="w-4 h-4 text-indigo-400" />
@@ -1443,7 +1443,7 @@ export default function WorkPage() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
-                  className={cn(cmdPanel, "p-4 min-h-[500px]")}
+                  className={cn(cmdPanel, "p-4 min-h-[300px]")}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">

@@ -872,7 +872,7 @@ export default function MedicalPage() {
 
   return (
     <Layout>
-      <div className="h-[calc(100vh-120px)] flex flex-col animate-in fade-in duration-500 relative">
+      <div className="h-[calc(100dvh-160px)] md:h-[calc(100vh-120px)] flex flex-col animate-in fade-in duration-500 relative">
         <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl -z-10">
           <div className="absolute inset-0 bg-[linear-gradient(hsl(var(--primary)/0.015)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--primary)/0.015)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-[40%] bg-primary/[0.02] blur-[100px] rounded-full"></div>
