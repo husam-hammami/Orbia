@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/popover";
 import { useLock } from "@/App";
 import { SetPasswordDialog } from "@/components/lock-screen";
+import { WatchIconButton } from "@/components/watch-companion";
 
 function ThemeSwatch({ themeId, isSelected, onClick, isDark }: { themeId: string; isSelected: boolean; onClick: () => void; isDark: boolean }) {
   const theme = themePresets.find(t => t.id === themeId);
@@ -107,7 +108,7 @@ export function GardenTopBar() {
       
       {/* Theme picker and lock button */}
       <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 z-10">
-        {/* Lock Button */}
+        <WatchIconButton />
         {lockContext && (
           <motion.button
             whileHover={{ scale: 1.05 }}
