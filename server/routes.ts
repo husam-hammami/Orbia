@@ -3203,7 +3203,7 @@ ${JSON.stringify(context, null, 2)}`;
       ];
       
       if (history && Array.isArray(history)) {
-        for (const h of history.slice(-10)) {
+        for (const h of history.slice(-40)) {
           if (h.role === "user" || h.role === "assistant") {
             messages.push({ role: h.role, content: h.content });
           }
@@ -3660,7 +3660,7 @@ ${JSON.stringify(context, null, 2)}`;
           try {
             const { extractFromConversation, persistMemories } = await import("./lib/memory-graph");
             const convMessages = [
-              ...(history || []).slice(-6).map((h: any) => ({ role: h.role, content: h.content })),
+              ...(history || []).slice(-30).map((h: any) => ({ role: h.role, content: h.content })),
               { role: "user", content: message },
               { role: "assistant", content: fullResponse },
             ];
@@ -5598,7 +5598,7 @@ ${rawText}`
 
       const chatMessages: { role: "user" | "assistant"; content: string }[] = [];
       if (history && Array.isArray(history)) {
-        for (const h of history.slice(-6)) {
+        for (const h of history.slice(-20)) {
           if (h.role === "user" || h.role === "assistant") {
             chatMessages.push({ role: h.role, content: h.content });
           }

@@ -1159,7 +1159,7 @@ export default function OrbitPage() {
         body: JSON.stringify({
           message: messageText,
           context,
-          history: messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
+          history: messages.slice(-40).map(m => ({ role: m.role, content: m.content })),
           therapyMode
         })
       });
@@ -1642,7 +1642,7 @@ export default function OrbitPage() {
                 };
                 setMessages(prev => [...prev, userMsg, assistantMsg]);
               }}
-              chatHistory={messages.slice(-10).map(m => ({ role: m.role, content: m.content }))}
+              chatHistory={messages.slice(-40).map(m => ({ role: m.role, content: m.content }))}
               therapyMode={therapyMode}
               aiMode="orbit"
             />

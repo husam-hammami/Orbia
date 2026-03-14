@@ -443,7 +443,7 @@ export function OrbitFab() {
         body: JSON.stringify({
           message: messageText,
           context,
-          history: messages.slice(-6).map(m => ({ role: m.role, content: m.content }))
+          history: messages.slice(-30).map(m => ({ role: m.role, content: m.content }))
         })
       });
 

@@ -505,6 +505,8 @@ The following were asked about but do not exist in this project:
 - **Optimistic updates:** Habit completions use `onMutate`/`onError` rollback pattern for instant UI feedback
 - **Custom fetch interceptor:** `main.tsx` patches global `fetch` to always include `credentials: "include"`
 
+See [UI_AUDIT.md](./UI_AUDIT.md) for current UI/UX issues and improvement plan.
+
 ## Known Quirks & Edge Cases
 - `server/auth.ts` has raw SQL fallback if Drizzle ORM returns 0 users (defensive for ORM initialization issues)
 - `createTask` in Microsoft Graph throws if user has no To Do lists (no auto-creation of default list)
