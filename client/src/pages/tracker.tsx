@@ -198,7 +198,7 @@ export default function TrackerPage() {
     <Layout lockContext={lockContext}>
       <div className="space-y-4 md:space-y-6 animate-in fade-in duration-500">
         <div className="relative flex items-center justify-center md:flex-col md:items-center gap-0 md:gap-2 mb-1 md:mb-2">
-          <p className="absolute left-0 text-[10px] md:relative md:text-sm text-muted-foreground/70 font-medium">{format(new Date(), "EEE, MMM do")}</p>
+          <p className="absolute left-0 text-xs md:relative md:text-sm text-muted-foreground/70 font-medium">{format(new Date(), "EEE, MMM do")}</p>
           <h1 className="text-lg md:text-4xl font-display font-bold text-foreground">
             Daily Tracker
           </h1>
@@ -212,7 +212,7 @@ export default function TrackerPage() {
             <TabsList className="w-full grid grid-cols-6 md:flex h-auto md:h-12 items-center gap-0.5 md:gap-1 rounded-2xl md:rounded-xl bg-background/60 backdrop-blur-xl p-1 md:p-1.5 border border-border/20 shadow-sm md:justify-center">
               <TabsTrigger 
                 value="habits" 
-                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 whitespace-nowrap rounded-xl md:rounded-lg px-1 md:px-5 py-2 md:py-2.5 text-[10px] md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground" 
+                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 whitespace-nowrap rounded-xl md:rounded-lg px-1 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground" 
                 data-testid="tab-habits"
               >
                 <Sparkles className="w-4 h-4 md:w-4 md:h-4" />
@@ -220,7 +220,7 @@ export default function TrackerPage() {
               </TabsTrigger>
               <TabsTrigger 
                 value="mood" 
-                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 whitespace-nowrap rounded-xl md:rounded-lg px-1 md:px-5 py-2 md:py-2.5 text-[10px] md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground" 
+                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 whitespace-nowrap rounded-xl md:rounded-lg px-1 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground" 
                 data-testid="tab-mood"
               >
                 <Activity className="w-4 h-4 md:w-4 md:h-4" />
@@ -228,7 +228,7 @@ export default function TrackerPage() {
               </TabsTrigger>
               <TabsTrigger 
                 value="routine" 
-                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 whitespace-nowrap rounded-xl md:rounded-lg px-1 md:px-5 py-2 md:py-2.5 text-[10px] md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground" 
+                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 whitespace-nowrap rounded-xl md:rounded-lg px-1 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground" 
                 data-testid="tab-routine"
               >
                 <Calendar className="w-4 h-4 md:w-4 md:h-4" />
@@ -236,7 +236,7 @@ export default function TrackerPage() {
               </TabsTrigger>
               <TabsTrigger 
                 value="food" 
-                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 whitespace-nowrap rounded-xl md:rounded-lg px-1 md:px-5 py-2 md:py-2.5 text-[10px] md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground" 
+                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 whitespace-nowrap rounded-xl md:rounded-lg px-1 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground" 
                 data-testid="tab-food"
               >
                 <Utensils className="w-4 h-4 md:w-4 md:h-4" />
@@ -244,7 +244,7 @@ export default function TrackerPage() {
               </TabsTrigger>
               <TabsTrigger 
                 value="todos" 
-                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 whitespace-nowrap rounded-xl md:rounded-lg px-1 md:px-5 py-2 md:py-2.5 text-[10px] md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground" 
+                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 whitespace-nowrap rounded-xl md:rounded-lg px-1 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground" 
                 data-testid="tab-todos"
               >
                 <ListTodo className="w-4 h-4 md:w-4 md:h-4" />
@@ -252,7 +252,7 @@ export default function TrackerPage() {
               </TabsTrigger>
               <TabsTrigger 
                 value="journal" 
-                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 whitespace-nowrap rounded-xl md:rounded-lg px-1 md:px-5 py-2 md:py-2.5 text-[10px] md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground" 
+                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 whitespace-nowrap rounded-xl md:rounded-lg px-1 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md text-muted-foreground" 
                 data-testid="tab-journal"
               >
                 <BookOpen className="w-4 h-4 md:w-4 md:h-4" />

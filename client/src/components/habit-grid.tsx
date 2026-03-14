@@ -70,7 +70,7 @@ export function HabitGrid({ habits, onToggle, onDelete, onEdit, togglingHabitId 
           return (
             <div key={i} className="flex flex-col items-center gap-1">
               <span className={cn(
-                "text-[10px] font-bold uppercase tracking-widest",
+                "text-xs font-bold uppercase tracking-widest",
                 isToday ? "text-primary" : "text-muted-foreground/60"
               )}>
                 {format(day, "EEE")}
@@ -118,7 +118,7 @@ export function HabitGrid({ habits, onToggle, onDelete, onEdit, togglingHabitId 
                       {habit.target} {habit.unit}
                     </span>
                     {habit.streak > 2 && (
-                      <div className="flex items-center gap-1 text-[10px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full">
+                      <div className="flex items-center gap-1 text-xs font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full">
                         <Flame className="w-3 h-3 fill-current" />
                         {habit.streak}
                       </div>

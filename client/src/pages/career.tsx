@@ -923,7 +923,7 @@ export default function CareerPage() {
             <p className="text-xs text-muted-foreground truncate">{projectName}</p>
           )}
         </div>
-        <Badge className={cn("text-[10px] font-medium shrink-0", priorityBadge(task.priority))}>
+        <Badge className={cn("text-xs font-medium shrink-0", priorityBadge(task.priority))}>
           {task.priority}
         </Badge>
       </motion.div>

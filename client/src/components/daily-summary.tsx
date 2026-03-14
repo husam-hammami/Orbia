@@ -117,7 +117,7 @@ export function DailySummary() {
           })}
         </div>
         
-        <p className="text-[10px] text-muted-foreground text-center">
+        <p className="text-xs text-muted-foreground text-center">
           This helps us anchor insights against your daily experience
         </p>
       </CardContent>

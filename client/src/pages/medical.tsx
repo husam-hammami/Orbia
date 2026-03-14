@@ -44,7 +44,7 @@ const severityStyles: Record<string, { bg: string; border: string; text: string;
 
 function HudLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <span className={cn("text-[10px] uppercase tracking-[0.15em] text-primary/60", className)} style={mono}>
+    <span className={cn("text-xs uppercase tracking-[0.15em] text-primary/60", className)} style={mono}>
       {children}
     </span>
   );
@@ -163,7 +163,7 @@ function AccordionSection({ label, count, icon: Icon, isOpen, onToggle, onAdd, a
             <div className="px-3.5 pb-3.5 flex flex-col gap-2">
               {children}
               {Array.isArray(children) && (children as any[]).length === 0 && (
-                <div className="text-center py-6 text-muted-foreground/30 text-xs" style={mono}>NO DATA</div>
+                <div className="text-center py-6 text-muted-foreground/40 text-xs">No entries yet</div>
               )}
             </div>
           </motion.div>
@@ -276,7 +276,7 @@ function MyHealthPanel() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="grid grid-cols-3 gap-3 text-center">
               {[
                 { label: "Blood Type", value: profile?.bloodType || "—" },
                 { label: "Medications", value: medications.length },
@@ -305,7 +305,7 @@ function MyHealthPanel() {
             key={tab}
             onClick={() => { setActiveTab(tab); setOpenSection(tab === "health" ? "conditions" : tab === "history" ? "timeline" : "network"); }}
             className={cn(
-              "flex-1 py-2 text-[10px] font-medium rounded-lg transition-all uppercase tracking-wider",
+              "flex-1 py-2 text-xs font-medium rounded-lg transition-all uppercase tracking-wider",
               activeTab === tab
                 ? "bg-primary/15 text-primary border border-primary/30 glow-sm"
                 : "bg-muted/20 text-muted-foreground/50 hover:text-primary/60 hover:bg-primary/5 border border-transparent"
@@ -333,7 +333,10 @@ function MyHealthPanel() {
                     <div className="absolute top-2 right-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
                       <button className="p-1 hover:bg-red-500/10 rounded" onClick={() => delDiagnosis.mutate(d.id)}><Trash2 className="w-3 h-3 text-red-400/50" /></button>
                     </div>
-                    <div className={`text-sm font-semibold mb-0.5 pr-6 ${s.text}`}>{idx + 1}. {d.label}</div>
+                    <div className="flex items-center gap-2 mb-0.5 pr-6">
+                      <div className={`text-sm font-semibold ${s.text}`}>{idx + 1}. {d.label}</div>
+                      <span className={`text-[10px] uppercase font-semibold tracking-wider ${s.text} opacity-70`}>{d.severity}</span>
+                    </div>
                     <div className="text-xs text-muted-foreground/60">{d.description}</div>
                   </div>
                 );
@@ -539,9 +542,9 @@ function UploadZone() {
           {uploadState === "uploading" ? "UPLOADING..." : "AI ANALYZING..."}
         </span>
         {uploadFileName && (
-          <p className="text-[10px] text-foreground/50 text-center truncate max-w-full px-2">{uploadFileName}</p>
+          <p className="text-xs text-foreground/50 text-center truncate max-w-full px-2">{uploadFileName}</p>
         )}
-        <p className="text-[10px] text-muted-foreground/40 text-center leading-relaxed">
+        <p className="text-xs text-muted-foreground/40 text-center leading-relaxed">
           {uploadState === "analyzing"
             ? "Reading document, extracting clinical data, and categorizing findings"
             : "Preparing document for analysis"}
@@ -575,7 +578,7 @@ function UploadZone() {
         </div>
         <div className="text-center">
           <p className="text-xs font-medium text-foreground/70">Upload medical document</p>
-          <p className="text-[10px] text-muted-foreground/40 mt-0.5" style={mono}>
+          <p className="text-xs text-muted-foreground/40 mt-0.5" style={mono}>
             Drop file or click — AI auto-categorizes
           </p>
         </div>
@@ -888,7 +891,7 @@ export default function MedicalPage() {
             <img src={sphereUrl} alt="Orbia" className="w-10 h-10 object-contain glow-sm" />
             <div>
               <h1 className="text-xl font-display font-bold tracking-[0.08em]">MEDICAL</h1>
-              <p className="text-[10px] text-primary/40 tracking-wide" style={mono}>Health records & AI assistant</p>
+              <p className="text-xs text-primary/40 tracking-wide" style={mono}>Health records & AI assistant</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -966,7 +969,7 @@ export default function MedicalPage() {
                 key={tab}
                 onClick={() => setMobileTab(tab)}
                 className={cn(
-                  "flex-1 py-2 text-[10px] font-medium rounded-lg transition-all uppercase tracking-wider",
+                  "flex-1 py-2 text-xs font-medium rounded-lg transition-all uppercase tracking-wider",
                   mobileTab === tab
                     ? "bg-primary/15 text-primary border border-primary/30 glow-sm"
                     : "bg-muted/20 text-muted-foreground/50 hover:text-primary/60 border border-transparent"

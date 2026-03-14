@@ -207,7 +207,7 @@ function TaskRow({ task, projectId, members, statusOptions, tasklists }: {
               {task.name}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground/40" style={mono}>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground/40" style={mono}>
             <span className="truncate max-w-[100px]">{ownerName}</span>
             {task.end_date && (
               <span className={cn(overdue ? "text-red-400" : "")}>
@@ -252,7 +252,7 @@ function TaskRow({ task, projectId, members, statusOptions, tasklists }: {
             className="overflow-hidden"
           >
             <div className="px-3 pb-3 pt-1 ml-5">
-              <div className="flex items-center gap-3 flex-wrap text-[10px] text-muted-foreground/50 mb-2" style={mono}>
+              <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground/50 mb-2" style={mono}>
                 {task.tasklist?.name && <span>{task.tasklist.name}</span>}
                 {task.start_date && task.end_date && (
                   <span className="flex items-center gap-1">
@@ -268,7 +268,7 @@ function TaskRow({ task, projectId, members, statusOptions, tasklists }: {
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-[10px] h-6 px-2 text-indigo-400 hover:bg-indigo-500/10"
+                className="text-xs h-6 px-2 text-indigo-400 hover:bg-indigo-500/10"
                 onClick={() => setEditing(true)}
                 data-testid={`button-edit-task-${task.id}`}
               >
@@ -320,7 +320,7 @@ function TaskRow({ task, projectId, members, statusOptions, tasklists }: {
                 <select
                   value={editData.person_responsible}
                   onChange={e => setEditData(d => ({ ...d, person_responsible: e.target.value }))}
-                  className="text-[10px] bg-black/30 border border-indigo-500/15 rounded px-1.5 py-0.5 text-foreground/80"
+                  className="text-xs bg-black/30 border border-indigo-500/15 rounded px-1.5 py-0.5 text-foreground/80"
                   data-testid={`select-owner-${task.id}`}
                 >
                   <option value="">Unassigned</option>
@@ -332,14 +332,14 @@ function TaskRow({ task, projectId, members, statusOptions, tasklists }: {
                   type="date"
                   value={editData.end_date}
                   onChange={e => setEditData(d => ({ ...d, end_date: e.target.value }))}
-                  className="text-[10px] bg-black/30 border-indigo-500/15 h-6 w-[130px]"
+                  className="text-xs bg-black/30 border-indigo-500/15 h-6 w-[130px]"
                   data-testid={`input-end-date-${task.id}`}
                 />
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
-                  className="text-[10px] h-6 bg-indigo-600 hover:bg-indigo-500 px-3"
+                  className="text-xs h-6 bg-indigo-600 hover:bg-indigo-500 px-3"
                   onClick={handleSave}
                   disabled={updateMutation.isPending}
                   data-testid={`button-save-task-${task.id}`}
@@ -347,7 +347,7 @@ function TaskRow({ task, projectId, members, statusOptions, tasklists }: {
                   {updateMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-2.5 h-2.5 mr-1" />}
                   Save
                 </Button>
-                <Button size="sm" variant="ghost" className="text-[10px] h-6 text-muted-foreground" onClick={() => setEditing(false)} data-testid={`button-cancel-edit-${task.id}`}>
+                <Button size="sm" variant="ghost" className="text-xs h-6 text-muted-foreground" onClick={() => setEditing(false)} data-testid={`button-cancel-edit-${task.id}`}>
                   Cancel
                 </Button>
               </div>
@@ -413,7 +413,7 @@ function CreateTaskPanel({ projectId, tasklists, members, onClose }: {
     >
       <div className={cn(cmdPanel, "p-3 mb-3")} data-testid="panel-create-task">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] uppercase tracking-[0.15em] text-indigo-400/60" style={mono}>New Task</span>
+          <span className="text-xs uppercase tracking-[0.15em] text-indigo-400/60" style={mono}>New Task</span>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground" data-testid="button-close-create">
             <X className="w-3.5 h-3.5" />
           </button>
@@ -431,7 +431,7 @@ function CreateTaskPanel({ projectId, tasklists, members, onClose }: {
             <select
               value={form.tasklist_id}
               onChange={e => setForm(f => ({ ...f, tasklist_id: e.target.value }))}
-              className="text-[10px] bg-black/30 border border-indigo-500/15 rounded-lg px-2 py-1 text-foreground/80 flex-1 min-w-[100px]"
+              className="text-xs bg-black/30 border border-indigo-500/15 rounded-lg px-2 py-1 text-foreground/80 flex-1 min-w-[100px]"
               data-testid="select-create-tasklist"
             >
               {tasklists.map(tl => (
@@ -441,7 +441,7 @@ function CreateTaskPanel({ projectId, tasklists, members, onClose }: {
             <select
               value={form.person_responsible}
               onChange={e => setForm(f => ({ ...f, person_responsible: e.target.value }))}
-              className="text-[10px] bg-black/30 border border-indigo-500/15 rounded-lg px-2 py-1 text-foreground/80 flex-1 min-w-[100px]"
+              className="text-xs bg-black/30 border border-indigo-500/15 rounded-lg px-2 py-1 text-foreground/80 flex-1 min-w-[100px]"
               data-testid="select-create-owner"
             >
               <option value="">Unassigned</option>
@@ -469,14 +469,14 @@ function CreateTaskPanel({ projectId, tasklists, members, onClose }: {
               type="date"
               value={form.end_date}
               onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))}
-              className="text-[10px] bg-black/30 border-indigo-500/15 h-6 w-[130px]"
+              className="text-xs bg-black/30 border-indigo-500/15 h-6 w-[130px]"
               data-testid="input-create-end"
             />
           </div>
           <div className="flex items-center gap-2">
             <Button
               size="sm"
-              className="bg-indigo-600 hover:bg-indigo-500 text-[10px] h-7"
+              className="bg-indigo-600 hover:bg-indigo-500 text-xs h-7"
               onClick={handleCreate}
               disabled={!form.name.trim() || createMutation.isPending}
               data-testid="button-create-submit"
@@ -484,7 +484,7 @@ function CreateTaskPanel({ projectId, tasklists, members, onClose }: {
               {createMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}
               Create
             </Button>
-            <Button size="sm" variant="ghost" className="text-[10px] h-7 text-muted-foreground" onClick={onClose}>Cancel</Button>
+            <Button size="sm" variant="ghost" className="text-xs h-7 text-muted-foreground" onClick={onClose}>Cancel</Button>
           </div>
         </div>
       </div>
@@ -614,7 +614,7 @@ function ZohoChat({ projectId }: { projectId: string }) {
                 <button
                   key={chip}
                   onClick={() => handleSend(chip)}
-                  className="text-[10px] px-2.5 py-1.5 rounded-lg bg-indigo-500/8 border border-indigo-500/15 text-indigo-300 hover:bg-indigo-500/15 transition-colors"
+                  className="text-xs px-2.5 py-1.5 rounded-lg bg-indigo-500/8 border border-indigo-500/15 text-indigo-300 hover:bg-indigo-500/15 transition-colors"
                   data-testid={`chip-${chip.replace(/\s+/g, "-").toLowerCase()}`}
                 >
                   {chip}
@@ -838,7 +838,7 @@ export default function ZohoPanel() {
         <p className="text-xs text-muted-foreground/70 mt-1 max-w-xs">
           Connect your Zoho account to manage projects and tasks directly from Orbia.
         </p>
-        <p className="text-[10px] text-muted-foreground/40 mt-3">
+        <p className="text-xs text-muted-foreground/40 mt-3">
           Ask your admin to configure Zoho credentials in settings.
         </p>
       </div>
@@ -933,7 +933,7 @@ export default function ZohoPanel() {
 
         <Button
           size="sm"
-          className="bg-indigo-600 hover:bg-indigo-500 text-[10px] h-7 px-3"
+          className="bg-indigo-600 hover:bg-indigo-500 text-xs h-7 px-3"
           onClick={() => setShowCreate(true)}
           data-testid="button-new-task"
         >
@@ -1069,7 +1069,7 @@ export default function ZohoPanel() {
               <div className="text-center py-12">
                 <CheckCircle2 className="w-6 h-6 text-emerald-400/30 mx-auto mb-2" />
                 <p className="text-xs text-muted-foreground">No tasks found</p>
-                <p className="text-[10px] text-muted-foreground/50">Create one to get started</p>
+                <p className="text-xs text-muted-foreground/50">Create one to get started</p>
               </div>
             )}
           </div>
@@ -1085,7 +1085,7 @@ export default function ZohoPanel() {
         <div className={cn(cmdPanelGlow, "flex flex-col min-h-0 overflow-hidden")}>
           <div className="flex items-center gap-2 px-3 py-2 border-b border-indigo-500/10 shrink-0">
             <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="text-[10px] uppercase tracking-[0.15em] text-indigo-400/70 font-medium" style={mono}>
+            <span className="text-xs uppercase tracking-[0.15em] text-indigo-400/70 font-medium" style={mono}>
               Zoho Assistant
             </span>
           </div>
@@ -1129,7 +1129,7 @@ export default function ZohoPanel() {
           <div className={cn(cmdPanelGlow, "flex flex-col flex-1 min-h-[400px] overflow-hidden")}>
             <div className="flex items-center gap-2 px-3 py-2 border-b border-indigo-500/10 shrink-0">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="text-[10px] uppercase tracking-[0.15em] text-indigo-400/70 font-medium" style={mono}>
+              <span className="text-xs uppercase tracking-[0.15em] text-indigo-400/70 font-medium" style={mono}>
                 Zoho Assistant
               </span>
             </div>

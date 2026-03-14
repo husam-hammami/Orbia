@@ -401,7 +401,7 @@ function ArticleCard({ article, index }: { article: NewsArticle; index: number }
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
-              <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide", colorClass)} data-testid={`article-category-${index}`}>
+              <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide", colorClass)} data-testid={`article-category-${index}`}>
                 {getCategoryLabel(article.category)}
               </span>
             </div>
@@ -416,7 +416,7 @@ function ArticleCard({ article, index }: { article: NewsArticle; index: number }
               </p>
             )}
             
-            <div className="flex items-center gap-3 mt-2.5 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-3 mt-2.5 text-xs text-muted-foreground">
               {article.source && (
                 <span className="font-medium text-foreground/60" data-testid={`article-source-${index}`}>
                   {article.source}
@@ -499,10 +499,10 @@ function SavedArticleCard({ article, index }: { article: SavedArticle; index: nu
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase", colorClass)} data-testid={`saved-category-${index}`}>
+              <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-full uppercase", colorClass)} data-testid={`saved-category-${index}`}>
                 {getCategoryLabel(article.category)}
               </span>
-              <span className="text-[10px] text-muted-foreground" data-testid={`saved-time-${index}`}>
+              <span className="text-xs text-muted-foreground" data-testid={`saved-time-${index}`}>
                 Saved {formatTimeAgo(article.createdAt)}
               </span>
             </div>
@@ -559,7 +559,7 @@ export default function NewsPage() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto w-full px-3 md:px-4 py-6 pb-24">
+      <div className="max-w-6xl mx-auto w-full px-3 md:px-4 py-6">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <motion.div 

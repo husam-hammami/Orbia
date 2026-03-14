@@ -151,8 +151,8 @@ const PlantNode = ({ habit, onToggle, onDelete, isToggling }: { habit: Habit; on
        </motion.button>
 
        <div className="text-center w-full px-0.5 md:px-1">
-          <h3 className="font-medium text-[10px] md:text-xs leading-tight line-clamp-2">{habit.title}</h3>
-          <p className="text-[8px] md:text-[9px] text-muted-foreground">
+          <h3 className="font-medium text-xs leading-tight line-clamp-2">{habit.title}</h3>
+          <p className="text-[10px] md:text-xs text-muted-foreground">
              {habit.streak}d{habit.streak > 5 && <span className="text-amber-500">🔥</span>}
           </p>
        </div>
@@ -162,7 +162,7 @@ const PlantNode = ({ habit, onToggle, onDelete, isToggling }: { habit: Habit; on
 
 export function HabitGarden({ habits, onToggle, onDelete, onEdit, togglingHabitId }: HabitGardenProps) {
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 md:gap-3 py-2 md:py-3">
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3 py-2 md:py-3">
       {habits.map((habit) => (
         <div key={habit.id} className="relative group">
           <PlantNode 
@@ -172,7 +172,7 @@ export function HabitGarden({ habits, onToggle, onDelete, onEdit, togglingHabitI
             isToggling={togglingHabitId === habit.id}
           />
           {onEdit && (
-            <div className="absolute top-1 left-1 md:top-2 md:left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute top-1 left-1 md:top-2 md:left-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
               <HabitEditForm habit={habit} onSubmit={onEdit} />
             </div>
           )}
@@ -184,7 +184,7 @@ export function HabitGarden({ habits, onToggle, onDelete, onEdit, togglingHabitI
             <span className="text-lg md:text-xl text-muted-foreground font-light">+</span>
          </div>
          <div className="text-center">
-            <h3 className="font-medium text-[9px] md:text-[10px] text-muted-foreground">New</h3>
+            <h3 className="font-medium text-xs text-muted-foreground">New</h3>
          </div>
       </button>
     </div>

@@ -121,8 +121,7 @@ export default function WelcomePage({ onAuthenticated }: WelcomePageProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="text-2xl font-bold tracking-[0.3em] mb-4 bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--accent))] to-[hsl(var(--primary))] bg-clip-text text-transparent"
-          style={{ fontFamily: "'Exo 2', sans-serif" }}
+          className="text-2xl font-display font-bold tracking-[0.3em] mb-4 bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--accent))] to-[hsl(var(--primary))] bg-clip-text text-transparent"
         >
           ORBIA
         </motion.span>

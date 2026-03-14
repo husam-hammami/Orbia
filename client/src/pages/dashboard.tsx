@@ -302,7 +302,7 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Quick Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <motion.div custom={0} initial="hidden" animate="visible" variants={cardVariants}>
             <Card className="bg-card/80 backdrop-blur-xl border border-border/60 shadow-lg h-full" data-testid="card-mood-today">
               <CardContent className="pt-6">
@@ -404,27 +404,36 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="h-40 mb-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={moodChartData}>
-                      <defs>
-                        <linearGradient id="moodGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-                      <YAxis domain={[0, 10]} axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-                      <Tooltip
-                        contentStyle={{
-                          background: 'hsl(var(--card))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
-                        }}
-                      />
-                      <Area type="monotone" dataKey="mood" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#moodGradient)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  {moodChartData.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                      <div className="text-center">
+                        <Activity className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        <p>Start tracking to see trends</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={moodChartData}>
+                        <defs>
+                          <linearGradient id="moodGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                        <YAxis domain={[0, 10]} axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                        <Tooltip
+                          contentStyle={{
+                            background: 'hsl(var(--card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                          }}
+                        />
+                        <Area type="monotone" dataKey="mood" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#moodGradient)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="text-center p-2.5 rounded-lg bg-muted/50">

@@ -392,7 +392,7 @@ export function WorkTimer() {
                 <span className="relative font-mono text-3xl font-bold text-white tabular-nums drop-shadow-lg">
                   {mins.toString().padStart(2, "0")}:{secs.toString().padStart(2, "0")}
                 </span>
-                <span className="relative text-[10px] text-white/60 uppercase tracking-widest mt-1">
+                <span className="relative text-xs text-white/60 uppercase tracking-widest mt-1">
                   {status === "running" ? "focusing" : status === "paused" ? "paused" : "ready"}
                 </span>
               </div>

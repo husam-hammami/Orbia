@@ -358,7 +358,7 @@ export default function UnloadSheet({ open, onOpenChange, onExecuteAction }: Unl
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm font-medium">Journal Entry</span>
-                            <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                            <Badge variant="default" className="text-xs px-1.5 py-0">
                               Auto
                             </Badge>
                           </div>
@@ -409,7 +409,7 @@ export default function UnloadSheet({ open, onOpenChange, onExecuteAction }: Unl
                               <span className="text-sm font-medium">{item.label}</span>
                               <Badge
                                 variant={badge.variant}
-                                className="text-[10px] px-1.5 py-0"
+                                className="text-xs px-1.5 py-0"
                               >
                                 {badge.label}
                               </Badge>

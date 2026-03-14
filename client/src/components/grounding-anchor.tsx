@@ -72,7 +72,7 @@ export function GroundingAnchor() {
           <Anchor className="w-6 h-6" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md bg-slate-900 text-slate-50 border-slate-800">
+      <DialogContent className="sm:max-w-md bg-card text-foreground border-border">
         <DialogHeader>
           <DialogTitle className="text-center font-display text-2xl tracking-wide flex items-center justify-center gap-2">
             <Anchor className="w-5 h-5 text-cyan-400" />
@@ -105,7 +105,7 @@ export function GroundingAnchor() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">5-4-3-2-1 Technique</h3>
-                  <p className="text-slate-400 text-sm">Engage your senses to return to the present.</p>
+                  <p className="text-muted-foreground text-sm">Engage your senses to return to the present.</p>
                 </div>
               </button>
 
@@ -118,7 +118,7 @@ export function GroundingAnchor() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">Box Breathing</h3>
-                  <p className="text-slate-400 text-sm">Regulate your nervous system with breath.</p>
+                  <p className="text-muted-foreground text-sm">Regulate your nervous system with breath.</p>
                 </div>
               </button>
             </div>
@@ -126,7 +126,7 @@ export function GroundingAnchor() {
              <div className="flex flex-col gap-6 w-full px-2 animate-in fade-in zoom-in-95 duration-300">
                <div className="text-center mb-2">
                  <h3 className="text-xl font-bold text-red-200 mb-2">High Intensity TIPP Skills</h3>
-                 <p className="text-slate-400 text-sm">Choose one to shock your system safely.</p>
+                 <p className="text-muted-foreground text-sm">Choose one to shock your system safely.</p>
                </div>
 
                <div className="space-y-4">
@@ -135,7 +135,7 @@ export function GroundingAnchor() {
                         <Snowflake className="w-5 h-5" />
                         <span className="font-bold">The Dive Reflex</span>
                      </div>
-                     <p className="text-sm text-slate-300">Splash ice-cold water on your face or hold an ice cube tightly. This forces your heart rate to slow down immediately.</p>
+                     <p className="text-sm text-foreground/80">Splash ice-cold water on your face or hold an ice cube tightly. This forces your heart rate to slow down immediately.</p>
                   </div>
 
                   <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
@@ -143,7 +143,7 @@ export function GroundingAnchor() {
                         <Citrus className="w-5 h-5" />
                         <span className="font-bold">Sensory Shock</span>
                      </div>
-                     <p className="text-sm text-slate-300">Bite into a whole lemon, eat something very spicy, or smell strong peppermint oil. The intense sensation helps ground you in the present moment.</p>
+                     <p className="text-sm text-foreground/80">Bite into a whole lemon, eat something very spicy, or smell strong peppermint oil. The intense sensation helps ground you in the present moment.</p>
                   </div>
 
                   <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
@@ -151,11 +151,11 @@ export function GroundingAnchor() {
                         <Dumbbell className="w-5 h-5" />
                         <span className="font-bold">Intense Release</span>
                      </div>
-                     <p className="text-sm text-slate-300">Squeeze all your muscles as hard as you can for 5 seconds, then release. Or do wall pushes until your arms are tired.</p>
+                     <p className="text-sm text-foreground/80">Squeeze all your muscles as hard as you can for 5 seconds, then release. Or do wall pushes until your arms are tired.</p>
                   </div>
                </div>
                
-               <Button variant="ghost" onClick={() => setActiveExercise(null)} className="mt-4 text-slate-500 hover:text-slate-300 self-center">
+               <Button variant="ghost" onClick={() => setActiveExercise(null)} className="mt-4 text-muted-foreground hover:text-foreground/80 self-center">
                  Back to Menu
                </Button>
             </div>
@@ -180,42 +180,42 @@ export function GroundingAnchor() {
                <h3 className="text-2xl font-display font-medium text-cyan-200 mb-2 capitalize">
                  {breathPhase}...
                </h3>
-               <p className="text-slate-400 text-center max-w-xs">
+               <p className="text-muted-foreground text-center max-w-xs">
                  {breathPhase === "inhale" && "Breathe in deeply through your nose."}
                  {breathPhase === "hold" && "Hold your breath gently."}
                  {breathPhase === "exhale" && "Exhale slowly through your mouth."}
                </p>
                
-               <Button variant="ghost" onClick={() => setActiveExercise(null)} className="mt-8 text-slate-500 hover:text-slate-300">
+               <Button variant="ghost" onClick={() => setActiveExercise(null)} className="mt-8 text-muted-foreground hover:text-foreground/80">
                  Stop Exercise
                </Button>
             </div>
           ) : (
             <div className="flex flex-col gap-6 w-full px-2">
                <div className="space-y-4">
-                  <div className="flex items-center gap-3 text-slate-200">
+                  <div className="flex items-center gap-3 text-foreground/90">
                      <Eye className="w-5 h-5 text-purple-400" />
                      <span className="font-medium">5 things you can <span className="text-purple-400">see</span></span>
                   </div>
-                  <div className="flex items-center gap-3 text-slate-200">
+                  <div className="flex items-center gap-3 text-foreground/90">
                      <Hand className="w-5 h-5 text-blue-400" />
                      <span className="font-medium">4 things you can <span className="text-blue-400">touch</span></span>
                   </div>
-                  <div className="flex items-center gap-3 text-slate-200">
+                  <div className="flex items-center gap-3 text-foreground/90">
                      <Ear className="w-5 h-5 text-green-400" />
                      <span className="font-medium">3 things you can <span className="text-green-400">hear</span></span>
                   </div>
-                  <div className="flex items-center gap-3 text-slate-200">
+                  <div className="flex items-center gap-3 text-foreground/90">
                      <Coffee className="w-5 h-5 text-yellow-400" />
                      <span className="font-medium">2 things you can <span className="text-yellow-400">smell</span></span>
                   </div>
-                  <div className="flex items-center gap-3 text-slate-200">
+                  <div className="flex items-center gap-3 text-foreground/90">
                      <HeartPulse className="w-5 h-5 text-red-400" />
                      <span className="font-medium">1 thing you can <span className="text-red-400">feel (emotion)</span></span>
                   </div>
                </div>
                
-               <Button variant="ghost" onClick={() => setActiveExercise(null)} className="mt-4 text-slate-500 hover:text-slate-300 self-center">
+               <Button variant="ghost" onClick={() => setActiveExercise(null)} className="mt-4 text-muted-foreground hover:text-foreground/80 self-center">
                  Done
                </Button>
             </div>

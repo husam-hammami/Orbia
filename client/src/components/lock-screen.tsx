@@ -78,7 +78,10 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-pink-100/30"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Lock screen"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10"
     >
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(6)].map((_, i) => (
@@ -106,7 +109,7 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
       <motion.div
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
-        className={`relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl shadow-primary/10 border border-white/50 w-full max-w-sm mx-4 ${shake ? 'animate-shake' : ''}`}
+        className={`relative bg-background/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl shadow-primary/10 border border-border/50 w-full max-w-sm mx-4 ${shake ? 'animate-shake' : ''}`}
       >
         <div className="text-center mb-6">
           <motion.div
@@ -125,8 +128,7 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
           </motion.div>
           
           <span 
-            className="text-xl font-bold tracking-[0.25em] mb-3 bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--accent))] to-[hsl(var(--primary))] bg-clip-text text-transparent"
-            style={{ fontFamily: "'Exo 2', sans-serif" }}
+            className="text-xl font-display font-bold tracking-[0.25em] mb-3 bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--accent))] to-[hsl(var(--primary))] bg-clip-text text-transparent"
           >
             ORBIA
           </span>
@@ -248,7 +250,7 @@ export function SetPasswordDialog({ isOpen, onClose, onSetPassword, hasExistingP
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-sm mx-4"
+        className="bg-card rounded-2xl p-6 shadow-2xl border border-border w-full max-w-sm mx-4"
       >
         <div className="flex items-center gap-2 mb-4">
           <Lock className="w-5 h-5 text-primary" />

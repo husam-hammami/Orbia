@@ -173,6 +173,24 @@
   * {
     @apply border-border;
   }
+  :root {
+    /* Motion tokens */
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+    --duration-slow: 400ms;
+
+    /* Severity tokens (semantic colors) */
+    --severity-critical: 0 72% 51%;
+    --severity-high: 25 95% 53%;
+    --severity-medium: 45 93% 47%;
+    --severity-low: 142 71% 45%;
+
+    /* Nav height for consistent bottom padding */
+    --nav-height: 88px;
+
+    /* Transition for smooth theme switching */
+    transition: color var(--duration-slow), background-color var(--duration-slow), border-color var(--duration-slow);
+  }
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
@@ -181,17 +199,59 @@
   }
 }
 
-/* Glassmorphic utilities */
+/* Reduced motion: disable all animations for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Skip to content link for accessibility */
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: 100;
+}
+.skip-to-content:focus {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  width: auto;
+  height: auto;
+  padding: 12px 24px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 14px;
+  z-index: 9999;
+  box-shadow: 0 4px 14px hsl(var(--primary) / 0.4);
+}
+
+/* Glassmorphic utilities — theme-aware for light + dark */
 .glass {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+}
+.dark .glass {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .glass-subtle {
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+}
+.dark .glass-subtle {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 /* Gradient text utility */

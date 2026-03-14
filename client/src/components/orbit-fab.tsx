@@ -538,7 +538,7 @@ export function OrbitFab() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="fixed bottom-20 right-4 md:right-8 w-80 h-96 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden z-50"
+            className="fixed bottom-20 right-4 md:right-8 w-[calc(100vw-2rem)] max-w-80 h-80 md:h-96 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden z-50"
           >
             <div className="flex items-center justify-between p-3 border-b border-border bg-primary/5">
               <div className="flex items-center gap-2">
@@ -568,12 +568,12 @@ export function OrbitFab() {
                         variant="outline"
                         size="sm"
                         onClick={() => setUnloadOpen(true)}
-                        className="text-[10px] h-6 px-2 border-primary/30 text-primary"
+                        className="text-xs h-6 px-2 border-primary/30 text-primary"
                       >
                         <Brain className="w-3 h-3 mr-1" /> Unload
                       </Button>
                       {QUICK_PROMPTS.map((p) => (
-                        <Button key={p} variant="outline" size="sm" onClick={() => handleSend(p)} className="text-[10px] h-6 px-2">
+                        <Button key={p} variant="outline" size="sm" onClick={() => handleSend(p)} className="text-xs h-6 px-2">
                           {p}
                         </Button>
                       ))}
@@ -597,7 +597,7 @@ export function OrbitFab() {
                       <div className="flex gap-2 mt-2 ml-0">
                         <Button 
                           size="sm" 
-                          className="h-6 px-2 text-[10px] bg-amber-600 hover:bg-amber-700 text-white"
+                          className="h-6 px-2 text-xs bg-amber-600 hover:bg-amber-700 text-white"
                           onClick={() => handleConfirmAction(message.id, message.pendingAction, true)}
                           data-testid="button-confirm-action"
                         >
@@ -606,7 +606,7 @@ export function OrbitFab() {
                         <Button 
                           size="sm" 
                           variant="outline"
-                          className="h-6 px-2 text-[10px]"
+                          className="h-6 px-2 text-xs"
                           onClick={() => handleConfirmAction(message.id, message.pendingAction, false)}
                           data-testid="button-cancel-action"
                         >
@@ -650,10 +650,11 @@ export function OrbitFab() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
+        aria-label={isOpen ? "Close Orbia chat" : "Open Orbia chat"}
         className={cn(
           "fixed bottom-4 right-4 md:right-8 w-12 h-12 rounded-full shadow-lg flex items-center justify-center z-50 transition-all duration-300",
-          isOpen 
-            ? "bg-muted text-muted-foreground" 
+          isOpen
+            ? "bg-muted text-muted-foreground"
             : "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(var(--primary-rgb,99,102,241),0.4)] hover:shadow-[0_0_30px_rgba(var(--primary-rgb,99,102,241),0.6)]"
         )}
         style={{

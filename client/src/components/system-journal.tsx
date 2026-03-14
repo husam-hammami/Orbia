@@ -156,7 +156,7 @@ export function SystemJournal() {
                         </div>
                         <span className="text-sm font-bold text-foreground">{note.author}</span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground">{format(note.timestamp, "MMM d, h:mm a")}</span>
+                    <span className="text-xs text-muted-foreground">{format(note.timestamp, "MMM d, h:mm a")}</span>
                   </div>
                   
                   <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed pl-1">{note.content}</p>

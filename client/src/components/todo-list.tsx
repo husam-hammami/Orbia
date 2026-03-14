@@ -156,7 +156,7 @@ export function TodoList() {
             "flex items-center gap-3 p-4 bg-card/90 backdrop-blur-sm rounded-xl border-l-4 border border-border/80 hover:border-border transition-all group",
             config.border,
             config.glow,
-            isOverdue && "animate-pulse border-rose-200",
+            isOverdue && "border-l-4 border-l-rose-400 border-rose-200",
             isSubtask && "ml-8 p-3"
           )}
           data-testid={`todo-item-${todo.id}`}
@@ -203,7 +203,7 @@ export function TodoList() {
             </div>
           </div>
           <span className={cn(
-            "text-[10px] font-semibold px-2 py-1 rounded-full uppercase tracking-wide shrink-0",
+            "text-xs font-semibold px-2 py-1 rounded-full uppercase tracking-wide shrink-0",
             config.bg,
             config.text
           )}>

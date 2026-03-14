@@ -143,11 +143,14 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4 }}
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background"
       style={{
-        background: "radial-gradient(ellipse at center, rgba(30, 10, 60, 1) 0%, rgba(15, 10, 30, 1) 60%, rgba(5, 2, 15, 1) 100%)",
+        background: "radial-gradient(ellipse at center, hsl(var(--background)) 0%, hsl(var(--background)) 60%, hsl(var(--background)) 100%)",
       }}
       onClick={handleOverlayClick}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Voice input"
     >
       <div className="relative flex items-center justify-center" style={{ width: 280, height: 280 }}>
         {[0, 1, 2].map((i) => (
@@ -204,7 +207,7 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse"
+                className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"
                 style={{ animationDelay: `${i * 200}ms` }}
               />
             ))}
@@ -220,7 +223,7 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.5 }}
-            className="text-violet-200/90 text-xl font-light tracking-wide mt-2 mb-2"
+            className="text-foreground/80 text-xl font-light tracking-wide mt-2 mb-2"
           >
             {idleMessages[idleMsgIndex % idleMessages.length]}
           </motion.p>
@@ -233,14 +236,14 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
           animate={{ opacity: 1, y: 0 }}
           className="mt-4 mb-2 px-8 max-w-lg w-full"
         >
-          <div className="relative rounded-2xl bg-white/[0.03] backdrop-blur-md border border-violet-500/10 px-5 py-4 min-h-[60px] max-h-[160px] overflow-y-auto">
-            <p className="text-violet-100/90 text-base leading-relaxed font-light">
+          <div className="relative rounded-2xl bg-card/30 backdrop-blur-md border border-primary/10 px-5 py-4 min-h-[60px] max-h-[160px] overflow-y-auto">
+            <p className="text-foreground/80 text-base leading-relaxed font-light">
               {liveTranscript}
               {interimText && (
-                <span className="text-violet-300/50">{liveTranscript ? " " : ""}{interimText}</span>
+                <span className="text-muted-foreground/50">{liveTranscript ? " " : ""}{interimText}</span>
               )}
               <motion.span
-                className="inline-block w-0.5 h-4 bg-violet-400/70 ml-0.5 align-text-bottom"
+                className="inline-block w-0.5 h-4 bg-primary/70 ml-0.5 align-text-bottom"
                 animate={{ opacity: [1, 0, 1] }}
                 transition={{ duration: 1, repeat: Infinity, ease: "steps(2)" }}
               />
@@ -257,7 +260,7 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
         >
           <div className="flex items-center justify-center gap-2">
             <Loader2 className="w-3.5 h-3.5 text-violet-400/60 animate-spin" />
-            <span className="text-violet-300/50 text-sm">Transcribing...</span>
+            <span className="text-muted-foreground/50 text-sm">Transcribing...</span>
           </div>
         </motion.div>
       )}
@@ -269,7 +272,7 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
           animate={{ opacity: 1, y: 0 }}
         >
           <motion.p
-            className="text-violet-200/80 text-lg font-light tracking-wide"
+            className="text-foreground/70 text-lg font-light tracking-wide"
             animate={{ opacity: [0.6, 1, 0.6] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           >
@@ -298,9 +301,9 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
         >
           <div
             ref={responseRef}
-            className="relative rounded-2xl bg-violet-500/[0.06] backdrop-blur-md border border-violet-400/15 px-5 py-4 max-h-[180px] overflow-y-auto"
+            className="relative rounded-2xl bg-card/30 backdrop-blur-md border border-primary/15 px-5 py-4 max-h-[180px] overflow-y-auto"
           >
-            <p className="text-violet-100 text-base leading-relaxed font-light">
+            <p className="text-foreground/90 text-base leading-relaxed font-light">
               {orbiaResponse}
             </p>
           </div>
@@ -309,11 +312,11 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
               {[0, 1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="w-1 h-2 rounded-full bg-violet-400/60"
+                  className="w-1 h-2 rounded-full bg-primary/60"
                 />
               ))}
             </div>
-            <span className="text-violet-300/40 text-xs ml-1">Speaking...</span>
+            <span className="text-muted-foreground/40 text-xs ml-1">Speaking...</span>
           </div>
         </motion.div>
       )}
@@ -323,7 +326,7 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="text-white/25 text-xs mb-4 mt-1"
+          className="text-foreground/25 text-xs mb-4 mt-1"
         >
           {formatTime(elapsed)}
         </motion.p>
@@ -343,7 +346,7 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
               e.stopPropagation();
               onStop();
             }}
-            className="rounded-full border-violet-500/20 bg-violet-500/10 text-violet-200/80 hover:text-white hover:bg-violet-500/20 gap-2 px-6 backdrop-blur-sm"
+            className="rounded-full border-primary/20 bg-primary/10 text-foreground/70 hover:text-foreground hover:bg-primary/20 gap-2 px-6 backdrop-blur-sm"
           >
             <MicOff className="w-4 h-4" />
             Done Speaking

@@ -97,7 +97,7 @@ function MobileCurrentTime() {
   return (
     <div className="flex items-center gap-0.5 mt-0.5">
       <Clock className="w-2.5 h-2.5 text-muted-foreground/50" />
-      <span className="text-[10px] font-mono text-muted-foreground/70">
+      <span className="text-xs font-mono text-muted-foreground/70">
         {hours12}:{minutes} {ampm}
       </span>
     </div>
@@ -125,15 +125,14 @@ function Sidebar({ className }: SidebarProps) {
       "flex flex-col h-full pt-0 pb-4 px-3",
       className
     )}>
-      <div className="flex flex-col items-center -mx-3 -mt-2 mb-1">
-        <img 
-          src={sphereUrl} 
-          alt="Orbia Sphere" 
-          className="w-44 h-44 object-contain animate-logo-pulse drop-shadow-[0_0_20px_hsl(var(--primary)/0.5)]" 
+      <div className="flex flex-col items-center mb-1">
+        <img
+          src={sphereUrl}
+          alt="Orbia Sphere"
+          className="w-24 h-24 object-contain animate-logo-pulse drop-shadow-[0_0_20px_hsl(var(--primary)/0.5)]"
         />
-        <span 
-          className="-mt-3 text-[1.7rem] font-bold tracking-[0.45em] text-foreground"
-          style={{ fontFamily: "'Exo 2', sans-serif" }}
+        <span
+          className="text-xl font-display font-bold tracking-[0.35em] text-foreground"
         >
           ORBIA
         </span>
@@ -155,8 +154,7 @@ function Sidebar({ className }: SidebarProps) {
               )}
             >
               <Icon className={cn(
-                "w-5 h-5 transition-transform",
-                isActive ? "stroke-2" : "stroke-[1.5]",
+                "w-5 h-5 stroke-[1.5] transition-transform",
                 !isActive && "group-hover:scale-110"
               )} />
               <span className={cn(
@@ -175,7 +173,7 @@ function Sidebar({ className }: SidebarProps) {
             <div className="p-4 rounded-2xl bg-gradient-to-br from-muted/50 to-primary/5 border border-border/60 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
               <p className="text-xs font-semibold text-primary mb-2 uppercase tracking-wide">Quote of the day</p>
-              <p className="text-sm italic text-foreground/80 font-serif leading-relaxed relative z-10">"{quote.text}"</p>
+              <p className="text-sm italic text-foreground/80 leading-relaxed relative z-10 line-clamp-3">"{quote.text}"</p>
               <p className="text-xs text-muted-foreground mt-2 text-right font-medium">— {quote.author}</p>
             </div>
           );
@@ -243,8 +241,9 @@ function MobileBottomNav() {
                     <motion.button
                       whileTap={{ scale: 0.85 }}
                       onClick={() => setMoreOpen(false)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
                       data-testid="button-close-more-menu"
+                      aria-label="Close menu"
                     >
                       <X className="w-4 h-4" />
                     </motion.button>
@@ -320,7 +319,7 @@ function MobileBottomNav() {
                       >
                         <Icon className="w-6 h-6 text-white" />
                       </motion.div>
-                      <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[10px] font-medium text-primary whitespace-nowrap">
+                      <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-xs font-medium text-primary whitespace-nowrap">
                         {item.label}
                       </span>
                     </Link>
@@ -337,6 +336,7 @@ function MobileBottomNav() {
                         isActive || moreOpen ? "text-primary" : "text-muted-foreground"
                       )}
                       data-testid="nav-more"
+                      aria-label="More navigation options"
                     >
                       <motion.div
                         whileTap={{ scale: 0.85 }}
@@ -345,7 +345,7 @@ function MobileBottomNav() {
                         {(isActive && !moreOpen) && (
                           <motion.div
                             layoutId="mobile-nav-indicator"
-                            className="absolute -inset-2 rounded-xl bg-primary/10"
+                            className="absolute -inset-2 rounded-xl bg-primary/20"
                             transition={{ type: "spring", stiffness: 500, damping: 35 }}
                           />
                         )}
@@ -355,7 +355,7 @@ function MobileBottomNav() {
                         )} />
                       </motion.div>
                       <span className={cn(
-                        "text-[10px] transition-all",
+                        "text-xs transition-all",
                         (isActive || moreOpen) ? "font-semibold" : "font-medium"
                       )}>
                         {item.label}
@@ -381,7 +381,7 @@ function MobileBottomNav() {
                       {isActive && (
                         <motion.div
                           layoutId="mobile-nav-indicator"
-                          className="absolute -inset-2 rounded-xl bg-primary/10"
+                          className="absolute -inset-2 rounded-xl bg-primary/20"
                           transition={{ type: "spring", stiffness: 500, damping: 35 }}
                         />
                       )}
@@ -391,7 +391,7 @@ function MobileBottomNav() {
                       )} />
                     </motion.div>
                     <span className={cn(
-                      "text-[10px] transition-all",
+                      "text-xs transition-all",
                       isActive ? "font-semibold" : "font-medium"
                     )}>
                       {item.label}
@@ -447,6 +447,7 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                       lockContext.hasPassword ? "text-primary" : "text-foreground"
                     )}
                     data-testid="button-mobile-lock"
+                    aria-label={lockContext.hasPassword ? "Lock app" : "Set lock password"}
                   >
                     <Lock className="w-5 h-5" />
                   </motion.button>
@@ -560,6 +561,7 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                   whileTap={{ scale: 0.85 }}
                   onClick={toggleDarkMode}
                   className="w-10 h-10 rounded-xl flex items-center justify-center bg-card/80 backdrop-blur-md border border-primary/30 shadow-lg shadow-primary/10 text-foreground"
+                  aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
                 >
                   {isDark ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
                 </motion.button>
@@ -570,6 +572,7 @@ function MobileHeader({ lockContext }: MobileHeaderProps) {
                       whileTap={{ scale: 0.85 }}
                       className="w-10 h-10 rounded-xl flex items-center justify-center bg-card/80 backdrop-blur-md border border-primary/30 shadow-lg shadow-primary/10"
                       data-testid="button-mobile-theme"
+                      aria-label="Change theme"
                     >
                       <div 
                         className="w-6 h-6 rounded-full border-2 border-white/50 shadow-lg"
@@ -823,6 +826,7 @@ function AnimatedBackground() {
 export function Layout({ children, lockContext, fullHeight }: LayoutProps & { fullHeight?: boolean }) {
   return (
     <>
+      <a href="#main" className="skip-to-content">Skip to content</a>
       <AnimatedBackground />
 
       <div className="flex h-screen w-full overflow-hidden relative z-10">
@@ -830,7 +834,7 @@ export function Layout({ children, lockContext, fullHeight }: LayoutProps & { fu
           <Sidebar />
         </aside>
 
-        <main className="flex-1 flex flex-col h-full overflow-hidden">
+        <main id="main" className="flex-1 flex flex-col h-full overflow-hidden">
           <MobileHeader lockContext={lockContext} />
 
           <div className="hidden md:block">
@@ -838,17 +842,17 @@ export function Layout({ children, lockContext, fullHeight }: LayoutProps & { fu
           </div>
 
           {fullHeight ? (
-            <div className="flex-1 min-h-0 flex flex-col px-3 md:px-6 lg:px-8 xl:px-10 py-2 md:py-4 pb-[92px] md:pb-0">
+            <div className="flex-1 min-h-0 flex flex-col px-4 md:px-6 lg:px-8 py-2 md:py-4 pb-[calc(var(--nav-height)+8px)] md:pb-0">
               {children}
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 md:pb-0">
-              <div className="w-full px-3 md:px-6 lg:px-8 xl:px-10 py-3 md:py-6 lg:py-8 space-y-4 md:space-y-6">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden pb-[calc(var(--nav-height)+8px)] md:pb-0">
+              <div className="w-full px-4 md:px-6 lg:px-8 py-3 md:py-6 lg:py-8 space-y-4 md:space-y-6">
                 {children}
               </div>
             </div>
           )}
-          
+
           <MobileBottomNav />
         </main>
       </div>

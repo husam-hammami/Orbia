@@ -195,7 +195,7 @@ export function RoutineTimeline() {
             <TemplateIcon className={cn("w-4 h-4", isActive ? "text-primary" : "text-muted-foreground")} />
             <span>{tmpl.name}</span>
             {isAutoSelected && (
-              <span className="text-[10px] bg-emerald-500/15 text-emerald-600 px-1.5 py-0.5 rounded-full font-medium">Today</span>
+              <span className="text-xs bg-emerald-500/15 text-emerald-600 px-1.5 py-0.5 rounded-full font-medium">Today</span>
             )}
           </button>
         );
@@ -246,7 +246,7 @@ export function RoutineTimeline() {
                 </linearGradient>
               </defs>
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-foreground" data-testid="routine-progress-percent">
+            <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-foreground" data-testid="routine-progress-percent">
               {totalProgress}%
             </span>
           </div>
@@ -358,21 +358,21 @@ export function RoutineTimeline() {
                 {/* Time Range */}
                 <div className="flex items-center gap-1 mt-1">
                   <span className={cn(
-                    "text-[10px] font-mono font-medium px-1.5 py-0.5 rounded",
+                    "text-xs font-mono font-medium px-1.5 py-0.5 rounded",
                     theme.iconColor,
                     theme.iconBg
                   )}>
                     {formatTime24h(block.startTime)}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">→</span>
-                  <span className="text-[10px] font-mono font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+                  <span className="text-xs text-muted-foreground">→</span>
+                  <span className="text-xs font-mono font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
                     {formatTime24h(block.endTime)}
                   </span>
                 </div>
 
                 {progress.total > 0 && (
                   <span className={cn(
-                    "text-[10px] font-semibold mt-1.5 px-2 py-0.5 rounded-full",
+                    "text-xs font-semibold mt-1.5 px-2 py-0.5 rounded-full",
                     isComplete ? `${theme.iconBg} ${theme.iconColor}` : "bg-muted text-muted-foreground"
                   )}>
                     {progress.completed}/{progress.total}

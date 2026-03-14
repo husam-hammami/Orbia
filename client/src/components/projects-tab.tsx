@@ -77,7 +77,7 @@ function CircularProgress({ progress, size = 44, strokeWidth = 4 }: { progress: 
         </defs>
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-[10px] font-semibold text-indigo-300" style={mono}>{progress}%</span>
+        <span className="text-xs font-semibold text-indigo-300" style={mono}>{progress}%</span>
       </div>
     </div>
   );
@@ -237,10 +237,10 @@ export default function ProjectsTab() {
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold text-foreground truncate">{detailProject.title}</h3>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className={cn("text-[10px] border", STATUS_COLORS[detailProject.status])}>
+              <Badge variant="outline" className={cn("text-xs border", STATUS_COLORS[detailProject.status])}>
                 {STATUS_DISPLAY[detailProject.status]}
               </Badge>
-              {deadline && <span className={cn("text-[10px]", deadline.className)} style={mono}>{deadline.text}</span>}
+              {deadline && <span className={cn("text-xs", deadline.className)} style={mono}>{deadline.text}</span>}
             </div>
           </div>
           <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-foreground h-8 px-2" onClick={() => { openProjectDialog(detailProject); }}>
@@ -315,7 +315,7 @@ export default function ProjectsTab() {
                       {parentTask.title}
                     </span>
                     {subtasks.length > 0 && (
-                      <span className="text-[10px] text-zinc-500" style={mono}>{completedSubs}/{subtasks.length}</span>
+                      <span className="text-xs text-zinc-500" style={mono}>{completedSubs}/{subtasks.length}</span>
                     )}
                     <button onClick={() => { setAddingSubtaskTo(isAddingSub ? null : parentTask.id); setNewSubtaskTitle(""); }}
                       className="w-5 h-5 flex items-center justify-center rounded text-zinc-600 hover:text-indigo-400 hover:bg-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -475,7 +475,7 @@ export default function ProjectsTab() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Rocket className="w-4 h-4 text-indigo-400" />
-          <span className="text-[10px] uppercase tracking-[0.15em] text-indigo-400/60" style={mono}>Projects</span>
+          <span className="text-xs uppercase tracking-[0.15em] text-indigo-400/60" style={mono}>Projects</span>
         </div>
         <Button size="sm" className="h-7 text-xs bg-indigo-600 hover:bg-indigo-500 text-white" onClick={() => openProjectDialog(null)}>
           <Plus className="w-3.5 h-3.5 mr-1" /> New
@@ -517,13 +517,13 @@ export default function ProjectsTab() {
                         {STATUS_DISPLAY[project.status]}
                       </Badge>
                       {projectTasks.length > 0 && (
-                        <span className="text-[10px] text-zinc-500" style={mono}>{completedTasks}/{projectTasks.length}</span>
+                        <span className="text-xs text-zinc-500" style={mono}>{completedTasks}/{projectTasks.length}</span>
                       )}
                     </div>
                     {deadline && (
                       <div className="flex items-center gap-1 mt-1.5">
                         <Calendar className="w-3 h-3 text-zinc-600" />
-                        <span className={cn("text-[10px]", deadline.className)} style={mono}>{deadline.text}</span>
+                        <span className={cn("text-xs", deadline.className)} style={mono}>{deadline.text}</span>
                       </div>
                     )}
                   </div>

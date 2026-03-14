@@ -591,7 +591,7 @@ export default function FinancePage() {
               <div className="text-lg md:text-2xl font-bold text-[hsl(var(--success))] truncate">
                 {formatCurrency(monthlyIncome, currency)}
               </div>
-              <p className="text-[10px] md:text-xs text-muted-foreground mt-1 truncate">
+              <p className="text-xs md:text-xs text-muted-foreground mt-1 truncate">
                 Expected: {formatCurrency(expectedMonthlyIncome, currency)}
               </p>
             </CardContent>
@@ -608,7 +608,7 @@ export default function FinancePage() {
               <div className="text-lg md:text-2xl font-bold text-destructive truncate">
                 {formatCurrency(monthlyExpenses, currency)}
               </div>
-              <p className="text-[10px] md:text-xs text-muted-foreground mt-1">
+              <p className="text-xs md:text-xs text-muted-foreground mt-1">
                 {transactions.filter(t => t.type === "expense").length} transactions
               </p>
             </CardContent>
@@ -625,7 +625,7 @@ export default function FinancePage() {
               <div className={cn("text-lg md:text-2xl font-bold truncate", netCashFlow >= 0 ? "text-[hsl(var(--info))]" : "text-destructive")}>
                 {netCashFlow >= 0 ? "+" : ""}{formatCurrency(netCashFlow, currency)}
               </div>
-              <p className="text-[10px] md:text-xs text-muted-foreground mt-1">
+              <p className="text-xs md:text-xs text-muted-foreground mt-1">
                 {netCashFlow >= 0 ? "Surplus" : "Deficit"} this month
               </p>
             </CardContent>
@@ -649,7 +649,7 @@ export default function FinancePage() {
                   indicatorClassName={savingsProgress >= 100 ? "bg-[hsl(var(--success))]" : "bg-primary"}
                 />
               ) : (
-                <p className="text-[10px] md:text-xs text-muted-foreground mt-1">No goal set</p>
+                <p className="text-xs md:text-xs text-muted-foreground mt-1">No goal set</p>
               )}
             </CardContent>
           </Card>
@@ -1442,11 +1442,11 @@ export default function FinancePage() {
                         <div className="min-w-0">
                           <div className="truncate font-medium">{tx.name}</div>
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            <Badge variant="outline" className="text-xs px-1.5 py-0">
                               {tx.category}
                             </Badge>
                             {tx.merchant && (
-                              <span className="text-[10px] text-muted-foreground">{tx.merchant}</span>
+                              <span className="text-xs text-muted-foreground">{tx.merchant}</span>
                             )}
                           </div>
                         </div>
@@ -1455,7 +1455,7 @@ export default function FinancePage() {
                             {tx.type === "income" ? "+" : "-"}{formatCurrency(tx.amount, currency)}
                           </div>
                           {dateStr && (
-                            <div className="text-[10px] text-muted-foreground mt-0.5">{dateStr}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">{dateStr}</div>
                           )}
                         </div>
                       </div>

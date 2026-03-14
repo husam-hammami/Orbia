@@ -424,7 +424,7 @@ export function RoutineEditor() {
                         <div className="flex gap-2 mt-2">
                           <button 
                             type="button"
-                            className="text-[10px] text-primary hover:underline"
+                            className="text-xs text-primary hover:underline"
                             onClick={() => {
                               const weekdays = [1,2,3,4,5].filter(d => !takenDays[d]);
                               if (editingTemplateData) setEditingTemplateData({ ...editingTemplateData, activeDays: weekdays });
@@ -433,7 +433,7 @@ export function RoutineEditor() {
                           >Weekdays</button>
                           <button 
                             type="button"
-                            className="text-[10px] text-primary hover:underline"
+                            className="text-xs text-primary hover:underline"
                             onClick={() => {
                               const weekend = [0,6].filter(d => !takenDays[d]);
                               if (editingTemplateData) setEditingTemplateData({ ...editingTemplateData, activeDays: weekend });
@@ -442,7 +442,7 @@ export function RoutineEditor() {
                           >Weekend</button>
                           <button 
                             type="button"
-                            className="text-[10px] text-primary hover:underline"
+                            className="text-xs text-primary hover:underline"
                             onClick={() => {
                               const all = [0,1,2,3,4,5,6].filter(d => !takenDays[d]);
                               if (editingTemplateData) setEditingTemplateData({ ...editingTemplateData, activeDays: all });
@@ -558,7 +558,7 @@ export function RoutineEditor() {
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold truncate">{template.name}</span>
                           {isActiveToday && (
-                            <span className="text-[10px] bg-emerald-500/15 text-emerald-600 px-2 py-0.5 rounded-full font-medium shrink-0">
+                            <span className="text-xs bg-emerald-500/15 text-emerald-600 px-2 py-0.5 rounded-full font-medium shrink-0">
                               Today
                             </span>
                           )}

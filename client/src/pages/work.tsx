@@ -74,7 +74,7 @@ const cmdPanelGlow = "bg-black/40 backdrop-blur-xl border border-indigo-500/20 s
 
 function CmdLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <span className={cn("text-[10px] uppercase tracking-[0.15em] text-indigo-400/60", className)} style={mono}>
+    <span className={cn("text-xs uppercase tracking-[0.15em] text-indigo-400/70", className)} style={mono}>
       {children}
     </span>
   );
@@ -204,7 +204,7 @@ function TeamsPanel({ chats, onSelectChat, selectedChatId, chatMessages, onSendM
       <div className="flex flex-col items-center justify-center py-8 text-center">
         <AlertCircle className="w-8 h-8 text-red-400/30 mb-2" />
         <p className="text-xs text-red-400/70">Failed to load conversations</p>
-        <p className="text-[10px] text-muted-foreground/50 mt-1">Try refreshing</p>
+        <p className="text-xs text-muted-foreground/50 mt-1">Try refreshing</p>
       </div>
     );
   }
@@ -525,7 +525,7 @@ function EmailDetail({ emailId, onBack }: { emailId: string; onBack: () => void 
         <h4 className="text-[13px] font-semibold text-foreground/90 leading-tight mb-2">{email.subject}</h4>
         <div className="flex items-center gap-2 mb-1">
           <div className="w-6 h-6 rounded-full bg-indigo-500/15 border border-indigo-500/20 flex items-center justify-center shrink-0">
-            <span className="text-[10px] font-bold text-indigo-400">{senderName.charAt(0).toUpperCase()}</span>
+            <span className="text-xs font-bold text-indigo-400">{senderName.charAt(0).toUpperCase()}</span>
           </div>
           <div className="min-w-0">
             <p className="text-[11px] font-medium text-foreground/80">{senderName}</p>
@@ -545,7 +545,7 @@ function EmailDetail({ emailId, onBack }: { emailId: string; onBack: () => void 
       <div className="flex-1 overflow-y-auto overflow-x-hidden max-h-[200px] mb-3 rounded-lg bg-black/20 border border-white/5 p-3 scrollbar-themed">
         {isHtml ? (
           <div
-            className="text-[11px] text-foreground/70 leading-relaxed break-words overflow-hidden [&_a]:text-indigo-400 [&_a]:underline [&_a]:break-all [&_img]:max-w-full [&_img]:h-auto [&_table]:text-[10px] [&_table]:w-full [&_table]:table-fixed [&_td]:break-words [&_td]:overflow-hidden [&_th]:break-words [&_*]:max-w-full [&_*]:overflow-hidden [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_div]:max-w-full"
+            className="text-[11px] text-foreground/70 leading-relaxed break-words overflow-hidden [&_a]:text-indigo-400 [&_a]:underline [&_a]:break-all [&_img]:max-w-full [&_img]:h-auto [&_table]:text-xs [&_table]:w-full [&_table]:table-fixed [&_td]:break-words [&_td]:overflow-hidden [&_th]:break-words [&_*]:max-w-full [&_*]:overflow-hidden [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_div]:max-w-full"
             dangerouslySetInnerHTML={{ __html: bodyHtml }}
           />
         ) : (
@@ -656,7 +656,7 @@ function EmailInbox({ userEmail }: { userEmail?: string }) {
           )}
         </div>
         {unreadCount > 0 && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400" style={mono} data-testid="text-unread-count">
+          <span className="text-xs px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400" style={mono} data-testid="text-unread-count">
             {unreadCount} new
           </span>
         )}
@@ -730,7 +730,7 @@ function WorkstationClock() {
         <span className="text-xs lg:text-sm font-medium text-indigo-400 tabular-nums">{secs}</span>
         <span className="text-xs lg:text-sm font-semibold text-muted-foreground ml-0.5">{period}</span>
       </div>
-      <p className="text-[10px] text-muted-foreground/60 tracking-wide uppercase">
+      <p className="text-xs text-muted-foreground/60 tracking-wide uppercase">
         {time.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
       </p>
     </div>
@@ -809,7 +809,7 @@ function MeetingsStrip({ events }: { events: any[] }) {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-1.5 text-[10px] text-foreground/60" style={mono}>
+            <div className="flex items-center gap-1.5 text-xs text-foreground/60" style={mono}>
               <Clock className="w-2.5 h-2.5 text-indigo-400/50" />
               <span>{startStr} – {endStr}</span>
               <span className="text-muted-foreground/40">({durStr})</span>
@@ -1081,7 +1081,7 @@ function SetupScreen({ onConnect, isConnecting }: { onConnect: () => void; isCon
             Connect Microsoft 365
           </Button>
 
-          <p className="text-[10px] text-muted-foreground/50 mt-4 leading-relaxed">
+          <p className="text-xs text-muted-foreground/50 mt-4 leading-relaxed">
             We'll request access to your calendar and Teams messages. You can disconnect at any time.
           </p>
         </motion.div>
@@ -1249,10 +1249,10 @@ export default function WorkPage() {
             <div className="flex items-center gap-3">
               {connected && workView === "office" && (
                 <div className="hidden sm:flex items-center gap-3 mr-2">
-                  <span className="text-[10px] px-2 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/15" style={mono}>
+                  <span className="text-xs px-2 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/15" style={mono}>
                     {meetingCount} meetings
                   </span>
-                  <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/15" style={mono}>
+                  <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/15" style={mono}>
                     {freeHours.toFixed(1)}h free
                   </span>
                 </div>
@@ -1353,7 +1353,7 @@ export default function WorkPage() {
                       <CmdLabel>Teams</CmdLabel>
                     </div>
                     {teamsChats.length > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400" style={mono}>
+                      <span className="text-xs px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400" style={mono}>
                         {teamsChats.length}
                       </span>
                     )}
