@@ -1,5 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import path from "path";
+import fs from "fs";
 import { storage } from "./storage";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
@@ -63,7 +65,23 @@ export async function registerRoutes(
   // Register AI integration routes
   registerChatRoutes(app);
   registerImageRoutes(app);
-  
+
+  app.get("/orbia-latest.apk", (_req, res) => {
+    const filePath = path.resolve("orbia-latest.apk");
+    if (!fs.existsSync(filePath)) return res.status(404).send("APK not available");
+    res.setHeader("Content-Type", "application/vnd.android.package-archive");
+    res.setHeader("Content-Disposition", "attachment; filename=orbia-latest.apk");
+    res.sendFile(filePath);
+  });
+
+  app.get("/orbia-wear.apk", (_req, res) => {
+    const filePath = path.resolve("orbia-wear.apk");
+    if (!fs.existsSync(filePath)) return res.status(404).send("APK not available");
+    res.setHeader("Content-Type", "application/vnd.android.package-archive");
+    res.setHeader("Content-Disposition", "attachment; filename=orbia-wear.apk");
+    res.sendFile(filePath);
+  });
+
   // Tracker Entries Routes
   app.get("/api/tracker", async (req, res) => {
     try {
