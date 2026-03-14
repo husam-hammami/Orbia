@@ -68,6 +68,17 @@ Orbia is a personal AI companion and holistic wellness/productivity app. It feat
 - **Design**: Uses Workstation's command-center aesthetic (cmdPanel, cmdPanelGlow, mono tokens, indigo accents). Overdue tasks highlighted in sections.
 - **Files**: `server/lib/zoho-client.ts` (Zoho API client), `client/src/components/zoho-panel.tsx` (frontend), `client/src/pages/work.tsx` (tab wiring).
 
+### AI Agents Office
+- **Purpose**: Visual command center for managing Claude Code AI agents across GitHub repos at `/agents`.
+- **Key Tables**: `githubConnections`, `agentProfiles`, `agentSessions`, `agentTasks`, `agentActivityLog` (all UUID PKs).
+- **GitHub OAuth**: `server/lib/github-oauth.ts` — OAuth flow, repo/branch listing via GitHub API.
+- **Repo Manager**: `server/lib/repo-manager.ts` — Uses `simple-git` for clone, pull, push, diff, commit, checkout, delete. Repos stored in `.agent-repos/<agentId>`.
+- **Agent Process Manager**: `server/lib/agent-process-manager.ts` — Spawns `claude` CLI with `--output-format stream-json`, parses stream events, manages max 3 concurrent agents, emits events via EventEmitter.
+- **SSE Streaming**: Real-time agent output streamed to frontend via Server-Sent Events at `/api/agents/:id/stream`.
+- **API Routes**: `server/routes/agent-routes.ts` — All routes use `requireAuth` middleware + ownership checks. Includes agent CRUD, task management, git operations, SSE stream, quick-send prompt.
+- **Frontend**: `client/src/pages/agents.tsx` — Office floor view with agent cards, creation wizard (avatar/name/role/repo picker), interaction panel (terminal stream, task list, git status/log), prompt input.
+- **Auth**: Uses `express-session` (`req.session.userId`) consistent with rest of app. No `x-user-id` headers.
+
 ### AI Integration
 - **Provider**: Anthropic Claude via Replit AI Integrations (claude-sonnet-4-6 primary, claude-haiku-4-5 fast) — no API key required, billed to Replit credits. OpenAI kept for image generation only. All AI routed through `server/lib/ai-client.ts` (`aiComplete`, `aiStream`, `createRawStream`, `createRawCompletion`). Anti-hallucination patterns baked into system prompts (see `buildUnifiedSystemPrompt` in `unified-context.ts`). Memory graph context injected into all chat modes via `buildUnifiedContextWithMemory`.
 - **Unified Context Layer**: `server/lib/unified-context.ts` — single `buildUnifiedContext(userId)` function assembles ALL user data (wellness, habits, tasks, calendar, Teams, emails, medical, finance, Zoho Projects, system members) into XML-tagged context blocks. Used by all 3 AI chat endpoints.

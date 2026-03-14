@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
+import { registerAgentRoutes } from "./routes/agent-routes";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { 
@@ -65,6 +66,7 @@ export async function registerRoutes(
   // Register AI integration routes
   registerChatRoutes(app);
   registerImageRoutes(app);
+  registerAgentRoutes(app);
 
   app.get("/orbia-latest.apk", (_req, res) => {
     const filePath = path.resolve("orbia-latest.apk");

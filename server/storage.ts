@@ -390,6 +390,10 @@ export interface IStorage {
   createAgentTask(task: InsertAgentTask): Promise<AgentTask>;
   updateAgentTask(id: string, data: Partial<InsertAgentTask>): Promise<AgentTask | undefined>;
 
+  // Agent internal (no userId check, for system events)
+  updateAgentProfileInternal(id: string, data: Partial<InsertAgentProfile>): Promise<AgentProfile | undefined>;
+  incrementAgentTasksCompleted(id: string): Promise<void>;
+
   // Agent Activity Log
   getAgentActivityLog(taskId: string): Promise<AgentActivityLogEntry[]>;
   createAgentActivityLogEntry(entry: InsertAgentActivityLog): Promise<AgentActivityLogEntry>;
@@ -1462,6 +1466,19 @@ export class DatabaseStorage implements IStorage {
     const [row] = await db.update(agentTasks).set(data)
       .where(eq(agentTasks.id, id)).returning();
     return row;
+  }
+
+  // Agent internal (system-level, no userId check)
+  async updateAgentProfileInternal(id: string, data: Partial<InsertAgentProfile>): Promise<AgentProfile | undefined> {
+    const [row] = await db.update(agentProfiles).set(data)
+      .where(eq(agentProfiles.id, id)).returning();
+    return row;
+  }
+
+  async incrementAgentTasksCompleted(id: string): Promise<void> {
+    await db.update(agentProfiles)
+      .set({ totalTasksCompleted: sql`COALESCE(total_tasks_completed, 0) + 1` })
+      .where(eq(agentProfiles.id, id));
   }
 
   // Agent Activity Log

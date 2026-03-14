@@ -18,6 +18,7 @@ import Settings from "@/pages/settings";
 import TrackerPage from "@/pages/tracker";
 import MedicalPage from "@/pages/medical";
 import WorkPage from "@/pages/work";
+import AgentsPage from "@/pages/agents";
 
 interface LockContextType {
   isLocked: boolean;
@@ -61,6 +62,7 @@ function Router() {
       <Route path="/news" component={NewsPage} />
       <Route path="/medical" component={MedicalPage} />
       <Route path="/work" component={WorkPage} />
+      <Route path="/agents" component={AgentsPage} />
       <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>

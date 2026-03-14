@@ -3,6 +3,7 @@ import { storage } from "../storage";
 import { agentProcessManager } from "../lib/agent-process-manager";
 import * as repoManager from "../lib/repo-manager";
 import * as githubOAuth from "../lib/github-oauth";
+import { requireAuth } from "../auth";
 import crypto from "crypto";
 
 const sseClients = new Map<string, Set<Response>>();
@@ -16,6 +17,10 @@ function broadcastToAgent(agentId: string, event: string, data: any) {
   }
 }
 
+function getUserId(req: Request): string {
+  return req.session.userId!;
+}
+
 agentProcessManager.on("agent:started", (data) => broadcastToAgent(data.agentId, "started", data));
 agentProcessManager.on("agent:output", async (data) => {
   broadcastToAgent(data.agentId, "output", data);
@@ -26,7 +31,9 @@ agentProcessManager.on("agent:output", async (data) => {
       content: data.content,
       metadata: data.metadata || null,
     });
-  } catch {}
+  } catch (err) {
+    console.error("Failed to log agent activity:", err);
+  }
 });
 agentProcessManager.on("agent:completed", async (data) => {
   broadcastToAgent(data.agentId, "completed", data);
@@ -36,26 +43,34 @@ agentProcessManager.on("agent:completed", async (data) => {
       completedAt: new Date(),
       errorMessage: data.exitCode !== 0 ? `Process exited with code ${data.exitCode}` : undefined,
     });
-    await storage.updateAgentProfile(
-      "",
-      data.agentId,
-      { status: "idle", currentTaskSummary: null } as any
-    );
+    await storage.updateAgentProfileInternal(data.agentId, {
+      status: "idle",
+      currentTaskSummary: null,
+    } as any);
     if (data.exitCode === 0) {
-      const agent = await storage.getAgentTask(data.taskId);
-      if (agent) {
-        const profile = await storage.getAgentProfile("", data.agentId);
-      }
+      await storage.incrementAgentTasksCompleted(data.agentId);
     }
-  } catch {}
+  } catch (err) {
+    console.error("Failed to update agent on completion:", err);
+  }
 });
 agentProcessManager.on("agent:error", (data) => broadcastToAgent(data.agentId, "error", data));
 
+async function requireAgentOwnership(req: Request, res: Response): Promise<{ userId: string; agentId: string } | null> {
+  const userId = getUserId(req);
+  const agentId = req.params.id;
+  const agent = await storage.getAgentProfile(userId, agentId);
+  if (!agent) {
+    res.status(404).json({ error: "Agent not found" });
+    return null;
+  }
+  return { userId, agentId };
+}
+
 export function registerAgentRoutes(app: Express) {
   // GitHub OAuth
-  app.get("/api/agents/github/auth-url", (req: Request, res: Response) => {
-    const userId = req.headers["x-user-id"] as string;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  app.get("/api/agents/github/auth-url", requireAuth, (req: Request, res: Response) => {
+    const userId = getUserId(req);
     const state = `${userId}:${crypto.randomBytes(16).toString("hex")}`;
     res.json({ url: githubOAuth.getAuthUrl(state) });
   });
@@ -84,23 +99,20 @@ export function registerAgentRoutes(app: Express) {
     }
   });
 
-  app.get("/api/agents/github/status", async (req: Request, res: Response) => {
-    const userId = req.headers["x-user-id"] as string;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  app.get("/api/agents/github/status", requireAuth, async (req: Request, res: Response) => {
+    const userId = getUserId(req);
     const conn = await storage.getGithubConnection(userId);
     res.json({ connected: !!conn, username: conn?.username, avatarUrl: conn?.avatarUrl });
   });
 
-  app.delete("/api/agents/github/disconnect", async (req: Request, res: Response) => {
-    const userId = req.headers["x-user-id"] as string;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  app.delete("/api/agents/github/disconnect", requireAuth, async (req: Request, res: Response) => {
+    const userId = getUserId(req);
     await storage.deleteGithubConnection(userId);
     res.json({ ok: true });
   });
 
-  app.get("/api/agents/github/repos", async (req: Request, res: Response) => {
-    const userId = req.headers["x-user-id"] as string;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  app.get("/api/agents/github/repos", requireAuth, async (req: Request, res: Response) => {
+    const userId = getUserId(req);
     const conn = await storage.getGithubConnection(userId);
     if (!conn) return res.status(400).json({ error: "GitHub not connected" });
     try {
@@ -116,9 +128,8 @@ export function registerAgentRoutes(app: Express) {
     }
   });
 
-  app.get("/api/agents/github/repos/:owner/:repo/branches", async (req: Request, res: Response) => {
-    const userId = req.headers["x-user-id"] as string;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  app.get("/api/agents/github/repos/:owner/:repo/branches", requireAuth, async (req: Request, res: Response) => {
+    const userId = getUserId(req);
     const conn = await storage.getGithubConnection(userId);
     if (!conn) return res.status(400).json({ error: "GitHub not connected" });
     try {
@@ -129,10 +140,23 @@ export function registerAgentRoutes(app: Express) {
     }
   });
 
+  // System status (must be before :id routes)
+  app.get("/api/agents/system/status", requireAuth, (_req: Request, res: Response) => {
+    res.json({
+      runningAgents: agentProcessManager.getRunningAgents(),
+      totalRunning: agentProcessManager.getRunningCount(),
+    });
+  });
+
+  // Activity log (must be before :id routes)
+  app.get("/api/agents/tasks/:taskId/activity", requireAuth, async (req: Request, res: Response) => {
+    const log = await storage.getAgentActivityLog(req.params.taskId);
+    res.json(log);
+  });
+
   // Agent CRUD
-  app.get("/api/agents", async (req: Request, res: Response) => {
-    const userId = req.headers["x-user-id"] as string;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  app.get("/api/agents", requireAuth, async (req: Request, res: Response) => {
+    const userId = getUserId(req);
     const agents = await storage.getAllAgentProfiles(userId);
     const enriched = agents.map((a) => ({
       ...a,
@@ -142,9 +166,8 @@ export function registerAgentRoutes(app: Express) {
     res.json(enriched);
   });
 
-  app.get("/api/agents/:id", async (req: Request, res: Response) => {
-    const userId = req.headers["x-user-id"] as string;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  app.get("/api/agents/:id", requireAuth, async (req: Request, res: Response) => {
+    const userId = getUserId(req);
     const agent = await storage.getAgentProfile(userId, req.params.id);
     if (!agent) return res.status(404).json({ error: "Agent not found" });
     res.json({
@@ -154,12 +177,10 @@ export function registerAgentRoutes(app: Express) {
     });
   });
 
-  app.post("/api/agents", async (req: Request, res: Response) => {
-    const userId = req.headers["x-user-id"] as string;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  app.post("/api/agents", requireAuth, async (req: Request, res: Response) => {
+    const userId = getUserId(req);
     try {
       const agent = await storage.createAgentProfile(userId, { ...req.body, userId });
-
       const conn = await storage.getGithubConnection(userId);
       if (conn && agent.repoUrl) {
         try {
@@ -168,43 +189,44 @@ export function registerAgentRoutes(app: Express) {
           console.error("Auto-clone failed:", err.message);
         }
       }
-
       res.json(agent);
     } catch (err: any) {
       res.status(400).json({ error: err.message });
     }
   });
 
-  app.patch("/api/agents/:id", async (req: Request, res: Response) => {
-    const userId = req.headers["x-user-id"] as string;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  app.patch("/api/agents/:id", requireAuth, async (req: Request, res: Response) => {
+    const userId = getUserId(req);
     const agent = await storage.updateAgentProfile(userId, req.params.id, req.body);
     if (!agent) return res.status(404).json({ error: "Agent not found" });
     res.json(agent);
   });
 
-  app.delete("/api/agents/:id", async (req: Request, res: Response) => {
-    const userId = req.headers["x-user-id"] as string;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
-    if (agentProcessManager.isRunning(req.params.id)) {
-      agentProcessManager.stopAgent(req.params.id);
+  app.delete("/api/agents/:id", requireAuth, async (req: Request, res: Response) => {
+    const userId = getUserId(req);
+    const agent = await storage.getAgentProfile(userId, req.params.id);
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+    if (agentProcessManager.isRunning(agent.id)) {
+      agentProcessManager.stopAgent(agent.id);
     }
-    await repoManager.deleteRepo(req.params.id);
-    const ok = await storage.deleteAgentProfile(userId, req.params.id);
-    res.json({ ok });
+    await repoManager.deleteRepo(agent.id);
+    await storage.deleteAgentProfile(userId, agent.id);
+    res.json({ ok: true });
   });
 
-  // Tasks
-  app.get("/api/agents/:id/tasks", async (req: Request, res: Response) => {
-    const tasks = await storage.getAgentTasks(req.params.id);
+  // Tasks (with ownership check)
+  app.get("/api/agents/:id/tasks", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+    const tasks = await storage.getAgentTasks(ctx.agentId);
     res.json(tasks);
   });
 
-  app.post("/api/agents/:id/tasks", async (req: Request, res: Response) => {
-    const userId = req.headers["x-user-id"] as string;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  app.post("/api/agents/:id/tasks", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
     const task = await storage.createAgentTask({
-      agentId: req.params.id,
+      agentId: ctx.agentId,
       description: req.body.description,
       priority: req.body.priority || 0,
       status: "queued",
@@ -212,13 +234,12 @@ export function registerAgentRoutes(app: Express) {
     res.json(task);
   });
 
-  app.post("/api/agents/:id/tasks/:taskId/run", async (req: Request, res: Response) => {
-    const userId = req.headers["x-user-id"] as string;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
-    const agent = await storage.getAgentProfile(userId, req.params.id);
-    if (!agent) return res.status(404).json({ error: "Agent not found" });
+  app.post("/api/agents/:id/tasks/:taskId/run", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+    const agent = (await storage.getAgentProfile(ctx.userId, ctx.agentId))!;
     const task = await storage.getAgentTask(req.params.taskId);
-    if (!task) return res.status(404).json({ error: "Task not found" });
+    if (!task || task.agentId !== ctx.agentId) return res.status(404).json({ error: "Task not found" });
 
     if (!repoManager.isRepoCloned(agent.id)) {
       return res.status(400).json({ error: "Repo not cloned" });
@@ -230,7 +251,7 @@ export function registerAgentRoutes(app: Express) {
     }
 
     await storage.updateAgentTask(task.id, { status: "running", startedAt: new Date(), sessionId: session.id });
-    await storage.updateAgentProfile(userId, agent.id, {
+    await storage.updateAgentProfile(ctx.userId, agent.id, {
       status: "working",
       currentTaskSummary: task.description,
     } as any);
@@ -247,29 +268,24 @@ export function registerAgentRoutes(app: Express) {
       res.json({ ok: true, sessionId: session.id });
     } catch (err: any) {
       await storage.updateAgentTask(task.id, { status: "failed", errorMessage: err.message });
-      await storage.updateAgentProfile(userId, agent.id, { status: "idle", currentTaskSummary: null } as any);
+      await storage.updateAgentProfile(ctx.userId, agent.id, { status: "idle", currentTaskSummary: null } as any);
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.post("/api/agents/:id/stop", async (req: Request, res: Response) => {
-    const stopped = agentProcessManager.stopAgent(req.params.id);
+  app.post("/api/agents/:id/stop", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+    const stopped = agentProcessManager.stopAgent(ctx.agentId);
     res.json({ stopped });
   });
 
-  // Activity log
-  app.get("/api/agents/tasks/:taskId/activity", async (req: Request, res: Response) => {
-    const log = await storage.getAgentActivityLog(req.params.taskId);
-    res.json(log);
-  });
-
-  // Git operations
-  app.post("/api/agents/:id/git/clone", async (req: Request, res: Response) => {
-    const userId = req.headers["x-user-id"] as string;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
-    const agent = await storage.getAgentProfile(userId, req.params.id);
-    if (!agent) return res.status(404).json({ error: "Agent not found" });
-    const conn = await storage.getGithubConnection(userId);
+  // Git operations (all with ownership check)
+  app.post("/api/agents/:id/git/clone", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+    const agent = (await storage.getAgentProfile(ctx.userId, ctx.agentId))!;
+    const conn = await storage.getGithubConnection(ctx.userId);
     try {
       const dir = await repoManager.cloneRepo(agent.id, agent.repoUrl, agent.repoBranch || "main", conn?.accessToken);
       res.json({ ok: true, dir });
@@ -278,72 +294,88 @@ export function registerAgentRoutes(app: Express) {
     }
   });
 
-  app.post("/api/agents/:id/git/pull", async (req: Request, res: Response) => {
+  app.post("/api/agents/:id/git/pull", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
     try {
-      const result = await repoManager.pullRepo(req.params.id);
+      const result = await repoManager.pullRepo(ctx.agentId);
       res.json({ ok: true, result });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.get("/api/agents/:id/git/status", async (req: Request, res: Response) => {
+  app.get("/api/agents/:id/git/status", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
     try {
-      const status = await repoManager.getStatus(req.params.id);
+      const status = await repoManager.getStatus(ctx.agentId);
       res.json(status);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.get("/api/agents/:id/git/diff", async (req: Request, res: Response) => {
+  app.get("/api/agents/:id/git/diff", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
     try {
-      const diff = await repoManager.getDiff(req.params.id, req.query.staged === "true");
+      const diff = await repoManager.getDiff(ctx.agentId, req.query.staged === "true");
       res.json({ diff });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.get("/api/agents/:id/git/log", async (req: Request, res: Response) => {
+  app.get("/api/agents/:id/git/log", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
     try {
-      const log = await repoManager.getLog(req.params.id, Number(req.query.count) || 20);
+      const log = await repoManager.getLog(ctx.agentId, Number(req.query.count) || 20);
       res.json(log);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.post("/api/agents/:id/git/commit", async (req: Request, res: Response) => {
+  app.post("/api/agents/:id/git/commit", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
     try {
-      const hash = await repoManager.commitChanges(req.params.id, req.body.message || "Agent commit");
+      const hash = await repoManager.commitChanges(ctx.agentId, req.body.message || "Agent commit");
       res.json({ ok: true, hash });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.post("/api/agents/:id/git/push", async (req: Request, res: Response) => {
+  app.post("/api/agents/:id/git/push", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
     try {
-      await repoManager.pushChanges(req.params.id, req.body.branch);
+      await repoManager.pushChanges(ctx.agentId, req.body.branch);
       res.json({ ok: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.post("/api/agents/:id/git/checkout", async (req: Request, res: Response) => {
+  app.post("/api/agents/:id/git/checkout", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
     try {
-      await repoManager.checkoutBranch(req.params.id, req.body.branch, req.body.create === true);
+      await repoManager.checkoutBranch(ctx.agentId, req.body.branch, req.body.create === true);
       res.json({ ok: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  // SSE Stream
-  app.get("/api/agents/:id/stream", (req: Request, res: Response) => {
-    const agentId = req.params.id;
+  // SSE Stream (with session auth)
+  app.get("/api/agents/:id/stream", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+    const agentId = ctx.agentId;
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
@@ -365,14 +397,13 @@ export function registerAgentRoutes(app: Express) {
   });
 
   // Quick send prompt (create task + run immediately)
-  app.post("/api/agents/:id/send", async (req: Request, res: Response) => {
-    const userId = req.headers["x-user-id"] as string;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
-    const agent = await storage.getAgentProfile(userId, req.params.id);
-    if (!agent) return res.status(404).json({ error: "Agent not found" });
+  app.post("/api/agents/:id/send", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+    const agent = (await storage.getAgentProfile(ctx.userId, ctx.agentId))!;
 
     if (!repoManager.isRepoCloned(agent.id)) {
-      const conn = await storage.getGithubConnection(userId);
+      const conn = await storage.getGithubConnection(ctx.userId);
       try {
         await repoManager.cloneRepo(agent.id, agent.repoUrl, agent.repoBranch || "main", conn?.accessToken);
       } catch (err: any) {
@@ -393,7 +424,7 @@ export function registerAgentRoutes(app: Express) {
     }
 
     await storage.updateAgentTask(task.id, { startedAt: new Date(), sessionId: session.id });
-    await storage.updateAgentProfile(userId, agent.id, {
+    await storage.updateAgentProfile(ctx.userId, agent.id, {
       status: "working",
       currentTaskSummary: req.body.prompt,
     } as any);
@@ -410,16 +441,8 @@ export function registerAgentRoutes(app: Express) {
       res.json({ ok: true, taskId: task.id, sessionId: session.id });
     } catch (err: any) {
       await storage.updateAgentTask(task.id, { status: "failed", errorMessage: err.message });
-      await storage.updateAgentProfile(userId, agent.id, { status: "idle", currentTaskSummary: null } as any);
+      await storage.updateAgentProfile(ctx.userId, agent.id, { status: "idle", currentTaskSummary: null } as any);
       res.status(500).json({ error: err.message });
     }
-  });
-
-  // System status
-  app.get("/api/agents/system/status", (_req: Request, res: Response) => {
-    res.json({
-      runningAgents: agentProcessManager.getRunningAgents(),
-      totalRunning: agentProcessManager.getRunningCount(),
-    });
   });
 }
