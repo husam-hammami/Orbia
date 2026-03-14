@@ -56,6 +56,7 @@ class AgentProcessManager extends EventEmitter {
     const args = [
       "-p",
       "--output-format", "stream-json",
+      "--verbose",
     ];
     if (options.conversationId) {
       args.push("--resume", options.conversationId);

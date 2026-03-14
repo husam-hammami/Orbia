@@ -771,7 +771,11 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
 
   useEffect(() => {
     const es = new EventSource(`${API_BASE_URL}/api/agents/${agent.id}/stream`);
-    es.onopen = () => setSseConnected(true);
+    es.onopen = () => {
+      setSseConnected(true);
+      queryClient.invalidateQueries({ queryKey: ["agents"] });
+      queryClient.invalidateQueries({ queryKey: ["agent-tasks", agent.id] });
+    };
     es.addEventListener("output", (e) => {
       try {
         const data = JSON.parse(e.data);
@@ -785,6 +789,7 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
     });
     es.addEventListener("error", () => {
       queryClient.invalidateQueries({ queryKey: ["agents"] });
+      queryClient.invalidateQueries({ queryKey: ["agent-tasks", agent.id] });
     });
     es.onerror = () => setSseConnected(false);
     return () => es.close();
