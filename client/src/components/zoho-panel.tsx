@@ -179,68 +179,67 @@ function TaskRow({ task, projectId, members, statusOptions, tasklists }: {
       <button
         onClick={() => { setExpanded(!expanded); setEditing(false); }}
         className={cn(
-          "w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-indigo-500/[0.04] transition-colors group",
+          "w-full flex items-start gap-2 px-3 py-2.5 text-left hover:bg-indigo-500/[0.04] transition-colors group",
           isDone && "opacity-50"
         )}
         data-testid={`button-expand-task-${task.id}`}
       >
-        <ChevronRight className={cn("w-3 h-3 text-muted-foreground/30 shrink-0 transition-transform", expanded && "rotate-90")} />
+        <ChevronRight className={cn("w-3 h-3 text-muted-foreground/30 shrink-0 transition-transform mt-0.5", expanded && "rotate-90")} />
 
-        {overdue && <AlertTriangle className="w-3 h-3 text-red-400 shrink-0" />}
-
-        <span className={cn(
-          "text-[9px] px-1.5 py-0.5 rounded border shrink-0",
-          getPriorityBg(task.priority)
-        )} style={mono}>
-          {(task.priority || "none").slice(0, 3)}
-        </span>
-
-        {task.prefix && (
-          <span className="text-[9px] text-indigo-400/40 shrink-0 hidden sm:inline" style={mono}>
-            {task.prefix}
-          </span>
-        )}
-
-        <span className={cn(
-          "text-[12px] text-foreground/85 truncate flex-1 font-medium",
-          isDone && "line-through"
-        )}>
-          {task.name}
-        </span>
-
-        <span className="text-[10px] text-muted-foreground/40 shrink-0 hidden md:inline w-[70px] text-right truncate">{ownerName}</span>
-
-        {task.end_date && (
-          <span className={cn(
-            "text-[9px] shrink-0 hidden sm:inline w-[60px] text-right",
-            overdue ? "text-red-400" : "text-muted-foreground/35"
-          )} style={mono}>
-            {formatDate(task.end_date)}
-          </span>
-        )}
-
-        {!isDone && (
-          <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-            {!task.status?.name?.toLowerCase().includes("progress") && (
-              <span
-                onClick={handleStart}
-                className="p-1 rounded hover:bg-amber-500/15 text-amber-400/60 hover:text-amber-400"
-                data-testid={`button-start-task-${task.id}`}
-              >
-                <Play className="w-3 h-3" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start gap-1.5 mb-0.5">
+            {overdue && <AlertTriangle className="w-3 h-3 text-red-400 shrink-0 mt-0.5" />}
+            <span className={cn(
+              "text-[9px] px-1.5 py-0.5 rounded border shrink-0",
+              getPriorityBg(task.priority)
+            )} style={mono}>
+              {(task.priority || "none").slice(0, 3)}
+            </span>
+            {task.prefix && (
+              <span className="text-[9px] text-indigo-400/40 shrink-0" style={mono}>
+                {task.prefix}
               </span>
             )}
-            <span
-              onClick={handleMarkDone}
-              className="p-1 rounded hover:bg-emerald-500/15 text-emerald-400/60 hover:text-emerald-400"
-              data-testid={`button-done-task-${task.id}`}
-            >
-              <Check className="w-3 h-3" />
+            <span className={cn(
+              "text-[12px] text-foreground/85 font-medium leading-snug line-clamp-2",
+              isDone && "line-through"
+            )}>
+              {task.name}
             </span>
           </div>
-        )}
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground/40" style={mono}>
+            <span className="truncate max-w-[100px]">{ownerName}</span>
+            {task.end_date && (
+              <span className={cn(overdue ? "text-red-400" : "")}>
+                {formatDate(task.end_date)}
+              </span>
+            )}
+          </div>
+        </div>
 
-        {updateMutation.isPending && <Loader2 className="w-3 h-3 animate-spin text-indigo-400 shrink-0" />}
+        <div className="flex items-center gap-0.5 shrink-0 mt-0.5">
+          {!isDone && (
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              {!task.status?.name?.toLowerCase().includes("progress") && (
+                <span
+                  onClick={handleStart}
+                  className="p-1 rounded hover:bg-amber-500/15 text-amber-400/60 hover:text-amber-400"
+                  data-testid={`button-start-task-${task.id}`}
+                >
+                  <Play className="w-3 h-3" />
+                </span>
+              )}
+              <span
+                onClick={handleMarkDone}
+                className="p-1 rounded hover:bg-emerald-500/15 text-emerald-400/60 hover:text-emerald-400"
+                data-testid={`button-done-task-${task.id}`}
+              >
+                <Check className="w-3 h-3" />
+              </span>
+            </div>
+          )}
+          {updateMutation.isPending && <Loader2 className="w-3 h-3 animate-spin text-indigo-400" />}
+        </div>
       </button>
 
       <AnimatePresence>
