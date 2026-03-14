@@ -827,7 +827,17 @@ LOANS:
 - delete_loan: {"loan_id": "..."} - ALWAYS set confirm:true
 
 CONFIRMATION: set confirm:true and confirm_text for all delete actions.
-When user asks to ADD, CREATE, EDIT, UPDATE, CHANGE, DELETE, MARK, or TOGGLE something, output the action JSON. NEVER tell the user to do it manually.`;
+
+ACTION OUTPUT RULES:
+- When user asks to ADD, CREATE, EDIT, UPDATE, CHANGE, DELETE, MARK, or TOGGLE something, output the action JSON on its OWN LINE. The server will execute it silently.
+- NEVER wrap action JSON in code blocks or backticks.
+- For BULK actions (multiple items): Output ALL action JSON objects first, each on its own line, then write a CLEAN SUMMARY paragraph at the end (without any JSON) confirming what was done. Example:
+  {"type":"action","name":"add_task","args":{"title":"Buy groceries","priority":"medium"}}
+  {"type":"action","name":"add_task","args":{"title":"Call dentist","priority":"high"}}
+  Done! I've added 2 tasks to your list: "Buy groceries" and "Call dentist".
+- For single actions: Output the JSON on its own line, then confirm naturally.
+- NEVER display raw JSON to explain what you're doing. The JSON is for the server, your text is for the user.
+- NEVER tell the user to do it manually — always use action JSON.`;
 
   let prompt = baseIdentity + "\n" + silentProtocol + "\n" + toneGuidance[mode] + "\n" + crossDomainRules;
 

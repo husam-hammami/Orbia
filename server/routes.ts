@@ -3219,7 +3219,7 @@ ${JSON.stringify(context, null, 2)}`;
         chatMessages.unshift({ role: "user", content: "(continuing)" });
       }
 
-      const stream = await createRawStream(systemContent, chatMessages, { model: MODEL_PRIMARY, maxTokens: therapyMode ? 2000 : 800 });
+      const stream = await createRawStream(systemContent, chatMessages, { model: MODEL_PRIMARY, maxTokens: therapyMode ? 2000 : 4000 });
 
       let fullResponse = "";
       const executedActions = new Set<string>();
@@ -3415,8 +3415,146 @@ ${JSON.stringify(context, null, 2)}`;
       }
 
       const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE|CREATE_PROJECT|ADD_TASK|UPDATE_PROJECT_STATUS|COMPLETE_TASK|ZOHO_CREATE|ZOHO_UPDATE|ZOHO_COMPLETE)\s[^\]]+\]/g;
+      const jsonActionRegex = /\{"type"\s*:\s*"action"\s*,\s*"name"\s*:\s*"[^"]+"\s*,\s*"args"\s*:\s*\{[^}]*\}(?:\s*,\s*"confirm"\s*:\s*(?:true|false))?\s*\}/g;
+
+      const actionResults: Array<{ name: string; title: string; success: boolean; error?: string }> = [];
+
+      async function executeJsonAction(jsonStr: string): Promise<void> {
+        try {
+          const action = JSON.parse(jsonStr);
+          if (action.type !== "action" || !action.name || !action.args) return;
+          const { name, args } = action;
+          console.log(`[orbit-action] Executing: ${name}`, JSON.stringify(args).slice(0, 100));
+
+          switch (name) {
+            case "add_task": {
+              await storage.createTodo(userId, {
+                userId,
+                title: args.title,
+                priority: args.priority || "medium",
+                completed: 0,
+                dueDate: args.due ? new Date(args.due) : undefined,
+              } as any);
+              actionResults.push({ name, title: args.title, success: true });
+              break;
+            }
+            case "mark_task": {
+              if (args.task_id) {
+                await storage.updateTodo(userId, args.task_id, { completed: args.completed ? 1 : 0 });
+                actionResults.push({ name, title: args.task_id, success: true });
+              }
+              break;
+            }
+            case "create_habit": {
+              await storage.createHabit(userId, {
+                userId,
+                title: args.title,
+                category: args.category || "work",
+                description: args.description || null,
+                target: args.target || 1,
+                unit: args.unit || "times",
+              } as any);
+              actionResults.push({ name, title: args.title, success: true });
+              break;
+            }
+            case "mark_habit": {
+              if (args.habit_id && args.date) {
+                const existing = await storage.getHabitCompletion(userId, args.habit_id, args.date);
+                if (existing) {
+                  await storage.updateHabitCompletion(userId, existing.id, { done: args.done ? 1 : 0 });
+                } else {
+                  await storage.createHabitCompletion(userId, { habitId: args.habit_id, userId, date: args.date, done: args.done ? 1 : 0 } as any);
+                }
+                actionResults.push({ name, title: args.habit_id, success: true });
+              }
+              break;
+            }
+            case "create_career_project": {
+              await storage.createCareerProject(userId, {
+                title: args.title,
+                description: args.description || null,
+                status: args.status || "planning",
+                deadline: args.deadline || null,
+                progress: 0,
+                nextAction: null,
+                color: args.color || null,
+                tags: null,
+              });
+              actionResults.push({ name, title: args.title, success: true });
+              break;
+            }
+            case "create_career_task": {
+              await storage.createCareerTask(userId, {
+                title: args.title,
+                projectId: args.project_id || null,
+                parentId: null,
+                completed: false,
+                priority: args.priority || "medium",
+                due: args.due || null,
+                tags: null,
+                description: null,
+              });
+              actionResults.push({ name, title: args.title, success: true });
+              break;
+            }
+            case "create_journal": {
+              await storage.createJournal(userId, {
+                userId,
+                content: args.content,
+                entryType: args.entry_type || "note",
+                mood: args.mood || null,
+                energy: args.energy || null,
+                tags: args.tags || null,
+                isPrivate: args.is_private || false,
+              } as any);
+              actionResults.push({ name, title: "journal entry", success: true });
+              break;
+            }
+            case "add_transaction": {
+              await storage.createFinanceTransaction(userId, {
+                userId,
+                type: args.type,
+                name: args.name,
+                amount: String(args.amount),
+                category: args.category || "other",
+                notes: args.notes || null,
+                date: new Date(),
+              } as any);
+              actionResults.push({ name, title: args.name, success: true });
+              break;
+            }
+            case "create_tracker_entry": {
+              await storage.createTrackerEntry(userId, {
+                userId,
+                mood: args.mood ?? null,
+                energy: args.energy ?? null,
+                stress: args.stress ?? null,
+                sleepHours: args.sleepHours ? String(args.sleepHours) : null,
+                capacity: args.capacity ?? null,
+                pain: args.pain ?? null,
+                notes: args.notes || null,
+              } as any);
+              actionResults.push({ name, title: "tracker entry", success: true });
+              break;
+            }
+            default:
+              console.log(`[orbit-action] Unknown action: ${name}`);
+              break;
+          }
+        } catch (err: any) {
+          console.error(`[orbit-action] Failed:`, err.message);
+          try {
+            const parsed = JSON.parse(jsonStr);
+            actionResults.push({ name: parsed.name, title: parsed.args?.title || "unknown", success: false, error: err.message });
+          } catch {}
+        }
+      }
+
+      function stripJsonActions(text: string): string {
+        return text.replace(jsonActionRegex, "").replace(/\n{3,}/g, "\n\n");
+      }
+
       let bufferedContent = "";
-      let hasActionTag = false;
 
       for await (const event of stream) {
         if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") continue;
@@ -3425,39 +3563,78 @@ ${JSON.stringify(context, null, 2)}`;
           fullResponse += content;
           bufferedContent += content;
 
-          if (bufferedContent.includes("[") && !allActionRegex.test(bufferedContent)) {
-            allActionRegex.lastIndex = 0;
-            hasActionTag = true;
-            continue;
-          }
-          allActionRegex.lastIndex = 0;
+          const hasOpenBrace = bufferedContent.includes("{");
+          const hasOpenBracket = bufferedContent.includes("[");
 
-          if (hasActionTag && allActionRegex.test(bufferedContent)) {
-            allActionRegex.lastIndex = 0;
-            await executeWorkActions(bufferedContent);
-            const cleaned = bufferedContent.replace(allActionRegex, "");
-            allActionRegex.lastIndex = 0;
-            if (cleaned.trim()) {
-              res.write(`data: ${JSON.stringify({ content: cleaned })}\n\n`);
-            }
-            bufferedContent = "";
-            hasActionTag = false;
-          } else if (!hasActionTag) {
-            if (!bufferedContent.includes("[")) {
-              res.write(`data: ${JSON.stringify({ content: bufferedContent })}\n\n`);
+          if (hasOpenBrace || hasOpenBracket) {
+            const jsonMatches = bufferedContent.match(jsonActionRegex);
+            if (jsonMatches) {
+              for (const m of jsonMatches) {
+                if (!executedActions.has(m)) {
+                  executedActions.add(m);
+                  await executeJsonAction(m);
+                }
+              }
+              const cleaned = stripJsonActions(bufferedContent);
+              allActionRegex.lastIndex = 0;
+              if (allActionRegex.test(cleaned)) {
+                allActionRegex.lastIndex = 0;
+                await executeWorkActions(cleaned);
+                const doubleCleaned = cleaned.replace(allActionRegex, "");
+                allActionRegex.lastIndex = 0;
+                if (doubleCleaned.trim()) {
+                  res.write(`data: ${JSON.stringify({ content: doubleCleaned })}\n\n`);
+                }
+              } else {
+                allActionRegex.lastIndex = 0;
+                if (cleaned.trim()) {
+                  res.write(`data: ${JSON.stringify({ content: cleaned })}\n\n`);
+                }
+              }
               bufferedContent = "";
+            } else {
+              const braceIdx = bufferedContent.lastIndexOf("{");
+              const bracketIdx = bufferedContent.lastIndexOf("[");
+              const cutIdx = Math.max(braceIdx, bracketIdx);
+              if (cutIdx > 0) {
+                const safe = bufferedContent.slice(0, cutIdx);
+                if (safe.trim()) {
+                  res.write(`data: ${JSON.stringify({ content: safe })}\n\n`);
+                }
+                bufferedContent = bufferedContent.slice(cutIdx);
+              }
             }
+          } else {
+            res.write(`data: ${JSON.stringify({ content: bufferedContent })}\n\n`);
+            bufferedContent = "";
           }
         }
       }
 
       if (bufferedContent.trim()) {
-        await executeWorkActions(bufferedContent);
-        const cleaned = bufferedContent.replace(allActionRegex, "");
+        const jsonMatches = bufferedContent.match(jsonActionRegex);
+        if (jsonMatches) {
+          for (const m of jsonMatches) {
+            if (!executedActions.has(m)) {
+              executedActions.add(m);
+              await executeJsonAction(m);
+            }
+          }
+        }
+        let cleaned = stripJsonActions(bufferedContent);
+        allActionRegex.lastIndex = 0;
+        await executeWorkActions(cleaned);
+        cleaned = cleaned.replace(allActionRegex, "");
         allActionRegex.lastIndex = 0;
         if (cleaned.trim()) {
           res.write(`data: ${JSON.stringify({ content: cleaned })}\n\n`);
         }
+      }
+
+      if (actionResults.length > 0) {
+        const successCount = actionResults.filter(a => a.success).length;
+        const failCount = actionResults.filter(a => !a.success).length;
+        res.write(`data: ${JSON.stringify({ actionSummary: { total: actionResults.length, success: successCount, failed: failCount, actions: actionResults } })}\n\n`);
       }
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
@@ -5384,7 +5561,7 @@ ${rawText}`
         systemPrompt = `${basePrompt}\n\n## CONTEXT DATA (use silently)\n${unifiedContext}`;
       }
 
-      systemPrompt += `\n\nIMPORTANT: This is a VOICE conversation. The user is speaking to you and your response will be read aloud. Keep your response concise, conversational, and natural for spoken delivery. Avoid markdown formatting, bullet points, or structured lists — speak as you would in a natural conversation. Keep responses under 3-4 sentences unless the user asked for detailed information.`;
+      systemPrompt += `\n\nIMPORTANT: This is a VOICE conversation. The user is speaking to you and your response will be read aloud. Keep your response concise, conversational, and natural for spoken delivery. Avoid markdown formatting, bullet points, or structured lists — speak as you would in a natural conversation. Keep responses under 3-4 sentences unless the user asked for detailed information. NEVER output JSON action objects in voice responses — just acknowledge what the user wants and tell them you'll handle it. Do not use any {"type":"action"} objects.`;
 
       const chatMessages: { role: "user" | "assistant"; content: string }[] = [];
       if (history && Array.isArray(history)) {

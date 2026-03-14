@@ -1,0 +1,57 @@
+Got it. Let me get all of this organized for you.
+
+Starting with your personal tasks:
+
+{"type":"action","name":"add_task","args":{"title":"Check with AI — combined new findings from XRay + CT + MRI","priority":"high"}}
+
+{"type":"action","name":"add_task","args":{"title":"Organize medication box for the week","priority":"medium"}}
+
+{"type":"action","name":"add_task","args":{"title":"Clean house","priority":"medium"}}
+
+{"type":"action","name":"add_task","args":{"title":"Clean fridge","priority":"medium"}}
+
+{"type":"action","name":"add_task","args":{"title":"Set up laundry to send","priority":"medium"}}
+
+{"type":"action","name":"add_task","args":{"title":"Buy: Mug","priority":"low"}}
+
+{"type":"action","name":"add_task","args":{"title":"Buy: Icemaker","priority":"low"}}
+
+{"type":"action","name":"add_task","args":{"title":"Buy: Robe","priority":"low"}}
+
+{"type":"action","name":"add_task","args":{"title":"Buy: New medicine organizer","priority":"low"}}
+
+{"type":"action","name":"add_task","args":{"title":"Buy: Gripper?","priority":"low"}}
+
+{"type":"action","name":"add_task","args":{"title":"Buy: Sunglasses","priority":"low"}}
+
+Now the work tasks:
+
+{"type":"action","name":"add_task","args":{"title":"Hercules — Silo: Auto deploy from Repo to app","priority":"high"}}
+
+{"type":"action","name":"add_task","args":{"title":"Hercules — UI clean up","priority":"medium"}}
+
+{"type":"action","name":"add_task","args":{"title":"Hercules — Test exe linking username → Mac and sends to me","priority":"medium"}}
+
+{"type":"action","name":"add_task","args":{"title":"Orbia — Ensure Orbit not glitching across modules","priority":"high"}}
+
+{"type":"action","name":"add_task","args":{"title":"Orbia — Fix glitches/bugs saved in docs","priority":"high"}}
+
+{"type":"action","name":"add_task","args":{"title":"Orbia — Check if I can build my own device","priority":"medium"}}
+
+{"type":"action","name":"add_task","args":{"title":"Orbia — Link Zoho People software","priority":"medium"}}
+
+{"type":"action","name":"add_task","args":{"title":"Orbia — Check if credentials support CRM","priority":"medium"}}
+
+{"type":"action","name":"add_task","args":{"title":"Orbia — Add vault for categorized docs","priority":"medium"}}
+
+{"type":"action","name":"add_task","args":{"title":"Mika — Ensure upload does not fail","priority":"high"}}
+
+{"type":"action","name":"add_task","args":{"title":"Mika — Link to Orbia via Replit","priority":"medium"}}
+
+{"type":"action","name":"add_task","args":{"title":"Mika — Add XRay/CT support in document","priority":"medium"}}
+
+{"type":"action","name":"add_task","args":{"title":"Mika — Post about it on LinkedIn","priority":"low"}}
+
+{"type
+
+8:40 PM

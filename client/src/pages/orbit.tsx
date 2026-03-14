@@ -1203,6 +1203,28 @@ export default function OrbitPage() {
                   : m
               ));
             }
+            if (data.actionSummary) {
+              const { success, failed, actions } = data.actionSummary;
+              if (success > 0) {
+                const items = actions.filter((a: any) => a.success).map((a: any) => a.title);
+                const grouped: Record<string, string[]> = {};
+                actions.filter((a: any) => a.success).forEach((a: any) => {
+                  const key = a.name;
+                  if (!grouped[key]) grouped[key] = [];
+                  grouped[key].push(a.title);
+                });
+                const lines: string[] = [];
+                for (const [actionName, titles] of Object.entries(grouped)) {
+                  const label = actionName === "add_task" ? "tasks" : actionName === "create_habit" ? "habits" : actionName === "create_career_task" ? "career tasks" : "items";
+                  lines.push(`${titles.length} ${label} added`);
+                }
+                workActionResults.push(...lines);
+              }
+              if (failed > 0) {
+                workActionResults.push(`${failed} action(s) failed`);
+              }
+              queryClient.invalidateQueries();
+            }
             if (data.action === "teams_sent") {
               workActionResults.push(`Sent Teams message to chat`);
             } else if (data.action === "event_created") {
@@ -1228,33 +1250,19 @@ export default function OrbitPage() {
         queryClient.invalidateQueries();
       }
 
-      const actionMatch = fullContent.match(/\{[\s\S]*"type"\s*:\s*"action"[\s\S]*\}/);
-      if (actionMatch) {
+      const confirmActionMatch = fullContent.match(/\{"type"\s*:\s*"action"\s*,\s*"name"\s*:\s*"[^"]+"\s*,\s*"args"\s*:\s*\{[^}]*\}\s*,\s*"confirm"\s*:\s*true[^}]*\}/);
+      if (confirmActionMatch) {
         try {
-          const action = JSON.parse(actionMatch[0]) as OrbitAction;
-          
-          const textContent = fullContent.replace(actionMatch[0], "").trim();
-          
+          const action = JSON.parse(confirmActionMatch[0]) as OrbitAction;
+          const textContent = fullContent.replace(confirmActionMatch[0], "").trim();
           setMessages(prev => prev.map(m => 
             m.id === assistantMessage.id 
-              ? { ...m, content: textContent || "Processing action...", action }
+              ? { ...m, content: textContent || "Confirm this action?", action }
               : m
           ));
-
-          if (action.confirm) {
-            setPendingAction({ action, messageId: assistantMessage.id });
-          } else {
-            const result = await executeAction(action);
-            setMessages(prev => prev.map(m => 
-              m.id === assistantMessage.id 
-                ? { ...m, actionResult: result }
-                : m
-            ));
-            
-            queryClient.invalidateQueries();
-          }
+          setPendingAction({ action, messageId: assistantMessage.id });
         } catch (e) {
-          console.error("Failed to parse action:", e);
+          console.error("Failed to parse confirm action:", e);
         }
       }
     } catch (error) {
