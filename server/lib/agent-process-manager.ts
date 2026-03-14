@@ -63,6 +63,8 @@ class AgentProcessManager extends EventEmitter {
     }
     args.push(options.prompt);
 
+    console.log(`[agent-pm] Starting claude for agent ${options.agentId}, cwd: ${options.workdir}, args:`, args);
+
     const proc = spawn("claude", args, {
       cwd: options.workdir,
       env: { ...process.env },
@@ -111,6 +113,7 @@ class AgentProcessManager extends EventEmitter {
 
     proc.stderr?.on("data", (chunk: Buffer) => {
       const text = chunk.toString();
+      console.log(`[agent-pm] stderr (${options.agentId}): ${text.trim()}`);
       this.emit("agent:output", {
         agentId: options.agentId,
         taskId: options.taskId,
@@ -120,6 +123,7 @@ class AgentProcessManager extends EventEmitter {
     });
 
     proc.on("close", (code) => {
+      console.log(`[agent-pm] Process closed for agent ${options.agentId}, exit code: ${code}`);
       this.processes.delete(options.agentId);
       this.emit("agent:completed", {
         agentId: options.agentId,
@@ -130,6 +134,7 @@ class AgentProcessManager extends EventEmitter {
     });
 
     proc.on("error", (err) => {
+      console.log(`[agent-pm] Process error for agent ${options.agentId}: ${err.message}`);
       this.processes.delete(options.agentId);
       this.emit("agent:error", {
         agentId: options.agentId,
