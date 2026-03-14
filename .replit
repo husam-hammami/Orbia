@@ -49,6 +49,9 @@ integrations = ["javascript_openai_ai_integrations:2.0.0", "javascript_anthropic
 ADMIN_SEED_KEY = "neurozen-seed-2026"
 ADMIN_PASSWORD = "eedcef207f284b8af1474b1dde51bca8"
 ZOHO_PORTAL_ID = "905717188"
+GITHUB_CLIENT_ID = "Ov23liLYKitrwqHFK9Eh"
+GITHUB_CLIENT_SECRET = "06541cd6b49065c52037d6cbcf11be11ad56450d"
+GITHUB_REDIRECT_URI = "https://myorbia.com/api/agents/github/callback"
 
 [postMerge]
 path = "scripts/post-merge.sh"
