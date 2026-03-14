@@ -3556,62 +3556,22 @@ ${JSON.stringify(context, null, 2)}`;
 
       let bufferedContent = "";
 
-      for await (const event of stream) {
-        if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") continue;
-        const content = event.delta.text;
-        if (content) {
-          fullResponse += content;
-          bufferedContent += content;
-
-          const hasOpenBrace = bufferedContent.includes("{");
-          const hasOpenBracket = bufferedContent.includes("[");
-
-          if (hasOpenBrace || hasOpenBracket) {
-            const jsonMatches = bufferedContent.match(jsonActionRegex);
-            if (jsonMatches) {
-              for (const m of jsonMatches) {
-                if (!executedActions.has(m)) {
-                  executedActions.add(m);
-                  await executeJsonAction(m);
-                }
-              }
-              const cleaned = stripJsonActions(bufferedContent);
-              allActionRegex.lastIndex = 0;
-              if (allActionRegex.test(cleaned)) {
-                allActionRegex.lastIndex = 0;
-                await executeWorkActions(cleaned);
-                const doubleCleaned = cleaned.replace(allActionRegex, "");
-                allActionRegex.lastIndex = 0;
-                if (doubleCleaned.trim()) {
-                  res.write(`data: ${JSON.stringify({ content: doubleCleaned })}\n\n`);
-                }
-              } else {
-                allActionRegex.lastIndex = 0;
-                if (cleaned.trim()) {
-                  res.write(`data: ${JSON.stringify({ content: cleaned })}\n\n`);
-                }
-              }
-              bufferedContent = "";
-            } else {
-              const braceIdx = bufferedContent.lastIndexOf("{");
-              const bracketIdx = bufferedContent.lastIndexOf("[");
-              const cutIdx = Math.max(braceIdx, bracketIdx);
-              if (cutIdx > 0) {
-                const safe = bufferedContent.slice(0, cutIdx);
-                if (safe.trim()) {
-                  res.write(`data: ${JSON.stringify({ content: safe })}\n\n`);
-                }
-                bufferedContent = bufferedContent.slice(cutIdx);
-              }
-            }
-          } else {
-            res.write(`data: ${JSON.stringify({ content: bufferedContent })}\n\n`);
-            bufferedContent = "";
-          }
-        }
+      function findActionStart(text: string): number {
+        const jsonStart = text.indexOf('{"type"');
+        const bracketStart = text.search(/\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE|CREATE_PROJECT|ADD_TASK|UPDATE_PROJECT_STATUS|COMPLETE_TASK|ZOHO_CREATE|ZOHO_UPDATE|ZOHO_COMPLETE)\s/);
+        if (jsonStart === -1 && bracketStart === -1) return -1;
+        if (jsonStart === -1) return bracketStart;
+        if (bracketStart === -1) return jsonStart;
+        return Math.min(jsonStart, bracketStart);
       }
 
-      if (bufferedContent.trim()) {
+      function countChar(text: string, ch: string): number {
+        let n = 0;
+        for (let i = 0; i < text.length; i++) if (text[i] === ch) n++;
+        return n;
+      }
+
+      async function processAndFlush(): Promise<void> {
         const jsonMatches = bufferedContent.match(jsonActionRegex);
         if (jsonMatches) {
           for (const m of jsonMatches) {
@@ -3621,14 +3581,68 @@ ${JSON.stringify(context, null, 2)}`;
             }
           }
         }
+
         let cleaned = stripJsonActions(bufferedContent);
         allActionRegex.lastIndex = 0;
-        await executeWorkActions(cleaned);
-        cleaned = cleaned.replace(allActionRegex, "");
-        allActionRegex.lastIndex = 0;
-        if (cleaned.trim()) {
-          res.write(`data: ${JSON.stringify({ content: cleaned })}\n\n`);
+        if (allActionRegex.test(cleaned)) {
+          allActionRegex.lastIndex = 0;
+          await executeWorkActions(cleaned);
+          cleaned = cleaned.replace(allActionRegex, "");
+          allActionRegex.lastIndex = 0;
+        } else {
+          allActionRegex.lastIndex = 0;
         }
+
+        const nextStart = findActionStart(cleaned);
+        if (nextStart === -1) {
+          if (cleaned.trim()) {
+            res.write(`data: ${JSON.stringify({ content: cleaned })}\n\n`);
+          }
+          bufferedContent = "";
+        } else {
+          const safe = cleaned.slice(0, nextStart);
+          if (safe.trim()) {
+            res.write(`data: ${JSON.stringify({ content: safe })}\n\n`);
+          }
+          bufferedContent = cleaned.slice(nextStart);
+        }
+      }
+
+      for await (const event of stream) {
+        if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") continue;
+        const content = event.delta.text;
+        if (content) {
+          fullResponse += content;
+          bufferedContent += content;
+
+          const actionStart = findActionStart(bufferedContent);
+
+          if (actionStart === -1) {
+            res.write(`data: ${JSON.stringify({ content: bufferedContent })}\n\n`);
+            bufferedContent = "";
+          } else {
+            const safe = bufferedContent.slice(0, actionStart);
+            if (safe.trim()) {
+              res.write(`data: ${JSON.stringify({ content: safe })}\n\n`);
+            }
+            bufferedContent = bufferedContent.slice(actionStart);
+
+            const openBraces = countChar(bufferedContent, "{");
+            const closeBraces = countChar(bufferedContent, "}");
+            const openBrackets = countChar(bufferedContent, "[");
+            const closeBrackets = countChar(bufferedContent, "]");
+            const jsonBalanced = openBraces > 0 && openBraces <= closeBraces;
+            const bracketBalanced = bufferedContent.startsWith("[") && openBrackets > 0 && openBrackets <= closeBrackets;
+
+            if (jsonBalanced || bracketBalanced) {
+              await processAndFlush();
+            }
+          }
+        }
+      }
+
+      if (bufferedContent.trim()) {
+        await processAndFlush();
       }
 
       if (actionResults.length > 0) {
