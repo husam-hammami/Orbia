@@ -74,6 +74,14 @@ export async function registerRoutes(
     res.sendFile(filePath);
   });
 
+  app.get("/orbia-final.apk", (_req, res) => {
+    const filePath = path.resolve("orbia-final.apk");
+    if (!fs.existsSync(filePath)) return res.status(404).send("APK not available");
+    res.setHeader("Content-Type", "application/vnd.android.package-archive");
+    res.setHeader("Content-Disposition", "attachment; filename=orbia-final.apk");
+    res.sendFile(filePath);
+  });
+
   app.get("/orbia-wear.apk", (_req, res) => {
     const filePath = path.resolve("orbia-wear.apk");
     if (!fs.existsSync(filePath)) return res.status(404).send("APK not available");
