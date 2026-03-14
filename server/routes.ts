@@ -3345,7 +3345,7 @@ ${JSON.stringify(context, null, 2)}`;
                   break;
                 }
                 case "zoho_create": {
-                  const zohoClient = (await import("./lib/zoho-client")).default;
+                  const zohoMod = await import("./lib/zoho-client");
                   const attrs = parseZohoAttrs(match[1]);
                   if (!attrs.name || !attrs.project_id) {
                     res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "name and project_id required for ZOHO_CREATE" })}\n\n`);
@@ -3356,12 +3356,12 @@ ${JSON.stringify(context, null, 2)}`;
                   if (attrs.priority && attrs.priority !== "none") payload.priority = attrs.priority;
                   if (attrs.end_date) payload.end_date = attrs.end_date + "T00:00:00.000Z";
                   if (attrs.person) payload.person_responsible = attrs.person;
-                  await zohoClient.createTask(attrs.project_id, payload);
+                  await zohoMod.createTask(attrs.project_id, payload);
                   res.write(`data: ${JSON.stringify({ action: "zoho_task_created", name: attrs.name })}\n\n`);
                   break;
                 }
                 case "zoho_update": {
-                  const zohoClient = (await import("./lib/zoho-client")).default;
+                  const zohoMod = await import("./lib/zoho-client");
                   const attrs = parseZohoAttrs(match[1]);
                   if (!attrs.id || !attrs.project_id) {
                     res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "id and project_id required for ZOHO_UPDATE" })}\n\n`);
@@ -3376,18 +3376,18 @@ ${JSON.stringify(context, null, 2)}`;
                     res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "No fields to update" })}\n\n`);
                     break;
                   }
-                  await zohoClient.updateTask(attrs.project_id, attrs.id, payload);
+                  await zohoMod.updateTask(attrs.project_id, attrs.id, payload);
                   res.write(`data: ${JSON.stringify({ action: "zoho_task_updated", id: attrs.id })}\n\n`);
                   break;
                 }
                 case "zoho_complete": {
-                  const zohoClient = (await import("./lib/zoho-client")).default;
+                  const zohoMod = await import("./lib/zoho-client");
                   const attrs = parseZohoAttrs(match[1]);
                   if (!attrs.id || !attrs.project_id) {
                     res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "id and project_id required for ZOHO_COMPLETE" })}\n\n`);
                     break;
                   }
-                  const allZohoTasks = await zohoClient.getTasks(attrs.project_id);
+                  const allZohoTasks = await zohoMod.getTasks(attrs.project_id);
                   const zohoTasks = allZohoTasks?.tasks || allZohoTasks || [];
                   const zohoTask = zohoTasks.find((t: any) => t.id === attrs.id);
                   if (!zohoTask) {
@@ -3401,7 +3401,7 @@ ${JSON.stringify(context, null, 2)}`;
                     res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "No closed/done status found in project" })}\n\n`);
                     break;
                   }
-                  await zohoClient.updateTask(attrs.project_id, attrs.id, { status: { id: closedStatus[0] } });
+                  await zohoMod.updateTask(attrs.project_id, attrs.id, { status: { id: closedStatus[0] } });
                   res.write(`data: ${JSON.stringify({ action: "zoho_task_completed", id: attrs.id })}\n\n`);
                   break;
                 }
@@ -5136,7 +5136,7 @@ ${unifiedContext}`;
                   break;
                 }
                 case "zoho_create": {
-                  const zohoClient = (await import("./lib/zoho-client")).default;
+                  const zohoMod = await import("./lib/zoho-client");
                   const attrs = parseWorkZohoAttrs(match[1]);
                   if (!attrs.name || !attrs.project_id) {
                     res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "name and project_id required" })}\n\n`);
@@ -5147,12 +5147,12 @@ ${unifiedContext}`;
                   if (attrs.priority && attrs.priority !== "none") payload.priority = attrs.priority;
                   if (attrs.end_date) payload.end_date = attrs.end_date + "T00:00:00.000Z";
                   if (attrs.person) payload.person_responsible = attrs.person;
-                  await zohoClient.createTask(attrs.project_id, payload);
+                  await zohoMod.createTask(attrs.project_id, payload);
                   res.write(`data: ${JSON.stringify({ action: "zoho_task_created", name: attrs.name })}\n\n`);
                   break;
                 }
                 case "zoho_update": {
-                  const zohoClient = (await import("./lib/zoho-client")).default;
+                  const zohoMod = await import("./lib/zoho-client");
                   const attrs = parseWorkZohoAttrs(match[1]);
                   if (!attrs.id || !attrs.project_id) {
                     res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "id and project_id required" })}\n\n`);
@@ -5164,18 +5164,18 @@ ${unifiedContext}`;
                   if (attrs.end_date) payload.end_date = attrs.end_date + "T00:00:00.000Z";
                   if (attrs.person) payload.person_responsible = attrs.person;
                   if (Object.keys(payload).length === 0) break;
-                  await zohoClient.updateTask(attrs.project_id, attrs.id, payload);
+                  await zohoMod.updateTask(attrs.project_id, attrs.id, payload);
                   res.write(`data: ${JSON.stringify({ action: "zoho_task_updated", id: attrs.id })}\n\n`);
                   break;
                 }
                 case "zoho_complete": {
-                  const zohoClient = (await import("./lib/zoho-client")).default;
+                  const zohoMod = await import("./lib/zoho-client");
                   const attrs = parseWorkZohoAttrs(match[1]);
                   if (!attrs.id || !attrs.project_id) {
                     res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "id and project_id required" })}\n\n`);
                     break;
                   }
-                  const allZohoTasks = await zohoClient.getTasks(attrs.project_id);
+                  const allZohoTasks = await zohoMod.getTasks(attrs.project_id);
                   const zohoTasks = allZohoTasks?.tasks || allZohoTasks || [];
                   const statuses = new Map<string, string>();
                   zohoTasks.forEach((t: any) => { if (t.status?.id && t.status?.name) statuses.set(t.status.id, t.status.name); });
@@ -5184,7 +5184,7 @@ ${unifiedContext}`;
                     res.write(`data: ${JSON.stringify({ action: "zoho_action_failed", error: "No closed status found" })}\n\n`);
                     break;
                   }
-                  await zohoClient.updateTask(attrs.project_id, attrs.id, { status: { id: closedStatus[0] } });
+                  await zohoMod.updateTask(attrs.project_id, attrs.id, { status: { id: closedStatus[0] } });
                   res.write(`data: ${JSON.stringify({ action: "zoho_task_completed", id: attrs.id })}\n\n`);
                   break;
                 }
@@ -5197,9 +5197,48 @@ ${unifiedContext}`;
         }
       }
 
-      const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE|CREATE_PROJECT|ADD_TASK|UPDATE_PROJECT_STATUS|COMPLETE_TASK|ZOHO_CREATE|ZOHO_UPDATE|ZOHO_COMPLETE)\s[^\]]+\]/g;
+      const actionTagPattern = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE|CREATE_PROJECT|ADD_TASK|UPDATE_PROJECT_STATUS|COMPLETE_TASK|ZOHO_CREATE|ZOHO_UPDATE|ZOHO_COMPLETE)\s[^\]]+\]/g;
       let bufferedContent = "";
-      let hasActionTag = false;
+      const pendingActions: Promise<void>[] = [];
+
+      function flushBuffer() {
+        actionTagPattern.lastIndex = 0;
+        if (actionTagPattern.test(bufferedContent)) {
+          actionTagPattern.lastIndex = 0;
+          pendingActions.push(executeActions(bufferedContent).catch(err => console.error("Action exec error:", err)));
+          const cleaned = bufferedContent.replace(actionTagPattern, "");
+          actionTagPattern.lastIndex = 0;
+          const trailingBracket = cleaned.lastIndexOf("[");
+          if (trailingBracket !== -1) {
+            const safe = cleaned.slice(0, trailingBracket);
+            if (safe.trim()) {
+              res.write(`data: ${JSON.stringify({ content: safe })}\n\n`);
+            }
+            bufferedContent = cleaned.slice(trailingBracket);
+          } else {
+            if (cleaned.trim()) {
+              res.write(`data: ${JSON.stringify({ content: cleaned })}\n\n`);
+            }
+            bufferedContent = "";
+          }
+          return;
+        }
+        actionTagPattern.lastIndex = 0;
+
+        const bracketIdx = bufferedContent.lastIndexOf("[");
+        if (bracketIdx === -1) {
+          if (bufferedContent) {
+            res.write(`data: ${JSON.stringify({ content: bufferedContent })}\n\n`);
+          }
+          bufferedContent = "";
+        } else {
+          const safe = bufferedContent.slice(0, bracketIdx);
+          if (safe) {
+            res.write(`data: ${JSON.stringify({ content: safe })}\n\n`);
+          }
+          bufferedContent = bufferedContent.slice(bracketIdx);
+        }
+      }
 
       for await (const event of stream) {
         if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") continue;
@@ -5207,41 +5246,21 @@ ${unifiedContext}`;
         if (content) {
           fullResponse += content;
           bufferedContent += content;
-
-          if (bufferedContent.includes("[") && !allActionRegex.test(bufferedContent)) {
-            allActionRegex.lastIndex = 0;
-            hasActionTag = true;
-            continue;
-          }
-          allActionRegex.lastIndex = 0;
-
-          if (hasActionTag && allActionRegex.test(bufferedContent)) {
-            allActionRegex.lastIndex = 0;
-            await executeActions(bufferedContent);
-            const cleaned = bufferedContent.replace(allActionRegex, "");
-            allActionRegex.lastIndex = 0;
-            if (cleaned.trim()) {
-              res.write(`data: ${JSON.stringify({ content: cleaned })}\n\n`);
-            }
-            bufferedContent = "";
-            hasActionTag = false;
-          } else if (!hasActionTag) {
-            if (!bufferedContent.includes("[")) {
-              res.write(`data: ${JSON.stringify({ content: bufferedContent })}\n\n`);
-              bufferedContent = "";
-            }
-          }
+          flushBuffer();
         }
       }
 
       if (bufferedContent.trim()) {
+        actionTagPattern.lastIndex = 0;
         await executeActions(bufferedContent);
-        const cleaned = bufferedContent.replace(allActionRegex, "");
-        allActionRegex.lastIndex = 0;
+        const cleaned = bufferedContent.replace(actionTagPattern, "");
+        actionTagPattern.lastIndex = 0;
         if (cleaned.trim()) {
           res.write(`data: ${JSON.stringify({ content: cleaned })}\n\n`);
         }
       }
+
+      await Promise.allSettled(pendingActions);
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();

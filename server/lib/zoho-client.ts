@@ -103,18 +103,33 @@ export async function getTasklists(projectId: string): Promise<any> {
 }
 
 export async function getTasks(projectId: string, params?: { status?: string; tasklist?: string }): Promise<any> {
-  const query = new URLSearchParams();
-  query.set("range", "1-100");
-  if (params?.status) {
-    if (params.status === "overdue") {
-      query.set("status", "open");
-    } else {
-      query.set("status", params.status);
-    }
-  }
-  if (params?.tasklist) query.set("tasklist_id", params.tasklist);
+  const allTasks: any[] = [];
+  let page = 1;
+  const pageSize = 100;
 
-  return zohoRequest("GET", `/projects/${projectId}/tasks?${query.toString()}`);
+  while (true) {
+    const query = new URLSearchParams();
+    const start = (page - 1) * pageSize + 1;
+    query.set("range", `${start}-${start + pageSize - 1}`);
+    if (params?.status) {
+      if (params.status === "overdue") {
+        query.set("status", "open");
+      } else {
+        query.set("status", params.status);
+      }
+    }
+    if (params?.tasklist) query.set("tasklist_id", params.tasklist);
+
+    const data = await zohoRequest("GET", `/projects/${projectId}/tasks?${query.toString()}`);
+    const tasks = data?.tasks || (Array.isArray(data) ? data : []);
+    if (tasks.length === 0) break;
+    allTasks.push(...tasks);
+    if (tasks.length < pageSize) break;
+    page++;
+    if (page > 10) break;
+  }
+
+  return { tasks: allTasks };
 }
 
 export async function createTask(projectId: string, taskData: {
