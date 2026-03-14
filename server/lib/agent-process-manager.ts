@@ -54,10 +54,8 @@ class AgentProcessManager extends EventEmitter {
     }
 
     const args = [
-      "--print",
+      "-p",
       "--output-format", "stream-json",
-      "--max-turns", "50",
-      "--no-user-input",
     ];
     if (options.conversationId) {
       args.push("--resume", options.conversationId);
@@ -66,7 +64,7 @@ class AgentProcessManager extends EventEmitter {
 
     const proc = spawn("claude", args, {
       cwd: options.workdir,
-      env: { ...process.env, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY },
+      env: { ...process.env },
       stdio: ["pipe", "pipe", "pipe"],
     });
 
