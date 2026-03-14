@@ -1,0 +1,201 @@
+import { spawn, ChildProcess } from "child_process";
+import { EventEmitter } from "events";
+import * as path from "path";
+
+interface AgentProcess {
+  process: ChildProcess;
+  agentId: string;
+  taskId: string;
+  sessionId: string;
+  startedAt: Date;
+  outputBuffer: string[];
+}
+
+class AgentProcessManager extends EventEmitter {
+  private processes: Map<string, AgentProcess> = new Map();
+  private maxConcurrent = 3;
+
+  isRunning(agentId: string): boolean {
+    return this.processes.has(agentId);
+  }
+
+  getRunningCount(): number {
+    return this.processes.size;
+  }
+
+  async startAgent(options: {
+    agentId: string;
+    taskId: string;
+    sessionId: string;
+    workdir: string;
+    prompt: string;
+    conversationId?: string;
+  }): Promise<void> {
+    if (this.processes.has(options.agentId)) {
+      throw new Error(`Agent ${options.agentId} is already running`);
+    }
+    if (this.processes.size >= this.maxConcurrent) {
+      throw new Error(`Maximum concurrent agents (${this.maxConcurrent}) reached`);
+    }
+
+    const args = [
+      "--print",
+      "--output-format", "stream-json",
+      "--max-turns", "50",
+      "--no-user-input",
+    ];
+    if (options.conversationId) {
+      args.push("--resume", options.conversationId);
+    }
+    args.push(options.prompt);
+
+    const proc = spawn("claude", args, {
+      cwd: options.workdir,
+      env: { ...process.env, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+
+    const agentProcess: AgentProcess = {
+      process: proc,
+      agentId: options.agentId,
+      taskId: options.taskId,
+      sessionId: options.sessionId,
+      startedAt: new Date(),
+      outputBuffer: [],
+    };
+
+    this.processes.set(options.agentId, agentProcess);
+
+    this.emit("agent:started", { agentId: options.agentId, taskId: options.taskId });
+
+    let jsonBuffer = "";
+
+    proc.stdout?.on("data", (chunk: Buffer) => {
+      const text = chunk.toString();
+      jsonBuffer += text;
+
+      const lines = jsonBuffer.split("\n");
+      jsonBuffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+          const event = JSON.parse(trimmed);
+          this.handleStreamEvent(options.agentId, options.taskId, event);
+        } catch {
+          agentProcess.outputBuffer.push(trimmed);
+          this.emit("agent:output", {
+            agentId: options.agentId,
+            taskId: options.taskId,
+            type: "raw",
+            content: trimmed,
+          });
+        }
+      }
+    });
+
+    proc.stderr?.on("data", (chunk: Buffer) => {
+      const text = chunk.toString();
+      this.emit("agent:output", {
+        agentId: options.agentId,
+        taskId: options.taskId,
+        type: "stderr",
+        content: text,
+      });
+    });
+
+    proc.on("close", (code) => {
+      this.processes.delete(options.agentId);
+      this.emit("agent:completed", {
+        agentId: options.agentId,
+        taskId: options.taskId,
+        exitCode: code,
+        outputBuffer: agentProcess.outputBuffer,
+      });
+    });
+
+    proc.on("error", (err) => {
+      this.processes.delete(options.agentId);
+      this.emit("agent:error", {
+        agentId: options.agentId,
+        taskId: options.taskId,
+        error: err.message,
+      });
+    });
+  }
+
+  private handleStreamEvent(agentId: string, taskId: string, event: any) {
+    const ap = this.processes.get(agentId);
+    if (!ap) return;
+
+    switch (event.type) {
+      case "assistant":
+        if (event.message?.content) {
+          for (const block of event.message.content) {
+            if (block.type === "text") {
+              ap.outputBuffer.push(block.text);
+              this.emit("agent:output", { agentId, taskId, type: "text", content: block.text });
+            } else if (block.type === "tool_use") {
+              this.emit("agent:output", {
+                agentId, taskId,
+                type: "tool_call",
+                content: `${block.name}: ${JSON.stringify(block.input).substring(0, 200)}`,
+                metadata: { tool: block.name, input: block.input },
+              });
+            }
+          }
+        }
+        break;
+      case "result":
+        if (event.subtype === "success") {
+          this.emit("agent:output", {
+            agentId, taskId,
+            type: "result",
+            content: event.result || "Task completed",
+            metadata: { conversationId: event.session_id, costUsd: event.cost_usd, duration: event.duration_ms },
+          });
+        } else {
+          this.emit("agent:output", {
+            agentId, taskId,
+            type: "error",
+            content: event.error || "Task failed",
+          });
+        }
+        break;
+      default:
+        this.emit("agent:output", {
+          agentId, taskId,
+          type: "stream",
+          content: JSON.stringify(event).substring(0, 500),
+        });
+    }
+  }
+
+  stopAgent(agentId: string): boolean {
+    const ap = this.processes.get(agentId);
+    if (!ap) return false;
+    ap.process.kill("SIGTERM");
+    setTimeout(() => {
+      if (this.processes.has(agentId)) {
+        ap.process.kill("SIGKILL");
+        this.processes.delete(agentId);
+      }
+    }, 5000);
+    return true;
+  }
+
+  getAgentOutput(agentId: string): string[] {
+    return this.processes.get(agentId)?.outputBuffer || [];
+  }
+
+  getRunningAgents(): { agentId: string; taskId: string; startedAt: Date }[] {
+    return Array.from(this.processes.values()).map((p) => ({
+      agentId: p.agentId,
+      taskId: p.taskId,
+      startedAt: p.startedAt,
+    }));
+  }
+}
+
+export const agentProcessManager = new AgentProcessManager();

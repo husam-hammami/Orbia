@@ -110,9 +110,24 @@ import {
   type MemoryNarrative,
   type InsertMemoryNarrative,
   type MemoryProcessingLogEntry,
+  githubConnections,
+  type GithubConnection,
+  type InsertGithubConnection,
+  agentProfiles,
+  type AgentProfile,
+  type InsertAgentProfile,
+  agentSessions,
+  type AgentSession,
+  type InsertAgentSession,
+  agentTasks,
+  type AgentTask,
+  type InsertAgentTask,
+  agentActivityLog,
+  type AgentActivityLogEntry,
+  type InsertAgentActivityLog,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, asc, inArray } from "drizzle-orm";
+import { eq, desc, and, asc, inArray, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User Profile
@@ -350,6 +365,34 @@ export interface IStorage {
   getMemoryProcessingLog(userId: string): Promise<MemoryProcessingLogEntry[]>;
   markMemoryProcessed(userId: string, sourceType: string, sourceId: string): Promise<void>;
   clearMemoryGraph(userId: string): Promise<void>;
+
+  // GitHub Connections
+  getGithubConnection(userId: string): Promise<GithubConnection | undefined>;
+  upsertGithubConnection(userId: string, data: InsertGithubConnection): Promise<GithubConnection>;
+  deleteGithubConnection(userId: string): Promise<boolean>;
+
+  // Agent Profiles
+  getAllAgentProfiles(userId: string): Promise<AgentProfile[]>;
+  getAgentProfile(userId: string, id: string): Promise<AgentProfile | undefined>;
+  createAgentProfile(userId: string, agent: InsertAgentProfile): Promise<AgentProfile>;
+  updateAgentProfile(userId: string, id: string, data: Partial<InsertAgentProfile>): Promise<AgentProfile | undefined>;
+  deleteAgentProfile(userId: string, id: string): Promise<boolean>;
+
+  // Agent Sessions
+  getAgentSessions(agentId: string): Promise<AgentSession[]>;
+  getLatestAgentSession(agentId: string): Promise<AgentSession | undefined>;
+  createAgentSession(session: InsertAgentSession): Promise<AgentSession>;
+  updateAgentSession(id: string, data: Partial<InsertAgentSession>): Promise<AgentSession | undefined>;
+
+  // Agent Tasks
+  getAgentTasks(agentId: string): Promise<AgentTask[]>;
+  getAgentTask(id: string): Promise<AgentTask | undefined>;
+  createAgentTask(task: InsertAgentTask): Promise<AgentTask>;
+  updateAgentTask(id: string, data: Partial<InsertAgentTask>): Promise<AgentTask | undefined>;
+
+  // Agent Activity Log
+  getAgentActivityLog(taskId: string): Promise<AgentActivityLogEntry[]>;
+  createAgentActivityLogEntry(entry: InsertAgentActivityLog): Promise<AgentActivityLogEntry>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1320,6 +1363,117 @@ export class DatabaseStorage implements IStorage {
     await db.delete(memoryEntities).where(eq(memoryEntities.userId, userId));
     await db.delete(memoryNarratives).where(eq(memoryNarratives.userId, userId));
     await db.delete(memoryProcessingLog).where(eq(memoryProcessingLog.userId, userId));
+  }
+
+  // GitHub Connections
+  async getGithubConnection(userId: string): Promise<GithubConnection | undefined> {
+    const [row] = await db.select().from(githubConnections)
+      .where(and(eq(githubConnections.userId, userId), eq(githubConnections.status, "active")));
+    return row;
+  }
+
+  async upsertGithubConnection(userId: string, data: InsertGithubConnection): Promise<GithubConnection> {
+    await db.delete(githubConnections).where(eq(githubConnections.userId, userId));
+    const [row] = await db.insert(githubConnections).values({ ...data, userId }).returning();
+    return row;
+  }
+
+  async deleteGithubConnection(userId: string): Promise<boolean> {
+    const result = await db.delete(githubConnections).where(eq(githubConnections.userId, userId)).returning();
+    return result.length > 0;
+  }
+
+  // Agent Profiles
+  async getAllAgentProfiles(userId: string): Promise<AgentProfile[]> {
+    return await db.select().from(agentProfiles)
+      .where(eq(agentProfiles.userId, userId))
+      .orderBy(desc(agentProfiles.createdAt));
+  }
+
+  async getAgentProfile(userId: string, id: string): Promise<AgentProfile | undefined> {
+    const [row] = await db.select().from(agentProfiles)
+      .where(and(eq(agentProfiles.id, id), eq(agentProfiles.userId, userId)));
+    return row;
+  }
+
+  async createAgentProfile(userId: string, agent: InsertAgentProfile): Promise<AgentProfile> {
+    const [row] = await db.insert(agentProfiles).values({ ...agent, userId }).returning();
+    return row;
+  }
+
+  async updateAgentProfile(userId: string, id: string, data: Partial<InsertAgentProfile>): Promise<AgentProfile | undefined> {
+    const [row] = await db.update(agentProfiles).set(data)
+      .where(and(eq(agentProfiles.id, id), eq(agentProfiles.userId, userId))).returning();
+    return row;
+  }
+
+  async deleteAgentProfile(userId: string, id: string): Promise<boolean> {
+    await db.delete(agentTasks).where(eq(agentTasks.agentId, id));
+    await db.delete(agentSessions).where(eq(agentSessions.agentId, id));
+    const result = await db.delete(agentProfiles)
+      .where(and(eq(agentProfiles.id, id), eq(agentProfiles.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  // Agent Sessions
+  async getAgentSessions(agentId: string): Promise<AgentSession[]> {
+    return await db.select().from(agentSessions)
+      .where(eq(agentSessions.agentId, agentId))
+      .orderBy(desc(agentSessions.startedAt));
+  }
+
+  async getLatestAgentSession(agentId: string): Promise<AgentSession | undefined> {
+    const [row] = await db.select().from(agentSessions)
+      .where(eq(agentSessions.agentId, agentId))
+      .orderBy(desc(agentSessions.startedAt))
+      .limit(1);
+    return row;
+  }
+
+  async createAgentSession(session: InsertAgentSession): Promise<AgentSession> {
+    const [row] = await db.insert(agentSessions).values(session).returning();
+    return row;
+  }
+
+  async updateAgentSession(id: string, data: Partial<InsertAgentSession>): Promise<AgentSession | undefined> {
+    const [row] = await db.update(agentSessions).set({ ...data, lastActiveAt: new Date() })
+      .where(eq(agentSessions.id, id)).returning();
+    return row;
+  }
+
+  // Agent Tasks
+  async getAgentTasks(agentId: string): Promise<AgentTask[]> {
+    return await db.select().from(agentTasks)
+      .where(eq(agentTasks.agentId, agentId))
+      .orderBy(desc(agentTasks.createdAt));
+  }
+
+  async getAgentTask(id: string): Promise<AgentTask | undefined> {
+    const [row] = await db.select().from(agentTasks).where(eq(agentTasks.id, id));
+    return row;
+  }
+
+  async createAgentTask(task: InsertAgentTask): Promise<AgentTask> {
+    const [row] = await db.insert(agentTasks).values(task).returning();
+    return row;
+  }
+
+  async updateAgentTask(id: string, data: Partial<InsertAgentTask>): Promise<AgentTask | undefined> {
+    const [row] = await db.update(agentTasks).set(data)
+      .where(eq(agentTasks.id, id)).returning();
+    return row;
+  }
+
+  // Agent Activity Log
+  async getAgentActivityLog(taskId: string): Promise<AgentActivityLogEntry[]> {
+    return await db.select().from(agentActivityLog)
+      .where(eq(agentActivityLog.taskId, taskId))
+      .orderBy(asc(agentActivityLog.timestamp));
+  }
+
+  async createAgentActivityLogEntry(entry: InsertAgentActivityLog): Promise<AgentActivityLogEntry> {
+    const [row] = await db.insert(agentActivityLog).values(entry).returning();
+    return row;
   }
 }
 

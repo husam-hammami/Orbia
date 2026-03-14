@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, jsonb, serial, real, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, jsonb, serial, real, boolean, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -753,3 +753,91 @@ export const memoryProcessingLog = pgTable("memory_processing_log", {
 });
 
 export type MemoryProcessingLogEntry = typeof memoryProcessingLog.$inferSelect;
+
+// ==================== AI AGENTS OFFICE ====================
+
+export const githubConnections = pgTable("github_connections", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: varchar("user_id").notNull(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token"),
+  tokenExpiry: timestamp("token_expiry"),
+  githubUserId: text("github_user_id"),
+  username: text("username"),
+  email: text("email"),
+  avatarUrl: text("avatar_url"),
+  status: text("status").default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertGithubConnectionSchema = createInsertSchema(githubConnections).omit({ id: true, createdAt: true, updatedAt: true });
+export type GithubConnection = typeof githubConnections.$inferSelect;
+export type InsertGithubConnection = z.infer<typeof insertGithubConnectionSchema>;
+
+export const agentProfiles = pgTable("agent_profiles", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: varchar("user_id").notNull(),
+  name: text("name").notNull(),
+  avatar: text("avatar"),
+  role: text("role"),
+  repoUrl: text("repo_url").notNull(),
+  repoBranch: text("repo_branch").default("main"),
+  workdir: text("workdir"),
+  accentColor: text("accent_color").default("#6366f1"),
+  status: text("status").default("idle"),
+  currentTaskSummary: text("current_task_summary"),
+  lastActiveAt: timestamp("last_active_at"),
+  totalTasksCompleted: integer("total_tasks_completed").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAgentProfileSchema = createInsertSchema(agentProfiles).omit({ id: true, createdAt: true, lastActiveAt: true, totalTasksCompleted: true });
+export type AgentProfile = typeof agentProfiles.$inferSelect;
+export type InsertAgentProfile = z.infer<typeof insertAgentProfileSchema>;
+
+export const agentSessions = pgTable("agent_sessions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  agentId: uuid("agent_id").notNull(),
+  claudeConversationId: text("claude_conversation_id"),
+  status: text("status").default("active"),
+  startedAt: timestamp("started_at").defaultNow(),
+  lastActiveAt: timestamp("last_active_at"),
+});
+
+export const insertAgentSessionSchema = createInsertSchema(agentSessions).omit({ id: true, startedAt: true, lastActiveAt: true });
+export type AgentSession = typeof agentSessions.$inferSelect;
+export type InsertAgentSession = z.infer<typeof insertAgentSessionSchema>;
+
+export const agentTasks = pgTable("agent_tasks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  agentId: uuid("agent_id").notNull(),
+  sessionId: uuid("session_id"),
+  description: text("description").notNull(),
+  status: text("status").default("queued"),
+  priority: integer("priority").default(0),
+  result: text("result"),
+  filesChanged: jsonb("files_changed"),
+  diffSummary: text("diff_summary"),
+  errorMessage: text("error_message"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAgentTaskSchema = createInsertSchema(agentTasks).omit({ id: true, createdAt: true, startedAt: true, completedAt: true });
+export type AgentTask = typeof agentTasks.$inferSelect;
+export type InsertAgentTask = z.infer<typeof insertAgentTaskSchema>;
+
+export const agentActivityLog = pgTable("agent_activity_log", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  taskId: uuid("task_id").notNull(),
+  eventType: text("event_type").notNull(),
+  content: text("content"),
+  metadata: jsonb("metadata"),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+export const insertAgentActivityLogSchema = createInsertSchema(agentActivityLog).omit({ id: true, timestamp: true });
+export type AgentActivityLogEntry = typeof agentActivityLog.$inferSelect;
+export type InsertAgentActivityLog = z.infer<typeof insertAgentActivityLogSchema>;
