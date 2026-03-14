@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Settings, Briefcase, Wallet, ClipboardList, Orbit, Lock, Sun, Moon, Newspaper, Clock, Stethoscope, Monitor, MoreHorizontal, BookOpen, X } from "lucide-react";
+import { LayoutDashboard, Settings, Briefcase, Wallet, ClipboardList, Orbit, Lock, Sun, Moon, Newspaper, Clock, Stethoscope, Monitor, MoreHorizontal, BookOpen, X, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GardenTopBar } from "@/components/garden-top-bar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -197,6 +197,7 @@ const moreNavItems = [
   { href: "/finance", label: "Finance", icon: Wallet },
   { href: "/news", label: "News", icon: Newspaper },
   { href: "/journal", label: "Journal", icon: BookOpen },
+  { href: "/career?tab=vision", label: "Vision", icon: Eye },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -204,9 +205,13 @@ function MobileBottomNav() {
   const [location] = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const isMoreActive = moreNavItems.some(item =>
-    location === item.href || (item.href === "/journal" && location === "/" && window.location.search.includes("tab=journal"))
-  );
+  const isMoreActive = moreNavItems.some(item => {
+    const [itemPath, itemQuery] = item.href.split("?");
+    if (location === itemPath) return true;
+    if (item.href === "/journal" && location === "/" && window.location.search.includes("tab=journal")) return true;
+    if (itemQuery && location === itemPath && window.location.search.includes(itemQuery)) return true;
+    return false;
+  });
 
   return (
     <>
@@ -241,10 +246,11 @@ function MobileBottomNav() {
                       <X className="w-4 h-4" />
                     </motion.button>
                   </div>
-                  <div className="grid grid-cols-3 gap-1 px-3 pb-4">
+                  <div className="grid grid-cols-3 gap-1 px-3 pb-4 max-h-[60vh] overflow-y-auto">
                     {moreNavItems.map((item, idx) => {
                       const Icon = item.icon;
-                      const isActive = location === item.href || (item.href === "/journal" && location === "/" && window.location.search.includes("tab=journal"));
+                      const [itemPath, itemQuery] = item.href.split("?");
+                      const isActive = location === itemPath || (item.href === "/journal" && location === "/" && window.location.search.includes("tab=journal")) || (itemQuery && location === itemPath && window.location.search.includes(itemQuery));
                       return (
                         <Link
                           key={item.href}

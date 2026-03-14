@@ -1149,7 +1149,12 @@ export default function WorkPage() {
     try {
       const data = await workApi("/api/work/microsoft/auth");
       if (data?.authUrl) {
-        window.open(data.authUrl, "_blank", "noopener,noreferrer");
+        const isCapacitor = !!(window as any).Capacitor;
+        if (isCapacitor) {
+          window.location.href = data.authUrl;
+        } else {
+          window.open(data.authUrl, "_blank", "noopener,noreferrer");
+        }
         setIsConnecting(false);
         const pollInterval = setInterval(async () => {
           try {

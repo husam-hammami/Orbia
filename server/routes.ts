@@ -4410,7 +4410,7 @@ ${unifiedContext}${extraMedContext}`;
         status: "active",
       });
 
-      res.send(`<html><body><h2>Connected successfully!</h2><p>You can close this tab and return to Orbia.</p><script>window.close();</script></body></html>`);
+      res.send(`<html><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#1a1a2e;color:white;"><div style="text-align:center"><h2>Connected successfully!</h2><p>Redirecting back to Orbia...</p></div><script>setTimeout(function(){window.location.href='/work';},1500);try{window.close();}catch(e){}</script></body></html>`);
     } catch (error: any) {
       console.error("Microsoft OAuth callback error:", error);
       res.status(500).send(`<html><body><h2>Connection failed</h2><p>Please close this tab and try again in Orbia.</p></body></html>`);

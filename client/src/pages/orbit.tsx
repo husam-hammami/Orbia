@@ -1365,7 +1365,7 @@ export default function OrbitPage() {
   return (
     <Layout>
       <div className={cn(
-        "h-[calc(100vh-120px)] flex flex-col animate-in fade-in duration-500 transition-all",
+        "h-[calc(100dvh-120px)] md:h-[calc(100vh-120px)] flex flex-col animate-in fade-in duration-500 transition-all pb-20 md:pb-0",
         therapyMode && "relative"
       )}>
         {/* Therapy mode ambient glow */}
