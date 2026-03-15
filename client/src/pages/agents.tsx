@@ -308,38 +308,36 @@ function AgentDesk({ agent, index, onClick }: { agent: Agent; index: number; onC
       <NeuralOrbit status={status} accentColor={color} seed={index} />
 
       <div className="relative z-10 flex flex-col h-full">
-        <div className="flex items-start justify-between p-5 pb-0">
-          <div className="flex flex-col gap-1">
-            <h3 className="text-gray-100 font-bold text-lg tracking-tight" data-testid={`text-agent-name-${agent.id}`}>
+        <div className="absolute top-3 right-3 z-20 flex flex-col items-end gap-1">
+          <div className={cn(
+            "flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] uppercase font-bold tracking-widest border backdrop-blur-sm",
+            status === "working" && "bg-green-500/10 text-green-400 border-green-500/20",
+            status === "error" && "bg-red-500/10 text-red-400 border-red-500/20",
+            status === "waiting" && "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+            status === "idle" && "bg-gray-500/10 text-gray-400 border-gray-500/20",
+          )} style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+            <span className={cn(
+              "w-1.5 h-1.5 rounded-full",
+              status === "working" && "bg-green-400 shadow-[0_0_8px_#4ade80] animate-pulse",
+              status === "error" && "bg-red-400 shadow-[0_0_8px_#f87171]",
+              status === "waiting" && "bg-yellow-400 shadow-[0_0_8px_#facc15] animate-pulse",
+              status === "idle" && "bg-gray-400",
+            )} />
+            {status}
+          </div>
+          {elapsed && <span className="text-[10px] text-gray-500/80 mr-1" style={{ fontFamily: "'JetBrains Mono', monospace" }}>T+{elapsed}</span>}
+        </div>
+
+        <div className="flex-1 flex items-center justify-center min-h-[120px]">
+          <div className="flex flex-col items-center gap-1 text-center px-4">
+            <h3 className="text-gray-100 font-bold text-lg tracking-tight drop-shadow-[0_0_10px_rgba(0,0,0,0.8)]" data-testid={`text-agent-name-${agent.id}`}>
               {agent.name}
             </h3>
-            <p className="text-xs text-indigo-300/60 uppercase tracking-widest font-medium">
+            <p className="text-xs text-indigo-300/60 uppercase tracking-widest font-medium drop-shadow-[0_0_8px_rgba(0,0,0,0.8)]">
               {agent.role || "GENERAL_INTELLIGENCE"}
             </p>
           </div>
-          
-          <div className="flex flex-col items-end gap-1">
-            <div className={cn(
-              "flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] uppercase font-bold tracking-widest border backdrop-blur-sm",
-              status === "working" && "bg-green-500/10 text-green-400 border-green-500/20",
-              status === "error" && "bg-red-500/10 text-red-400 border-red-500/20",
-              status === "waiting" && "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-              status === "idle" && "bg-gray-500/10 text-gray-400 border-gray-500/20",
-            )} style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-              <span className={cn(
-                "w-1.5 h-1.5 rounded-full",
-                status === "working" && "bg-green-400 shadow-[0_0_8px_#4ade80] animate-pulse",
-                status === "error" && "bg-red-400 shadow-[0_0_8px_#f87171]",
-                status === "waiting" && "bg-yellow-400 shadow-[0_0_8px_#facc15] animate-pulse",
-                status === "idle" && "bg-gray-400",
-              )} />
-              {status}
-            </div>
-            {elapsed && <span className="text-[10px] text-gray-500/80 mr-1" style={{ fontFamily: "'JetBrains Mono', monospace" }}>T+{elapsed}</span>}
-          </div>
         </div>
-
-        <div className="flex-1 min-h-[120px]" />
 
         <div className="p-5 pt-0 mt-auto">
           <div className="bg-black/50 backdrop-blur-md rounded-xl border border-white/[0.06] p-3 flex flex-col gap-2">

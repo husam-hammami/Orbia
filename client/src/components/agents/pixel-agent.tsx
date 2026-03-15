@@ -105,11 +105,49 @@ function rotateX(p: Vec3, a: number): Vec3 {
   return { x: p.x, y: p.y * c - p.z * s, z: p.y * s + p.z * c };
 }
 
+const CODE_CHARS = "01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン{}[]<>=;:./\\|&!@#$%^*()+-~`ABCDEFabcdef0123456789";
+
+interface CodeColumn {
+  x: number;
+  y: number;
+  speed: number;
+  chars: string[];
+  length: number;
+  opacity: number;
+  fontSize: number;
+}
+
+function initColumns(w: number, seed: number): CodeColumn[] {
+  const rng = seededRng(seed * 31 + 7);
+  const cols: CodeColumn[] = [];
+  const spacing = 14;
+  const count = Math.ceil(w / spacing);
+  for (let i = 0; i < count; i++) {
+    const len = 4 + Math.floor(rng() * 12);
+    const chars: string[] = [];
+    for (let j = 0; j < len; j++) {
+      chars.push(CODE_CHARS[Math.floor(rng() * CODE_CHARS.length)]);
+    }
+    cols.push({
+      x: i * spacing + spacing / 2 + (rng() - 0.5) * 4,
+      y: -(rng() * 300),
+      speed: 15 + rng() * 40,
+      chars,
+      length: len,
+      opacity: 0.08 + rng() * 0.15,
+      fontSize: 9 + Math.floor(rng() * 3),
+    });
+  }
+  return cols;
+}
+
 export function NeuralOrbit({ status, accentColor, seed = 0 }: NeuralOrbitProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
   const timeRef = useRef(0);
   const signalsRef = useRef<Signal[]>([]);
+  const columnsRef = useRef<CodeColumn[]>([]);
+  const lastWidthRef = useRef(0);
 
   const safeStatus = (["idle", "working", "error", "waiting"].includes(status) ? status : "idle") as NeuralOrbitProps["status"];
   const color = accentColor || "#6366f1";
@@ -133,12 +171,51 @@ export function NeuralOrbit({ status, accentColor, seed = 0 }: NeuralOrbitProps)
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
+    if (lastWidthRef.current !== Math.round(w)) {
+      columnsRef.current = initColumns(w, seed);
+      lastWidthRef.current = Math.round(w);
+    }
+
     const dt = (time - timeRef.current) / 1000;
     timeRef.current = time;
 
     const isWorking = safeStatus === "working";
     const isError = safeStatus === "error";
     const isWaiting = safeStatus === "waiting";
+
+    const codeSpeed = isWorking ? 2.0 : isError ? 3.0 : isWaiting ? 0.3 : 0.7;
+    const codeAlphaMul = isWorking ? 1.8 : isError ? 0.6 : isWaiting ? 0.4 : 1.0;
+
+    for (const col of columnsRef.current) {
+      col.y += col.speed * codeSpeed * dt;
+      if (col.y - col.length * (col.fontSize + 2) > h) {
+        col.y = -(col.length * (col.fontSize + 2)) - 20;
+        const rng = seededRng(Math.floor(time * 0.1 + col.x));
+        for (let j = 0; j < col.chars.length; j++) {
+          if (rng() > 0.6) col.chars[j] = CODE_CHARS[Math.floor(rng() * CODE_CHARS.length)];
+        }
+      }
+
+      const lineH = col.fontSize + 2;
+      ctx.font = `${col.fontSize}px 'JetBrains Mono', 'Courier New', monospace`;
+      for (let j = 0; j < col.chars.length; j++) {
+        const cy = col.y + j * lineH;
+        if (cy < -lineH || cy > h + lineH) continue;
+
+        const fade = j === 0 ? 1.0 : Math.max(0, 1 - j / col.chars.length);
+        const charAlpha = col.opacity * fade * codeAlphaMul;
+        if (charAlpha < 0.01) continue;
+
+        if (j === 0) {
+          ctx.fillStyle = `rgba(255,255,255,${Math.min(charAlpha * 2.5, 0.7)})`;
+        } else if (j < 3) {
+          ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${Math.min(charAlpha * 1.5, 0.5)})`;
+        } else {
+          ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${charAlpha})`;
+        }
+        ctx.fillText(col.chars[j], col.x, cy);
+      }
+    }
 
     const rotSpeed = isWorking ? 0.15 : isError ? 0.25 : isWaiting ? 0.03 : 0.06;
     const tilt = 0.3 + Math.sin(time * 0.0003) * 0.08;
