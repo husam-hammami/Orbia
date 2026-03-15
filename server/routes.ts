@@ -3617,6 +3617,101 @@ ${JSON.stringify(context, null, 2)}`;
               actionResults.push({ name, title: "tracker entry", success: true });
               break;
             }
+            case "create_agent": {
+              const githubConn = await storage.getGithubConnection(userId);
+              let repoUrl = "";
+              let repoBranch = "main";
+              if (args.repo_keyword && githubConn?.accessToken) {
+                try {
+                  const { listRepos } = await import("./lib/github-oauth");
+                  const repos = await listRepos(githubConn.accessToken, 1, 100);
+                  const keyword = args.repo_keyword.toLowerCase();
+                  const match = repos.find((r: any) => r.full_name.toLowerCase().includes(keyword) || r.name.toLowerCase().includes(keyword));
+                  if (match) {
+                    repoUrl = match.html_url;
+                    repoBranch = match.default_branch || "main";
+                  }
+                } catch (e: any) { console.error("[orbit-action] Repo lookup failed:", e.message); }
+              }
+              let linkedProjectId: string | null = null;
+              if (args.project_keyword) {
+                const projects = await storage.getAllCareerProjects(userId);
+                const kw = args.project_keyword.toLowerCase();
+                const projMatch = projects.find((p: any) => p.title.toLowerCase().includes(kw));
+                if (projMatch) linkedProjectId = projMatch.id;
+              }
+              const presetConfig: Record<string, any> = {
+                designer: { designation: "UI/UX Designer", accentColor: "#ec4899", avatar: "nexus" },
+                reviewer: { designation: "Design & Code Reviewer", accentColor: "#f59e0b", avatar: "◈" },
+              };
+              const preset = presetConfig[args.preset] || {};
+              const agentData: any = {
+                userId,
+                name: args.name,
+                role: args.role || preset.designation || "General",
+                designation: args.designation || preset.designation || null,
+                repoUrl: repoUrl || "https://github.com",
+                repoBranch,
+                accentColor: args.accent_color || preset.accentColor || "#6366f1",
+                avatar: args.avatar || preset.avatar || "🤖",
+                linkedProjectId,
+                systemPrompt: null,
+              };
+              const agent = await storage.createAgentProfile(userId, agentData);
+              if (repoUrl && githubConn?.accessToken) {
+                try {
+                  const repoManager = await import("./lib/repo-manager");
+                  await repoManager.cloneRepo(agent.id, repoUrl, repoBranch, githubConn.accessToken);
+                } catch {}
+              }
+              if (args.preset === "designer") {
+                try {
+                  const repoManager = await import("./lib/repo-manager");
+                  const repoDir = repoManager.getRepoDir(agent.id);
+                  const fs = await import("fs");
+                  const path = await import("path");
+                  if (!fs.existsSync(repoDir)) fs.mkdirSync(repoDir, { recursive: true });
+                  const claudeDir = path.join(repoDir, ".claude");
+                  if (!fs.existsSync(claudeDir)) fs.mkdirSync(claudeDir, { recursive: true });
+                  const mcpConfig = { mcpServers: { "21st_magic": { command: "npx", args: ["-y", "@21st-dev/magic@latest"] } } };
+                  fs.writeFileSync(path.join(claudeDir, "settings.json"), JSON.stringify(mcpConfig, null, 2));
+                  fs.writeFileSync(path.join(claudeDir, "settings.local.json"), JSON.stringify(mcpConfig, null, 2));
+                } catch {}
+              }
+              res.write(`data: ${JSON.stringify({ action: "agent_created", id: agent.id, name: agent.name, repoUrl })}\n\n`);
+              actionResults.push({ name, title: args.name, success: true });
+              break;
+            }
+            case "update_agent": {
+              if (args.agent_id) {
+                const updates: any = {};
+                if (args.name !== undefined) updates.name = args.name;
+                if (args.role !== undefined) updates.role = args.role;
+                if (args.status !== undefined) updates.status = args.status;
+                if (args.linked_project_keyword) {
+                  const projects = await storage.getAllCareerProjects(userId);
+                  const kw = args.linked_project_keyword.toLowerCase();
+                  const projMatch = projects.find((p: any) => p.title.toLowerCase().includes(kw));
+                  if (projMatch) updates.linkedProjectId = projMatch.id;
+                }
+                await storage.updateAgentProfile(userId, args.agent_id, updates);
+                actionResults.push({ name, title: args.name || args.agent_id, success: true });
+              }
+              break;
+            }
+            case "get_agent_status": {
+              let statusInfo: string;
+              if (args.agent_id === "all") {
+                const allAgents = await storage.getAllAgentProfiles(userId);
+                statusInfo = allAgents.map((a: any) => `"${a.name}" [${a.status}]${a.currentTaskSummary ? ` — ${a.currentTaskSummary}` : ""}${a.repoUrl ? ` (${a.repoUrl})` : ""}`).join("\n");
+              } else {
+                const ag = await storage.getAgentProfile(userId, args.agent_id);
+                statusInfo = ag ? `"${ag.name}" [${ag.status}]${ag.currentTaskSummary ? ` — ${ag.currentTaskSummary}` : ""} repo: ${ag.repoUrl || "none"}, tasks completed: ${ag.totalTasksCompleted}` : "Agent not found";
+              }
+              res.write(`data: ${JSON.stringify({ action: "agent_status", info: statusInfo })}\n\n`);
+              actionResults.push({ name, title: "agent status", success: true });
+              break;
+            }
             default:
               console.log(`[orbit-action] Unknown action: ${name}`);
               break;

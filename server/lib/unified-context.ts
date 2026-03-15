@@ -32,6 +32,8 @@ export async function buildUnifiedContext(userId: string): Promise<{
     projectsResult,
     projectTasksResult,
     newsTopicsResult,
+    agentsResult,
+    githubConnResult,
   ] = await Promise.allSettled([
     storage.getUserProfile(userId),
     storage.getRecentTrackerEntries(userId, 30),
@@ -54,6 +56,8 @@ export async function buildUnifiedContext(userId: string): Promise<{
     storage.getAllCareerProjects(userId),
     storage.getAllCareerTasks(userId),
     storage.getAllNewsTopics(userId),
+    storage.getAllAgentProfiles(userId),
+    storage.getGithubConnection(userId),
   ]);
 
   const val = <T,>(r: PromiseSettledResult<T>, fallback: T): T =>
@@ -80,6 +84,8 @@ export async function buildUnifiedContext(userId: string): Promise<{
   const newsTopics = val(newsTopicsResult, []) as any[];
   const projects = val(projectsResult, []) as any[];
   const projectTasks = val(projectTasksResult, []) as any[];
+  const agents = val(agentsResult, []) as any[];
+  const githubConn = val(githubConnResult, undefined) as any;
 
   let sections: string[] = [];
 
@@ -504,9 +510,35 @@ ${visionItems.map((v: any) => `- ${v.title} (${v.timeframe}): ${v.description ||
       const taskList = tasks.length > 0
         ? `\n    Tasks: ${tasks.map((t: any) => `${t.completed === 1 ? "[x]" : "[ ]"} ${t.title}`).join(", ")}`
         : "";
-      return `- "${p.title}" [${p.status}] ${progress}% complete${p.deadline ? `, deadline: ${p.deadline}` : ""}${p.nextAction ? `, next: ${p.nextAction}` : ""}${taskList}`;
+      return `- "${p.title}" (id: ${p.id}) [${p.status}] ${progress}% complete${p.deadline ? `, deadline: ${p.deadline}` : ""}${p.nextAction ? `, next: ${p.nextAction}` : ""}${taskList}`;
     }).join("\n");
     sections.push(`<PROJECTS>\n${projLines}\n</PROJECTS>`);
+  }
+
+  if (agents.length > 0 || githubConn) {
+    let agentSection = "<NEURAL_ORBITS_AGENTS>";
+    if (agents.length > 0) {
+      agentSection += "\nExisting agents:";
+      for (const a of agents) {
+        agentSection += `\n- "${a.name}" (id: ${a.id}) [${a.status}] role: ${a.role || "general"}${a.designation ? `, designation: ${a.designation}` : ""}${a.repoUrl ? `, repo: ${a.repoUrl}` : ""}${a.repoBranch ? ` (${a.repoBranch})` : ""}${a.linkedProjectId ? `, linked_project: ${a.linkedProjectId}` : ""}${a.accentColor ? `, color: ${a.accentColor}` : ""}`;
+      }
+    } else {
+      agentSection += "\nNo agents created yet.";
+    }
+    if (githubConn?.accessToken) {
+      try {
+        const { listRepos } = await import("./github-oauth");
+        const repos = await listRepos(githubConn.accessToken, 1, 100);
+        if (repos.length > 0) {
+          agentSection += "\n\nAvailable GitHub repos:";
+          for (const r of repos) {
+            agentSection += `\n- ${r.full_name}${r.description ? ` — ${r.description}` : ""} (${r.language || "unknown"}, branch: ${r.default_branch})`;
+          }
+        }
+      } catch {}
+    }
+    agentSection += "\n</NEURAL_ORBITS_AGENTS>";
+    sections.push(agentSection);
   }
 
   return {
@@ -825,6 +857,16 @@ LOANS:
 - create_loan: {"name": "...", "originalAmount": number, "currentBalance": number, "interestRate": number, "monthlyPayment": number, "type": "personal/mortgage/auto/student/credit/other", "lender": "...", "startDate": "YYYY-MM-DD"}
 - update_loan: {"loan_id": "...", "currentBalance": number, "monthlyPayment": number, "status": "active/paid_off"}
 - delete_loan: {"loan_id": "..."} - ALWAYS set confirm:true
+
+NEURAL ORBITS (AI AGENTS):
+- create_agent: {"name": "...", "role": "...", "designation": "UI/UX Designer/Design & Code Reviewer/...", "repo_keyword": "keyword to fuzzy-match from available GitHub repos", "project_keyword": "keyword to fuzzy-match from existing career projects to link", "accent_color": "#hex", "avatar": "emoji or 'nexus'", "preset": "designer/reviewer/none"}
+- update_agent: {"agent_id": "...", "name": "...", "role": "...", "status": "...", "linked_project_keyword": "keyword to match project"}
+- get_agent_status: {"agent_id": "..." or "all"} — returns current state of one or all agents
+- When the user says a keyword like "waterfall" or "orbia", match it against available GitHub repos and career projects from context. Pick the BEST match.
+- For preset "designer": sets UI/UX Designer designation, pink accent, nexus avatar, and includes the 21st.dev Magic MCP config.
+- For preset "reviewer": sets Design & Code Reviewer designation, amber accent.
+- ALWAYS include repo_keyword if the user mentions any project/repo name, even partially. Match against NEURAL_ORBITS_AGENTS > Available GitHub repos list.
+- ALWAYS include project_keyword if the user wants to link the agent to a career project. Match against PROJECTS list.
 
 CONFIRMATION: set confirm:true and confirm_text for all delete actions.
 
