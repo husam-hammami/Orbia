@@ -1,5 +1,4 @@
-import React, { useMemo } from "react";
-import { motion } from "framer-motion";
+import React, { useRef, useEffect, useMemo, useCallback } from "react";
 
 interface NeuralOrbitProps {
   status: "idle" | "working" | "error" | "waiting";
@@ -7,359 +6,410 @@ interface NeuralOrbitProps {
   seed?: number;
 }
 
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
+function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace("#", "");
-  return {
-    r: parseInt(h.substring(0, 2), 16) || 99,
-    g: parseInt(h.substring(2, 4), 16) || 102,
-    b: parseInt(h.substring(4, 6), 16) || 241,
-  };
+  return [
+    parseInt(h.substring(0, 2), 16) || 99,
+    parseInt(h.substring(2, 4), 16) || 102,
+    parseInt(h.substring(4, 6), 16) || 241,
+  ];
 }
 
-function seededRandom(s: number) {
-  let v = s;
-  return () => {
-    v = (v * 16807 + 0) % 2147483647;
-    return (v - 1) / 2147483646;
-  };
+function seededRng(s: number) {
+  let v = Math.abs(s * 7919 + 1301) | 1;
+  return () => { v = (v * 16807) % 2147483647; return (v - 1) / 2147483646; };
 }
 
-interface NeuralNode {
-  x: number;
-  y: number;
-  r: number;
-  layer: number;
-  bright: boolean;
-}
+interface Vec3 { x: number; y: number; z: number }
+interface Node3D { pos: Vec3; r: number; layer: number; phase: number }
+interface Edge3D { a: number; b: number; w: number }
+interface Signal { edge: number; t: number; speed: number }
 
-interface NeuralEdge {
-  from: number;
-  to: number;
-  strength: number;
-}
+function buildNetwork(seed: number) {
+  const rng = seededRng(seed);
+  const nodes: Node3D[] = [];
+  const edges: Edge3D[] = [];
 
-function generateNeuralNetwork(seed: number) {
-  const rng = seededRandom(seed * 7919 + 1301);
+  nodes.push({ pos: { x: 0, y: 0, z: 0 }, r: 6, layer: 0, phase: rng() * 6.28 });
 
-  const nodes: NeuralNode[] = [];
-  const coreX = 30 + rng() * 40;
-  const coreY = 30 + rng() * 40;
-  nodes.push({ x: coreX, y: coreY, r: 3.5, layer: 0, bright: true });
-
-  for (let i = 0; i < 3; i++) {
-    const angle = (i * 120 + rng() * 60) * (Math.PI / 180);
-    const dist = 12 + rng() * 10;
+  for (let i = 0; i < 4; i++) {
+    const phi = (i / 4) * 6.28 + rng() * 0.8;
+    const theta = 0.6 + rng() * 1.0;
+    const dist = 28 + rng() * 12;
     nodes.push({
-      x: coreX + Math.cos(angle) * dist,
-      y: coreY + Math.sin(angle) * dist,
-      r: 2.2 + rng() * 0.8,
-      layer: 1,
-      bright: rng() > 0.5,
+      pos: {
+        x: Math.sin(theta) * Math.cos(phi) * dist,
+        y: Math.sin(theta) * Math.sin(phi) * dist,
+        z: Math.cos(theta) * dist * 0.7,
+      },
+      r: 3.5 + rng() * 1.5, layer: 1, phase: rng() * 6.28,
     });
-  }
-
-  for (let i = 0; i < 6; i++) {
-    const angle = (i * 60 + rng() * 40 - 20) * (Math.PI / 180);
-    const dist = 22 + rng() * 18;
-    nodes.push({
-      x: coreX + Math.cos(angle) * dist,
-      y: coreY + Math.sin(angle) * dist,
-      r: 1.2 + rng() * 0.8,
-      layer: 2,
-      bright: rng() > 0.6,
-    });
+    edges.push({ a: 0, b: nodes.length - 1, w: 0.7 + rng() * 0.3 });
   }
 
   for (let i = 0; i < 8; i++) {
-    const angle = (i * 45 + rng() * 30 - 15) * (Math.PI / 180);
-    const dist = 35 + rng() * 15;
+    const phi = (i / 8) * 6.28 + rng() * 0.5;
+    const theta = 0.3 + rng() * 2.2;
+    const dist = 50 + rng() * 20;
     nodes.push({
-      x: coreX + Math.cos(angle) * dist,
-      y: coreY + Math.sin(angle) * dist,
-      r: 0.7 + rng() * 0.6,
-      layer: 3,
-      bright: rng() > 0.7,
+      pos: {
+        x: Math.sin(theta) * Math.cos(phi) * dist,
+        y: Math.sin(theta) * Math.sin(phi) * dist,
+        z: Math.cos(theta) * dist * 0.5,
+      },
+      r: 2 + rng() * 1.2, layer: 2, phase: rng() * 6.28,
     });
-  }
-
-  const edges: NeuralEdge[] = [];
-
-  for (let i = 1; i <= 3; i++) {
-    edges.push({ from: 0, to: i, strength: 0.7 + rng() * 0.3 });
-  }
-
-  for (let i = 4; i <= 9; i++) {
-    const parent = 1 + Math.floor(rng() * 3);
-    edges.push({ from: parent, to: i, strength: 0.4 + rng() * 0.4 });
-    if (rng() > 0.6) {
-      const other = 4 + Math.floor(rng() * 6);
-      if (other !== i) edges.push({ from: i, to: other, strength: 0.2 + rng() * 0.3 });
+    const parent = 1 + Math.floor(rng() * 4);
+    edges.push({ a: parent, b: nodes.length - 1, w: 0.4 + rng() * 0.4 });
+    if (rng() > 0.5) {
+      const other = 5 + Math.floor(rng() * i);
+      if (other < nodes.length - 1) edges.push({ a: nodes.length - 1, b: other, w: 0.15 + rng() * 0.3 });
     }
   }
 
-  for (let i = 10; i < nodes.length; i++) {
-    const parent = 4 + Math.floor(rng() * 6);
-    edges.push({ from: parent, to: i, strength: 0.15 + rng() * 0.35 });
-    if (rng() > 0.7) {
-      const other = 10 + Math.floor(rng() * (nodes.length - 10));
-      if (other !== i && other < nodes.length) edges.push({ from: i, to: other, strength: 0.1 + rng() * 0.2 });
+  for (let i = 0; i < 12; i++) {
+    const phi = (i / 12) * 6.28 + rng() * 0.7;
+    const theta = rng() * 3.14;
+    const dist = 70 + rng() * 30;
+    nodes.push({
+      pos: {
+        x: Math.sin(theta) * Math.cos(phi) * dist,
+        y: Math.sin(theta) * Math.sin(phi) * dist,
+        z: Math.cos(theta) * dist * 0.4,
+      },
+      r: 1 + rng() * 0.8, layer: 3, phase: rng() * 6.28,
+    });
+    const parent = 5 + Math.floor(rng() * 8);
+    if (parent < nodes.length - 1) edges.push({ a: parent, b: nodes.length - 1, w: 0.1 + rng() * 0.25 });
+    if (rng() > 0.65) {
+      const other = 13 + Math.floor(rng() * i);
+      if (other < nodes.length - 1) edges.push({ a: nodes.length - 1, b: other, w: 0.05 + rng() * 0.15 });
     }
   }
 
   return { nodes, edges };
 }
 
+function project(p: Vec3, w: number, h: number, fov: number): { sx: number; sy: number; depth: number; scale: number } {
+  const d = fov / (fov + p.z + 150);
+  return { sx: w / 2 + p.x * d, sy: h / 2 + p.y * d, depth: p.z, scale: d };
+}
+
+function rotateY(p: Vec3, a: number): Vec3 {
+  const c = Math.cos(a), s = Math.sin(a);
+  return { x: p.x * c + p.z * s, y: p.y, z: -p.x * s + p.z * c };
+}
+
+function rotateX(p: Vec3, a: number): Vec3 {
+  const c = Math.cos(a), s = Math.sin(a);
+  return { x: p.x, y: p.y * c - p.z * s, z: p.y * s + p.z * c };
+}
+
 export function NeuralOrbit({ status, accentColor, seed = 0 }: NeuralOrbitProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animRef = useRef<number>(0);
+  const timeRef = useRef(0);
+  const signalsRef = useRef<Signal[]>([]);
+
   const safeStatus = (["idle", "working", "error", "waiting"].includes(status) ? status : "idle") as NeuralOrbitProps["status"];
   const color = accentColor || "#6366f1";
-  const rgb = hexToRgb(color);
-  const uid = `nn-${seed}`;
+  const rgb = useMemo(() => hexToRgb(color), [color]);
+  const network = useMemo(() => buildNetwork(seed), [seed]);
 
-  const isWorking = safeStatus === "working";
-  const isError = safeStatus === "error";
-  const isWaiting = safeStatus === "waiting";
+  const render = useCallback((time: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-  const network = useMemo(() => generateNeuralNetwork(seed), [seed]);
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
 
-  const baseEdgeOpacity = isWorking ? 0.4 : isError ? 0.15 : isWaiting ? 0.08 : 0.15;
-  const baseNodeOpacity = isWorking ? 0.9 : isError ? 0.5 : isWaiting ? 0.3 : 0.55;
-  const pulseSpeed = isWorking ? 1.5 : isError ? 0.8 : isWaiting ? 5 : 3;
+    const dt = (time - timeRef.current) / 1000;
+    timeRef.current = time;
+
+    const isWorking = safeStatus === "working";
+    const isError = safeStatus === "error";
+    const isWaiting = safeStatus === "waiting";
+
+    const rotSpeed = isWorking ? 0.15 : isError ? 0.25 : isWaiting ? 0.03 : 0.06;
+    const tilt = 0.3 + Math.sin(time * 0.0003) * 0.08;
+    const rotAngle = time * 0.001 * rotSpeed;
+
+    const fov = Math.min(w, h) * 1.8;
+    const pulse = Math.sin(time * (isWorking ? 0.004 : 0.002));
+    const globalAlpha = isWaiting ? 0.4 : isError ? 0.65 : 0.85;
+
+    const { nodes, edges } = network;
+
+    const projected = nodes.map((n, i) => {
+      let p = n.pos;
+      p = rotateY(p, rotAngle);
+      p = rotateX(p, tilt);
+      const breathe = 1 + Math.sin(time * 0.003 + n.phase) * (isWorking ? 0.06 : 0.03);
+      p = { x: p.x * breathe, y: p.y * breathe, z: p.z * breathe };
+      const proj = project(p, w, h, fov);
+      return { ...proj, node: n, idx: i };
+    });
+
+    const edgesProj = edges.map(e => ({
+      edge: e,
+      fromP: projected[e.a],
+      toP: projected[e.b],
+      avgDepth: (projected[e.a].depth + projected[e.b].depth) / 2,
+    }));
+    edgesProj.sort((a, b) => a.avgDepth - b.avgDepth);
+
+    for (const ep of edgesProj) {
+      const { fromP, toP, edge } = ep;
+      const depthFade = Math.max(0.1, Math.min(1, (fromP.scale + toP.scale) / 2 * 1.5));
+      const edgePulse = Math.sin(time * 0.003 + edge.a * 0.5) * 0.3 + 0.7;
+      let alpha = edge.w * depthFade * edgePulse * globalAlpha * 0.5;
+      if (isWorking) alpha *= 1.5;
+      if (isError) alpha *= 0.5 + Math.sin(time * 0.01 + edge.a) * 0.3;
+
+      const lineW = Math.max(0.3, edge.w * depthFade * (isWorking ? 2.5 : 1.5));
+
+      const grad = ctx.createLinearGradient(fromP.sx, fromP.sy, toP.sx, toP.sy);
+      grad.addColorStop(0, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha * 0.3})`);
+      grad.addColorStop(0.5, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`);
+      grad.addColorStop(1, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha * 0.3})`);
+
+      const mx = (fromP.sx + toP.sx) / 2 + (fromP.sy - toP.sy) * 0.12;
+      const my = (fromP.sy + toP.sy) / 2 + (toP.sx - fromP.sx) * 0.12;
+
+      ctx.beginPath();
+      ctx.moveTo(fromP.sx, fromP.sy);
+      ctx.quadraticCurveTo(mx, my, toP.sx, toP.sy);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = lineW;
+      ctx.stroke();
+
+      if (isWorking && edge.w > 0.3) {
+        ctx.beginPath();
+        ctx.moveTo(fromP.sx, fromP.sy);
+        ctx.quadraticCurveTo(mx, my, toP.sx, toP.sy);
+        ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha * 0.15})`;
+        ctx.lineWidth = lineW * 4;
+        ctx.stroke();
+      }
+    }
+
+    if (isWorking) {
+      const signals = signalsRef.current;
+      if (signals.length < 8 && dt > 0) {
+        const rng = seededRng(Math.floor(time * 0.01) + seed);
+        if (rng() > 0.92) {
+          const eIdx = Math.floor(rng() * edges.length);
+          signals.push({ edge: eIdx, t: 0, speed: 0.4 + rng() * 0.6 });
+        }
+      }
+
+      for (let i = signals.length - 1; i >= 0; i--) {
+        const sig = signals[i];
+        sig.t += dt * sig.speed;
+        if (sig.t > 1) { signals.splice(i, 1); continue; }
+
+        const e = edges[sig.edge];
+        if (!e) { signals.splice(i, 1); continue; }
+        const fp = projected[e.a], tp = projected[e.b];
+        const t = sig.t;
+        const mx = (fp.sx + tp.sx) / 2 + (fp.sy - tp.sy) * 0.12;
+        const my = (fp.sy + tp.sy) / 2 + (tp.sx - fp.sx) * 0.12;
+        const u = 1 - t;
+        const sx = u * u * fp.sx + 2 * u * t * mx + t * t * tp.sx;
+        const sy = u * u * fp.sy + 2 * u * t * my + t * t * tp.sy;
+        const sigAlpha = Math.sin(t * 3.14) * 0.9;
+
+        const sigGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, 8);
+        sigGrad.addColorStop(0, `rgba(255,255,255,${sigAlpha})`);
+        sigGrad.addColorStop(0.3, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${sigAlpha * 0.6})`);
+        sigGrad.addColorStop(1, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0)`);
+        ctx.beginPath();
+        ctx.arc(sx, sy, 8, 0, 6.28);
+        ctx.fillStyle = sigGrad;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(sx, sy, 2, 0, 6.28);
+        ctx.fillStyle = `rgba(255,255,255,${sigAlpha})`;
+        ctx.fill();
+      }
+    } else {
+      signalsRef.current = [];
+    }
+
+    projected.sort((a, b) => a.depth - b.depth);
+
+    for (const p of projected) {
+      const { sx, sy, scale, node } = p;
+      const isCore = node.layer === 0;
+      const baseR = node.r * scale * (isWorking ? 1.15 : 1);
+      const depthAlpha = Math.max(0.15, Math.min(1, scale * 1.5));
+      const nodePulse = Math.sin(time * (isWorking ? 0.005 : 0.002) + node.phase);
+
+      const r = baseR * (1 + nodePulse * (isCore ? 0.15 : 0.08));
+      let alpha = depthAlpha * globalAlpha * (isCore ? 1 : node.layer === 1 ? 0.85 : node.layer === 2 ? 0.65 : 0.4);
+      if (isError) alpha *= 0.6 + Math.sin(time * 0.015 + node.phase) * 0.4;
+
+      if (isCore || node.layer === 1) {
+        const glowR = r * (isCore ? 6 : 3.5) * (1 + nodePulse * 0.2);
+        const glowAlpha = alpha * (isCore ? 0.25 : 0.12) * (isWorking ? 1.5 : 1);
+        const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, glowR);
+        glow.addColorStop(0, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${glowAlpha})`);
+        glow.addColorStop(0.5, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${glowAlpha * 0.3})`);
+        glow.addColorStop(1, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0)`);
+        ctx.beginPath();
+        ctx.arc(sx, sy, glowR, 0, 6.28);
+        ctx.fillStyle = glow;
+        ctx.fill();
+      }
+
+      if (isCore && isWorking) {
+        const ringR = r * 3 * (1 + pulse * 0.15);
+        ctx.beginPath();
+        ctx.arc(sx, sy, ringR, 0, 6.28);
+        ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${0.1 + pulse * 0.05})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+
+        const ringR2 = r * 5 * (1 + pulse * 0.1);
+        ctx.beginPath();
+        ctx.arc(sx, sy, ringR2, 0, 6.28);
+        ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${0.05 + pulse * 0.03})`;
+        ctx.lineWidth = 0.3;
+        ctx.stroke();
+      }
+
+      const nodeGrad = ctx.createRadialGradient(sx - r * 0.3, sy - r * 0.3, 0, sx, sy, r);
+      nodeGrad.addColorStop(0, `rgba(255,255,255,${alpha * 0.95})`);
+      nodeGrad.addColorStop(0.4, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha * 0.8})`);
+      nodeGrad.addColorStop(1, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha * 0.2})`);
+
+      ctx.beginPath();
+      ctx.arc(sx, sy, Math.max(0.5, r), 0, 6.28);
+      ctx.fillStyle = nodeGrad;
+      ctx.fill();
+
+      if (isCore) {
+        const highlight = ctx.createRadialGradient(sx - r * 0.2, sy - r * 0.25, 0, sx, sy, r * 0.6);
+        highlight.addColorStop(0, `rgba(255,255,255,${alpha * 0.9})`);
+        highlight.addColorStop(1, `rgba(255,255,255,0)`);
+        ctx.beginPath();
+        ctx.arc(sx, sy, r * 0.6, 0, 6.28);
+        ctx.fillStyle = highlight;
+        ctx.fill();
+      }
+    }
+
+    animRef.current = requestAnimationFrame(render);
+  }, [safeStatus, rgb, network, seed]);
+
+  useEffect(() => {
+    timeRef.current = performance.now();
+    animRef.current = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(animRef.current);
+  }, [render]);
 
   return (
     <div className="absolute inset-0 overflow-hidden">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 w-full h-full">
-        <defs>
-          <radialGradient id={`${uid}-cg`} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
-            <stop offset="40%" stopColor={color} stopOpacity="0.7" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id={`${uid}-ng`} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor={color} stopOpacity="0.8" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
-          </radialGradient>
-          <filter id={`${uid}-glow`}>
-            <feGaussianBlur stdDeviation="1.5" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          {isError && (
-            <filter id={`${uid}-err`}>
-              <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed={seed * 3} />
-              <feDisplacementMap in="SourceGraphic" scale="2.5" />
-            </filter>
-          )}
-        </defs>
-
-        <g filter={isError ? `url(#${uid}-err)` : undefined}>
-          {network.edges.map((edge, i) => {
-            const from = network.nodes[edge.from];
-            const to = network.nodes[edge.to];
-            if (!from || !to) return null;
-
-            const mx = (from.x + to.x) / 2 + (from.y - to.y) * 0.15;
-            const my = (from.y + to.y) / 2 + (to.x - from.x) * 0.15;
-            const path = `M ${from.x} ${from.y} Q ${mx} ${my} ${to.x} ${to.y}`;
-            const opacity = baseEdgeOpacity * edge.strength;
-
-            return (
-              <React.Fragment key={`e-${i}`}>
-                <motion.path
-                  d={path}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth={edge.strength > 0.5 ? 0.6 : 0.35}
-                  opacity={opacity}
-                  animate={isWorking ? {
-                    opacity: [opacity * 0.4, opacity * 1.5, opacity * 0.4],
-                    strokeWidth: [0.3, edge.strength > 0.5 ? 0.9 : 0.5, 0.3],
-                  } : {
-                    opacity: [opacity * 0.6, opacity, opacity * 0.6],
-                  }}
-                  transition={{
-                    duration: pulseSpeed + (i % 3) * 0.7,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: (i % 5) * 0.3,
-                  }}
-                />
-                {isWorking && edge.strength > 0.5 && (
-                  <motion.circle r="0.8" fill="#ffffff" opacity={0}>
-                    <animateMotion
-                      dur={`${1.5 + (i % 3) * 0.5}s`}
-                      repeatCount="indefinite"
-                      path={path}
-                    />
-                    <animate
-                      attributeName="opacity"
-                      values="0;0.8;0"
-                      dur={`${1.5 + (i % 3) * 0.5}s`}
-                      repeatCount="indefinite"
-                    />
-                  </motion.circle>
-                )}
-              </React.Fragment>
-            );
-          })}
-
-          {network.nodes.map((node, i) => {
-            const isCore = node.layer === 0;
-            const nodeR = node.r;
-            const opacity = baseNodeOpacity * (isCore ? 1 : node.layer === 1 ? 0.9 : node.layer === 2 ? 0.7 : 0.5);
-
-            return (
-              <React.Fragment key={`n-${i}`}>
-                {isCore && (
-                  <motion.circle
-                    cx={node.x} cy={node.y} r={nodeR * 4}
-                    fill={`url(#${uid}-ng)`}
-                    opacity={0.3}
-                    animate={{
-                      r: [nodeR * 3.5, nodeR * 5, nodeR * 3.5],
-                      opacity: isWorking ? [0.3, 0.6, 0.3] : [0.15, 0.3, 0.15],
-                    }}
-                    transition={{ duration: pulseSpeed * 1.2, repeat: Infinity, ease: "easeInOut" }}
-                  />
-                )}
-
-                {node.layer <= 1 && (
-                  <motion.circle
-                    cx={node.x} cy={node.y} r={nodeR * 2.5}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth="0.2"
-                    opacity={0.15}
-                    animate={{
-                      r: [nodeR * 2, nodeR * 3, nodeR * 2],
-                      opacity: [0.05, 0.2, 0.05],
-                    }}
-                    transition={{ duration: pulseSpeed * 1.5, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
-                  />
-                )}
-
-                <motion.circle
-                  cx={node.x} cy={node.y}
-                  r={nodeR}
-                  fill={node.bright ? `url(#${uid}-cg)` : color}
-                  filter={node.layer <= 1 ? `url(#${uid}-glow)` : undefined}
-                  opacity={opacity}
-                  animate={{
-                    r: isWorking
-                      ? [nodeR, nodeR * 1.4, nodeR]
-                      : [nodeR, nodeR * 1.15, nodeR],
-                    opacity: [opacity * 0.6, opacity, opacity * 0.6],
-                  }}
-                  transition={{
-                    duration: pulseSpeed + (i % 4) * 0.5,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: (i % 6) * 0.2,
-                  }}
-                />
-
-                {isCore && (
-                  <circle cx={node.x} cy={node.y} r={nodeR * 0.5} fill="#ffffff" opacity={isWaiting ? 0.5 : 0.9} />
-                )}
-              </React.Fragment>
-            );
-          })}
-
-          {isWorking && (
-            <>
-              {[0, 1, 2].map(i => {
-                const rng = seededRandom(seed * 100 + i * 37);
-                const core = network.nodes[0];
-                const angle = (i * 120 + 30) * (Math.PI / 180);
-                const endX = core.x + Math.cos(angle) * (40 + rng() * 10);
-                const endY = core.y + Math.sin(angle) * (40 + rng() * 10);
-                return (
-                  <motion.line
-                    key={`pulse-${i}`}
-                    x1={core.x} y1={core.y} x2={endX} y2={endY}
-                    stroke={color}
-                    strokeWidth="0.15"
-                    opacity={0}
-                    animate={{ opacity: [0, 0.15, 0] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: i * 1 }}
-                  />
-                );
-              })}
-            </>
-          )}
-        </g>
-      </svg>
-
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          left: `${network.nodes[0].x}%`,
-          top: `${network.nodes[0].y}%`,
-          transform: "translate(-50%, -50%)",
-          width: isWorking ? 80 : 50,
-          height: isWorking ? 80 : 50,
-          background: `radial-gradient(circle, rgba(${rgb.r},${rgb.g},${rgb.b},${isWorking ? 0.12 : 0.06}) 0%, transparent 70%)`,
-          filter: `blur(${isWorking ? 15 : 10}px)`,
-        }}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ imageRendering: "auto" }}
       />
     </div>
   );
 }
 
 export function EmptyOrbit({ onClick }: { onClick?: () => void }) {
-  const interactive = !!onClick;
-  const Container = interactive ? motion.div : ("div" as any);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animRef = useRef<number>(0);
 
-  const ghostNodes = [
-    { x: 40, y: 45, r: 2 },
-    { x: 55, y: 35, r: 1.5 },
-    { x: 60, y: 55, r: 1.2 },
-    { x: 35, y: 60, r: 1 },
-    { x: 50, y: 50, r: 2.5 },
-  ];
-  const ghostEdges = [
-    [4, 0], [4, 1], [4, 2], [4, 3], [0, 1], [2, 3],
-  ];
+  const render = useCallback((time: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+      canvas.width = w * dpr; canvas.height = h * dpr;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    const rot = time * 0.0002;
+    const tilt = 0.4;
+    const fov = Math.min(w, h) * 1.5;
+
+    const ghostNodes = [
+      { x: 0, y: 0, z: 0, r: 3 },
+      { x: 30, y: 20, z: 10, r: 2 },
+      { x: -25, y: 15, z: -15, r: 1.8 },
+      { x: 20, y: -25, z: 5, r: 1.5 },
+      { x: -15, y: -20, z: -10, r: 1.5 },
+    ];
+    const ghostEdges = [[0,1],[0,2],[0,3],[0,4],[1,2],[3,4]];
+
+    const proj = ghostNodes.map(n => {
+      let p = { x: n.x, y: n.y, z: n.z };
+      p = rotateY(p, rot);
+      p = rotateX(p, tilt);
+      const pr = project(p, w, h, fov);
+      return { ...pr, r: n.r };
+    });
+
+    const pulse = Math.sin(time * 0.001) * 0.3 + 0.7;
+
+    for (const [a, b] of ghostEdges) {
+      const f = proj[a], t = proj[b];
+      ctx.beginPath();
+      ctx.moveTo(f.sx, f.sy);
+      ctx.lineTo(t.sx, t.sy);
+      ctx.strokeStyle = `rgba(99,102,241,${0.06 * pulse})`;
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash([3, 5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    for (const p of proj) {
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, Math.max(0.5, p.r * p.scale), 0, 6.28);
+      ctx.fillStyle = `rgba(99,102,241,${0.15 * pulse})`;
+      ctx.fill();
+    }
+
+    animRef.current = requestAnimationFrame(render);
+  }, []);
+
+  useEffect(() => {
+    animRef.current = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(animRef.current);
+  }, [render]);
 
   return (
-    <Container
-      className={`absolute inset-0 overflow-hidden ${interactive ? "cursor-pointer group" : ""}`}
-      {...(interactive ? {
-        whileHover: { scale: 1.02 },
-        onClick,
-        role: "button",
-        tabIndex: 0,
-        "aria-label": "Add new agent",
-      } : {})}
+    <div
+      className={`absolute inset-0 overflow-hidden ${onClick ? "cursor-pointer group" : ""}`}
+      onClick={onClick}
+      {...(onClick ? { role: "button" as const, tabIndex: 0, "aria-label": "Add new agent" } : {})}
     >
-      <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 w-full h-full opacity-15 group-hover:opacity-30 transition-opacity duration-700">
-        {ghostEdges.map(([from, to], i) => (
-          <motion.line
-            key={`ge-${i}`}
-            x1={ghostNodes[from].x} y1={ghostNodes[from].y}
-            x2={ghostNodes[to].x} y2={ghostNodes[to].y}
-            stroke="#6366f1" strokeWidth="0.3" strokeDasharray="2 3"
-            opacity={0.4}
-            animate={{ opacity: [0.2, 0.5, 0.2] }}
-            transition={{ duration: 4 + i * 0.5, repeat: Infinity, ease: "easeInOut" }}
-          />
-        ))}
-        {ghostNodes.map((n, i) => (
-          <motion.circle
-            key={`gn-${i}`}
-            cx={n.x} cy={n.y} r={n.r}
-            fill="#6366f1" opacity={0.3}
-            animate={{ opacity: [0.15, 0.4, 0.15], r: [n.r * 0.8, n.r * 1.2, n.r * 0.8] }}
-            transition={{ duration: 3 + i * 0.8, repeat: Infinity, ease: "easeInOut" }}
-          />
-        ))}
-      </svg>
-
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-6 h-[1px] bg-indigo-500/25 group-hover:bg-indigo-400/40 transition-colors" />
-        <div className="absolute h-6 w-[1px] bg-indigo-500/25 group-hover:bg-indigo-400/40 transition-colors" />
+        <div className="w-6 h-[1px] bg-indigo-500/20 group-hover:bg-indigo-400/40 transition-colors" />
+        <div className="absolute h-6 w-[1px] bg-indigo-500/20 group-hover:bg-indigo-400/40 transition-colors" />
       </div>
-    </Container>
+    </div>
   );
 }
