@@ -3221,7 +3221,8 @@ ${JSON.stringify(context, null, 2)}`;
         chatMessages.unshift({ role: "user", content: "(continuing)" });
       }
 
-      const stream = await createRawStream(systemContent, chatMessages, { model: MODEL_PRIMARY, maxTokens: therapyMode ? 2000 : 4000 });
+      const orbitModel = therapyMode ? MODEL_PRIMARY : MODEL_FAST;
+      const stream = await createRawStream(systemContent, chatMessages, { model: orbitModel, maxTokens: therapyMode ? 2000 : 4000 });
 
       let fullResponse = "";
       const executedActions = new Set<string>();

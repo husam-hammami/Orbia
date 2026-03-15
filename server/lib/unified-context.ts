@@ -1,6 +1,9 @@
 import { storage } from "../storage";
 import { buildMemoryContext } from "./memory-graph";
 
+const githubRepoCache: { repos: any[]; fetchedAt: number; userId: string } = { repos: [], fetchedAt: 0, userId: "" };
+const GITHUB_CACHE_TTL = 5 * 60 * 1000;
+
 export async function buildUnifiedContext(userId: string): Promise<{
   context: string;
   msToken: string | null;
@@ -527,8 +530,17 @@ ${visionItems.map((v: any) => `- ${v.title} (${v.timeframe}): ${v.description ||
     }
     if (githubConn?.accessToken) {
       try {
-        const { listRepos } = await import("./github-oauth");
-        const repos = await listRepos(githubConn.accessToken, 1, 100);
+        const now = Date.now();
+        let repos: any[];
+        if (githubRepoCache.userId === userId && now - githubRepoCache.fetchedAt < GITHUB_CACHE_TTL) {
+          repos = githubRepoCache.repos;
+        } else {
+          const { listRepos } = await import("./github-oauth");
+          repos = await listRepos(githubConn.accessToken, 1, 100);
+          githubRepoCache.repos = repos;
+          githubRepoCache.fetchedAt = now;
+          githubRepoCache.userId = userId;
+        }
         if (repos.length > 0) {
           agentSection += "\n\nAvailable GitHub repos:";
           for (const r of repos) {
