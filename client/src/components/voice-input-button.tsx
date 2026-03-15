@@ -726,6 +726,11 @@ export function VoiceInputButton({
           streamRef.current = null;
         }
         if (userCanceledRef.current) return;
+        const browserTranscript = finalTranscriptRef.current.trim();
+        if (conversationMode && onConversationResponse && browserTranscript.length > 2) {
+          doConversation(browserTranscript);
+          return;
+        }
         const chunks = [...chunksRef.current];
         processRecording(chunks, mimeType);
       };

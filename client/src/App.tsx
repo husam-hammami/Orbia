@@ -19,7 +19,6 @@ import TrackerPage from "@/pages/tracker";
 import MedicalPage from "@/pages/medical";
 import WorkPage from "@/pages/work";
 import AgentsPage from "@/pages/agents";
-import { OrbitFab } from "@/components/orbit-fab";
 
 interface LockContextType {
   isLocked: boolean;
@@ -156,7 +155,6 @@ function App() {
               <>
                 <Toaster />
                 <Router />
-                <OrbitFab />
               </>
             )}
           </LockContext.Provider>

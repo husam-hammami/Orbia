@@ -5737,7 +5737,7 @@ ${unifiedContext}`;
       const rawText = transcription.text?.trim();
       console.log("[voice] Raw transcription:", rawText?.substring(0, 100));
 
-      if (!rawText || rawText.length < 30) {
+      if (!rawText || rawText.length < 60) {
         res.json({ text: rawText || "" });
         return;
       }
@@ -5793,10 +5793,12 @@ ${rawText}`
       const validModes = ["orbit", "work", "medical"];
       const safeMode = validModes.includes(mode) ? mode : "orbit";
 
+      const converseStart = Date.now();
       console.log("[voice-converse] Starting conversation for user:", userId, "mode:", safeMode);
 
       const { buildUnifiedContextWithMemory, buildUnifiedSystemPrompt, buildTherapeuticPrompt } = await import("./lib/unified-context");
       const { context: unifiedContext } = await buildUnifiedContextWithMemory(userId, safeMode);
+      console.log("[voice-converse] Context built in", Date.now() - converseStart, "ms");
 
       let systemPrompt: string;
       if (therapyMode) {
@@ -5832,12 +5834,13 @@ ${rawText}`
       }
 
       const { createRawCompletion } = await import("./lib/ai-client");
+      const voiceModel = therapyMode ? "claude-sonnet-4-6" : "claude-haiku-4-5";
       const textResponse = await createRawCompletion(systemPrompt, chatMessages, {
-        model: "claude-sonnet-4-6",
-        maxTokens: 600,
+        model: voiceModel,
+        maxTokens: 400,
       });
 
-      console.log("[voice-converse] AI response generated, length:", textResponse.length);
+      console.log("[voice-converse] AI response in", Date.now() - converseStart, "ms, length:", textResponse.length);
 
       let audioData: string | null = null;
       try {
