@@ -77,7 +77,16 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
   envVars.COLUMNS = "80";
   envVars.LINES = "24";
 
-  const shell = spawn("script", ["-qfc", "bash --norc --noprofile -i", "/dev/null"], {
+  const initScript = [
+    `stty -echo 2>/dev/null`,
+    `export PS1='\\[\\033[1;36m\\]${agentName}\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]\\$ '`,
+    `export PATH="${enhancedPath}"`,
+    `cd "${repoDir}"`,
+    `stty echo 2>/dev/null`,
+    `clear`,
+  ].join("; ");
+
+  const shell = spawn("bash", ["-c", `${initScript}; exec bash --norc --noprofile -i`], {
     cwd: repoDir,
     env: envVars,
     stdio: ["pipe", "pipe", "pipe"],
@@ -100,8 +109,11 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
     `\x1b[90mClaude Code launching automatically...\x1b[0m\r\n\r\n`;
   session.outputBuffer.push(welcome);
 
+  let suppressInit = true;
+
   const handleOutput = (data: Buffer) => {
     const text = data.toString();
+    if (suppressInit) return;
     session.outputBuffer.push(text);
     if (session.outputBuffer.length > MAX_BUFFER_LINES) {
       session.outputBuffer = session.outputBuffer.slice(-MAX_BUFFER_LINES / 2);
@@ -138,21 +150,12 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
     shells.delete(agentId);
   });
 
-  if (shell.stdin) {
-    shell.stdin.write(`stty -echo 2>/dev/null\n`);
-    shell.stdin.write(`export PS1='\\[\\033[1;36m\\]${agentName}\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]$ '\n`);
-    shell.stdin.write(`export PATH="${enhancedPath}"\n`);
-    shell.stdin.write(`cd "${repoDir}"\n`);
-    shell.stdin.write(`stty echo 2>/dev/null\n`);
-    shell.stdin.write("clear\n");
-  }
-
   setTimeout(() => {
+    suppressInit = false;
     if (session.alive && shell.stdin) {
-      shell.stdin.write("clear\n");
       shell.stdin.write("claude\n");
     }
-  }, 500);
+  }, 800);
 
   shells.set(agentId, session);
   console.log(`[agent-terminal] PTY shell started for "${agentName}" (${agentId}) in ${repoDir}`);
