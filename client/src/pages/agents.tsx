@@ -1189,7 +1189,7 @@ function ProjectPane({ agent }: { agent: Agent }) {
                             initial={{ opacity: 0, y: -5 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -5 }}
-                            className="absolute right-0 top-full mt-1 w-56 max-h-48 overflow-y-auto bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-50 custom-scrollbar"
+                            className="absolute right-0 top-full mt-1 min-w-[280px] max-w-[380px] max-h-64 overflow-y-auto bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-50 custom-scrollbar"
                           >
                             {branches?.remote?.map((b: string) => (
                               <button
@@ -1206,7 +1206,7 @@ function ProjectPane({ agent }: { agent: Agent }) {
                                 data-testid={`branch-option-${b}`}
                               >
                                 <GitBranch className="w-3 h-3 flex-shrink-0" />
-                                <span className="truncate">{b}</span>
+                                <span className="break-all text-left">{b}</span>
                                 {b === branches?.current && <Check className="w-3 h-3 ml-auto text-indigo-400" />}
                               </button>
                             )) || <p className="text-xs text-gray-500 p-3">Loading...</p>}
@@ -1383,7 +1383,7 @@ function ProjectPane({ agent }: { agent: Agent }) {
 
                 <div className="pt-2 border-t border-white/5">
                   <div className="flex items-center justify-between text-xs text-gray-600 mb-2">
-                    <span className="flex items-center gap-1.5 font-mono truncate" title={agent.repoUrl}>
+                    <span className="flex items-center gap-1.5 font-mono break-all" title={agent.repoUrl}>
                       <FolderGit2 className="w-3 h-3 flex-shrink-0" />
                       {agent.repoUrl.replace("https://github.com/", "")}
                     </span>
