@@ -3684,6 +3684,27 @@ ${JSON.stringify(context, null, 2)}`;
         }
       }
 
+      const ACTION_PREFIX = '{"type"';
+      const BRACKET_ACTIONS = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE|CREATE_PROJECT|ADD_TASK|UPDATE_PROJECT_STATUS|COMPLETE_TASK|ZOHO_CREATE|ZOHO_UPDATE|ZOHO_COMPLETE)\s/;
+
+      function findPotentialActionStart(text: string): number {
+        for (let i = 0; i < text.length; i++) {
+          if (text[i] === '{') {
+            const remaining = text.slice(i);
+            if (ACTION_PREFIX.startsWith(remaining) || remaining.startsWith(ACTION_PREFIX)) {
+              return i;
+            }
+          }
+          if (text[i] === '[') {
+            const remaining = text.slice(i);
+            if (BRACKET_ACTIONS.test(remaining)) {
+              return i;
+            }
+          }
+        }
+        return -1;
+      }
+
       for await (const event of stream) {
         if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") continue;
         const content = event.delta.text;
@@ -3692,10 +3713,17 @@ ${JSON.stringify(context, null, 2)}`;
           bufferedContent += content;
 
           const actionStart = findActionStart(bufferedContent);
+          const potentialStart = actionStart === -1 ? findPotentialActionStart(bufferedContent) : actionStart;
 
-          if (actionStart === -1) {
+          if (potentialStart === -1) {
             res.write(`data: ${JSON.stringify({ content: bufferedContent })}\n\n`);
             bufferedContent = "";
+          } else if (actionStart === -1) {
+            const safe = bufferedContent.slice(0, potentialStart);
+            if (safe.trim()) {
+              res.write(`data: ${JSON.stringify({ content: safe })}\n\n`);
+            }
+            bufferedContent = bufferedContent.slice(potentialStart);
           } else {
             const safe = bufferedContent.slice(0, actionStart);
             if (safe.trim()) {
