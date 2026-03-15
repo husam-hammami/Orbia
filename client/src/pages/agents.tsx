@@ -846,7 +846,7 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
               title="Open Repository"
             >
               <Github className="w-3.5 h-3.5" />
-              <span className="truncate max-w-[150px]">{agent.repoUrl.split("/").slice(-2).join("/")}</span>
+              <span>{agent.repoUrl.split("/").slice(-2).join("/")}</span>
             </a>
             {agent.repoBranch && (
               <>
