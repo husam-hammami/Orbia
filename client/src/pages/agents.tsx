@@ -14,7 +14,9 @@ import {
   GitCommit, GitMerge, GitPullRequest,
   RotateCcw, ArrowDownToLine, ArrowUpFromLine,
   ChevronDown, Clock, AlertTriangle,
-  BrainCircuit
+  BrainCircuit,
+  Folder, File, ChevronRight, Eye,
+  ArrowUp, Code
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NeuralOrbit, EmptyOrbit } from "@/components/agents/pixel-agent";
@@ -946,6 +948,10 @@ function ProjectPane({ agent }: { agent: Agent }) {
   const [showNewBranch, setShowNewBranch] = useState(false);
   const [gitLoading, setGitLoading] = useState<string | null>(null);
   const [revertConfirm, setRevertConfirm] = useState<string | null>(null);
+  const [filePath, setFilePath] = useState("");
+  const [viewingFile, setViewingFile] = useState<{ path: string; content: string | null; size: number; truncated?: boolean } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [showFiles, setShowFiles] = useState(true);
 
   const { data: branches, refetch: refetchBranches } = useQuery({
     queryKey: [`/api/agents/${agent.id}/git/branches`],
@@ -965,6 +971,16 @@ function ProjectPane({ agent }: { agent: Agent }) {
       return res.json();
     },
     enabled: activeTab === "files" && agent.repoCloned && commitLog,
+  });
+
+  const { data: fileList, refetch: refetchFiles } = useQuery({
+    queryKey: [`/api/agents/${agent.id}/files`, filePath],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}/files?path=${encodeURIComponent(filePath)}`, { credentials: "include" });
+      if (!res.ok) return { files: [], currentPath: "" };
+      return res.json();
+    },
+    enabled: activeTab === "files" && agent.repoCloned && showFiles,
   });
 
   const { data: gitStatus, refetch: refetchStatus } = useQuery({
@@ -999,6 +1015,37 @@ function ProjectPane({ agent }: { agent: Agent }) {
     } finally {
       setGitLoading(null);
     }
+  }
+
+  async function viewFile(fPath: string) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}/files/read?path=${encodeURIComponent(fPath)}`, { credentials: "include" });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error); return; }
+      setViewingFile({ path: fPath, content: data.content, size: data.size, truncated: data.truncated });
+    } catch (err: any) { toast.error(err.message); }
+  }
+
+  async function deleteFile(fPath: string) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}/files`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ path: fPath }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error); return; }
+      toast.success("Deleted");
+      setDeleteConfirm(null);
+      refetchFiles();
+    } catch (err: any) { toast.error(err.message); }
+  }
+
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1376,6 +1423,136 @@ function ProjectPane({ agent }: { agent: Agent }) {
                             </p>
                           )}
                         </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setShowFiles(!showFiles)}
+                    className="flex items-center justify-between w-full text-[10px] uppercase tracking-widest text-gray-500 font-medium hover:text-gray-300 transition-colors"
+                    data-testid="button-toggle-files"
+                  >
+                    <span className="flex items-center gap-1.5"><Folder className="w-3 h-3" /> File Explorer</span>
+                    <ChevronDown className={cn("w-3 h-3 transition-transform", showFiles && "rotate-180")} />
+                  </button>
+
+                  <AnimatePresence>
+                    {showFiles && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        {viewingFile ? (
+                          <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                            <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 bg-white/[0.02]">
+                              <span className="text-[10px] text-gray-400 font-mono truncate flex-1" title={viewingFile.path}>{viewingFile.path.split("/").pop()}</span>
+                              <div className="flex items-center gap-1.5 ml-2">
+                                <span className="text-[10px] text-gray-600">{formatFileSize(viewingFile.size)}</span>
+                                <button onClick={() => setViewingFile(null)} className="p-1 hover:bg-white/10 rounded text-gray-500 hover:text-white transition-colors">
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                            <div className="max-h-[300px] overflow-auto custom-scrollbar">
+                              {viewingFile.truncated ? (
+                                <p className="text-xs text-gray-500 p-4 text-center">File too large to preview ({formatFileSize(viewingFile.size)})</p>
+                              ) : viewingFile.content !== null ? (
+                                <pre className="text-[11px] text-gray-300 p-3 font-mono whitespace-pre-wrap break-all leading-relaxed">{viewingFile.content}</pre>
+                              ) : (
+                                <p className="text-xs text-gray-500 p-4 text-center">Binary file — cannot preview</p>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-black/20 border border-white/5 rounded-xl overflow-hidden">
+                            {filePath && (
+                              <button
+                                onClick={() => {
+                                  const parts = filePath.split("/").filter(Boolean);
+                                  parts.pop();
+                                  setFilePath(parts.join("/"));
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-indigo-400 hover:bg-white/5 transition-colors border-b border-white/5"
+                                data-testid="button-dir-up"
+                              >
+                                <ArrowUp className="w-3 h-3" />
+                                <span className="font-mono">..</span>
+                                <span className="text-[10px] text-gray-600 ml-auto truncate max-w-[120px]">/{filePath}</span>
+                              </button>
+                            )}
+                            <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
+                              {fileList?.files?.length ? fileList.files.map((f: any) => (
+                                <div
+                                  key={f.path}
+                                  className="group flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 transition-colors border-b border-white/[0.03] last:border-0"
+                                >
+                                  {f.isDirectory ? (
+                                    <Folder className="w-3.5 h-3.5 text-indigo-400/70 flex-shrink-0" />
+                                  ) : (
+                                    <File className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                                  )}
+                                  <button
+                                    onClick={() => {
+                                      if (f.isDirectory) {
+                                        setFilePath(f.path);
+                                      } else {
+                                        viewFile(f.path);
+                                      }
+                                    }}
+                                    className="flex-1 text-left text-xs text-gray-300 hover:text-white transition-colors truncate font-mono"
+                                    data-testid={`file-${f.name}`}
+                                  >
+                                    {f.name}
+                                  </button>
+                                  {!f.isDirectory && (
+                                    <span className="text-[10px] text-gray-600 flex-shrink-0">{formatFileSize(f.size)}</span>
+                                  )}
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 flex-shrink-0">
+                                    {!f.isDirectory && (
+                                      <button
+                                        onClick={() => viewFile(f.path)}
+                                        className="p-1 rounded hover:bg-white/10 text-gray-600 hover:text-indigo-400 transition-colors"
+                                        title="View file"
+                                      >
+                                        <Eye className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                    {deleteConfirm === f.path ? (
+                                      <div className="flex items-center gap-0.5">
+                                        <button
+                                          onClick={() => deleteFile(f.path)}
+                                          className="px-1.5 py-0.5 text-[9px] bg-red-500/20 text-red-400 rounded hover:bg-red-500/30"
+                                        >
+                                          Yes
+                                        </button>
+                                        <button
+                                          onClick={() => setDeleteConfirm(null)}
+                                          className="px-1.5 py-0.5 text-[9px] text-gray-500 hover:text-gray-300"
+                                        >
+                                          No
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => setDeleteConfirm(f.path)}
+                                        className="p-1 rounded hover:bg-white/10 text-gray-600 hover:text-red-400 transition-colors"
+                                        title="Delete"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              )) : (
+                                <p className="text-xs text-gray-600 text-center py-4">Empty directory</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>

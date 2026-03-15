@@ -584,6 +584,93 @@ export function registerAgentRoutes(app: Express) {
     }
   });
 
+  app.get("/api/agents/:id/files", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+    try {
+      const repoDir = repoManager.getRepoDir(ctx.agentId);
+      const relDir = (req.query.path as string) || "";
+      const safePath = path.normalize(relDir).replace(/\.\./g, "");
+      const absDir = path.join(repoDir, safePath);
+      if (!absDir.startsWith(repoDir)) {
+        return res.status(400).json({ error: "Invalid path" });
+      }
+      if (!fs.existsSync(absDir)) {
+        return res.json({ files: [], currentPath: safePath });
+      }
+      const entries = fs.readdirSync(absDir, { withFileTypes: true });
+      const files = entries
+        .filter(e => !e.name.startsWith(".git") || e.name === ".orbia-uploads")
+        .map(e => ({
+          name: e.name,
+          isDirectory: e.isDirectory(),
+          size: e.isFile() ? fs.statSync(path.join(absDir, e.name)).size : 0,
+          path: path.join(safePath, e.name),
+        }))
+        .sort((a, b) => {
+          if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        });
+      res.json({ files, currentPath: safePath });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/agents/:id/files/read", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+    try {
+      const repoDir = repoManager.getRepoDir(ctx.agentId);
+      const relPath = (req.query.path as string) || "";
+      const safePath = path.normalize(relPath).replace(/\.\./g, "");
+      const absPath = path.join(repoDir, safePath);
+      if (!absPath.startsWith(repoDir)) {
+        return res.status(400).json({ error: "Invalid path" });
+      }
+      if (!fs.existsSync(absPath)) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      const stat = fs.statSync(absPath);
+      if (stat.size > 2 * 1024 * 1024) {
+        return res.json({ content: null, truncated: true, size: stat.size });
+      }
+      const content = fs.readFileSync(absPath, "utf-8");
+      res.json({ content, size: stat.size });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/agents/:id/files", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+    try {
+      const repoDir = repoManager.getRepoDir(ctx.agentId);
+      const relPath = req.body.path;
+      if (!relPath || typeof relPath !== "string") {
+        return res.status(400).json({ error: "Path required" });
+      }
+      const safePath = path.normalize(relPath).replace(/\.\./g, "");
+      const absPath = path.join(repoDir, safePath);
+      if (!absPath.startsWith(repoDir) || absPath === repoDir) {
+        return res.status(400).json({ error: "Invalid path" });
+      }
+      if (!fs.existsSync(absPath)) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      const stat = fs.statSync(absPath);
+      if (stat.isDirectory()) {
+        fs.rmSync(absPath, { recursive: true, force: true });
+      } else {
+        fs.unlinkSync(absPath);
+      }
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // SSE Stream (with session auth)
   app.get("/api/agents/:id/stream", requireAuth, async (req: Request, res: Response) => {
     const ctx = await requireAgentOwnership(req, res);
