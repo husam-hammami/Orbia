@@ -24,8 +24,15 @@ import {
   X,
   Bell,
   Brain,
-  Heart
+  Heart,
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Minus,
+  Code
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { VoiceInputButton } from "@/components/voice-input-button";
 import { cn } from "@/lib/utils";
 import {
@@ -1137,6 +1144,86 @@ export default function OrbitPage() {
     }
   };
 
+  const insertFormatting = (type: "bold" | "italic" | "bullet" | "numbered" | "divider" | "code") => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = input.slice(start, end);
+    let newText = "";
+    let cursorOffset = 0;
+
+    switch (type) {
+      case "bold":
+        newText = input.slice(0, start) + `**${selected || "text"}**` + input.slice(end);
+        cursorOffset = selected ? end + 4 : start + 2;
+        break;
+      case "italic":
+        newText = input.slice(0, start) + `*${selected || "text"}*` + input.slice(end);
+        cursorOffset = selected ? end + 2 : start + 1;
+        break;
+      case "code":
+        newText = input.slice(0, start) + `\`${selected || "code"}\`` + input.slice(end);
+        cursorOffset = selected ? end + 2 : start + 1;
+        break;
+      case "bullet": {
+        const lineStart = input.lastIndexOf("\n", start - 1) + 1;
+        const before = input.slice(0, lineStart);
+        const after = input.slice(lineStart);
+        const lines = after.split("\n");
+        const currentLine = lines[0];
+        if (currentLine.startsWith("- ")) {
+          lines[0] = currentLine.slice(2);
+          newText = before + lines.join("\n");
+          cursorOffset = start - 2;
+        } else {
+          lines[0] = "- " + currentLine;
+          newText = before + lines.join("\n");
+          cursorOffset = start + 2;
+        }
+        break;
+      }
+      case "numbered": {
+        const lineStart2 = input.lastIndexOf("\n", start - 1) + 1;
+        const before2 = input.slice(0, lineStart2);
+        const after2 = input.slice(lineStart2);
+        const lines2 = after2.split("\n");
+        const currentLine2 = lines2[0];
+        const numMatch = currentLine2.match(/^\d+\.\s/);
+        if (numMatch) {
+          lines2[0] = currentLine2.slice(numMatch[0].length);
+          newText = before2 + lines2.join("\n");
+          cursorOffset = start - numMatch[0].length;
+        } else {
+          lines2[0] = "1. " + currentLine2;
+          newText = before2 + lines2.join("\n");
+          cursorOffset = start + 3;
+        }
+        break;
+      }
+      case "divider":
+        newText = input.slice(0, start) + "\n---\n" + input.slice(end);
+        cursorOffset = start + 5;
+        break;
+    }
+
+    setInput(newText);
+    setTimeout(() => {
+      if (textarea) {
+        textarea.focus();
+        const pos = Math.max(0, cursorOffset);
+        if (!selected && (type === "bold" || type === "italic" || type === "code")) {
+          const wordLen = type === "code" ? 4 : 4;
+          textarea.setSelectionRange(pos, pos + wordLen);
+        } else {
+          textarea.setSelectionRange(pos, pos);
+        }
+        textarea.style.height = "auto";
+        textarea.style.height = Math.min(textarea.scrollHeight, 150) + "px";
+      }
+    }, 0);
+  };
+
   const handleSend = async (prompt?: string) => {
     const messageText = prompt || input.trim();
     if (!messageText || isLoading) return;
@@ -1598,68 +1685,136 @@ export default function OrbitPage() {
             </div>
           )}
 
-          <div className="flex gap-2 items-end">
-            <Textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                e.target.style.height = "auto";
-                e.target.style.height = Math.min(e.target.scrollHeight, 150) + "px";
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder={therapyMode ? "What's on your mind..." : "Chat with Orbia..."}
-              disabled={isLoading}
-              className="flex-1 bg-background border-input focus:border-primary resize-none min-h-[40px] max-h-[150px] py-2"
-              rows={1}
-              data-testid="input-orbit-message"
-            />
-            <VoiceInputButton
-              onTranscript={(text) => {
-                setInput(prev => prev ? prev + "\n" + text : text);
-                setTimeout(() => {
-                  if (inputRef.current) {
-                    inputRef.current.style.height = "auto";
-                    inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 150) + "px";
+          <div className="mb-3">
+            <div className={cn(
+              "rounded-xl border bg-background/80 backdrop-blur-sm shadow-sm transition-all",
+              "focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/50"
+            )}>
+              <Textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = Math.min(e.target.scrollHeight, 150) + "px";
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
                   }
-                }, 0);
-              }}
-              disabled={isLoading}
-              conversationMode={true}
-              onConversationResponse={(userText, assistantText) => {
-                const userMsg: OrbitMessage = {
-                  id: crypto.randomUUID(),
-                  role: "user",
-                  content: userText,
-                  timestamp: new Date(),
-                };
-                const assistantMsg: OrbitMessage = {
-                  id: crypto.randomUUID(),
-                  role: "assistant",
-                  content: assistantText,
-                  timestamp: new Date(),
-                };
-                setMessages(prev => [...prev, userMsg, assistantMsg]);
-              }}
-              onActionsExecuted={() => {
-                queryClient.invalidateQueries();
-              }}
-              chatHistory={messages.slice(-40).map(m => ({ role: m.role, content: m.content }))}
-              therapyMode={therapyMode}
-              aiMode="orbit"
-            />
-            <Button 
-              onClick={() => handleSend()} 
-              disabled={isLoading || !input.trim()}
-              data-testid="button-send-orbit"
-            >
-              <Send className="w-4 h-4" />
-            </Button>
+                }}
+                placeholder={therapyMode ? "What's on your mind... (Shift+Enter for new line)" : "Chat with Orbia... (Shift+Enter for new line)"}
+                disabled={isLoading}
+                className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 resize-none min-h-[44px] max-h-[150px] py-3 px-4 text-sm"
+                rows={1}
+                data-testid="input-orbit-message"
+              />
+
+              <div className="flex items-center justify-between px-2 pb-2 pt-0.5">
+                <TooltipProvider delayDuration={300}>
+                  <div className="flex items-center gap-0.5">
+                    {[
+                      { type: "bold" as const, icon: Bold, label: "Bold", testId: "button-format-bold" },
+                      { type: "italic" as const, icon: Italic, label: "Italic", testId: "button-format-italic" },
+                      { type: "code" as const, icon: Code, label: "Inline code", testId: "button-format-code" },
+                    ].map(({ type, icon: Icon, label, testId }) => (
+                      <Tooltip key={type}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            onClick={() => insertFormatting(type)}
+                            disabled={isLoading}
+                            aria-label={label}
+                            data-testid={testId}
+                          >
+                            <Icon className="w-3.5 h-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs">{label}</TooltipContent>
+                      </Tooltip>
+                    ))}
+
+                    <div className="w-px h-4 bg-border mx-1" />
+
+                    {[
+                      { type: "bullet" as const, icon: List, label: "Bullet list", testId: "button-format-bullet" },
+                      { type: "numbered" as const, icon: ListOrdered, label: "Numbered list", testId: "button-format-numbered" },
+                      { type: "divider" as const, icon: Minus, label: "Divider", testId: "button-format-divider" },
+                    ].map(({ type, icon: Icon, label, testId }) => (
+                      <Tooltip key={type}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            onClick={() => insertFormatting(type)}
+                            disabled={isLoading}
+                            aria-label={label}
+                            data-testid={testId}
+                          >
+                            <Icon className="w-3.5 h-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs">{label}</TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
+                </TooltipProvider>
+
+                <div className="flex items-center gap-1.5">
+                  <VoiceInputButton
+                    onTranscript={(text) => {
+                      setInput(prev => prev ? prev + "\n" + text : text);
+                      setTimeout(() => {
+                        if (inputRef.current) {
+                          inputRef.current.style.height = "auto";
+                          inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 150) + "px";
+                        }
+                      }, 0);
+                    }}
+                    disabled={isLoading}
+                    conversationMode={true}
+                    onConversationResponse={(userText, assistantText) => {
+                      const userMsg: OrbitMessage = {
+                        id: crypto.randomUUID(),
+                        role: "user",
+                        content: userText,
+                        timestamp: new Date(),
+                      };
+                      const assistantMsg: OrbitMessage = {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: assistantText,
+                        timestamp: new Date(),
+                      };
+                      setMessages(prev => [...prev, userMsg, assistantMsg]);
+                    }}
+                    onActionsExecuted={() => {
+                      queryClient.invalidateQueries();
+                    }}
+                    chatHistory={messages.slice(-40).map(m => ({ role: m.role, content: m.content }))}
+                    therapyMode={therapyMode}
+                    aiMode="orbit"
+                  />
+                  <Button
+                    onClick={() => handleSend()}
+                    disabled={isLoading || !input.trim()}
+                    size="sm"
+                    className="h-8 px-3 gap-1.5"
+                    data-testid="button-send-orbit"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span className="text-xs hidden sm:inline">Send</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground/60 mt-1.5 text-center">
+              Press Enter to send, Shift+Enter for a new line
+            </p>
           </div>
         </div>
       </div>
