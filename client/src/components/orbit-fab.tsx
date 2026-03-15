@@ -90,6 +90,14 @@ export function OrbitFab() {
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const warmedUp = useRef(false);
+
+  useEffect(() => {
+    if (isOpen && !warmedUp.current) {
+      warmedUp.current = true;
+      fetch("/api/orbit/warmup", { method: "POST", credentials: "include" }).catch(() => {});
+    }
+  }, [isOpen]);
 
   const today = format(new Date(), "yyyy-MM-dd");
   

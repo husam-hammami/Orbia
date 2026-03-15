@@ -126,6 +126,10 @@ function formatMarkdown(text: string): React.ReactNode {
 export default function OrbitPage() {
   const today = format(new Date(), "yyyy-MM-dd");
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    fetch("/api/orbit/warmup", { method: "POST", credentials: "include" }).catch(() => {});
+  }, []);
   
   const { data: habits } = useHabits();
   const { data: allCompletions } = useAllHabitCompletions();

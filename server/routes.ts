@@ -3155,6 +3155,18 @@ MERCHANT FIELD:
   });
 
   // Orbit Chat Route - Enhanced with comprehensive data context
+  app.post("/api/orbit/warmup", async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const { buildUnifiedContextWithMemory } = await import("./lib/unified-context");
+      await buildUnifiedContextWithMemory(userId, "orbit");
+      res.json({ ok: true });
+    } catch {
+      res.json({ ok: false });
+    }
+  });
+
   app.post("/api/orbit/chat", async (req, res) => {
     try {
       const userId = req.session.userId!;
@@ -3221,8 +3233,11 @@ ${JSON.stringify(context, null, 2)}`;
         chatMessages.unshift({ role: "user", content: "(continuing)" });
       }
 
-      const orbitModel = therapyMode ? MODEL_PRIMARY : MODEL_FAST;
-      const stream = await createRawStream(systemContent, chatMessages, { model: orbitModel, maxTokens: therapyMode ? 2000 : 4000 });
+      const ACTION_KEYWORDS = /\b(create|add|make|set up|build|deploy|delete|remove|update|change|edit|mark|complete|done|toggle|log|track|schedule|cancel)\b/i;
+      const needsActions = ACTION_KEYWORDS.test(message);
+      const orbitModel = therapyMode ? MODEL_PRIMARY : (needsActions ? MODEL_FAST : "claude-haiku-4-5");
+      const orbitMaxTokens = therapyMode ? 2000 : (needsActions ? 2000 : 1000);
+      const stream = await createRawStream(systemContent, chatMessages, { model: orbitModel, maxTokens: orbitMaxTokens });
 
       let fullResponse = "";
       const executedActions = new Set<string>();
