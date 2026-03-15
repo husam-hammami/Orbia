@@ -17,7 +17,8 @@ import {
   BrainCircuit,
   Folder, File, ChevronRight, Eye,
   ArrowUp, Code,
-  Scan, ListChecks, Activity, Send, Sparkles
+  Scan, ListChecks, Activity, Send, Sparkles,
+  GitPullRequestArrow, Play, TestTube, Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NeuralOrbit, EmptyOrbit } from "@/components/agents/pixel-agent";
@@ -1205,300 +1206,267 @@ function ProjectPane({ agent }: { agent: Agent }) {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+      <div className="flex-1 overflow-hidden flex flex-col">
         {activeTab === "tasks" ? (
-          <div className="space-y-4">
-            {status === "working" ? (
-              <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3 text-indigo-400">
-                  <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
-                  <h3 className="text-sm font-medium">Current Objective</h3>
-                </div>
-                <p className="text-sm text-gray-300 leading-relaxed">
-                  {agent.currentTaskSummary || "Analyzing workspace..."}
-                </p>
-                <div className="mt-4 pt-4 border-t border-indigo-500/10 flex items-center justify-between text-xs text-indigo-400/60 font-mono">
-                  <span>Status: Executing</span>
-                  <span className="flex items-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" /> processing
-                  </span>
-                </div>
-              </div>
-            ) : status === "error" ? (
-              <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 text-center">
-                <WifiOff className="w-8 h-8 text-red-400/50 mx-auto mb-3" />
-                <h3 className="text-sm font-medium text-red-400 mb-1">Execution Halted</h3>
-                <p className="text-xs text-gray-500">Agent encountered an error and requires intervention.</p>
-              </div>
-            ) : (
-              <div className="bg-white/5 border border-white/5 rounded-xl p-6 text-center">
-                <div className="w-8 h-8 mx-auto mb-3 flex items-center justify-center"><span className="w-3 h-3 rounded-full bg-emerald-400/50" /></div>
-                <h3 className="text-sm font-medium text-gray-300 mb-1">Standing By</h3>
-                <p className="text-xs text-gray-500">Provide instructions in the terminal to begin work.</p>
-                {agent.totalTasksCompleted ? (
-                  <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium">
-                    <Check className="w-3.5 h-3.5" />
-                    {agent.totalTasksCompleted} tasks completed
-                  </div>
-                ) : null}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <button
-                onClick={() => setOrbitOpen(!orbitOpen)}
-                className="flex items-center justify-between w-full group"
-                data-testid="button-toggle-orbit"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="relative w-5 h-5 rounded-full flex items-center justify-center" style={{ background: `radial-gradient(circle, ${color}40, ${color}15)` }}>
-                    <Sparkles className="w-3 h-3" style={{ color }} />
-                    {orbitLoading && <span className="absolute inset-0 rounded-full border border-t-transparent animate-spin" style={{ borderColor: `${color}60` }} />}
-                  </div>
-                  <span className="text-[10px] uppercase tracking-widest font-medium" style={{ color: `${color}cc` }}>Orbit AI</span>
-                </div>
-                <ChevronDown className={cn("w-3 h-3 text-gray-600 transition-transform", orbitOpen && "rotate-180")} />
-              </button>
-
-              <AnimatePresence>
-                {orbitOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="rounded-xl border overflow-hidden" style={{ borderColor: `${color}20`, background: `linear-gradient(135deg, ${color}08, transparent)` }}>
-                      <div className="grid grid-cols-4 gap-1 p-2">
-                        {[
-                          { action: "analyze", icon: Scan, label: "Analyze" },
-                          { action: "review", icon: Code, label: "Review" },
-                          { action: "plan", icon: ListChecks, label: "Plan" },
-                          { action: "monitor", icon: Activity, label: "Monitor" },
-                        ].map(({ action, icon: Icon, label }) => (
-                          <button
-                            key={action}
-                            onClick={() => orbitAction(action)}
-                            disabled={orbitLoading}
-                            className={cn(
-                              "flex flex-col items-center gap-1 py-2 px-1 rounded-lg text-[10px] transition-all",
-                              orbitLoading ? "opacity-40 cursor-wait" : "hover:bg-white/10 cursor-pointer"
-                            )}
-                            style={{ color: `${color}bb` }}
-                            data-testid={`button-orbit-${action}`}
-                          >
-                            <Icon className="w-3.5 h-3.5" />
-                            <span>{label}</span>
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="px-2 pb-2">
-                        <div className="flex gap-1.5">
-                          <input
-                            type="text"
-                            value={orbitChat}
-                            onChange={e => setOrbitChat(e.target.value)}
-                            onKeyDown={e => {
-                              if (e.key === "Enter" && orbitChat.trim() && !orbitLoading) {
-                                orbitAction("chat", orbitChat.trim());
-                                setOrbitChat("");
-                              }
-                            }}
-                            placeholder="Ask Orbit anything..."
-                            className="flex-1 text-xs bg-white/5 border border-white/5 rounded-lg px-3 py-2 text-gray-300 placeholder-gray-600 focus:outline-none focus:border-indigo-500/30"
-                            style={{ fontFamily: "'Inter', sans-serif" }}
-                            data-testid="input-orbit-chat"
-                          />
-                          <button
-                            onClick={() => { if (orbitChat.trim() && !orbitLoading) { orbitAction("chat", orbitChat.trim()); setOrbitChat(""); } }}
-                            disabled={!orbitChat.trim() || orbitLoading}
-                            className="p-2 rounded-lg transition-colors disabled:opacity-30"
-                            style={{ background: `${color}20`, color }}
-                            data-testid="button-orbit-send"
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {(orbitResponse || orbitLoading) && (
-                        <div className="border-t px-3 py-3" style={{ borderColor: `${color}15` }}>
-                          <div ref={orbitScrollRef} className="max-h-[280px] overflow-y-auto custom-scrollbar">
-                            {orbitLoading && !orbitResponse && (
-                              <div className="flex items-center gap-2 text-xs" style={{ color: `${color}99` }}>
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                                <span>Orbit is thinking...</span>
-                              </div>
-                            )}
-                            {orbitResponse && (
-                              <div className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap break-words font-mono" data-testid="text-orbit-response">
-                                {orbitResponse}
-                                {orbitLoading && <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-indigo-400 animate-pulse rounded-sm" />}
-                              </div>
-                            )}
-                          </div>
-                          {!orbitLoading && orbitResponse && (
-                            <button
-                              onClick={() => { setOrbitResponse(""); setOrbitHistory([]); }}
-                              className="mt-2 text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
-                              data-testid="button-orbit-clear"
-                            >
-                              Clear conversation
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+          <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex-none px-3 py-2 flex items-center gap-2 border-b border-white/5">
+              <span className={cn(
+                "w-2 h-2 rounded-full flex-shrink-0",
+                status === "working" ? "bg-indigo-400 animate-pulse" :
+                status === "error" ? "bg-red-400" :
+                status === "waiting" ? "bg-yellow-400" : "bg-emerald-400/60"
+              )} />
+              <span className="text-xs text-gray-400 truncate flex-1">
+                {status === "working" ? (agent.currentTaskSummary || "Processing...") :
+                 status === "error" ? "Error — needs intervention" :
+                 status === "waiting" ? "Waiting for input" :
+                 agent.totalTasksCompleted ? `Idle · ${agent.totalTasksCompleted} completed` : "Standing by"}
+              </span>
+              {status === "working" && <Loader2 className="w-3 h-3 text-indigo-400 animate-spin flex-shrink-0" />}
             </div>
 
-            <div className="space-y-2">
-              <h4 className="text-[10px] uppercase tracking-widest text-gray-500 font-medium">Claude CLI Tools</h4>
-              <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} data-testid="input-file-upload" />
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => { if (fileInputRef.current) { fileInputRef.current.accept = "image/*"; fileInputRef.current.click(); } }}
-                  disabled={uploading}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-xs"
-                  data-testid="button-upload-image"
-                >
-                  <Image className="w-3.5 h-3.5" />
-                  {uploading ? "Uploading..." : "Upload Image"}
-                </button>
-                <button
-                  onClick={() => { if (fileInputRef.current) { fileInputRef.current.accept = ".pdf,.doc,.docx,.txt,.md,.csv,.json,.xml,.yaml,.yml"; fileInputRef.current.click(); } }}
-                  disabled={uploading}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-xs"
-                  data-testid="button-upload-doc"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  {uploading ? "Uploading..." : "Upload Doc"}
-                </button>
-              </div>
-
-              {uploadedFiles?.files?.length > 0 && (
-                <div className="mt-3 space-y-1">
-                  <p className="text-[10px] text-gray-600 uppercase tracking-wide mb-1.5">Uploaded Files</p>
-                  {uploadedFiles.files.map((f: any) => (
-                    <div key={f.path} className="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.06] transition-colors">
-                      {/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(f.name) ? (
-                        <Image className="w-3.5 h-3.5 text-indigo-400/70 flex-shrink-0" />
-                      ) : (
-                        <FileText className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
-                      )}
-                      <span className="flex-1 text-xs text-gray-300 truncate font-mono">{f.name}</span>
-                      <span className="text-[10px] text-gray-600 flex-shrink-0">{formatFileSize(f.size)}</span>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 flex-shrink-0">
-                        <button
-                          onClick={() => viewFile(f.path)}
-                          className="p-1 rounded hover:bg-white/10 text-gray-600 hover:text-indigo-400 transition-colors"
-                          title="View"
-                        >
-                          <Eye className="w-3 h-3" />
-                        </button>
-                        {deleteConfirm === f.path ? (
-                          <div className="flex items-center gap-0.5">
-                            <button
-                              onClick={async () => { await deleteFile(f.path); refetchUploads(); }}
-                              className="px-1.5 py-0.5 text-[9px] bg-red-500/20 text-red-400 rounded hover:bg-red-500/30"
-                            >
-                              Yes
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm(null)}
-                              className="px-1.5 py-0.5 text-[9px] text-gray-500 hover:text-gray-300"
-                            >
-                              No
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setDeleteConfirm(f.path)}
-                            className="p-1 rounded hover:bg-white/10 text-gray-600 hover:text-red-400 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              <div className="rounded-xl border mx-3 mt-3 overflow-hidden flex flex-col" style={{ borderColor: `${color}20`, background: `linear-gradient(135deg, ${color}05, transparent)` }}>
+                <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: `${color}12` }}>
+                  <div className="flex items-center gap-2">
+                    <div className="relative w-4 h-4 rounded-full flex items-center justify-center" style={{ background: `radial-gradient(circle, ${color}40, ${color}15)` }}>
+                      <Sparkles className="w-2.5 h-2.5" style={{ color }} />
+                      {orbitLoading && <span className="absolute inset-0 rounded-full border border-t-transparent animate-spin" style={{ borderColor: `${color}60` }} />}
                     </div>
+                    <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: `${color}cc` }}>Orbit AI</span>
+                  </div>
+                  {orbitResponse && !orbitLoading && (
+                    <button
+                      onClick={() => { setOrbitResponse(""); setOrbitHistory([]); }}
+                      className="text-[9px] text-gray-600 hover:text-gray-400 transition-colors px-1.5 py-0.5 rounded hover:bg-white/5"
+                      data-testid="button-orbit-clear"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex gap-1 px-2 py-1.5 border-b" style={{ borderColor: `${color}10` }}>
+                  {[
+                    { action: "analyze", icon: Scan, label: "Analyze" },
+                    { action: "review", icon: Code, label: "Review" },
+                    { action: "plan", icon: ListChecks, label: "Plan" },
+                    { action: "monitor", icon: Activity, label: "Monitor" },
+                  ].map(({ action, icon: Icon, label }) => (
+                    <button
+                      key={action}
+                      onClick={() => orbitAction(action)}
+                      disabled={orbitLoading}
+                      className={cn(
+                        "flex items-center gap-1 py-1 px-2 rounded-md text-[10px] transition-all flex-1 justify-center",
+                        orbitLoading ? "opacity-40 cursor-wait" : "hover:bg-white/10 cursor-pointer"
+                      )}
+                      style={{ color: `${color}bb` }}
+                      data-testid={`button-orbit-${action}`}
+                    >
+                      <Icon className="w-3 h-3" />
+                      <span>{label}</span>
+                    </button>
                   ))}
                 </div>
-              )}
-            </div>
 
-            {viewingFile && activeTab === "tasks" && (
-              <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 bg-white/[0.02]">
-                  <span className="text-[10px] text-gray-400 font-mono truncate flex-1" title={viewingFile.path}>{viewingFile.path.split("/").pop()}</span>
-                  <div className="flex items-center gap-1.5 ml-2">
-                    <span className="text-[10px] text-gray-600">{formatFileSize(viewingFile.size)}</span>
-                    <button onClick={() => setViewingFile(null)} className="p-1 hover:bg-white/10 rounded text-gray-500 hover:text-white transition-colors">
-                      <X className="w-3 h-3" />
+                {(orbitResponse || orbitLoading) ? (
+                  <div ref={orbitScrollRef} className="flex-1 overflow-y-auto custom-scrollbar px-3 py-2.5 min-h-0" style={{ maxHeight: "calc(100vh - 400px)" }}>
+                    {orbitLoading && !orbitResponse && (
+                      <div className="flex items-center gap-2 text-xs py-2" style={{ color: `${color}99` }}>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span>Orbit is analyzing...</span>
+                      </div>
+                    )}
+                    {orbitResponse && (
+                      <div className="text-[11px] text-gray-300 leading-relaxed whitespace-pre-wrap break-words" style={{ fontFamily: "'JetBrains Mono', monospace" }} data-testid="text-orbit-response">
+                        {orbitResponse}
+                        {orbitLoading && <span className="inline-block w-1.5 h-3.5 ml-0.5 animate-pulse rounded-sm" style={{ background: color }} />}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="px-3 py-4 text-center">
+                    <p className="text-[10px] text-gray-600">Select an action or ask a question below</p>
+                  </div>
+                )}
+
+                <div className="flex-none px-2 py-2 border-t" style={{ borderColor: `${color}10` }}>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      value={orbitChat}
+                      onChange={e => setOrbitChat(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" && orbitChat.trim() && !orbitLoading) {
+                          orbitAction("chat", orbitChat.trim());
+                          setOrbitChat("");
+                        }
+                      }}
+                      placeholder="Ask Orbit anything..."
+                      className="flex-1 text-xs bg-white/5 border border-white/[0.06] rounded-lg px-3 py-1.5 text-gray-300 placeholder-gray-600 focus:outline-none focus:border-indigo-500/30"
+                      data-testid="input-orbit-chat"
+                    />
+                    <button
+                      onClick={() => { if (orbitChat.trim() && !orbitLoading) { orbitAction("chat", orbitChat.trim()); setOrbitChat(""); } }}
+                      disabled={!orbitChat.trim() || orbitLoading}
+                      className="p-1.5 rounded-lg transition-colors disabled:opacity-30"
+                      style={{ background: `${color}20`, color }}
+                      data-testid="button-orbit-send"
+                    >
+                      <Send className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
-                <div className="max-h-[200px] overflow-auto custom-scrollbar">
-                  {viewingFile.truncated ? (
-                    <p className="text-xs text-gray-500 p-4 text-center">File too large to preview ({formatFileSize(viewingFile.size)})</p>
-                  ) : viewingFile.content !== null ? (
-                    <pre className="text-[11px] text-gray-300 p-3 font-mono whitespace-pre-wrap break-all leading-relaxed">{viewingFile.content}</pre>
-                  ) : (
-                    <p className="text-xs text-gray-500 p-4 text-center">Binary file — cannot preview</p>
-                  )}
+              </div>
+
+              <div className="px-3 py-3 space-y-2">
+                <h4 className="text-[10px] uppercase tracking-widest text-gray-600 font-medium">Queue Actions</h4>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { label: "Run Task", icon: Play, cmd: "Run the next queued task" },
+                    { label: "Test", icon: TestTube, cmd: "Run the test suite and report results" },
+                    { label: "Review", icon: Code, cmd: "Review all uncommitted changes, provide feedback" },
+                    { label: "Create PR", icon: GitPullRequestArrow, cmd: "Create a pull request for the current branch changes" },
+                    { label: "Sync", icon: RefreshCw, cmd: "Pull latest from remote, rebase, then push" },
+                    { label: "Merge", icon: GitMerge, cmd: "Merge the current branch into the default branch" },
+                  ].map(({ label, icon: Icon, cmd }) => (
+                    <button
+                      key={label}
+                      onClick={async () => {
+                        const ok = await sendAgentCommand(agent.id, cmd);
+                        if (ok) toast.success(`Queued: ${label}`);
+                        else toast.error("Failed to queue action");
+                      }}
+                      className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.04] text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] transition-colors text-[10px]"
+                      data-testid={`button-queue-${label.toLowerCase().replace(/\s/g, "-")}`}
+                    >
+                      <Icon className="w-3 h-3 flex-shrink-0" />
+                      <span>{label}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
-            )}
 
-            <div className="space-y-2">
-              <button
-                onClick={() => setShowHistory(!showHistory)}
-                className="flex items-center justify-between w-full text-[10px] uppercase tracking-widest text-gray-500 font-medium hover:text-gray-300 transition-colors"
-                data-testid="button-toggle-history"
-              >
-                <span className="flex items-center gap-1.5"><History className="w-3 h-3" /> Task History</span>
-                <ChevronDown className={cn("w-3 h-3 transition-transform", showHistory && "rotate-180")} />
-              </button>
-
-              <AnimatePresence>
-                {showHistory && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
+              <div className="px-3 pb-2 space-y-2">
+                <h4 className="text-[10px] uppercase tracking-widest text-gray-600 font-medium">Tools</h4>
+                <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} data-testid="input-file-upload" />
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    onClick={() => { if (fileInputRef.current) { fileInputRef.current.accept = "image/*"; fileInputRef.current.click(); } }}
+                    disabled={uploading}
+                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.04] text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] transition-colors text-[10px]"
+                    data-testid="button-upload-image"
                   >
-                    <div className="space-y-1.5 max-h-[200px] overflow-y-auto custom-scrollbar">
-                      {taskHistory?.length ? taskHistory.map((task: any) => (
-                        <div key={task.id} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.04] text-xs">
-                          <div className={cn(
-                            "w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0",
-                            task.status === "completed" ? "bg-emerald-400" :
-                            task.status === "running" ? "bg-indigo-400 animate-pulse" :
-                            task.status === "failed" ? "bg-red-400" : "bg-gray-500"
-                          )} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-gray-300 truncate">{task.description}</p>
-                            <p className="text-[10px] text-gray-600 font-mono mt-0.5">
-                              {task.startedAt ? new Date(task.startedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "Pending"}
-                            </p>
-                          </div>
+                    <Image className="w-3 h-3" />
+                    {uploading ? "Uploading..." : "Upload Image"}
+                  </button>
+                  <button
+                    onClick={() => { if (fileInputRef.current) { fileInputRef.current.accept = ".pdf,.doc,.docx,.txt,.md,.csv,.json,.xml,.yaml,.yml"; fileInputRef.current.click(); } }}
+                    disabled={uploading}
+                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.04] text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] transition-colors text-[10px]"
+                    data-testid="button-upload-doc"
+                  >
+                    <FileText className="w-3 h-3" />
+                    {uploading ? "Uploading..." : "Upload Doc"}
+                  </button>
+                </div>
+
+                {uploadedFiles?.files?.length > 0 && (
+                  <div className="space-y-1 mt-1">
+                    {uploadedFiles.files.map((f: any) => (
+                      <div key={f.path} className="group flex items-center gap-2 px-2 py-1 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
+                        {/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(f.name) ? (
+                          <Image className="w-3 h-3 text-indigo-400/70 flex-shrink-0" />
+                        ) : (
+                          <FileText className="w-3 h-3 text-gray-500 flex-shrink-0" />
+                        )}
+                        <span className="flex-1 text-[10px] text-gray-400 truncate font-mono">{f.name}</span>
+                        <span className="text-[9px] text-gray-600 flex-shrink-0">{formatFileSize(f.size)}</span>
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 flex-shrink-0">
+                          <button onClick={() => viewFile(f.path)} className="p-0.5 rounded hover:bg-white/10 text-gray-600 hover:text-indigo-400 transition-colors" title="View">
+                            <Eye className="w-2.5 h-2.5" />
+                          </button>
+                          {deleteConfirm === f.path ? (
+                            <div className="flex items-center gap-0.5">
+                              <button onClick={async () => { await deleteFile(f.path); refetchUploads(); }} className="px-1 py-0.5 text-[8px] bg-red-500/20 text-red-400 rounded">Yes</button>
+                              <button onClick={() => setDeleteConfirm(null)} className="px-1 py-0.5 text-[8px] text-gray-500">No</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setDeleteConfirm(f.path)} className="p-0.5 rounded hover:bg-white/10 text-gray-600 hover:text-red-400 transition-colors" title="Delete">
+                              <Trash2 className="w-2.5 h-2.5" />
+                            </button>
+                          )}
                         </div>
-                      )) : (
-                        <p className="text-xs text-gray-600 text-center py-3">No task history yet</p>
-                      )}
-                    </div>
-                  </motion.div>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </AnimatePresence>
+              </div>
+
+              {viewingFile && activeTab === "tasks" && (
+                <div className="mx-3 mb-2 bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/5 bg-white/[0.02]">
+                    <span className="text-[10px] text-gray-400 font-mono truncate flex-1" title={viewingFile.path}>{viewingFile.path.split("/").pop()}</span>
+                    <button onClick={() => setViewingFile(null)} className="p-1 hover:bg-white/10 rounded text-gray-500 hover:text-white transition-colors"><X className="w-3 h-3" /></button>
+                  </div>
+                  <div className="max-h-[150px] overflow-auto custom-scrollbar">
+                    {viewingFile.truncated ? (
+                      <p className="text-xs text-gray-500 p-3 text-center">File too large ({formatFileSize(viewingFile.size)})</p>
+                    ) : viewingFile.content !== null ? (
+                      <pre className="text-[10px] text-gray-300 p-2.5 font-mono whitespace-pre-wrap break-all leading-relaxed">{viewingFile.content}</pre>
+                    ) : (
+                      <p className="text-xs text-gray-500 p-3 text-center">Binary file</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="px-3 pb-3">
+                <button
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="flex items-center justify-between w-full text-[10px] uppercase tracking-widest text-gray-600 font-medium hover:text-gray-400 transition-colors"
+                  data-testid="button-toggle-history"
+                >
+                  <span className="flex items-center gap-1.5"><History className="w-3 h-3" /> Task History</span>
+                  <ChevronDown className={cn("w-3 h-3 transition-transform", showHistory && "rotate-180")} />
+                </button>
+                <AnimatePresence>
+                  {showHistory && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden mt-1.5"
+                    >
+                      <div className="space-y-1 max-h-[150px] overflow-y-auto custom-scrollbar">
+                        {taskHistory?.length ? taskHistory.map((task: any) => (
+                          <div key={task.id} className="flex items-start gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.02] text-[10px]">
+                            <div className={cn(
+                              "w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0",
+                              task.status === "completed" ? "bg-emerald-400" :
+                              task.status === "running" ? "bg-indigo-400 animate-pulse" :
+                              task.status === "failed" ? "bg-red-400" : "bg-gray-500"
+                            )} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-gray-400 truncate">{task.description}</p>
+                              <p className="text-[9px] text-gray-600 font-mono">
+                                {task.startedAt ? new Date(task.startedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "Pending"}
+                              </p>
+                            </div>
+                          </div>
+                        )) : (
+                          <p className="text-[10px] text-gray-600 text-center py-2">No history yet</p>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4">
             {!agent.repoCloned ? (
               <div className="text-center py-10 flex flex-col items-center">
                 <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mb-3" />
@@ -1870,4 +1838,18 @@ function ProjectPane({ agent }: { agent: Agent }) {
 
 function hasActiveSession(agentId: string): boolean {
   return true;
+}
+
+async function sendAgentCommand(agentId: string, prompt: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/agents/${agentId}/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ prompt }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
