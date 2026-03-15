@@ -718,6 +718,37 @@ export function registerAgentRoutes(app: Express) {
     });
   });
 
+  const ALLOWED_SHELL_COMMANDS: Record<string, string> = {
+    "git-status": "git status --short && git log --oneline -5",
+    "run-tests": "npm test 2>&1 || echo 'No test script found'",
+    "git-diff": "git diff --stat",
+    "git-pull": "git pull --rebase origin $(git branch --show-current)",
+    "git-push": "git push origin $(git branch --show-current)",
+    "npm-install": "npm install",
+  };
+
+  app.post("/api/agents/:id/shell", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+    const { actionId } = req.body;
+    if (!actionId || typeof actionId !== "string") {
+      return res.status(400).json({ error: "actionId required" });
+    }
+    const command = ALLOWED_SHELL_COMMANDS[actionId];
+    if (!command) {
+      return res.status(400).json({ error: `Unknown action: ${actionId}` });
+    }
+    if (!hasActiveSession(ctx.agentId)) {
+      return res.status(400).json({ error: "No active terminal session" });
+    }
+    const ok = injectCommand(ctx.agentId, command);
+    if (ok) {
+      res.json({ ok: true });
+    } else {
+      res.status(500).json({ error: "Failed to inject command" });
+    }
+  });
+
   // Quick send prompt (create task + run immediately)
   app.post("/api/agents/:id/send", requireAuth, async (req: Request, res: Response) => {
     const ctx = await requireAgentOwnership(req, res);
@@ -862,13 +893,45 @@ ${cleanTerminal ? `## Recent Terminal Output\n\`\`\`\n${cleanTerminal}\n\`\`\`\n
 
     let userMessage = "";
     if (action === "analyze") {
-      userMessage = "Analyze this repository. Provide a concise summary of: the tech stack, project structure, key files, and any notable patterns or issues you see.";
+      userMessage = `Analyze this repository structure and give me a clear, structured breakdown:
+
+1. **Stack** — List the main technologies, frameworks, and tools (be specific about versions if visible in package.json)
+2. **Architecture** — How is the project organized? What patterns does it follow?
+3. **Key Files** — The 5-8 most important files and what each does (one line each)
+4. **Health Check** — Any red flags: missing tests, no CI config, outdated deps, security concerns
+5. **Quick Assessment** — One sentence: is this codebase in good shape or does it need work?
+
+Keep it scannable. Use bullet points, not paragraphs.`;
     } else if (action === "review") {
-      userMessage = "Review the current uncommitted changes (if any) and recent commits. Give specific, actionable feedback on code quality, potential bugs, and improvements.";
+      userMessage = `Review the uncommitted changes and recent commits. Structure your response as:
+
+1. **Summary** — What changed, in one sentence
+2. **Changes Breakdown** — For each modified file, explain what changed and rate it:
+   - ✅ Good — Clean, follows conventions
+   - ⚠️ Concern — Works but has issues (explain what)
+   - 🔴 Problem — Bug, security issue, or breaking change
+3. **Suggestions** — Concrete improvements with code snippets if applicable
+
+If there are no uncommitted changes, review the last 3-5 commits instead. Be direct and specific — no filler.`;
     } else if (action === "plan") {
-      userMessage = "Based on the current state of the repo and any ongoing work, generate a detailed task plan for what should happen next. Include specific steps, files to modify, and expected outcomes.";
+      userMessage = `Based on the current state of this repo, generate an actionable task plan:
+
+1. **Current State** — Where the project is right now (one sentence)
+2. **Immediate Tasks** — 3-5 things that should be done next, ordered by priority
+   - For each: what to do, which files to touch, expected outcome
+3. **Technical Debt** — Any cleanup or refactoring worth doing
+4. **Blockers** — Anything that might prevent progress
+
+Format as a numbered checklist that could be handed to a developer. Be specific about file paths and function names.`;
     } else if (action === "monitor") {
-      userMessage = "Analyze the recent terminal output. What is the CLI agent currently doing? Summarize its progress, any errors encountered, and suggest if any intervention is needed.";
+      userMessage = `Analyze the recent terminal output and tell me:
+
+1. **Status** — What is the agent currently doing? (one clear sentence)
+2. **Progress** — What has it completed so far?
+3. **Issues** — Any errors, warnings, or stuck processes?
+4. **Action Needed?** — Does anything require human intervention? Yes/No with explanation.
+
+Be concise. If the terminal is idle, just say so.`;
     } else if (action === "chat" && safeMessage) {
       userMessage = safeMessage;
     } else {
