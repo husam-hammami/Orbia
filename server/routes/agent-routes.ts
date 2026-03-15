@@ -298,21 +298,18 @@ export function registerAgentRoutes(app: Express) {
       if (mcpServers && Array.isArray(mcpServers) && mcpServers.length > 0) {
         try {
           const repoDir = repoManager.getRepoDir(agent.id);
+          if (!fs.existsSync(repoDir)) fs.mkdirSync(repoDir, { recursive: true });
           const claudeConfigDir = path.join(repoDir, ".claude");
           if (!fs.existsSync(claudeConfigDir)) fs.mkdirSync(claudeConfigDir, { recursive: true });
-          const mcpConfigPath = path.join(claudeConfigDir, "settings.json");
-          let existingConfig: any = {};
-          if (fs.existsSync(mcpConfigPath)) {
-            try { existingConfig = JSON.parse(fs.readFileSync(mcpConfigPath, "utf-8")); } catch {}
-          }
-          if (!existingConfig.mcpServers) existingConfig.mcpServers = {};
+          const settingsConfig: any = { mcpServers: {} };
           for (const mcp of mcpServers) {
-            existingConfig.mcpServers[mcp.name] = { command: mcp.command, args: mcp.args };
+            settingsConfig.mcpServers[mcp.name] = { command: mcp.command, args: mcp.args };
           }
-          fs.writeFileSync(mcpConfigPath, JSON.stringify(existingConfig, null, 2));
-          console.log(`[agents] MCP servers configured for "${agent.name}":`, mcpServers.map((m: any) => m.name).join(", "));
+          fs.writeFileSync(path.join(claudeConfigDir, "settings.json"), JSON.stringify(settingsConfig, null, 2));
+          fs.writeFileSync(path.join(claudeConfigDir, "settings.local.json"), JSON.stringify(settingsConfig, null, 2));
+          console.log(`[agents] MCP config written for "${agent.name}":`, mcpServers.map((m: any) => m.name).join(", "));
         } catch (err: any) {
-          console.error("MCP config write failed:", err.message);
+          console.error("[agents] MCP config write failed:", err.message);
         }
       }
       res.json(agent);
