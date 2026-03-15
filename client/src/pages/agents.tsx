@@ -38,6 +38,8 @@ interface Agent {
   status: string | null;
   currentTaskSummary: string | null;
   totalTasksCompleted: number | null;
+  linkedProjectId: string | null;
+  systemPrompt: string | null;
   isRunning: boolean;
   repoCloned: boolean;
   createdAt: string;
@@ -553,14 +555,27 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
   const [repoUrl, setRepoUrl] = useState("");
   const [repoBranch, setRepoBranch] = useState("main");
   const [accentColor, setAccentColor] = useState("#6366f1");
+  const [linkedProjectId, setLinkedProjectId] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: repos = [] } = useQuery<GithubRepo[]>({
     queryKey: ["github-repos"],
     queryFn: () => apiFetch(`${API_BASE_URL}/api/agents/github/repos`),
     enabled: githubConnected === true,
+  });
+
+  const { data: projects = [] } = useQuery<any[]>({
+    queryKey: ["/api/career-projects"],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/career-projects`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: step >= 1,
   });
 
   const handleCreate = async () => {
@@ -570,7 +585,11 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
     try {
       await apiFetch(`${API_BASE_URL}/api/agents`, {
         method: "POST",
-        body: JSON.stringify({ name, avatar, role, repoUrl, repoBranch, accentColor }),
+        body: JSON.stringify({
+          name, avatar, role, repoUrl, repoBranch, accentColor,
+          linkedProjectId: linkedProjectId || null,
+          systemPrompt: systemPrompt || null,
+        }),
       });
       queryClient.invalidateQueries({ queryKey: ["agents"] });
       toast.success(`${name} initialized in the nexus`);
@@ -581,12 +600,15 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
     }
   };
 
+  const inputClasses = "w-full bg-[#070711] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 placeholder:text-gray-600 transition-all";
+  const labelClasses = "text-[10px] text-gray-400 block mb-1.5 uppercase tracking-wider font-medium";
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-[#020205]/80 backdrop-blur-md flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-50 bg-[#020205]/85 backdrop-blur-lg flex items-end sm:items-center justify-center"
       onClick={onClose}
     >
       <motion.div
@@ -595,88 +617,89 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
         exit={{ y: "100%", opacity: 0, scale: 0.95 }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
         onClick={e => e.stopPropagation()}
-        className="w-full sm:max-w-xl max-h-[90vh] overflow-y-auto bg-[#0a0a14] border border-indigo-500/20 shadow-[0_0_50px_rgba(0,0,0,0.8),0_0_30px_rgba(99,102,241,0.1)] sm:rounded-3xl rounded-t-3xl rounded-b-none relative"
+        className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto bg-[#0a0a16] border border-white/[0.08] shadow-[0_0_60px_rgba(0,0,0,0.9),0_0_30px_rgba(99,102,241,0.08)] sm:rounded-2xl rounded-t-2xl rounded-b-none relative custom-scrollbar"
       >
-        {/* Decorative header line */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
-        
-        <div className="p-8">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-2xl font-bold text-white tracking-tight">New Agent</h2>
-              <p className="text-xs text-indigo-400/60 mt-1 uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                PHASE {Math.max(step, 1)}/2 // CONFIGURATION
-              </p>
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
+
+        <div className="p-6">
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center relative" style={{ background: `${accentColor}15`, border: `1px solid ${accentColor}30` }}>
+                <span className="text-lg">{avatar}</span>
+                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0a0a16]" style={{ background: accentColor }} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white tracking-tight">{name || "New Agent"}</h2>
+                <p className="text-[10px] text-gray-500 mt-0.5 uppercase tracking-widest font-mono">
+                  {step === 0 ? "SETUP // CONNECT" : "CONFIGURE // DEPLOY"}
+                </p>
+              </div>
             </div>
-            <button onClick={onClose} className="text-gray-500 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors bg-white/5 border border-white/5">
-              <X className="w-5 h-5" />
+            <button onClick={onClose} className="text-gray-600 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+              <X className="w-4 h-4" />
             </button>
           </div>
 
           <AnimatePresence mode="wait">
             {step === 0 && !githubConnected && (
-              <motion.div key="step-0" {...agentAnimations.wizardStep} className="text-center py-10 bg-black/20 rounded-2xl border border-white/5">
-                <div className="w-20 h-20 rounded-full bg-[#0a0a14] border border-white/10 flex items-center justify-center mx-auto mb-6 relative">
+              <motion.div key="step-0" {...agentAnimations.wizardStep} className="text-center py-8 bg-black/20 rounded-xl border border-white/5">
+                <div className="w-14 h-14 rounded-full bg-[#0a0a14] border border-white/10 flex items-center justify-center mx-auto mb-4 relative">
                   <div className="absolute inset-0 bg-indigo-500/10 rounded-full blur-xl" />
-                  <Github className="w-10 h-10 text-gray-300 relative z-10" />
+                  <Github className="w-7 h-7 text-gray-300 relative z-10" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
+                <h3 className="text-base font-bold text-white mb-2 tracking-tight">
                   {githubConfigured ? "GitHub Connection Required" : "GitHub Not Configured"}
                 </h3>
-                <p className="text-sm text-gray-400 mb-8 max-w-sm mx-auto leading-relaxed">
+                <p className="text-xs text-gray-400 mb-6 max-w-xs mx-auto leading-relaxed">
                   {githubConfigured
                     ? "Connect your GitHub account to access repositories."
-                    : "GitHub OAuth needs admin setup. Manual repository targeting available as fallback."}
+                    : "GitHub OAuth needs admin setup. Manual repository targeting available."}
                 </p>
                 {githubConfigured ? (
-                  <div className="flex justify-center scale-110">
-                    <GithubConnectButton status={githubStatus} />
-                  </div>
+                  <GithubConnectButton status={githubStatus} />
                 ) : (
                   <button
                     onClick={() => setStep(1)}
-                    className="bg-indigo-600/20 border border-indigo-500/40 hover:bg-indigo-500/30 text-indigo-200 px-6 py-2.5 rounded-xl text-sm font-medium transition-all"
-                  >Proceed with Manual Entry</button>
+                    className="bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 px-5 py-2 rounded-xl text-xs font-medium transition-all"
+                  >Continue with Manual Entry</button>
                 )}
               </motion.div>
             )}
 
             {(step === 1 || (step === 0 && githubConnected)) && (
-              <motion.div key="step-1" {...agentAnimations.wizardStep} className="space-y-6">
-                
-                {/* Visual Identity Section */}
-                <div className="bg-black/30 p-5 rounded-2xl border border-white/5 space-y-5 relative overflow-hidden">
-                  <div className="absolute right-0 top-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-transparent blur-2xl pointer-events-none" />
-                  
-                  <div>
-                    <label className="text-xs text-indigo-300 block mb-3 uppercase tracking-wider font-semibold">Visual Essence</label>
-                    <div className="flex gap-2 flex-wrap">
-                      {ACCENT_COLORS.map(c => (
-                        <button
-                          key={c}
-                          onClick={() => setAccentColor(c)}
-                          className={cn(
-                            "w-8 h-8 rounded-full transition-all border-2",
-                            accentColor === c ? "scale-110 border-white shadow-[0_0_15px_currentColor]" : "border-transparent opacity-50 hover:opacity-100 hover:scale-105"
-                          )}
-                          style={{ backgroundColor: c, color: c }}
-                          data-testid={`button-color-${c}`}
-                        />
-                      ))}
+              <motion.div key="step-1" {...agentAnimations.wizardStep} className="space-y-5">
+
+                <div className="flex gap-3 items-start">
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <label className={labelClasses}>Identity</label>
+                      <div className="flex gap-2">
+                        <div className="flex gap-1 bg-[#070711] border border-white/[0.08] rounded-xl p-1 overflow-x-auto custom-scrollbar flex-shrink-0">
+                          {ACCENT_COLORS.map(c => (
+                            <button
+                              key={c}
+                              onClick={() => setAccentColor(c)}
+                              className={cn(
+                                "w-6 h-6 rounded-lg transition-all flex-shrink-0",
+                                accentColor === c ? "ring-2 ring-white/60 scale-110" : "opacity-40 hover:opacity-80"
+                              )}
+                              style={{ backgroundColor: c }}
+                              data-testid={`button-color-${c}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-xs text-indigo-300 block mb-3 uppercase tracking-wider font-semibold">Symbol</label>
-                    <div className="flex gap-2 flex-wrap bg-black/40 p-2 rounded-xl border border-white/5">
+                    <div className="flex gap-1.5 flex-wrap bg-[#070711] border border-white/[0.08] rounded-xl p-1.5">
                       {AGENT_AVATARS.map(a => (
                         <button
                           key={a}
                           onClick={() => setAvatar(a)}
                           className={cn(
-                            "text-2xl w-10 h-10 rounded-lg flex items-center justify-center transition-all",
-                            avatar === a ? "bg-indigo-500/20 ring-1 ring-indigo-400 scale-110 shadow-lg" : "hover:bg-white/10 opacity-70 hover:opacity-100"
+                            "text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                            avatar === a ? "ring-1 scale-110" : "opacity-50 hover:opacity-90 hover:bg-white/5"
                           )}
+                          style={avatar === a ? { background: `${accentColor}20`, ringColor: accentColor } : {}}
                           data-testid={`button-avatar-${a}`}
                         >{a}</button>
                       ))}
@@ -684,110 +707,163 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
                   </div>
                 </div>
 
-                {/* Core Parameters Section */}
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-indigo-300 block mb-2 uppercase tracking-wider font-semibold">Designation *</label>
-                      <input
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                        placeholder="e.g. Backend Architect"
-                        className="w-full bg-[#0a0a14] border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 placeholder:text-gray-600 transition-all shadow-inner"
-                        data-testid="input-agent-name"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-indigo-300 block mb-2 uppercase tracking-wider font-semibold">Specialization</label>
-                      <input
-                        value={role}
-                        onChange={e => setRole(e.target.value)}
-                        placeholder="e.g. Frontend Architecture"
-                        className="w-full bg-[#0a0a14] border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 placeholder:text-gray-600 transition-all shadow-inner"
-                        data-testid="input-agent-role"
-                      />
-                    </div>
-                  </div>
-
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-indigo-300 block mb-2 uppercase tracking-wider font-semibold">Target Repository *</label>
-                    {githubConnected && repos.length > 0 ? (
-                      <div className="relative">
-                        <select
-                          value={repoUrl}
-                          onChange={e => setRepoUrl(e.target.value)}
-                          className="w-full bg-[#0a0a14] border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 appearance-none shadow-inner"
-                          data-testid="select-agent-repo"
-                        >
-                          <option value="">Select a connected repository...</option>
-                          {repos.map(r => (
-                            <option key={r.id} value={r.html_url}>{r.full_name}</option>
-                          ))}
-                        </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-                        </div>
-                      </div>
-                    ) : (
-                      <input
-                        value={repoUrl}
-                        onChange={e => setRepoUrl(e.target.value)}
-                        placeholder="https://github.com/username/repo"
-                        className="w-full bg-[#0a0a14] border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 placeholder:text-gray-600 transition-all shadow-inner"
-                        data-testid="input-agent-repo"
-                      />
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-indigo-300 block mb-2 uppercase tracking-wider font-semibold">Target Branch</label>
+                    <label className={labelClasses}>Designation *</label>
                     <input
-                      value={repoBranch}
-                      onChange={e => setRepoBranch(e.target.value)}
-                      placeholder="main"
-                      className="w-full bg-[#0a0a14] border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 placeholder:text-gray-600 transition-all shadow-inner"
-                      data-testid="input-agent-branch"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      placeholder="e.g. Backend Architect"
+                      className={inputClasses}
+                      data-testid="input-agent-name"
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClasses}>Specialization</label>
+                    <input
+                      value={role}
+                      onChange={e => setRole(e.target.value)}
+                      placeholder="e.g. Frontend Architecture"
+                      className={inputClasses}
+                      data-testid="input-agent-role"
                     />
                   </div>
                 </div>
 
+                <div>
+                  <label className={labelClasses}>Target Repository *</label>
+                  {githubConnected && repos.length > 0 ? (
+                    <div className="relative">
+                      <select
+                        value={repoUrl}
+                        onChange={e => {
+                          setRepoUrl(e.target.value);
+                          const repo = repos.find(r => r.html_url === e.target.value);
+                          if (repo) setRepoBranch(repo.default_branch || "main");
+                        }}
+                        className={cn(inputClasses, "appearance-none pr-10")}
+                        data-testid="select-agent-repo"
+                      >
+                        <option value="">Select a repository...</option>
+                        {repos.map(r => (
+                          <option key={r.id} value={r.html_url}>{r.full_name}{r.private ? " 🔒" : ""}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                    </div>
+                  ) : (
+                    <input
+                      value={repoUrl}
+                      onChange={e => setRepoUrl(e.target.value)}
+                      placeholder="https://github.com/username/repo"
+                      className={inputClasses}
+                      data-testid="input-agent-repo"
+                    />
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClasses}>Branch</label>
+                    <input
+                      value={repoBranch}
+                      onChange={e => setRepoBranch(e.target.value)}
+                      placeholder="main"
+                      className={inputClasses}
+                      data-testid="input-agent-branch"
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClasses}>Link to Project</label>
+                    <div className="relative">
+                      <select
+                        value={linkedProjectId}
+                        onChange={e => setLinkedProjectId(e.target.value)}
+                        className={cn(inputClasses, "appearance-none pr-10")}
+                        data-testid="select-agent-project"
+                      >
+                        <option value="">None</option>
+                        {projects.map((p: any) => (
+                          <option key={p.id} value={p.id}>{p.title}</option>
+                        ))}
+                      </select>
+                      <FolderKanban className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="flex items-center gap-1.5 text-[10px] text-gray-500 hover:text-gray-400 transition-colors uppercase tracking-widest"
+                >
+                  <ChevronDown className={cn("w-3 h-3 transition-transform", showAdvanced && "rotate-180")} />
+                  Advanced
+                </button>
+
+                <AnimatePresence>
+                  {showAdvanced && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div>
+                        <label className={labelClasses}>System Instructions</label>
+                        <textarea
+                          value={systemPrompt}
+                          onChange={e => setSystemPrompt(e.target.value)}
+                          placeholder="Custom instructions for this agent's behavior and focus areas..."
+                          rows={3}
+                          className={cn(inputClasses, "resize-none")}
+                          data-testid="input-agent-prompt"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {error && (
-                  <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-3 rounded-xl flex items-start gap-3">
-                    <WifiOff className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs px-3 py-2.5 rounded-xl flex items-start gap-2">
+                    <WifiOff className="w-4 h-4 flex-shrink-0 mt-0.5" />
                     <p>{error}</p>
                   </div>
                 )}
 
-                <div className="pt-4 flex justify-between items-center border-t border-white/10 mt-6">
+                <div className="pt-3 flex justify-between items-center border-t border-white/[0.06]">
                   {githubConnected ? (
-                    <div className="flex items-center gap-2 text-xs text-gray-500 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_#10b981]"></div>
-                      Hub Link Active
+                    <div className="flex items-center gap-1.5 text-[10px] text-gray-600">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_#10b981]"></div>
+                      GitHub connected
                     </div>
                   ) : (
                     <div />
                   )}
-                  <div className="flex gap-3">
+                  <div className="flex gap-2">
                     <button
                       onClick={onClose}
-                      className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                      className="px-4 py-2 rounded-xl text-xs font-medium text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
                     >
-                      Abort
+                      Cancel
                     </button>
                     <button
                       onClick={handleCreate}
                       disabled={!name || !repoUrl || creating}
-                      className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white px-8 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)] disabled:shadow-none flex items-center gap-2 relative overflow-hidden group"
+                      className="text-white px-6 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 relative overflow-hidden group disabled:opacity-40"
+                      style={{
+                        background: `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)`,
+                        boxShadow: !name || !repoUrl || creating ? "none" : `0 0 20px ${accentColor}30`,
+                      }}
                       data-testid="button-submit-agent"
                     >
                       {creating ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" /> Synthesizing...
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Synthesizing...
                         </>
                       ) : (
                         <>
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-                          Create Agent
+                          <Rocket className="w-3.5 h-3.5" /> Deploy Agent
                         </>
                       )}
                     </button>
@@ -967,7 +1043,7 @@ function ProjectPane({ agent }: { agent: Agent }) {
   const [showFiles, setShowFiles] = useState(true);
 
   const [showProjectPicker, setShowProjectPicker] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(agent.linkedProjectId || null);
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [pipelineOpts, setPipelineOpts] = useState({ reviewAfterEach: true, testAfterEach: false, mergeOnSuccess: false, prOnSuccess: true });
   const [pipelineRunning, setPipelineRunning] = useState(false);

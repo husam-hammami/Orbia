@@ -787,6 +787,8 @@ export const agentProfiles = pgTable("agent_profiles", {
   accentColor: text("accent_color").default("#6366f1"),
   status: text("status").default("idle"),
   currentTaskSummary: text("current_task_summary"),
+  linkedProjectId: varchar("linked_project_id"),
+  systemPrompt: text("system_prompt"),
   lastActiveAt: timestamp("last_active_at"),
   totalTasksCompleted: integer("total_tasks_completed").default(0),
   createdAt: timestamp("created_at").defaultNow(),
