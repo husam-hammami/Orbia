@@ -97,7 +97,7 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
   const welcome = `\x1b[1;36m=== ${agentName} ===\x1b[0m\r\n` +
     `\x1b[90mRepo: ${repoUrl}\x1b[0m\r\n` +
     `\x1b[90mDir: ${repoDir}\x1b[0m\r\n` +
-    `\x1b[90mType commands directly — use claude to start the AI assistant\x1b[0m\r\n\r\n`;
+    `\x1b[90mClaude Code launching automatically...\x1b[0m\r\n\r\n`;
   session.outputBuffer.push(welcome);
 
   const handleOutput = (data: Buffer) => {
@@ -145,6 +145,7 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
     shell.stdin.write(`cd "${repoDir}"\n`);
     shell.stdin.write(`stty echo 2>/dev/null\n`);
     shell.stdin.write("clear\n");
+    shell.stdin.write("claude\n");
   }
 
   shells.set(agentId, session);
