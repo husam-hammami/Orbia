@@ -712,7 +712,7 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
         exit={{ y: "100%", opacity: 0, scale: 0.95 }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
         onClick={e => e.stopPropagation()}
-        className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto bg-[#0a0a16] border border-white/[0.08] shadow-[0_0_60px_rgba(0,0,0,0.9),0_0_30px_rgba(99,102,241,0.08)] sm:rounded-2xl rounded-t-2xl rounded-b-none relative custom-scrollbar"
+        className="w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-[#0a0a16] border border-white/[0.08] shadow-[0_0_60px_rgba(0,0,0,0.9),0_0_30px_rgba(99,102,241,0.08)] sm:rounded-2xl rounded-t-2xl rounded-b-none relative custom-scrollbar"
       >
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
 
@@ -904,7 +904,7 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
                         </button>
                       )}
                     </div>
-                    <div className="flex gap-1 px-2.5 py-1.5 border-b border-white/[0.05] overflow-x-auto custom-scrollbar">
+                    <div className="flex gap-1 px-2.5 py-1.5 border-b border-white/[0.05] flex-wrap">
                       {["All", ...SKILL_CATEGORIES].map(cat => (
                         <button
                           key={cat}
@@ -940,7 +940,7 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
                       </div>
                     )}
 
-                    <div className="max-h-[160px] overflow-y-auto custom-scrollbar p-1.5 grid grid-cols-2 gap-1">
+                    <div className="max-h-[160px] overflow-y-auto custom-scrollbar p-1.5 grid grid-cols-3 gap-1">
                       {(() => {
                         const q = skillSearch.toLowerCase();
                         const filtered = CLAUDE_SKILLS
@@ -953,7 +953,7 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
                             return b.stars - a.stars;
                           });
                         if (filtered.length === 0) {
-                          return <p className="col-span-2 text-[10px] text-gray-600 text-center py-4">No skills match "{skillSearch}"</p>;
+                          return <p className="col-span-3 text-[10px] text-gray-600 text-center py-4">No skills match "{skillSearch}"</p>;
                         }
                         return filtered.map(skill => {
                           const selected = selectedSkills.has(skill.id);
