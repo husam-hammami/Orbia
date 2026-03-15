@@ -72,20 +72,31 @@ export async function loginHandler(req: Request, res: Response) {
   for (const user of allUsers) {
     const match = await bcrypt.compare(password, user.passwordHash);
     if (match) {
-      req.session.regenerate((err) => {
-        if (err) {
-          return res.status(500).json({ error: "Session error" });
-        }
-        req.session.userId = user.id;
-        req.session.displayName = user.displayName;
-        req.session.save((err) => {
-          if (err) {
-            return res.status(500).json({ error: "Session save error" });
-          }
-          return res.json({ id: user.id, displayName: user.displayName });
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const setAndSave = () => {
+            req.session.userId = user.id;
+            req.session.displayName = user.displayName;
+            req.session.save((saveErr) => {
+              if (saveErr) return reject(saveErr);
+              resolve();
+            });
+          };
+          req.session.regenerate((err) => {
+            if (err) {
+              console.warn(`[auth] session.regenerate failed, setting directly:`, err.message);
+              setAndSave();
+            } else {
+              setAndSave();
+            }
+          });
         });
-      });
-      return;
+        console.log(`[auth] Login success for ${user.displayName}`);
+        return res.json({ id: user.id, displayName: user.displayName });
+      } catch (sessionErr: any) {
+        console.error(`[auth] Session save error:`, sessionErr.message);
+        return res.status(500).json({ error: "Session error" });
+      }
     }
   }
 
