@@ -53,6 +53,9 @@ GITHUB_CLIENT_ID = "Ov23liLYKitrwqHFK9Eh"
 GITHUB_CLIENT_SECRET = "06541cd6b49065c52037d6cbcf11be11ad56450d"
 GITHUB_REDIRECT_URI = "https://myorbia.com/api/agents/github/callback"
 
+[userenv.development]
+DATABASE_FALLBACK_URL = "postgresql://neondb_owner:npg_ngvjkw3ic9tY@ep-frosty-wave-ahxls62k.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
+
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 120000

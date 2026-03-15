@@ -22,7 +22,7 @@ export function createSessionMiddleware() {
 
   return session({
     store: new PgSession({
-      conString: process.env.DATABASE_URL,
+      conString: process.env.DATABASE_FALLBACK_URL || process.env.DATABASE_URL,
       tableName: "user_sessions",
       createTableIfMissing: true,
     }),
