@@ -1,7 +1,7 @@
 import { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { agentProcessManager } from "../lib/agent-process-manager";
-import { injectCommand, hasActiveSession } from "../lib/agent-terminal";
+import { injectCommand, hasActiveSession, subscribeToOutput } from "../lib/agent-terminal";
 import * as repoManager from "../lib/repo-manager";
 import * as githubOAuth from "../lib/github-oauth";
 import { requireAuth } from "../auth";
@@ -94,6 +94,57 @@ async function recoverStaleAgentStates() {
   }
 }
 recoverStaleAgentStates();
+
+const terminalTaskMonitors = new Map<string, NodeJS.Timeout>();
+
+function monitorTerminalTask(agentId: string, taskId: string, userId: string) {
+  if (terminalTaskMonitors.has(taskId)) return;
+
+  let outputAccumulator = "";
+  let lastOutputTime = Date.now();
+  let promptReturnCount = 0;
+
+  const unsub = subscribeToOutput(agentId, (data) => {
+    outputAccumulator += data;
+    lastOutputTime = Date.now();
+    if (data.includes("$ ") && outputAccumulator.length > 100) {
+      promptReturnCount++;
+    }
+  });
+
+  const checkInterval = setInterval(async () => {
+    const timeSinceOutput = Date.now() - lastOutputTime;
+
+    const hasFinished = (promptReturnCount > 0 && timeSinceOutput > 5000) ||
+      timeSinceOutput > 600000;
+
+    if (hasFinished) {
+      clearInterval(checkInterval);
+      terminalTaskMonitors.delete(taskId);
+
+      const timedOut = timeSinceOutput > 600000;
+      try {
+        await storage.updateAgentTask(taskId, {
+          status: timedOut ? "failed" : "completed",
+          completedAt: new Date(),
+          errorMessage: timedOut ? "Task timed out (10 min)" : undefined,
+        });
+        await storage.updateAgentProfileInternal(agentId, {
+          status: "idle",
+          currentTaskSummary: null,
+        } as any);
+        if (!timedOut) {
+          await storage.incrementAgentTasksCompleted(agentId);
+        }
+        broadcastToAgent(agentId, timedOut ? "error" : "completed", { agentId, taskId });
+      } catch (err) {
+        console.error("[monitor] Failed to update task:", err);
+      }
+    }
+  }, 3000);
+
+  terminalTaskMonitors.set(taskId, checkInterval);
+}
 
 async function requireAgentOwnership(req: Request, res: Response): Promise<{ userId: string; agentId: string } | null> {
   const userId = getUserId(req);
@@ -312,10 +363,7 @@ export function registerAgentRoutes(app: Express) {
 
     if (hasActiveSession(agent.id)) {
       injectCommand(agent.id, claudeCmd);
-      broadcastToAgent(agent.id, "output", {
-        type: "text",
-        content: `Executing in terminal: ${claudeCmd}`,
-      });
+      monitorTerminalTask(agent.id, task.id, ctx.userId);
       res.json({ ok: true, sessionId: session.id, mode: "terminal" });
     } else {
       try {
@@ -501,10 +549,7 @@ export function registerAgentRoutes(app: Express) {
 
     if (hasActiveSession(agent.id)) {
       injectCommand(agent.id, claudeCmd);
-      broadcastToAgent(agent.id, "output", {
-        type: "text",
-        content: `Executing in terminal: ${claudeCmd}`,
-      });
+      monitorTerminalTask(agent.id, task.id, ctx.userId);
       res.json({ ok: true, taskId: task.id, sessionId: session.id, mode: "terminal" });
     } else {
       try {

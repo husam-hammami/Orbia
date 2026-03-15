@@ -9,6 +9,8 @@ import { db } from "../db";
 import { sql } from "drizzle-orm";
 import crypto from "crypto";
 import path from "path";
+import * as os from "os";
+import * as fs from "fs";
 
 interface ShellSession {
   process: ChildProcess;
@@ -18,14 +20,14 @@ interface ShellSession {
   outputBuffer: string[];
   clients: Set<WebSocket>;
   alive: boolean;
+  outputListeners: Set<(data: string) => void>;
 }
 
 const MAX_BUFFER_LINES = 2000;
 const shells = new Map<string, ShellSession>();
 
 function getClaudePath(): string {
-  const npmGlobalBin = path.join(process.cwd(), ".config/npm/node_global/bin");
-  return npmGlobalBin;
+  return path.join(process.cwd(), ".config/npm/node_global/bin");
 }
 
 function ensureShell(agentId: string, agentName: string, repoUrl: string): ShellSession {
@@ -48,16 +50,19 @@ function ensureShell(agentId: string, agentName: string, repoUrl: string): Shell
   const currentPath = process.env.PATH || "";
   const enhancedPath = `${claudeBinDir}:${currentPath}`;
 
-  const shell = spawn("bash", ["--login"], {
+  const envVars: Record<string, string> = {};
+  for (const [k, v] of Object.entries(process.env)) {
+    if (v !== undefined) envVars[k] = v;
+  }
+  envVars.TERM = "xterm-256color";
+  envVars.PATH = enhancedPath;
+  envVars.PS1 = `\\[\\033[1;36m\\]${agentName}\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]$ `;
+  envVars.COLUMNS = "120";
+  envVars.LINES = "30";
+
+  const shell = spawn("script", ["-qfc", "bash --norc --noprofile -i", "/dev/null"], {
     cwd: repoDir,
-    env: {
-      ...process.env,
-      TERM: "xterm-256color",
-      COLUMNS: "120",
-      LINES: "30",
-      PATH: enhancedPath,
-      PS1: `\\[\\033[1;36m\\]${agentName}\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]$ `,
-    },
+    env: envVars,
     stdio: ["pipe", "pipe", "pipe"],
   });
 
@@ -69,6 +74,7 @@ function ensureShell(agentId: string, agentName: string, repoUrl: string): Shell
     outputBuffer: [],
     clients: new Set(),
     alive: true,
+    outputListeners: new Set(),
   };
 
   const welcome = `\x1b[1;36m=== ${agentName} ===\x1b[0m\r\n` +
@@ -77,7 +83,7 @@ function ensureShell(agentId: string, agentName: string, repoUrl: string): Shell
     `\x1b[90mType claude commands directly, or send tasks from the chat panel\x1b[0m\r\n\r\n`;
   session.outputBuffer.push(welcome);
 
-  shell.stdout?.on("data", (data: Buffer) => {
+  const handleOutput = (data: Buffer) => {
     const text = data.toString();
     session.outputBuffer.push(text);
     if (session.outputBuffer.length > MAX_BUFFER_LINES) {
@@ -86,29 +92,23 @@ function ensureShell(agentId: string, agentName: string, repoUrl: string): Shell
     for (const ws of session.clients) {
       if (ws.readyState === WebSocket.OPEN) ws.send(text);
     }
-  });
+    for (const listener of session.outputListeners) {
+      try { listener(text); } catch {}
+    }
+  };
 
-  shell.stderr?.on("data", (data: Buffer) => {
-    const text = data.toString();
-    session.outputBuffer.push(text);
-    if (session.outputBuffer.length > MAX_BUFFER_LINES) {
-      session.outputBuffer = session.outputBuffer.slice(-MAX_BUFFER_LINES / 2);
-    }
-    for (const ws of session.clients) {
-      if (ws.readyState === WebSocket.OPEN) ws.send(text);
-    }
-  });
+  shell.stdout?.on("data", handleOutput);
+  shell.stderr?.on("data", handleOutput);
 
   shell.on("close", (code) => {
     session.alive = false;
     const msg = `\r\n\x1b[33m[Shell exited with code ${code}]\x1b[0m\r\n`;
     session.outputBuffer.push(msg);
     for (const ws of session.clients) {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(msg);
-      }
+      if (ws.readyState === WebSocket.OPEN) ws.send(msg);
     }
     shells.delete(agentId);
+    console.log(`[agent-terminal] Shell exited for "${agentName}" (code ${code})`);
   });
 
   shell.on("error", (err) => {
@@ -121,8 +121,15 @@ function ensureShell(agentId: string, agentName: string, repoUrl: string): Shell
     shells.delete(agentId);
   });
 
+  if (shell.stdin) {
+    shell.stdin.write(`export PS1='\\[\\033[1;36m\\]${agentName}\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]$ '\n`);
+    shell.stdin.write(`export PATH="${enhancedPath}"\n`);
+    shell.stdin.write(`cd "${repoDir}"\n`);
+    shell.stdin.write("clear\n");
+  }
+
   shells.set(agentId, session);
-  console.log(`[agent-terminal] Shell started for "${agentName}" (${agentId}) in ${repoDir}`);
+  console.log(`[agent-terminal] PTY shell started for "${agentName}" (${agentId}) in ${repoDir}`);
   return session;
 }
 
@@ -192,9 +199,11 @@ export function setupAgentTerminalWS(server: Server) {
     if (!match) return;
 
     const agentId = match[1];
+    console.log(`[agent-terminal] WebSocket upgrade request for agent ${agentId}`);
 
     const session = await getSessionFromCookie(request.headers.cookie);
     if (!session?.userId) {
+      console.log(`[agent-terminal] Auth failed for agent ${agentId}`);
       socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
       socket.destroy();
       return;
@@ -202,6 +211,7 @@ export function setupAgentTerminalWS(server: Server) {
 
     const agent = await storage.getAgentProfile(session.userId, agentId);
     if (!agent) {
+      console.log(`[agent-terminal] Agent ${agentId} not found`);
       socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
       socket.destroy();
       return;
@@ -214,6 +224,7 @@ export function setupAgentTerminalWS(server: Server) {
 
   wss.on("connection", (ws: WebSocket, _req: IncomingMessage, agent: any) => {
     const agentId = agent.id;
+    console.log(`[agent-terminal] Client connected to "${agent.name}" (${agentId})`);
     const shellSession = ensureShell(agentId, agent.name, agent.repoUrl);
 
     shellSession.clients.add(ws);
@@ -242,10 +253,19 @@ export function setupAgentTerminalWS(server: Server) {
 
     ws.on("close", () => {
       shellSession.clients.delete(ws);
+      console.log(`[agent-terminal] Client left "${agent.name}" (${shellSession.clients.size} remaining)`);
     });
   });
 
-  console.log("[agent-terminal] WebSocket terminal handler registered");
+  console.log("[agent-terminal] WebSocket terminal handler registered (PTY via script)");
+}
+
+export function subscribeToOutput(agentId: string, callback: (data: string) => void): (() => void) | null {
+  const session = shells.get(agentId);
+  if (!session || !session.alive) return null;
+
+  session.outputListeners.add(callback);
+  return () => { session.outputListeners.delete(callback); };
 }
 
 export function injectCommand(agentId: string, command: string): boolean {
