@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
@@ -13,7 +13,38 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
   const terminalRef = useRef<Terminal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [connected, setConnected] = useState(false);
+
+  const connect = useCallback((term: Terminal) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
+
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws/agent-terminal/${agentId}`;
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      setConnected(true);
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+    };
+
+    ws.onmessage = (event) => {
+      term.write(event.data);
+    };
+
+    ws.onclose = () => {
+      setConnected(false);
+      reconnectTimerRef.current = setTimeout(() => connect(term), 3000);
+    };
+
+    ws.onerror = () => {
+      setConnected(false);
+    };
+  }, [agentId]);
 
   useEffect(() => {
     if (!termRef.current) return;
@@ -45,6 +76,7 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
         brightWhite: "#ffffff",
       },
       allowProposedApi: true,
+      scrollback: 5000,
     });
 
     const fitAddon = new FitAddon();
@@ -56,30 +88,9 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
     terminalRef.current = term;
     fitAddonRef.current = fitAddon;
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws/agent-terminal/${agentId}`;
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      setConnected(true);
-    };
-
-    ws.onmessage = (event) => {
-      term.write(event.data);
-    };
-
-    ws.onclose = () => {
-      setConnected(false);
-      term.write("\r\n\x1b[31m[Disconnected]\x1b[0m\r\n");
-    };
-
-    ws.onerror = () => {
-      setConnected(false);
-    };
-
     term.onData((data) => {
-      if (ws.readyState === WebSocket.OPEN) {
+      const ws = wsRef.current;
+      if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "input", data }));
       }
     });
@@ -87,7 +98,8 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
     const resizeObserver = new ResizeObserver(() => {
       try {
         fitAddon.fit();
-        if (ws.readyState === WebSocket.OPEN) {
+        const ws = wsRef.current;
+        if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({
             type: "resize",
             cols: term.cols,
@@ -99,24 +111,27 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
 
     resizeObserver.observe(termRef.current);
 
+    connect(term);
+
     return () => {
       resizeObserver.disconnect();
-      ws.close();
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      if (wsRef.current) wsRef.current.close();
       term.dispose();
       terminalRef.current = null;
       wsRef.current = null;
       fitAddonRef.current = null;
     };
-  }, [agentId]);
+  }, [agentId, connect]);
 
   return (
     <div className="flex flex-col h-full" data-testid={`terminal-${agentId}`}>
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-indigo-500/15">
-        <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-400" : "bg-red-400"}`} />
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-indigo-500/15 bg-black/30">
+        <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
         <span className="text-xs text-white/60 font-mono">
-          {connected ? "connected" : "disconnected"}
+          {connected ? "live" : "reconnecting..."}
         </span>
-        <span className="text-xs text-white/30 ml-auto font-mono">{agentName}</span>
+        <span className="text-xs text-white/30 ml-auto font-mono truncate max-w-[150px]">{agentName}</span>
       </div>
       <div ref={termRef} className="flex-1 min-h-0" />
     </div>

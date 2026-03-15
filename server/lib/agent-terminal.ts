@@ -1,7 +1,6 @@
 import { spawn, ChildProcess } from "child_process";
 import { WebSocket, WebSocketServer } from "ws";
 import { Server } from "http";
-import { getRepoDir } from "./repo-manager";
 import * as repoManager from "./repo-manager";
 import { storage } from "../storage";
 import type { IncomingMessage } from "http";
@@ -9,14 +8,123 @@ import { parse as parseUrl } from "url";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 import crypto from "crypto";
+import path from "path";
 
-interface TerminalSession {
-  ws: WebSocket;
+interface ShellSession {
   process: ChildProcess;
   agentId: string;
+  agentName: string;
+  repoUrl: string;
+  outputBuffer: string[];
+  clients: Set<WebSocket>;
+  alive: boolean;
 }
 
-const sessions = new Map<string, TerminalSession>();
+const MAX_BUFFER_LINES = 2000;
+const shells = new Map<string, ShellSession>();
+
+function getClaudePath(): string {
+  const npmGlobalBin = path.join(process.cwd(), ".config/npm/node_global/bin");
+  return npmGlobalBin;
+}
+
+function ensureShell(agentId: string, agentName: string, repoUrl: string): ShellSession {
+  const existing = shells.get(agentId);
+  if (existing && existing.alive) return existing;
+
+  if (existing) {
+    try { existing.process.kill(); } catch {}
+    shells.delete(agentId);
+  }
+
+  let repoDir: string;
+  if (repoManager.isRepoCloned(agentId)) {
+    repoDir = repoManager.getRepoDir(agentId);
+  } else {
+    repoDir = "/tmp";
+  }
+
+  const claudeBinDir = getClaudePath();
+  const currentPath = process.env.PATH || "";
+  const enhancedPath = `${claudeBinDir}:${currentPath}`;
+
+  const shell = spawn("bash", ["--login"], {
+    cwd: repoDir,
+    env: {
+      ...process.env,
+      TERM: "xterm-256color",
+      COLUMNS: "120",
+      LINES: "30",
+      PATH: enhancedPath,
+      PS1: `\\[\\033[1;36m\\]${agentName}\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]$ `,
+    },
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+
+  const session: ShellSession = {
+    process: shell,
+    agentId,
+    agentName,
+    repoUrl,
+    outputBuffer: [],
+    clients: new Set(),
+    alive: true,
+  };
+
+  const welcome = `\x1b[1;36m=== ${agentName} ===\x1b[0m\r\n` +
+    `\x1b[90mRepo: ${repoUrl}\x1b[0m\r\n` +
+    `\x1b[90mDir: ${repoDir}\x1b[0m\r\n` +
+    `\x1b[90mType claude commands directly, or send tasks from the chat panel\x1b[0m\r\n\r\n`;
+  session.outputBuffer.push(welcome);
+
+  shell.stdout?.on("data", (data: Buffer) => {
+    const text = data.toString();
+    session.outputBuffer.push(text);
+    if (session.outputBuffer.length > MAX_BUFFER_LINES) {
+      session.outputBuffer = session.outputBuffer.slice(-MAX_BUFFER_LINES / 2);
+    }
+    for (const ws of session.clients) {
+      if (ws.readyState === WebSocket.OPEN) ws.send(text);
+    }
+  });
+
+  shell.stderr?.on("data", (data: Buffer) => {
+    const text = data.toString();
+    session.outputBuffer.push(text);
+    if (session.outputBuffer.length > MAX_BUFFER_LINES) {
+      session.outputBuffer = session.outputBuffer.slice(-MAX_BUFFER_LINES / 2);
+    }
+    for (const ws of session.clients) {
+      if (ws.readyState === WebSocket.OPEN) ws.send(text);
+    }
+  });
+
+  shell.on("close", (code) => {
+    session.alive = false;
+    const msg = `\r\n\x1b[33m[Shell exited with code ${code}]\x1b[0m\r\n`;
+    session.outputBuffer.push(msg);
+    for (const ws of session.clients) {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(msg);
+      }
+    }
+    shells.delete(agentId);
+  });
+
+  shell.on("error", (err) => {
+    session.alive = false;
+    const msg = `\r\n\x1b[31m[Shell error: ${err.message}]\x1b[0m\r\n`;
+    session.outputBuffer.push(msg);
+    for (const ws of session.clients) {
+      if (ws.readyState === WebSocket.OPEN) ws.send(msg);
+    }
+    shells.delete(agentId);
+  });
+
+  shells.set(agentId, session);
+  console.log(`[agent-terminal] Shell started for "${agentName}" (${agentId}) in ${repoDir}`);
+  return session;
+}
 
 function parseCookies(header: string | undefined): Record<string, string> {
   if (!header) return {};
@@ -40,8 +148,12 @@ function unsignCookie(val: string, secret: string): string | false {
     .update(sid)
     .digest("base64")
     .replace(/=+$/, "");
-  if (crypto.timingSafeEqual(Buffer.from(mac), Buffer.from(expected))) {
-    return sid;
+  try {
+    if (crypto.timingSafeEqual(Buffer.from(mac), Buffer.from(expected))) {
+      return sid;
+    }
+  } catch {
+    return false;
   }
   return false;
 }
@@ -102,61 +214,12 @@ export function setupAgentTerminalWS(server: Server) {
 
   wss.on("connection", (ws: WebSocket, _req: IncomingMessage, agent: any) => {
     const agentId = agent.id;
+    const shellSession = ensureShell(agentId, agent.name, agent.repoUrl);
 
-    if (sessions.has(agentId)) {
-      const old = sessions.get(agentId)!;
-      try { old.process.kill(); } catch {}
-      try { old.ws.close(); } catch {}
-      sessions.delete(agentId);
-    }
+    shellSession.clients.add(ws);
 
-    let repoDir: string;
-    if (repoManager.isRepoCloned(agentId)) {
-      repoDir = repoManager.getRepoDir(agentId);
-    } else {
-      repoDir = "/tmp";
-    }
-
-    const shell = spawn("bash", ["--login"], {
-      cwd: repoDir,
-      env: {
-        ...process.env,
-        TERM: "xterm-256color",
-        COLUMNS: "120",
-        LINES: "30",
-        PS1: `\\[\\033[1;36m\\]${agent.name}\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]$ `,
-      },
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-
-    const termSession: TerminalSession = { ws, process: shell, agentId };
-    sessions.set(agentId, termSession);
-
-    const welcome = `\x1b[1;36m=== Agent Terminal: ${agent.name} ===\x1b[0m\r\n` +
-      `\x1b[90mRepo: ${agent.repoUrl}\x1b[0m\r\n` +
-      `\x1b[90mDir: ${repoDir}\x1b[0m\r\n` +
-      `\x1b[90mTip: Run "claude -p 'your task' --dangerously-skip-permissions" to execute tasks\x1b[0m\r\n\r\n`;
-    ws.send(welcome);
-
-    shell.stdout?.on("data", (data: Buffer) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data.toString());
-      }
-    });
-
-    shell.stderr?.on("data", (data: Buffer) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data.toString());
-      }
-    });
-
-    shell.on("close", (code) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(`\r\n\x1b[33m[Shell exited with code ${code}]\x1b[0m\r\n`);
-        ws.close();
-      }
-      sessions.delete(agentId);
-    });
+    const history = shellSession.outputBuffer.join("");
+    if (history) ws.send(history);
 
     ws.on("message", (msg: Buffer | string) => {
       const data = msg.toString();
@@ -166,16 +229,19 @@ export function setupAgentTerminalWS(server: Server) {
           return;
         }
         if (parsed.type === "input") {
-          shell.stdin?.write(parsed.data);
+          if (shellSession.alive && shellSession.process.stdin) {
+            shellSession.process.stdin.write(parsed.data);
+          }
           return;
         }
       } catch {}
-      shell.stdin?.write(data);
+      if (shellSession.alive && shellSession.process.stdin) {
+        shellSession.process.stdin.write(data);
+      }
     });
 
     ws.on("close", () => {
-      try { shell.kill(); } catch {}
-      sessions.delete(agentId);
+      shellSession.clients.delete(ws);
     });
   });
 
@@ -183,12 +249,26 @@ export function setupAgentTerminalWS(server: Server) {
 }
 
 export function injectCommand(agentId: string, command: string): boolean {
-  const session = sessions.get(agentId);
-  if (!session || !session.process.stdin) return false;
+  const session = shells.get(agentId);
+  if (!session || !session.alive || !session.process.stdin) return false;
   session.process.stdin.write(command + "\n");
   return true;
 }
 
 export function hasActiveSession(agentId: string): boolean {
-  return sessions.has(agentId);
+  const session = shells.get(agentId);
+  return !!session && session.alive;
+}
+
+export function getActiveShellCount(): number {
+  return shells.size;
+}
+
+export function getShellInfo(): { agentId: string; agentName: string; alive: boolean; clients: number }[] {
+  return Array.from(shells.values()).map(s => ({
+    agentId: s.agentId,
+    agentName: s.agentName,
+    alive: s.alive,
+    clients: s.clients.size,
+  }));
 }
