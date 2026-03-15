@@ -942,6 +942,16 @@ function ProjectPane({ agent }: { agent: Agent }) {
     enabled: showHistory,
   });
 
+  const { data: uploadedFiles, refetch: refetchUploads } = useQuery({
+    queryKey: [`/api/agents/${agent.id}/files`, ".orbia-uploads"],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}/files?path=.orbia-uploads`, { credentials: "include" });
+      if (!res.ok) return { files: [] };
+      return res.json();
+    },
+    enabled: activeTab === "tasks" && agent.repoCloned,
+  });
+
   const [branchDropdown, setBranchDropdown] = useState(false);
   const [commitLog, setCommitLog] = useState(false);
   const [newBranchName, setNewBranchName] = useState("");
@@ -1062,9 +1072,8 @@ function ProjectPane({ agent }: { agent: Agent }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast.success(`Uploaded ${file.name}`);
-      if (hasActiveSession(agent.id)) {
-        toast.info(`File available at: ${data.path}`);
-      }
+      refetchUploads();
+      toast.info(`File available at: ${data.path}`);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -1162,7 +1171,80 @@ function ProjectPane({ agent }: { agent: Agent }) {
                   {uploading ? "Uploading..." : "Upload Doc"}
                 </button>
               </div>
+
+              {uploadedFiles?.files?.length > 0 && (
+                <div className="mt-3 space-y-1">
+                  <p className="text-[10px] text-gray-600 uppercase tracking-wide mb-1.5">Uploaded Files</p>
+                  {uploadedFiles.files.map((f: any) => (
+                    <div key={f.path} className="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.06] transition-colors">
+                      {/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(f.name) ? (
+                        <Image className="w-3.5 h-3.5 text-indigo-400/70 flex-shrink-0" />
+                      ) : (
+                        <FileText className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                      )}
+                      <span className="flex-1 text-xs text-gray-300 truncate font-mono">{f.name}</span>
+                      <span className="text-[10px] text-gray-600 flex-shrink-0">{formatFileSize(f.size)}</span>
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 flex-shrink-0">
+                        <button
+                          onClick={() => viewFile(f.path)}
+                          className="p-1 rounded hover:bg-white/10 text-gray-600 hover:text-indigo-400 transition-colors"
+                          title="View"
+                        >
+                          <Eye className="w-3 h-3" />
+                        </button>
+                        {deleteConfirm === f.path ? (
+                          <div className="flex items-center gap-0.5">
+                            <button
+                              onClick={async () => { await deleteFile(f.path); refetchUploads(); }}
+                              className="px-1.5 py-0.5 text-[9px] bg-red-500/20 text-red-400 rounded hover:bg-red-500/30"
+                            >
+                              Yes
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirm(null)}
+                              className="px-1.5 py-0.5 text-[9px] text-gray-500 hover:text-gray-300"
+                            >
+                              No
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setDeleteConfirm(f.path)}
+                            className="p-1 rounded hover:bg-white/10 text-gray-600 hover:text-red-400 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {viewingFile && activeTab === "tasks" && (
+              <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 bg-white/[0.02]">
+                  <span className="text-[10px] text-gray-400 font-mono truncate flex-1" title={viewingFile.path}>{viewingFile.path.split("/").pop()}</span>
+                  <div className="flex items-center gap-1.5 ml-2">
+                    <span className="text-[10px] text-gray-600">{formatFileSize(viewingFile.size)}</span>
+                    <button onClick={() => setViewingFile(null)} className="p-1 hover:bg-white/10 rounded text-gray-500 hover:text-white transition-colors">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+                <div className="max-h-[200px] overflow-auto custom-scrollbar">
+                  {viewingFile.truncated ? (
+                    <p className="text-xs text-gray-500 p-4 text-center">File too large to preview ({formatFileSize(viewingFile.size)})</p>
+                  ) : viewingFile.content !== null ? (
+                    <pre className="text-[11px] text-gray-300 p-3 font-mono whitespace-pre-wrap break-all leading-relaxed">{viewingFile.content}</pre>
+                  ) : (
+                    <p className="text-xs text-gray-500 p-4 text-center">Binary file — cannot preview</p>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <button
