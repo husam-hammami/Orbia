@@ -25,6 +25,15 @@ export function createSessionMiddleware() {
       conString: process.env.DATABASE_FALLBACK_URL || process.env.DATABASE_URL,
       tableName: "user_sessions",
       createTableIfMissing: true,
+      pruneSessionInterval: 60 * 15,
+      schemaName: "public",
+      createTableSql: `CREATE TABLE IF NOT EXISTS "user_sessions" (
+        "sid" varchar NOT NULL COLLATE "default",
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "user_sessions_pkey" PRIMARY KEY ("sid")
+      ) WITH (OIDS=FALSE);
+      CREATE INDEX IF NOT EXISTS "IDX_user_sessions_expire" ON "user_sessions" ("expire");`,
     }),
     secret: process.env.SESSION_SECRET,
     resave: false,
