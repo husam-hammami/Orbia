@@ -329,17 +329,19 @@ function AgentDesk({ agent, index, onClick }: { agent: Agent; index: number; onC
         </div>
 
         <div className="flex-1 flex items-center justify-center min-h-[120px]">
-          <div className="flex flex-col items-center gap-1 text-center px-4">
-            <h3 className="text-gray-100 font-bold text-lg tracking-tight drop-shadow-[0_0_10px_rgba(0,0,0,0.8)]" data-testid={`text-agent-name-${agent.id}`}>
+          <div className="flex flex-col items-center gap-1.5 text-center px-4 py-2 rounded-xl bg-black/30 backdrop-blur-sm">
+            <h3 className="text-gray-100 font-bold text-lg tracking-tight drop-shadow-[0_0_12px_rgba(0,0,0,1)]" data-testid={`text-agent-name-${agent.id}`}>
               {agent.name}
             </h3>
-            <p className="text-xs text-indigo-300/60 uppercase tracking-widest font-medium drop-shadow-[0_0_8px_rgba(0,0,0,0.8)]">
+            <p className="text-xs text-indigo-300/60 uppercase tracking-widest font-medium drop-shadow-[0_0_10px_rgba(0,0,0,1)]">
               {agent.role || "GENERAL_INTELLIGENCE"}
             </p>
           </div>
         </div>
 
-        <div className="p-5 pt-0 mt-auto">
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#0a0a14]/90 via-[#0a0a14]/40 to-transparent pointer-events-none z-[5]" />
+
+        <div className="relative z-10 p-5 pt-0 mt-auto">
           <div className="bg-black/50 backdrop-blur-md rounded-xl border border-white/[0.06] p-3 flex flex-col gap-2">
             {status === "working" && agent.currentTaskSummary ? (
               <div className="flex items-start gap-2">

@@ -186,6 +186,7 @@ export function NeuralOrbit({ status, accentColor, seed = 0 }: NeuralOrbitProps)
   const animRef = useRef<number>(0);
   const timeRef = useRef(0);
   const pulsesRef = useRef<EnergyPulse[]>([]);
+  const sparksRef = useRef<{x: number; y: number; size: number; alpha: number; life: number; maxLife: number}[]>([]);
   const colsRef = useRef<CodeCol[]>([]);
   const lastWRef = useRef(0);
   const brainRef = useRef<ReturnType<typeof buildBrainStructure> | null>(null);
@@ -229,7 +230,7 @@ export function NeuralOrbit({ status, accentColor, seed = 0 }: NeuralOrbitProps)
     const isWorking = safeStatus === "working";
     const isError = safeStatus === "error";
     const isWaiting = safeStatus === "waiting";
-    const B = isWorking ? 1.0 : isError ? 0.5 : isWaiting ? 0.15 : 0.5;
+    const B = isWorking ? 1.0 : isError ? 0.5 : isWaiting ? 0.15 : 0.65;
 
     const cSpd = isWorking ? 1.2 : isError ? 2 : isWaiting ? 0.1 : 0.35;
     const cA = isWorking ? 1.0 : isError ? 0.3 : isWaiting ? 0.2 : 0.6;
@@ -320,12 +321,12 @@ export function NeuralOrbit({ status, accentColor, seed = 0 }: NeuralOrbitProps)
     }
 
     const pulses = pulsesRef.current;
-    const maxP = isWorking ? 30 : isError ? 4 : isWaiting ? 1 : 8;
-    const spawnR = isWorking ? 0.6 : isError ? 0.08 : isWaiting ? 0.005 : 0.1;
+    const maxP = isWorking ? 30 : isError ? 4 : isWaiting ? 1 : 15;
+    const spawnR = isWorking ? 0.6 : isError ? 0.08 : isWaiting ? 0.005 : 0.25;
 
     if (pulses.length < maxP && dt > 0) {
       const sr = seededRng(Math.floor(time * 0.04) + seed * 13);
-      const spawns = isWorking ? 3 : 1;
+      const spawns = isWorking ? 3 : isWaiting ? 1 : 2;
       for (let sp = 0; sp < spawns; sp++) {
         if (sr() < spawnR && pulses.length < maxP) {
           const si = Math.floor(sr() * streams.length);
@@ -457,6 +458,44 @@ export function NeuralOrbit({ status, accentColor, seed = 0 }: NeuralOrbitProps)
         ctx.lineWidth = 0.5;
         ctx.stroke();
       }
+
+    }
+
+    const sparks = sparksRef.current;
+    const maxSparks = isWorking ? 6 : isWaiting ? 0 : 3;
+    const sparkSpawnRate = isWorking ? 0.012 : 0.004;
+    if (sparks.length < maxSparks && dt > 0) {
+      const sr = seededRng(Math.floor(time * 0.007) + seed * 31);
+      if (sr() < sparkSpawnRate * dt) {
+        const ci = Math.floor(sr() * clusters.length);
+        const c = clusters[ci];
+        const angle = sr() * 6.28;
+        const dist = sr() * c.radius * 0.8;
+        sparks.push({
+          x: c.x + Math.cos(angle) * dist,
+          y: c.y + Math.sin(angle) * dist,
+          size: 1.5 + sr() * 2.5,
+          alpha: 0.4 + sr() * 0.5,
+          life: 0,
+          maxLife: 80 + sr() * 150,
+        });
+      }
+    }
+    for (let si = sparks.length - 1; si >= 0; si--) {
+      const sp = sparks[si];
+      sp.life += dt;
+      if (sp.life >= sp.maxLife) { sparks.splice(si, 1); continue; }
+      const t = sp.life / sp.maxLife;
+      const fade = t < 0.2 ? t / 0.2 : t > 0.7 ? (1 - t) / 0.3 : 1;
+      const a = sp.alpha * fade * B;
+      const sg = ctx.createRadialGradient(sp.x, sp.y, 0, sp.x, sp.y, sp.size * 3);
+      sg.addColorStop(0, `rgba(255,255,255,${a})`);
+      sg.addColorStop(0.4, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a * 0.4})`);
+      sg.addColorStop(1, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0)`);
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, sp.size * 3, 0, 6.28);
+      ctx.fillStyle = sg;
+      ctx.fill();
     }
 
     if (isWorking) {
