@@ -60,29 +60,29 @@ interface GithubRepo {
   updated_at: string;
 }
 
-const AGENT_ICONS: { id: string; icon: LucideIcon; label: string }[] = [
-  { id: "bot", icon: Bot, label: "Bot" },
-  { id: "brain", icon: Brain, label: "Brain" },
-  { id: "cpu", icon: Cpu, label: "Processor" },
-  { id: "circuit", icon: CircuitBoard, label: "Circuit" },
-  { id: "atom", icon: Atom, label: "Atom" },
-  { id: "orbit", icon: Orbit, label: "Orbit" },
-  { id: "shield", icon: Shield, label: "Shield" },
-  { id: "crosshair", icon: Crosshair, label: "Target" },
-  { id: "wand", icon: Wand2, label: "Wand" },
-  { id: "gem", icon: Gem, label: "Gem" },
-  { id: "flame", icon: Flame, label: "Flame" },
-  { id: "hex", icon: Hexagon, label: "Hex" },
-  { id: "swords", icon: Swords, label: "Swords" },
-  { id: "scan-eye", icon: ScanEye, label: "Scanner" },
-  { id: "braces", icon: Braces, label: "Code" },
-  { id: "sparkles", icon: Sparkles, label: "Sparkles" },
+const AGENT_GLYPHS: { id: string; label: string; path: string }[] = [
+  { id: "nexus", label: "Nexus", path: "M12 2L2 7v10l10 5 10-5V7L12 2zm0 3l6 3-6 3-6-3 6-3zm-7 5.5l6 3v5.5l-6-3V10.5zm14 0v5.5l-6 3v-5.5l6-3z" },
+  { id: "cortex", label: "Cortex", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4a3 3 0 110 6 3 3 0 010-6zm-1 8h2v2h2v2h-2v2h-2v-2H9v-2h2v-2z" },
+  { id: "prism", label: "Prism", path: "M12 2l10 20H2L12 2zm0 6l-5 10h10L12 8z" },
+  { id: "helix", label: "Helix", path: "M6 3c0 3 3 5 6 5s6-2 6-5M6 9c0 3 3 5 6 5s6-2 6-5M6 15c0 3 3 5 6 5s6-2 6-5M6 21c0-3 3-5 6-5s6 2 6 5" },
+  { id: "aegis", label: "Aegis", path: "M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3zm0 4l5 2.5V11c0 3.5-2.13 6.74-5 7.94V6z" },
+  { id: "pulse", label: "Pulse", path: "M3 12h4l3-8 4 16 3-8h4" },
+  { id: "nova", label: "Nova", path: "M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16l-6.4 5.2 2.4-7.2-6-4.8h7.6L12 2z" },
+  { id: "cipher", label: "Cipher", path: "M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6zm-5-5h4v6h-4V9z" },
+  { id: "vector", label: "Vector", path: "M12 2v8m0 4v8m-5-15l3.5 3.5M9.5 14.5L7 17m10-15l-3.5 3.5m0 7L17 17M2 12h8m4 0h8" },
+  { id: "arc", label: "Arc", path: "M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10M12 2a15.3 15.3 0 00-4 10 15.3 15.3 0 004 10" },
+  { id: "forge", label: "Forge", path: "M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" },
+  { id: "vortex", label: "Vortex", path: "M12 2a10 10 0 100 20 10 10 0 000-20zm0 4a6 6 0 110 12 6 6 0 010-12zm0 3a3 3 0 100 6 3 3 0 000-6z" },
 ];
 
-function AgentIconById({ iconId, className, color }: { iconId: string; className?: string; color?: string }) {
-  const entry = AGENT_ICONS.find(i => i.id === iconId);
-  const Icon = entry?.icon || Bot;
-  return <Icon className={className} style={color ? { color } : undefined} />;
+function AgentGlyph({ glyphId, size = 20, color = "#9ca3af" }: { glyphId: string; size?: number; color?: string }) {
+  const entry = AGENT_GLYPHS.find(g => g.id === glyphId);
+  const path = entry?.path || AGENT_GLYPHS[0].path;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d={path} />
+    </svg>
+  );
 }
 
 const CLAUDE_SKILLS = [
@@ -638,7 +638,7 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
   const githubConfigured = githubStatus?.configured !== false;
   const [step, setStep] = useState(githubConnected ? 1 : 0);
   const [name, setName] = useState("");
-  const [avatar, setAvatar] = useState("bot");
+  const [avatar, setAvatar] = useState("nexus");
   const [role, setRole] = useState("");
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
   const [skillSearch, setSkillSearch] = useState("");
@@ -720,7 +720,7 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center relative" style={{ background: `${accentColor}15`, border: `1px solid ${accentColor}30` }}>
-                <AgentIconById iconId={avatar} className="w-5 h-5" color={accentColor} />
+                <AgentGlyph glyphId={avatar} size={20} color={accentColor} />
                 <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0a0a16]" style={{ background: accentColor }} />
               </div>
               <div>
@@ -764,44 +764,37 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
             {(step === 1 || (step === 0 && githubConnected)) && (
               <motion.div key="step-1" {...agentAnimations.wizardStep} className="space-y-5">
 
-                <div className="flex gap-3 items-start">
-                  <div className="flex-1 space-y-3">
-                    <div>
-                      <label className={labelClasses}>Identity</label>
-                      <div className="flex gap-2">
-                        <div className="flex gap-1 bg-[#070711] border border-white/[0.08] rounded-xl p-1 overflow-x-auto custom-scrollbar flex-shrink-0">
-                          {ACCENT_COLORS.map(c => (
-                            <button
-                              key={c}
-                              onClick={() => setAccentColor(c)}
-                              className={cn(
-                                "w-6 h-6 rounded-lg transition-all flex-shrink-0",
-                                accentColor === c ? "ring-2 ring-white/60 scale-110" : "opacity-40 hover:opacity-80"
-                              )}
-                              style={{ backgroundColor: c }}
-                              data-testid={`button-color-${c}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-1 flex-wrap bg-[#070711] border border-white/[0.08] rounded-xl p-1.5">
-                      {AGENT_ICONS.map(({ id, icon: Icon, label }) => (
-                        <button
-                          key={id}
-                          onClick={() => setAvatar(id)}
-                          title={label}
-                          className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
-                            avatar === id ? "scale-110" : "opacity-40 hover:opacity-80 hover:bg-white/5"
-                          )}
-                          style={avatar === id ? { background: `${accentColor}20`, boxShadow: `inset 0 0 0 1px ${accentColor}50` } : {}}
-                          data-testid={`button-avatar-${id}`}
-                        >
-                          <Icon className="w-4 h-4" style={avatar === id ? { color: accentColor } : { color: "#9ca3af" }} />
-                        </button>
-                      ))}
-                    </div>
+                <div>
+                  <label className={labelClasses}>Identity</label>
+                  <div className="flex gap-1.5 items-center bg-[#070711] border border-white/[0.08] rounded-xl p-1.5 overflow-x-auto custom-scrollbar">
+                    {ACCENT_COLORS.map(c => (
+                      <button
+                        key={c}
+                        onClick={() => setAccentColor(c)}
+                        className={cn(
+                          "w-7 h-7 rounded-lg transition-all flex-shrink-0",
+                          accentColor === c ? "ring-2 ring-white/50 scale-110" : "opacity-35 hover:opacity-75"
+                        )}
+                        style={{ backgroundColor: c }}
+                        data-testid={`button-color-${c}`}
+                      />
+                    ))}
+                    <div className="w-px h-5 bg-white/[0.08] mx-1 flex-shrink-0" />
+                    {AGENT_GLYPHS.map(({ id, label }) => (
+                      <button
+                        key={id}
+                        onClick={() => setAvatar(id)}
+                        title={label}
+                        className={cn(
+                          "w-7 h-7 rounded-lg flex items-center justify-center transition-all flex-shrink-0",
+                          avatar === id ? "scale-110" : "opacity-35 hover:opacity-75 hover:bg-white/5"
+                        )}
+                        style={avatar === id ? { background: `${accentColor}20`, boxShadow: `inset 0 0 0 1px ${accentColor}50` } : {}}
+                        data-testid={`button-avatar-${id}`}
+                      >
+                        <AgentGlyph glyphId={id} size={16} color={avatar === id ? accentColor : "#9ca3af"} />
+                      </button>
+                    ))}
                   </div>
                 </div>
 
