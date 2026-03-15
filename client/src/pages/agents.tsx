@@ -188,29 +188,34 @@ You have access to the 21st.dev component library via MCP. Use these commands:
     label: "Reviewer",
     icon: "◈",
     color: "#f59e0b",
-    designation: "Code Reviewer",
-    specialization: "Code Quality & Architecture Review",
-    skillIds: ["code-review", "security-audit", "performance", "accessibility", "testing-rtl", "documentation", "error-handling", "typescript-strict"],
-    systemPrompt: `You are a senior code reviewer and architecture consultant. Your role is to analyze code for quality, suggest improvements, and ensure best practices.
+    designation: "Design & Code Reviewer",
+    specialization: "Design Critique, UX Audit & Architecture Review",
+    skillIds: ["code-review", "security-audit", "performance", "accessibility", "testing-rtl", "documentation", "error-handling", "typescript-strict", "ui-ux-design", "responsive-design"],
+    systemPrompt: `You are an expert design critic and senior code reviewer. You can both tear apart bad designs and build brilliant new ones from scratch.
 
-## Review Focus Areas
+## Design Review Capabilities
+- **Full UX Audit**: Analyze user flows, information architecture, visual hierarchy, and interaction patterns
+- **Visual Critique**: Color theory, typography, spacing rhythm, contrast ratios, visual balance
+- **Redesign from Scratch**: When an existing UI is fundamentally broken, propose and build a complete redesign — don't patch bad foundations
+- **Creative Direction**: Generate bold, original design concepts with mood boards, color palettes, and component systems
+- **Competitive Analysis**: Compare against best-in-class apps and suggest what to steal/adapt
+
+## Code Review Focus Areas
 - **Architecture**: Component structure, separation of concerns, scalability
 - **Performance**: Unnecessary re-renders, bundle size, lazy loading opportunities
 - **Security**: XSS vectors, auth holes, input validation, dependency vulnerabilities
 - **Accessibility**: WCAG compliance, keyboard navigation, screen reader support
 - **Type Safety**: Strict TypeScript, proper generics, no \`any\` leaks
-- **Testing**: Coverage gaps, edge cases, integration test opportunities
 
-## Review Process
-1. Analyze the full component tree and data flow
-2. Identify critical issues (security, crashes) first
-3. Then optimization opportunities (performance, DX)
-4. Finally, style and convention improvements
-5. Provide concrete code examples for every suggestion
+## Review Modes
+1. **Audit Mode**: Deep analysis of existing UI/code — identify what's broken and why
+2. **Redesign Mode**: Scrap what doesn't work, propose a fresh approach with mockups and code
+3. **Polish Mode**: Fine-tune good designs — spacing, transitions, edge cases, responsive behavior
 
 ## Output Format
-Rate each file: 🔴 Critical | 🟡 Needs Work | 🟢 Good
-Always provide actionable suggestions with code snippets.`,
+Rate each area: 🔴 Scrap & Redesign | 🟡 Fixable | 🟢 Solid
+For 🔴 ratings: always provide a complete alternative design, not just criticism.
+Always include code snippets and visual reasoning for every suggestion.`,
     mcpConfig: null,
   },
 } as const;
@@ -1015,11 +1020,12 @@ function CreateAgentWizard({ onClose, onCreated, githubStatus }: { onClose: () =
                               <span className="text-[10px] uppercase tracking-wider font-bold" style={{ color: AGENT_ROLES.reviewer.color }}>Reviewer Mode</span>
                             </div>
                             <div className="space-y-1.5 text-[11px] text-gray-400 leading-relaxed pl-5">
-                              <p><span className="text-white/70">Analyze</span> — Reviews architecture, performance, security & accessibility</p>
-                              <p><span className="text-white/70">Suggest</span> — Concrete refactoring with code snippets and alternatives</p>
-                              <p><span className="text-white/70">Rate</span> — Files scored as 🔴 Critical · 🟡 Needs Work · 🟢 Good</p>
+                              <p><span className="text-amber-400/80 font-medium">Audit</span> — Deep analysis of UI design, UX flows, code quality & architecture</p>
+                              <p><span className="text-amber-400/80 font-medium">Redesign</span> — Scrap broken UIs and build fresh alternatives from scratch</p>
+                              <p><span className="text-amber-400/80 font-medium">Polish</span> — Fine-tune spacing, transitions, responsive behavior & edge cases</p>
+                              <p><span className="text-white/70">Rating</span> — 🔴 Scrap & Redesign · 🟡 Fixable · 🟢 Solid</p>
                               {activeRoles.has("designer") && (
-                                <p><span className="text-pink-400/70">+ Designer</span> — Can redesign entire UI sections from scratch</p>
+                                <p><span className="text-pink-400/70">+ Designer</span> — Full creative power with 21st.dev components for redesigns</p>
                               )}
                             </div>
                           </div>
