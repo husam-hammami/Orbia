@@ -305,6 +305,12 @@ export function subscribeToOutput(agentId: string, callback: (data: string) => v
   return () => { session.outputListeners.delete(callback); };
 }
 
+export function getOutputBuffer(agentId: string): string[] {
+  const session = shells.get(agentId);
+  if (!session) return [];
+  return session.outputBuffer;
+}
+
 export function injectCommand(agentId: string, command: string): boolean {
   const session = shells.get(agentId);
   if (!session || !session.alive || !session.process.stdin) return false;

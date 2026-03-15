@@ -1,7 +1,8 @@
 import { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { agentProcessManager } from "../lib/agent-process-manager";
-import { injectCommand, hasActiveSession, subscribeToOutput, killSession } from "../lib/agent-terminal";
+import { injectCommand, hasActiveSession, subscribeToOutput, killSession, getOutputBuffer } from "../lib/agent-terminal";
+import { aiStream, MODEL_FAST } from "../lib/ai-client";
 import * as repoManager from "../lib/repo-manager";
 import * as githubOAuth from "../lib/github-oauth";
 import { requireAuth } from "../auth";
@@ -752,6 +753,130 @@ export function registerAgentRoutes(app: Express) {
         await storage.updateAgentProfile(ctx.userId, agent.id, { status: "idle", currentTaskSummary: null } as any);
         res.status(500).json({ error: err.message });
       }
+    }
+  });
+
+  app.post("/api/agents/:id/orbit", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+    const agent = (await storage.getAgentProfile(ctx.userId, ctx.agentId))!;
+
+    const { action, message, history } = req.body;
+    if (!action || !["analyze", "review", "plan", "monitor", "chat"].includes(action)) {
+      return res.status(400).json({ error: "Invalid action" });
+    }
+    if (action === "chat" && (!message || typeof message !== "string")) {
+      return res.status(400).json({ error: "Message required for chat action" });
+    }
+    const safeMessage = typeof message === "string" ? message.slice(0, 4000) : undefined;
+    const safeHistory = Array.isArray(history)
+      ? history.slice(-10).filter((h: any) => h.role && h.content && typeof h.content === "string")
+          .map((h: any) => ({ role: h.role as string, content: (h.content as string).slice(0, 4000) }))
+      : [];
+
+    const repoDir = repoManager.getRepoDir(agent.id);
+    const repoCloned = repoManager.isRepoCloned(agent.id);
+
+    let repoContext = "";
+    if (repoCloned) {
+      try {
+        const listDir = (dir: string, prefix = "", depth = 0): string => {
+          if (depth > 3) return "";
+          const entries = fs.readdirSync(dir, { withFileTypes: true })
+            .filter(e => !e.name.startsWith(".") && e.name !== "node_modules" && e.name !== "__pycache__" && e.name !== ".git")
+            .sort((a, b) => (a.isDirectory() === b.isDirectory() ? a.name.localeCompare(b.name) : a.isDirectory() ? -1 : 1));
+          return entries.map(e => {
+            const line = `${prefix}${e.isDirectory() ? "📁 " : "  "}${e.name}`;
+            if (e.isDirectory()) return line + "\n" + listDir(path.join(dir, e.name), prefix + "  ", depth + 1);
+            return line;
+          }).join("\n");
+        };
+        repoContext += "## Repository Structure\n```\n" + listDir(repoDir) + "\n```\n\n";
+      } catch {}
+
+      try {
+        const status = await repoManager.getStatus(agent.id);
+        const changes = [...status.modified, ...status.created, ...status.deleted, ...status.staged];
+        if (changes.length > 0) {
+          repoContext += "## Uncommitted Changes\n" + changes.map(f => `- ${f}`).join("\n") + "\n\n";
+          const diff = await repoManager.getDiff(agent.id);
+          if (diff) repoContext += "## Current Diff\n```diff\n" + diff.slice(0, 8000) + "\n```\n\n";
+        }
+      } catch {}
+
+      try {
+        const log = await repoManager.getLog(agent.id, 10);
+        if (log.length > 0) {
+          repoContext += "## Recent Commits\n" + log.map(c => `- ${c.hash} ${c.message} (${c.author})`).join("\n") + "\n\n";
+        }
+      } catch {}
+    }
+
+    const terminalLines = getOutputBuffer(agent.id);
+    const recentTerminal = terminalLines.slice(-100).join("");
+    const cleanTerminal = recentTerminal.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "").slice(-4000);
+
+    let taskContext = "";
+    if (agent.currentTaskSummary) taskContext += `Current Task: ${agent.currentTaskSummary}\n`;
+    taskContext += `Agent Status: ${agent.status || "idle"}\n`;
+
+    const systemPrompt = `You are Orbit — an AI analysis companion embedded in the "${agent.name}" agent workspace within Orbia.
+Your role is to be a brilliant, concise technical advisor. You have full context of this agent's repository, terminal activity, and current work.
+
+${repoContext}
+${taskContext}
+${cleanTerminal ? `## Recent Terminal Output\n\`\`\`\n${cleanTerminal}\n\`\`\`\n` : ""}
+
+## Your Capabilities
+- **Analyze**: Deep repo structure analysis, code quality review, dependency assessment
+- **Review**: Review uncommitted changes, diffs, recent commits with actionable feedback
+- **Plan**: Generate detailed task plans, suggest next steps, architecture recommendations
+- **Monitor**: Interpret what the CLI agent is doing from terminal output
+
+## Style
+- Be concise but thorough. Use markdown formatting.
+- When reviewing code, be specific about file paths and line-level feedback.
+- When generating plans, use numbered steps with clear outcomes.
+- Speak as a senior architect — confident, direct, actionable.`;
+
+    let userMessage = "";
+    if (action === "analyze") {
+      userMessage = "Analyze this repository. Provide a concise summary of: the tech stack, project structure, key files, and any notable patterns or issues you see.";
+    } else if (action === "review") {
+      userMessage = "Review the current uncommitted changes (if any) and recent commits. Give specific, actionable feedback on code quality, potential bugs, and improvements.";
+    } else if (action === "plan") {
+      userMessage = "Based on the current state of the repo and any ongoing work, generate a detailed task plan for what should happen next. Include specific steps, files to modify, and expected outcomes.";
+    } else if (action === "monitor") {
+      userMessage = "Analyze the recent terminal output. What is the CLI agent currently doing? Summarize its progress, any errors encountered, and suggest if any intervention is needed.";
+    } else if (action === "chat" && safeMessage) {
+      userMessage = safeMessage;
+    } else {
+      return res.status(400).json({ error: "Invalid action or missing message" });
+    }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    try {
+      const messages: Array<{ role: "user" | "assistant" | "system"; content: string }> = [
+        { role: "system", content: systemPrompt },
+      ];
+
+      for (const h of safeHistory) {
+        messages.push({ role: h.role as "user" | "assistant", content: h.content });
+      }
+
+      messages.push({ role: "user", content: userMessage });
+
+      await aiStream(messages, res, { model: MODEL_FAST, maxTokens: 4096 });
+      res.write("data: [DONE]\n\n");
+      res.end();
+    } catch (err: any) {
+      console.error("[orbit] AI error:", err.message);
+      res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+      res.end();
     }
   });
 }

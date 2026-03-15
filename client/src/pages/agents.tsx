@@ -16,7 +16,8 @@ import {
   ChevronDown, Clock, AlertTriangle,
   BrainCircuit,
   Folder, File, ChevronRight, Eye,
-  ArrowUp, Code
+  ArrowUp, Code,
+  Scan, ListChecks, Activity, Send, Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NeuralOrbit, EmptyOrbit } from "@/components/agents/pixel-agent";
@@ -963,6 +964,101 @@ function ProjectPane({ agent }: { agent: Agent }) {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [showFiles, setShowFiles] = useState(true);
 
+  const [orbitOpen, setOrbitOpen] = useState(false);
+  const [orbitLoading, setOrbitLoading] = useState(false);
+  const [orbitResponse, setOrbitResponse] = useState("");
+  const [orbitChat, setOrbitChat] = useState("");
+  const [orbitHistory, setOrbitHistory] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+  const orbitScrollRef = React.useRef<HTMLDivElement>(null);
+  const orbitAbortRef = React.useRef<AbortController | null>(null);
+  const orbitRequestIdRef = React.useRef(0);
+
+  async function orbitAction(action: string, message?: string) {
+    if (orbitAbortRef.current) orbitAbortRef.current.abort();
+    const controller = new AbortController();
+    orbitAbortRef.current = controller;
+    const requestId = ++orbitRequestIdRef.current;
+
+    setOrbitLoading(true);
+    setOrbitResponse("");
+    const userMsg = message || (action === "analyze" ? "Analyze repository" : action === "review" ? "Review changes" : action === "plan" ? "Generate plan" : "Monitor terminal");
+    const newHistory = [...orbitHistory, { role: "user" as const, content: userMsg }];
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}/orbit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          action,
+          message: message?.slice(0, 4000),
+          history: orbitHistory.slice(-10),
+        }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) throw new Error("Orbit request failed");
+      if (requestId !== orbitRequestIdRef.current) return;
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = "";
+      let lineBuffer = "";
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (requestId !== orbitRequestIdRef.current) { reader.cancel(); return; }
+
+          lineBuffer += decoder.decode(value, { stream: true });
+          const lines = lineBuffer.split("\n");
+          lineBuffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+              if (data === "[DONE]") continue;
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.content) {
+                  accumulated += parsed.content;
+                  setOrbitResponse(accumulated);
+                }
+              } catch {}
+            }
+          }
+        }
+
+        if (lineBuffer.startsWith("data: ") && lineBuffer.slice(6) !== "[DONE]") {
+          try {
+            const parsed = JSON.parse(lineBuffer.slice(6));
+            if (parsed.content) { accumulated += parsed.content; setOrbitResponse(accumulated); }
+          } catch {}
+        }
+      }
+
+      if (requestId === orbitRequestIdRef.current) {
+        setOrbitHistory([...newHistory, { role: "assistant", content: accumulated }]);
+      }
+    } catch (err: any) {
+      if (err.name !== "AbortError" && requestId === orbitRequestIdRef.current) {
+        setOrbitResponse("Failed to connect to Orbit. Please try again.");
+      }
+    } finally {
+      if (requestId === orbitRequestIdRef.current) {
+        setOrbitLoading(false);
+        orbitAbortRef.current = null;
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (orbitScrollRef.current) {
+      orbitScrollRef.current.scrollTop = orbitScrollRef.current.scrollHeight;
+    }
+  }, [orbitResponse]);
+
   const { data: branches, refetch: refetchBranches } = useQuery({
     queryKey: [`/api/agents/${agent.id}/git/branches`],
     queryFn: async () => {
@@ -1147,6 +1243,118 @@ function ProjectPane({ agent }: { agent: Agent }) {
                 ) : null}
               </div>
             )}
+
+            <div className="space-y-2">
+              <button
+                onClick={() => setOrbitOpen(!orbitOpen)}
+                className="flex items-center justify-between w-full group"
+                data-testid="button-toggle-orbit"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="relative w-5 h-5 rounded-full flex items-center justify-center" style={{ background: `radial-gradient(circle, ${color}40, ${color}15)` }}>
+                    <Sparkles className="w-3 h-3" style={{ color }} />
+                    {orbitLoading && <span className="absolute inset-0 rounded-full border border-t-transparent animate-spin" style={{ borderColor: `${color}60` }} />}
+                  </div>
+                  <span className="text-[10px] uppercase tracking-widest font-medium" style={{ color: `${color}cc` }}>Orbit AI</span>
+                </div>
+                <ChevronDown className={cn("w-3 h-3 text-gray-600 transition-transform", orbitOpen && "rotate-180")} />
+              </button>
+
+              <AnimatePresence>
+                {orbitOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="rounded-xl border overflow-hidden" style={{ borderColor: `${color}20`, background: `linear-gradient(135deg, ${color}08, transparent)` }}>
+                      <div className="grid grid-cols-4 gap-1 p-2">
+                        {[
+                          { action: "analyze", icon: Scan, label: "Analyze" },
+                          { action: "review", icon: Code, label: "Review" },
+                          { action: "plan", icon: ListChecks, label: "Plan" },
+                          { action: "monitor", icon: Activity, label: "Monitor" },
+                        ].map(({ action, icon: Icon, label }) => (
+                          <button
+                            key={action}
+                            onClick={() => orbitAction(action)}
+                            disabled={orbitLoading}
+                            className={cn(
+                              "flex flex-col items-center gap-1 py-2 px-1 rounded-lg text-[10px] transition-all",
+                              orbitLoading ? "opacity-40 cursor-wait" : "hover:bg-white/10 cursor-pointer"
+                            )}
+                            style={{ color: `${color}bb` }}
+                            data-testid={`button-orbit-${action}`}
+                          >
+                            <Icon className="w-3.5 h-3.5" />
+                            <span>{label}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="px-2 pb-2">
+                        <div className="flex gap-1.5">
+                          <input
+                            type="text"
+                            value={orbitChat}
+                            onChange={e => setOrbitChat(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === "Enter" && orbitChat.trim() && !orbitLoading) {
+                                orbitAction("chat", orbitChat.trim());
+                                setOrbitChat("");
+                              }
+                            }}
+                            placeholder="Ask Orbit anything..."
+                            className="flex-1 text-xs bg-white/5 border border-white/5 rounded-lg px-3 py-2 text-gray-300 placeholder-gray-600 focus:outline-none focus:border-indigo-500/30"
+                            style={{ fontFamily: "'Inter', sans-serif" }}
+                            data-testid="input-orbit-chat"
+                          />
+                          <button
+                            onClick={() => { if (orbitChat.trim() && !orbitLoading) { orbitAction("chat", orbitChat.trim()); setOrbitChat(""); } }}
+                            disabled={!orbitChat.trim() || orbitLoading}
+                            className="p-2 rounded-lg transition-colors disabled:opacity-30"
+                            style={{ background: `${color}20`, color }}
+                            data-testid="button-orbit-send"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {(orbitResponse || orbitLoading) && (
+                        <div className="border-t px-3 py-3" style={{ borderColor: `${color}15` }}>
+                          <div ref={orbitScrollRef} className="max-h-[280px] overflow-y-auto custom-scrollbar">
+                            {orbitLoading && !orbitResponse && (
+                              <div className="flex items-center gap-2 text-xs" style={{ color: `${color}99` }}>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                <span>Orbit is thinking...</span>
+                              </div>
+                            )}
+                            {orbitResponse && (
+                              <div className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap break-words font-mono" data-testid="text-orbit-response">
+                                {orbitResponse}
+                                {orbitLoading && <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-indigo-400 animate-pulse rounded-sm" />}
+                              </div>
+                            )}
+                          </div>
+                          {!orbitLoading && orbitResponse && (
+                            <button
+                              onClick={() => { setOrbitResponse(""); setOrbitHistory([]); }}
+                              className="mt-2 text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
+                              data-testid="button-orbit-clear"
+                            >
+                              Clear conversation
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             <div className="space-y-2">
               <h4 className="text-[10px] uppercase tracking-widest text-gray-500 font-medium">Claude CLI Tools</h4>
