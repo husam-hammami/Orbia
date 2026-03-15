@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcrypt";
+import pg from "pg";
 import { db } from "./db";
 import { users } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
@@ -20,20 +21,27 @@ export function createSessionMiddleware() {
     throw new Error("SESSION_SECRET environment variable is required");
   }
 
+  const pgPool = new pg.Pool({
+    connectionString: process.env.DATABASE_FALLBACK_URL || process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  pgPool.query(`
+    CREATE TABLE IF NOT EXISTS "user_sessions" (
+      "sid" varchar NOT NULL COLLATE "default",
+      "sess" json NOT NULL,
+      "expire" timestamp(6) NOT NULL,
+      CONSTRAINT "user_sessions_pkey" PRIMARY KEY ("sid")
+    );
+    CREATE INDEX IF NOT EXISTS "IDX_user_sessions_expire" ON "user_sessions" ("expire");
+  `).catch((err: any) => console.warn("[session] table check:", err.message));
+
   return session({
     store: new PgSession({
-      conString: process.env.DATABASE_FALLBACK_URL || process.env.DATABASE_URL,
+      pool: pgPool,
       tableName: "user_sessions",
-      createTableIfMissing: true,
+      createTableIfMissing: false,
       pruneSessionInterval: 60 * 15,
-      schemaName: "public",
-      createTableSql: `CREATE TABLE IF NOT EXISTS "user_sessions" (
-        "sid" varchar NOT NULL COLLATE "default",
-        "sess" json NOT NULL,
-        "expire" timestamp(6) NOT NULL,
-        CONSTRAINT "user_sessions_pkey" PRIMARY KEY ("sid")
-      ) WITH (OIDS=FALSE);
-      CREATE INDEX IF NOT EXISTS "IDX_user_sessions_expire" ON "user_sessions" ("expire");`,
     }),
     secret: process.env.SESSION_SECRET,
     resave: false,
