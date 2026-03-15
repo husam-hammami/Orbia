@@ -145,8 +145,14 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
     shell.stdin.write(`cd "${repoDir}"\n`);
     shell.stdin.write(`stty echo 2>/dev/null\n`);
     shell.stdin.write("clear\n");
-    shell.stdin.write("claude\n");
   }
+
+  setTimeout(() => {
+    if (session.alive && shell.stdin) {
+      shell.stdin.write("clear\n");
+      shell.stdin.write("claude\n");
+    }
+  }, 1500);
 
   shells.set(agentId, session);
   console.log(`[agent-terminal] PTY shell started for "${agentName}" (${agentId}) in ${repoDir}`);
