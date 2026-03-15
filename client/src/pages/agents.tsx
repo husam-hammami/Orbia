@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/lib/queryClient";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,7 +23,7 @@ import {
   FolderKanban, CheckSquare, Square as SquareIcon, Rocket,
   Bot, Brain, Shield, Crosshair, Cpu, Gem, Flame, Atom,
   Orbit, Hexagon, Wand2, Swords, CircuitBoard, ScanEye, Braces,
-  BookOpen, Search, type LucideIcon
+  BookOpen, Search, Home, type LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NeuralOrbit, EmptyOrbit } from "@/components/agents/pixel-agent";
@@ -164,6 +165,7 @@ async function apiFetch(url: string, opts?: RequestInit) {
 export default function AgentsPage() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [showCreateWizard, setShowCreateWizard] = useState(false);
+  const [, navigate] = useLocation();
   const queryClient = useQueryClient();
 
   const { data: agents = [], isLoading, isError } = useQuery<Agent[]>({
@@ -207,13 +209,22 @@ export default function AgentsPage() {
 
       <div className="relative z-10 px-4 pt-8 pb-4 max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3 tracking-tight" data-testid="text-agents-title">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-100 to-indigo-200">Neural Orbits</span>
-            </h1>
-            <p className="text-sm text-indigo-200/50 mt-1.5 tracking-wide" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-              {agents.length > 0 ? `${agents.length} agent${agents.length !== 1 ? "s" : ""} active` : "No agents initialized"}
-            </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/")}
+              className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] text-gray-400 hover:text-white transition-all"
+              data-testid="button-back-home"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-white flex items-center gap-3 tracking-tight" data-testid="text-agents-title">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-100 to-indigo-200">Neural Orbits</span>
+              </h1>
+              <p className="text-sm text-indigo-200/50 mt-1.5 tracking-wide" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                {agents.length > 0 ? `${agents.length} agent${agents.length !== 1 ? "s" : ""} active` : "No agents initialized"}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3 ml-[52px] sm:ml-0">
             <GithubConnectButton status={githubStatus} />
@@ -242,7 +253,15 @@ export default function AgentsPage() {
 
       <AnimatePresence>
         {showCreateWizard && (
-          <CreateAgentWizard onClose={() => setShowCreateWizard(false)} githubStatus={githubStatus} />
+          <CreateAgentWizard
+            onClose={() => setShowCreateWizard(false)}
+            onCreated={(agentId) => {
+              setShowCreateWizard(false);
+              queryClient.invalidateQueries({ queryKey: ["agents"] });
+              setSelectedAgent(agentId);
+            }}
+            githubStatus={githubStatus}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -633,7 +652,7 @@ function GithubConnectButton({ status }: { status: any }) {
   );
 }
 
-function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; githubStatus?: any }) {
+function CreateAgentWizard({ onClose, onCreated, githubStatus }: { onClose: () => void; onCreated?: (agentId: string) => void; githubStatus?: any }) {
   const githubConnected = githubStatus?.connected;
   const githubConfigured = githubStatus?.configured !== false;
   const [step, setStep] = useState(githubConnected ? 1 : 0);
@@ -679,7 +698,7 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
       const skillsInstruction = skillNames.length > 0
         ? `\n\nInstalled Claude Code skills: ${skillNames.join(", ")}. Use these skills when relevant to tasks.`
         : "";
-      await apiFetch(`${API_BASE_URL}/api/agents`, {
+      const newAgent = await apiFetch(`${API_BASE_URL}/api/agents`, {
         method: "POST",
         body: JSON.stringify({
           name, designation, avatar, role, repoUrl, repoBranch, accentColor,
@@ -687,9 +706,12 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
           systemPrompt: (systemPrompt || "") + skillsInstruction || null,
         }),
       });
-      queryClient.invalidateQueries({ queryKey: ["agents"] });
-      toast.success(`${name} initialized in the nexus`);
-      onClose();
+      toast.success(`${name} deployed successfully`);
+      if (onCreated && newAgent?.id) {
+        onCreated(newAgent.id);
+      } else {
+        onClose();
+      }
     } catch (err: any) {
       setError(err.message || "Synthesis failed");
       setCreating(false);
