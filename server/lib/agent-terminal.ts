@@ -139,20 +139,25 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
   });
 
   if (shell.stdin) {
-    shell.stdin.write(`stty -echo 2>/dev/null\n`);
-    shell.stdin.write(`export PS1='\\[\\033[1;36m\\]${agentName}\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]$ '\n`);
-    shell.stdin.write(`export PATH="${enhancedPath}"\n`);
-    shell.stdin.write(`cd "${repoDir}"\n`);
-    shell.stdin.write(`stty echo 2>/dev/null\n`);
-    shell.stdin.write("clear\n");
+    const initCmds = [
+      `export PS1='\\[\\033[1;36m\\]${agentName}\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]$ '`,
+      `export PATH="${enhancedPath}"`,
+      `cd "${repoDir}"`,
+      `clear`,
+    ].join(" && ");
+    shell.stdin.write(initCmds + "\n");
   }
 
   setTimeout(() => {
     if (session.alive && shell.stdin) {
       shell.stdin.write("clear\n");
-      shell.stdin.write("claude\n");
+      setTimeout(() => {
+        if (session.alive && shell.stdin) {
+          shell.stdin.write("claude\n");
+        }
+      }, 200);
     }
-  }, 500);
+  }, 600);
 
   shells.set(agentId, session);
   console.log(`[agent-terminal] PTY shell started for "${agentName}" (${agentId}) in ${repoDir}`);
