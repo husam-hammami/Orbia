@@ -285,13 +285,34 @@ export function registerAgentRoutes(app: Express) {
   app.post("/api/agents", requireAuth, async (req: Request, res: Response) => {
     const userId = getUserId(req);
     try {
-      const agent = await storage.createAgentProfile(userId, { ...req.body, userId });
+      const { mcpServers, ...profileData } = req.body;
+      const agent = await storage.createAgentProfile(userId, { ...profileData, userId });
       const conn = await storage.getGithubConnection(userId);
       if (conn && agent.repoUrl) {
         try {
           await repoManager.cloneRepo(agent.id, agent.repoUrl, agent.repoBranch || "main", conn.accessToken);
         } catch (err: any) {
           console.error("Auto-clone failed:", err.message);
+        }
+      }
+      if (mcpServers && Array.isArray(mcpServers) && mcpServers.length > 0) {
+        try {
+          const repoDir = repoManager.getRepoDir(agent.id);
+          const claudeConfigDir = path.join(repoDir, ".claude");
+          if (!fs.existsSync(claudeConfigDir)) fs.mkdirSync(claudeConfigDir, { recursive: true });
+          const mcpConfigPath = path.join(claudeConfigDir, "settings.json");
+          let existingConfig: any = {};
+          if (fs.existsSync(mcpConfigPath)) {
+            try { existingConfig = JSON.parse(fs.readFileSync(mcpConfigPath, "utf-8")); } catch {}
+          }
+          if (!existingConfig.mcpServers) existingConfig.mcpServers = {};
+          for (const mcp of mcpServers) {
+            existingConfig.mcpServers[mcp.name] = { command: mcp.command, args: mcp.args };
+          }
+          fs.writeFileSync(mcpConfigPath, JSON.stringify(existingConfig, null, 2));
+          console.log(`[agents] MCP servers configured for "${agent.name}":`, mcpServers.map((m: any) => m.name).join(", "));
+        } catch (err: any) {
+          console.error("MCP config write failed:", err.message);
         }
       }
       res.json(agent);

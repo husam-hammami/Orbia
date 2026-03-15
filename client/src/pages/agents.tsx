@@ -147,6 +147,76 @@ const CLAUDE_SKILLS = [
 
 const SKILL_CATEGORIES = [...new Set(CLAUDE_SKILLS.map(s => s.category))].sort();
 
+const AGENT_ROLES = {
+  designer: {
+    label: "Designer",
+    icon: "✦",
+    color: "#ec4899",
+    designation: "UI/UX Designer",
+    specialization: "Interface Design & Visual Systems",
+    skillIds: ["ui-ux-design", "responsive-design", "tailwind", "shadcn-ui", "figma-to-code", "animation-motion", "design-tokens", "accessibility", "three-js", "data-viz", "storybook"],
+    systemPrompt: `You are a world-class UI/UX designer agent with access to 21st.dev Magic MCP for premium React components.
+
+## 21st.dev Magic MCP Integration
+You have access to the 21st.dev component library via MCP. Use these commands:
+- \`/ui\` — Search and generate beautiful React components from 21st.dev
+- Browse components at https://21st.dev for inspiration before building
+- Use \`npx @anthropic-ai/claude-code@latest mcp add 21st_magic -- npx -y @21st-dev/magic@latest\` to install MCP if not configured
+
+## Design Principles
+- Mobile-first responsive design with fluid typography
+- Consistent spacing scale (4px base unit)
+- Accessible by default (WCAG 2.1 AA minimum)
+- Micro-interactions and smooth transitions (Framer Motion)
+- Dark/light mode support with CSS variables
+
+## Best Practices
+1. Start with component structure and data flow before styling
+2. Use shadcn/ui as the base, customize with Tailwind
+3. For 3D elements, use React Three Fiber (@react-three/fiber + @react-three/drei)
+4. Always test at mobile (375px), tablet (768px), and desktop (1280px) breakpoints
+5. Use semantic HTML and ARIA labels for accessibility
+6. Create design tokens for colors, spacing, and typography before building`,
+    mcpConfig: {
+      name: "21st_magic",
+      command: "npx",
+      args: ["-y", "@21st-dev/magic@latest"],
+      source: "https://github.com/21st-dev/magic-mcp",
+    },
+  },
+  reviewer: {
+    label: "Reviewer",
+    icon: "◈",
+    color: "#f59e0b",
+    designation: "Code Reviewer",
+    specialization: "Code Quality & Architecture Review",
+    skillIds: ["code-review", "security-audit", "performance", "accessibility", "testing-rtl", "documentation", "error-handling", "typescript-strict"],
+    systemPrompt: `You are a senior code reviewer and architecture consultant. Your role is to analyze code for quality, suggest improvements, and ensure best practices.
+
+## Review Focus Areas
+- **Architecture**: Component structure, separation of concerns, scalability
+- **Performance**: Unnecessary re-renders, bundle size, lazy loading opportunities
+- **Security**: XSS vectors, auth holes, input validation, dependency vulnerabilities
+- **Accessibility**: WCAG compliance, keyboard navigation, screen reader support
+- **Type Safety**: Strict TypeScript, proper generics, no \`any\` leaks
+- **Testing**: Coverage gaps, edge cases, integration test opportunities
+
+## Review Process
+1. Analyze the full component tree and data flow
+2. Identify critical issues (security, crashes) first
+3. Then optimization opportunities (performance, DX)
+4. Finally, style and convention improvements
+5. Provide concrete code examples for every suggestion
+
+## Output Format
+Rate each file: 🔴 Critical | 🟡 Needs Work | 🟢 Good
+Always provide actionable suggestions with code snippets.`,
+    mcpConfig: null,
+  },
+} as const;
+
+type AgentRoleKey = keyof typeof AGENT_ROLES;
+
 const ACCENT_COLORS = ["#6366f1", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#3b82f6"];
 
 function getHeaders() {
@@ -660,6 +730,7 @@ function CreateAgentWizard({ onClose, onCreated, githubStatus }: { onClose: () =
   const [designation, setDesignation] = useState("");
   const [avatar, setAvatar] = useState("nexus");
   const [role, setRole] = useState("");
+  const [activeRoles, setActiveRoles] = useState<Set<AgentRoleKey>>(new Set());
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
   const [skillSearch, setSkillSearch] = useState("");
   const [skillCategory, setSkillCategory] = useState("All");
@@ -689,6 +760,48 @@ function CreateAgentWizard({ onClose, onCreated, githubStatus }: { onClose: () =
     enabled: step >= 1,
   });
 
+  const toggleRole = (roleKey: AgentRoleKey) => {
+    setActiveRoles(prev => {
+      const next = new Set(prev);
+      if (next.has(roleKey)) {
+        next.delete(roleKey);
+        const roleDef = AGENT_ROLES[roleKey];
+        const otherRoleSkills = new Set<string>();
+        for (const k of next) {
+          for (const sid of AGENT_ROLES[k].skillIds) otherRoleSkills.add(sid);
+        }
+        setSelectedSkills(s => {
+          const ns = new Set(s);
+          for (const sid of roleDef.skillIds) {
+            if (!otherRoleSkills.has(sid)) ns.delete(sid);
+          }
+          return ns;
+        });
+        if (next.size === 0) {
+          setDesignation("");
+          setRole("");
+        } else {
+          const remaining = [...next].map(k => AGENT_ROLES[k]);
+          setDesignation(remaining.map(r => r.designation).join(" & "));
+          setRole(remaining.map(r => r.specialization).join(" + "));
+        }
+      } else {
+        next.add(roleKey);
+        const roleDef = AGENT_ROLES[roleKey];
+        setSelectedSkills(s => {
+          const ns = new Set(s);
+          for (const sid of roleDef.skillIds) ns.add(sid);
+          return ns;
+        });
+        const allRoles = [...next].map(k => AGENT_ROLES[k]);
+        setDesignation(allRoles.map(r => r.designation).join(" & "));
+        setRole(allRoles.map(r => r.specialization).join(" + "));
+        setAccentColor(roleDef.color);
+      }
+      return next;
+    });
+  };
+
   const handleCreate = async () => {
     if (!name || !designation || !repoUrl) return;
     setCreating(true);
@@ -698,12 +811,16 @@ function CreateAgentWizard({ onClose, onCreated, githubStatus }: { onClose: () =
       const skillsInstruction = skillNames.length > 0
         ? `\n\nInstalled Claude Code skills: ${skillNames.join(", ")}. Use these skills when relevant to tasks.`
         : "";
+      const rolePrompts = [...activeRoles].map(k => AGENT_ROLES[k].systemPrompt).join("\n\n---\n\n");
+      const fullSystemPrompt = [rolePrompts, systemPrompt, skillsInstruction].filter(Boolean).join("\n\n");
+      const mcpConfigs = [...activeRoles].map(k => AGENT_ROLES[k].mcpConfig).filter(Boolean);
       const newAgent = await apiFetch(`${API_BASE_URL}/api/agents`, {
         method: "POST",
         body: JSON.stringify({
           name, designation, avatar, role, repoUrl, repoBranch, accentColor,
           linkedProjectId: linkedProjectId || null,
-          systemPrompt: (systemPrompt || "") + skillsInstruction || null,
+          systemPrompt: fullSystemPrompt || null,
+          mcpServers: mcpConfigs.length > 0 ? mcpConfigs : undefined,
         }),
       });
       toast.success(`${name} deployed successfully`);
@@ -832,6 +949,85 @@ function CreateAgentWizard({ onClose, onCreated, githubStatus }: { onClose: () =
                     data-testid="input-agent-name"
                   />
                 </div>
+
+                <div>
+                  <label className={labelClasses}>Role Presets</label>
+                  <div className="flex gap-2">
+                    {(Object.entries(AGENT_ROLES) as [AgentRoleKey, typeof AGENT_ROLES[AgentRoleKey]][]).map(([key, roleDef]) => {
+                      const active = activeRoles.has(key);
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => toggleRole(key)}
+                          className={cn(
+                            "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all border",
+                            active
+                              ? "text-white"
+                              : "text-gray-400 bg-[#070711] border-white/[0.08] hover:border-white/[0.15] hover:text-gray-200"
+                          )}
+                          style={active ? {
+                            background: `${roleDef.color}18`,
+                            borderColor: `${roleDef.color}50`,
+                            boxShadow: `0 0 12px ${roleDef.color}15`,
+                          } : {}}
+                          data-testid={`button-role-${key}`}
+                        >
+                          <span className="text-sm">{roleDef.icon}</span>
+                          <span>{roleDef.label}</span>
+                          {active && <Check className="w-3 h-3 ml-0.5" style={{ color: roleDef.color }} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <AnimatePresence>
+                  {activeRoles.size > 0 && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="bg-[#070711] border border-white/[0.06] rounded-xl p-3.5 space-y-2.5">
+                        {activeRoles.has("designer") && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="text-sm">✦</span>
+                              <span className="text-[10px] uppercase tracking-wider font-bold" style={{ color: AGENT_ROLES.designer.color }}>Designer Mode</span>
+                            </div>
+                            <div className="space-y-1.5 text-[11px] text-gray-400 leading-relaxed pl-5">
+                              <p><span className="text-white/70 font-mono bg-white/[0.05] px-1 py-0.5 rounded">/ui</span> — Search & generate components from 21st.dev library</p>
+                              <p><span className="text-white/70">3D Components</span> — React Three Fiber via <span className="font-mono text-cyan-400/70">@react-three/drei</span></p>
+                              <p><span className="text-white/70">MCP</span> — 21st.dev Magic auto-configured for premium component access</p>
+                              <p><span className="text-white/70">Tip</span> — Ask to "browse 21st.dev" before building for design inspiration</p>
+                            </div>
+                          </div>
+                        )}
+                        {activeRoles.has("designer") && activeRoles.has("reviewer") && (
+                          <div className="border-t border-white/[0.05]" />
+                        )}
+                        {activeRoles.has("reviewer") && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="text-sm">◈</span>
+                              <span className="text-[10px] uppercase tracking-wider font-bold" style={{ color: AGENT_ROLES.reviewer.color }}>Reviewer Mode</span>
+                            </div>
+                            <div className="space-y-1.5 text-[11px] text-gray-400 leading-relaxed pl-5">
+                              <p><span className="text-white/70">Analyze</span> — Reviews architecture, performance, security & accessibility</p>
+                              <p><span className="text-white/70">Suggest</span> — Concrete refactoring with code snippets and alternatives</p>
+                              <p><span className="text-white/70">Rate</span> — Files scored as 🔴 Critical · 🟡 Needs Work · 🟢 Good</p>
+                              {activeRoles.has("designer") && (
+                                <p><span className="text-pink-400/70">+ Designer</span> — Can redesign entire UI sections from scratch</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
