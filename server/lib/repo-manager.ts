@@ -81,7 +81,13 @@ export async function checkoutBranch(agentId: string, branch: string, create = f
   if (create) {
     await git.checkoutLocalBranch(branch);
   } else {
-    await git.checkout(branch);
+    try { await git.fetch(["--unshallow"]); } catch (e) {}
+    const localBranches = await git.branchLocal();
+    if (localBranches.all.includes(branch)) {
+      await git.checkout(branch);
+    } else {
+      await git.checkout(["-b", branch, `origin/${branch}`]);
+    }
   }
 }
 
@@ -102,7 +108,11 @@ export async function listBranches(agentId: string): Promise<{ current: string; 
   const dest = repoPath(agentId);
   if (!fs.existsSync(dest)) throw new Error("Repo not cloned");
   const git: SimpleGit = simpleGit(dest);
-  await git.fetch(["--all"]);
+  try {
+    await git.remote(["set-branches", "origin", "*"]);
+    await git.fetch(["origin"]);
+  } catch (e) {
+  }
   const summary = await git.branch(["-a"]);
   const remoteBranches = summary.all
     .filter(b => b.startsWith("remotes/origin/") && !b.includes("HEAD"))

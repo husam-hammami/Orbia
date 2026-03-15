@@ -1383,9 +1383,9 @@ function ProjectPane({ agent }: { agent: Agent }) {
 
                 <div className="pt-2 border-t border-white/5">
                   <div className="flex items-center justify-between text-xs text-gray-600 mb-2">
-                    <span className="flex items-center gap-1.5 font-mono">
-                      <FolderGit2 className="w-3 h-3" />
-                      {agent.repoUrl.split("/").slice(-2).join("/")}
+                    <span className="flex items-center gap-1.5 font-mono truncate" title={agent.repoUrl}>
+                      <FolderGit2 className="w-3 h-3 flex-shrink-0" />
+                      {agent.repoUrl.replace("https://github.com/", "")}
                     </span>
                     <span className="text-emerald-500/60 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60" /> Synced
