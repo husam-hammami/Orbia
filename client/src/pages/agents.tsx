@@ -18,7 +18,8 @@ import {
   Folder, File, ChevronRight, Eye,
   ArrowUp, Code,
   Scan, ListChecks, Activity, Send, Sparkles,
-  GitPullRequestArrow, Play, TestTube, Zap
+  GitPullRequestArrow, Play, TestTube, Zap,
+  FolderKanban, CheckSquare, Square as SquareIcon, Rocket
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NeuralOrbit, EmptyOrbit } from "@/components/agents/pixel-agent";
@@ -965,7 +966,71 @@ function ProjectPane({ agent }: { agent: Agent }) {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [showFiles, setShowFiles] = useState(true);
 
-  const [orbitOpen, setOrbitOpen] = useState(false);
+  const [showProjectPicker, setShowProjectPicker] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [pipelineOpts, setPipelineOpts] = useState({ reviewAfterEach: true, testAfterEach: false, mergeOnSuccess: false, prOnSuccess: true });
+  const [pipelineRunning, setPipelineRunning] = useState(false);
+
+  const { data: careerProjects, isLoading: projectsLoading } = useQuery({
+    queryKey: ["/api/career-projects"],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/career-projects`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load projects");
+      return res.json();
+    },
+    enabled: showProjectPicker,
+  });
+
+  const { data: projectTasks, isLoading: tasksLoading } = useQuery({
+    queryKey: ["/api/career-tasks", selectedProjectId],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/career-tasks?projectId=${selectedProjectId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load tasks");
+      return res.json();
+    },
+    enabled: !!selectedProjectId,
+  });
+
+  function toggleTask(id: string) {
+    setSelectedTaskIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  async function runTaskPipeline() {
+    if (selectedTaskIds.size === 0) return;
+    const tasks = (projectTasks || []).filter((t: any) => selectedTaskIds.has(t.id) && !t.completed);
+    if (tasks.length === 0) { toast.error("No incomplete tasks selected"); return; }
+
+    setPipelineRunning(true);
+    const opts = pipelineOpts;
+    let pipelineSteps: string[] = [];
+
+    for (let i = 0; i < tasks.length; i++) {
+      const task = tasks[i];
+      const desc = task.description ? ` — ${task.description}` : "";
+      pipelineSteps.push(`[Task ${i + 1}/${tasks.length}] ${task.title}${desc}`);
+      if (opts.reviewAfterEach) pipelineSteps.push("→ Review all changes for this task");
+      if (opts.testAfterEach) pipelineSteps.push("→ Run tests to verify this task");
+    }
+    if (opts.prOnSuccess) pipelineSteps.push("✓ FINAL: Create a pull request with all accumulated changes");
+    else if (opts.mergeOnSuccess) pipelineSteps.push("✓ FINAL: Merge all changes into the default branch");
+
+    const prompt = `Execute the following task pipeline sequentially. Complete each step fully before moving to the next. If any review or test fails, STOP and report the issue — do not continue.\n\n${pipelineSteps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`;
+
+    const ok = await sendAgentCommand(agent.id, prompt);
+    if (ok) {
+      toast.success(`Pipeline started: ${tasks.length} task(s)`);
+      setShowProjectPicker(false);
+    } else {
+      toast.error("Failed to start pipeline");
+    }
+    setPipelineRunning(false);
+  }
+
   const [orbitLoading, setOrbitLoading] = useState(false);
   const [orbitResponse, setOrbitResponse] = useState("");
   const [orbitChat, setOrbitChat] = useState("");
@@ -1321,10 +1386,11 @@ function ProjectPane({ agent }: { agent: Agent }) {
               </div>
 
               <div className="px-3 py-3 space-y-2">
-                <h4 className="text-[10px] uppercase tracking-widest text-gray-600 font-medium">Queue Actions</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[10px] uppercase tracking-widest text-gray-600 font-medium">Quick Actions</h4>
+                </div>
                 <div className="grid grid-cols-3 gap-1.5">
                   {[
-                    { label: "Run Task", icon: Play, cmd: "Run the next queued task" },
                     { label: "Test", icon: TestTube, cmd: "Run the test suite and report results" },
                     { label: "Review", icon: Code, cmd: "Review all uncommitted changes, provide feedback" },
                     { label: "Create PR", icon: GitPullRequestArrow, cmd: "Create a pull request for the current branch changes" },
@@ -1346,6 +1412,163 @@ function ProjectPane({ agent }: { agent: Agent }) {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div className="px-3 pb-2 space-y-2">
+                <button
+                  onClick={() => setShowProjectPicker(!showProjectPicker)}
+                  className="flex items-center justify-between w-full text-[10px] uppercase tracking-widest text-gray-600 font-medium hover:text-gray-400 transition-colors"
+                  data-testid="button-toggle-project-tasks"
+                >
+                  <span className="flex items-center gap-1.5"><FolderKanban className="w-3 h-3" /> Project Task Pipeline</span>
+                  <ChevronDown className={cn("w-3 h-3 transition-transform", showProjectPicker && "rotate-180")} />
+                </button>
+
+                <AnimatePresence>
+                  {showProjectPicker && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+                        {!selectedProjectId ? (
+                          <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
+                            {projectsLoading ? (
+                              <div className="flex items-center justify-center py-4 gap-2">
+                                <Loader2 className="w-3 h-3 animate-spin text-gray-500" />
+                                <p className="text-[10px] text-gray-500">Loading projects...</p>
+                              </div>
+                            ) : !careerProjects?.length ? (
+                              <p className="text-[10px] text-gray-600 text-center py-4">No projects found</p>
+                            ) : (
+                              careerProjects.map((p: any) => (
+                                <button
+                                  key={p.id}
+                                  onClick={() => { setSelectedProjectId(p.id); setSelectedTaskIds(new Set()); }}
+                                  className="flex items-center gap-2 w-full px-3 py-2 hover:bg-white/[0.04] transition-colors text-left border-b border-white/[0.03] last:border-0"
+                                  data-testid={`button-project-${p.id}`}
+                                >
+                                  <div className={cn("w-2 h-2 rounded-full flex-shrink-0", p.color || "bg-indigo-500")} />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs text-gray-300 truncate">{p.title}</p>
+                                    <p className="text-[9px] text-gray-600">{p.status} · {p.progress || 0}%</p>
+                                  </div>
+                                  <ChevronRight className="w-3 h-3 text-gray-600 flex-shrink-0" />
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.06] bg-white/[0.02]">
+                              <button
+                                onClick={() => { setSelectedProjectId(null); setSelectedTaskIds(new Set()); }}
+                                className="p-0.5 rounded hover:bg-white/10 text-gray-500 hover:text-white transition-colors"
+                              >
+                                <ArrowLeft className="w-3 h-3" />
+                              </button>
+                              <span className="text-[10px] text-gray-400 font-medium truncate flex-1">
+                                {careerProjects?.find((p: any) => p.id === selectedProjectId)?.title || "Project"}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  const incomplete = (projectTasks || []).filter((t: any) => !t.completed);
+                                  setSelectedTaskIds(new Set(incomplete.map((t: any) => t.id)));
+                                }}
+                                className="text-[9px] px-1.5 py-0.5 rounded text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+                              >
+                                Select all
+                              </button>
+                            </div>
+
+                            <div className="max-h-[180px] overflow-y-auto custom-scrollbar">
+                              {tasksLoading ? (
+                                <div className="flex items-center justify-center py-4 gap-2">
+                                  <Loader2 className="w-3 h-3 animate-spin text-gray-500" />
+                                  <p className="text-[10px] text-gray-500">Loading tasks...</p>
+                                </div>
+                              ) : !projectTasks?.length ? (
+                                <p className="text-[10px] text-gray-600 text-center py-4">No tasks in this project</p>
+                              ) : (
+                                projectTasks.map((t: any) => (
+                                  <button
+                                    key={t.id}
+                                    onClick={() => !t.completed && toggleTask(t.id)}
+                                    disabled={!!t.completed}
+                                    className={cn(
+                                      "flex items-center gap-2 w-full px-3 py-1.5 text-left transition-colors border-b border-white/[0.02] last:border-0",
+                                      t.completed ? "opacity-40" : "hover:bg-white/[0.04]"
+                                    )}
+                                    data-testid={`button-task-${t.id}`}
+                                  >
+                                    {selectedTaskIds.has(t.id) ? (
+                                      <CheckSquare className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                                    ) : (
+                                      <SquareIcon className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+                                    )}
+                                    <span className={cn(
+                                      "flex-1 text-[11px] truncate",
+                                      t.completed ? "line-through text-gray-600" : "text-gray-300"
+                                    )}>{t.title}</span>
+                                    {t.priority === "high" && <span className="text-[8px] px-1 py-0.5 rounded bg-red-500/15 text-red-400">HIGH</span>}
+                                  </button>
+                                ))
+                              )}
+                            </div>
+
+                            {selectedTaskIds.size > 0 && (
+                              <div className="border-t border-white/[0.06] p-2.5 space-y-2">
+                                <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                                  {[
+                                    { key: "reviewAfterEach", label: "Review after each" },
+                                    { key: "testAfterEach", label: "Test after each" },
+                                    { key: "prOnSuccess", label: "Create PR on success" },
+                                    { key: "mergeOnSuccess", label: "Merge on success" },
+                                  ].map(({ key, label }) => (
+                                    <button
+                                      key={key}
+                                      onClick={() => {
+                                        if (key === "prOnSuccess") setPipelineOpts(o => ({ ...o, prOnSuccess: !o.prOnSuccess, mergeOnSuccess: false }));
+                                        else if (key === "mergeOnSuccess") setPipelineOpts(o => ({ ...o, mergeOnSuccess: !o.mergeOnSuccess, prOnSuccess: false }));
+                                        else setPipelineOpts(o => ({ ...o, [key]: !(o as any)[key] }));
+                                      }}
+                                      className="flex items-center gap-1.5 text-[9px] text-gray-400 hover:text-gray-300 transition-colors"
+                                    >
+                                      {(pipelineOpts as any)[key] ? (
+                                        <CheckSquare className="w-3 h-3 text-indigo-400" />
+                                      ) : (
+                                        <SquareIcon className="w-3 h-3 text-gray-600" />
+                                      )}
+                                      <span>{label}</span>
+                                    </button>
+                                  ))}
+                                </div>
+
+                                <button
+                                  onClick={runTaskPipeline}
+                                  disabled={pipelineRunning}
+                                  className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all"
+                                  style={{
+                                    background: `linear-gradient(135deg, ${color}30, ${color}15)`,
+                                    border: `1px solid ${color}40`,
+                                    color,
+                                  }}
+                                  data-testid="button-run-pipeline"
+                                >
+                                  {pipelineRunning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Rocket className="w-3.5 h-3.5" />}
+                                  <span>Run Pipeline ({selectedTaskIds.size} task{selectedTaskIds.size > 1 ? "s" : ""})</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               <div className="px-3 pb-2 space-y-2">
