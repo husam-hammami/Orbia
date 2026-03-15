@@ -245,23 +245,19 @@ function OfficeFloor({
       >
         <div 
           className={cn(
-            "h-full rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all min-h-[320px] relative overflow-hidden group",
+            "h-full rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all min-h-[320px] relative overflow-hidden group",
             "bg-[#0a0a14]/60 backdrop-blur-xl border border-dashed border-indigo-500/20 hover:border-indigo-400/40 hover:bg-[#0f0f1a]/80"
           )}
           onClick={onCreateClick}
           data-testid="button-create-empty-desk"
         >
-          {/* Subtle grid background */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:20px_20px]" />
+          <EmptyOrbit />
           
           <div className="relative z-10 flex flex-col items-center">
-            <EmptyOrbit size={100} />
-            <div className="mt-6 flex flex-col items-center">
-              <span className="text-sm font-medium text-indigo-300/80 group-hover:text-indigo-200 transition-colors uppercase tracking-widest">New Agent</span>
-              <p className="text-[10px] text-indigo-500/40 mt-1.5 uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                initialize
-              </p>
-            </div>
+            <span className="text-sm font-medium text-indigo-300/80 group-hover:text-indigo-200 transition-colors uppercase tracking-widest">New Agent</span>
+            <p className="text-[10px] text-indigo-500/40 mt-1.5 uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+              initialize
+            </p>
           </div>
         </div>
       </motion.div>
@@ -309,107 +305,79 @@ function AgentDesk({ agent, index, onClick }: { agent: Agent; index: number; onC
       }}
       data-testid={`card-agent-${agent.id}`}
     >
-      {/* Structural visual lines inside card */}
-      <div className="absolute top-0 left-6 w-[1px] h-full bg-gradient-to-b from-transparent via-white/[0.03] to-transparent pointer-events-none" />
-      <div className="absolute top-6 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/[0.03] to-transparent pointer-events-none" />
+      <NeuralOrbit status={status} accentColor={color} seed={index} />
 
-      {/* Top Header / Metadata */}
-      <div className="flex items-start justify-between p-5 pb-0 relative z-10">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
+      <div className="relative z-10 flex flex-col h-full">
+        <div className="flex items-start justify-between p-5 pb-0">
+          <div className="flex flex-col gap-1">
             <h3 className="text-gray-100 font-bold text-lg tracking-tight" data-testid={`text-agent-name-${agent.id}`}>
               {agent.name}
             </h3>
-          </div>
-          <p className="text-xs text-indigo-300/60 uppercase tracking-widest font-medium">
-            {agent.role || "GENERAL_INTELLIGENCE"}
-          </p>
-        </div>
-        
-        {/* Status Indicator */}
-        <div className="flex flex-col items-end gap-1">
-          <div className={cn(
-            "flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] uppercase font-bold tracking-widest border",
-            status === "working" && "bg-green-500/10 text-green-400 border-green-500/20",
-            status === "error" && "bg-red-500/10 text-red-400 border-red-500/20",
-            status === "waiting" && "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-            status === "idle" && "bg-gray-500/10 text-gray-400 border-gray-500/20",
-          )} style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            <span className={cn(
-              "w-1.5 h-1.5 rounded-full",
-              status === "working" && "bg-green-400 shadow-[0_0_8px_#4ade80] animate-pulse",
-              status === "error" && "bg-red-400 shadow-[0_0_8px_#f87171]",
-              status === "waiting" && "bg-yellow-400 shadow-[0_0_8px_#facc15] animate-pulse",
-              status === "idle" && "bg-gray-400",
-            )} />
-            {status}
-          </div>
-          {elapsed && <span className="text-[10px] text-gray-500/80 mr-1" style={{ fontFamily: "'JetBrains Mono', monospace" }}>T+{elapsed}</span>}
-        </div>
-      </div>
-
-      {/* Center AI Visualization */}
-      <div className="flex-1 flex items-center justify-center p-6 relative z-10 min-h-[160px]">
-        {/* Subtle target crosshair in background */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
-          <div className="w-32 h-32 rounded-full border border-dashed border-white/20" />
-          <div className="absolute w-[1px] h-40 bg-white/10" />
-          <div className="absolute h-[1px] w-40 bg-white/10" />
-        </div>
-        
-        <NeuralOrbit status={status} accentColor={color} size={110} seed={index} />
-      </div>
-
-      {/* Bottom Footer / Activity */}
-      <div className="p-5 pt-0 mt-auto relative z-10">
-        <div className="bg-black/40 rounded-xl border border-white/[0.05] p-3 flex flex-col gap-2 relative overflow-hidden group-hover:bg-black/50 transition-colors">
-          {/* Subtle scanning line effect in footer */}
-          <motion.div 
-            className="absolute top-0 bottom-0 left-[-100%] w-[50%] bg-gradient-to-r from-transparent via-white/[0.02] to-transparent skew-x-[-20deg]"
-            animate={{ left: ["100%", "-100%"] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-          />
-
-          {status === "working" && agent.currentTaskSummary ? (
-            <div className="flex items-start gap-2">
-              <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 animate-pulse" style={{ backgroundColor: color }} />
-              <p className="text-xs text-gray-300 line-clamp-2 leading-relaxed font-medium">
-                {agent.currentTaskSummary}
-              </p>
-            </div>
-          ) : (
-            <p className="text-xs text-gray-500/70" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-              Awaiting instructions
+            <p className="text-xs text-indigo-300/60 uppercase tracking-widest font-medium">
+              {agent.role || "GENERAL_INTELLIGENCE"}
             </p>
-          )}
-
-          <div className="h-[1px] w-full bg-white/[0.05] my-1" />
-
-          <div className="flex items-center justify-between text-[10px] text-gray-500" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            <div className="flex items-center gap-1.5 truncate max-w-[70%]">
-              <FolderGit2 className="w-3 h-3 text-indigo-400/70" />
-              <span className="truncate">{agent.repoUrl.replace("https://github.com/", "").split("/").pop()}</span>
-              {agent.repoBranch && (
-                <>
-                  <span className="text-gray-700">/</span>
-                  <span className="text-indigo-300/50 truncate max-w-[60px]">{agent.repoBranch}</span>
-                </>
-              )}
+          </div>
+          
+          <div className="flex flex-col items-end gap-1">
+            <div className={cn(
+              "flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] uppercase font-bold tracking-widest border backdrop-blur-sm",
+              status === "working" && "bg-green-500/10 text-green-400 border-green-500/20",
+              status === "error" && "bg-red-500/10 text-red-400 border-red-500/20",
+              status === "waiting" && "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+              status === "idle" && "bg-gray-500/10 text-gray-400 border-gray-500/20",
+            )} style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+              <span className={cn(
+                "w-1.5 h-1.5 rounded-full",
+                status === "working" && "bg-green-400 shadow-[0_0_8px_#4ade80] animate-pulse",
+                status === "error" && "bg-red-400 shadow-[0_0_8px_#f87171]",
+                status === "waiting" && "bg-yellow-400 shadow-[0_0_8px_#facc15] animate-pulse",
+                status === "idle" && "bg-gray-400",
+              )} />
+              {status}
             </div>
-            
-            <div className="flex items-center gap-1.5 flex-shrink-0 bg-white/[0.03] px-1.5 py-0.5 rounded">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/70" />
-              <span>{agent.totalTasksCompleted ?? 0}</span>
+            {elapsed && <span className="text-[10px] text-gray-500/80 mr-1" style={{ fontFamily: "'JetBrains Mono', monospace" }}>T+{elapsed}</span>}
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-[120px]" />
+
+        <div className="p-5 pt-0 mt-auto">
+          <div className="bg-black/50 backdrop-blur-md rounded-xl border border-white/[0.06] p-3 flex flex-col gap-2">
+            {status === "working" && agent.currentTaskSummary ? (
+              <div className="flex items-start gap-2">
+                <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 animate-pulse" style={{ backgroundColor: color }} />
+                <p className="text-xs text-gray-300 line-clamp-2 leading-relaxed font-medium">
+                  {agent.currentTaskSummary}
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500/70" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                Awaiting instructions
+              </p>
+            )}
+
+            <div className="h-[1px] w-full bg-white/[0.05]" />
+
+            <div className="flex items-center justify-between text-[10px] text-gray-500" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+              <div className="flex items-center gap-1.5 truncate max-w-[70%]">
+                <FolderGit2 className="w-3 h-3 text-indigo-400/70" />
+                <span className="truncate">{agent.repoUrl.replace("https://github.com/", "").split("/").pop()}</span>
+                {agent.repoBranch && (
+                  <>
+                    <span className="text-gray-700">/</span>
+                    <span className="text-indigo-300/50 truncate max-w-[60px]">{agent.repoBranch}</span>
+                  </>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-1.5 flex-shrink-0 bg-white/[0.03] px-1.5 py-0.5 rounded">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/70" />
+                <span>{agent.totalTasksCompleted ?? 0}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      
-      {/* Decorative corner brackets */}
-      <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-white/20 rounded-tl-xl pointer-events-none" />
-      <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-white/20 rounded-tr-xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-white/20 rounded-bl-xl pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-white/20 rounded-br-xl pointer-events-none" />
     </motion.div>
   );
 }
@@ -478,19 +446,10 @@ function EmptyState({ onCreateClick, githubStatus }: { onCreateClick: () => void
   return (
     <motion.div {...agentAnimations.cardEnter} className="flex flex-col items-center justify-center py-20 px-4 relative z-10">
       <div className="bg-[#0a0a14]/80 backdrop-blur-2xl border border-indigo-500/20 shadow-[0_0_60px_rgba(99,102,241,0.1)] rounded-3xl p-12 text-center max-w-lg relative overflow-hidden group">
+        <EmptyOrbit />
         <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/[0.05] to-transparent" />
         
-        {/* Orbital rings behind */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border border-indigo-500/10 rounded-full" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-indigo-500/5 rounded-full" />
-        
         <div className="relative z-10">
-          <div className="mx-auto mb-8 flex justify-center">
-            <div className="relative">
-              <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full" />
-              <EmptyOrbit size={140} />
-            </div>
-          </div>
           <h3 className="text-2xl font-bold text-white mb-3 tracking-tight">No Agents Yet</h3>
           <p className="text-base text-gray-400 mb-8 max-w-md mx-auto leading-relaxed">
             {notConfigured
