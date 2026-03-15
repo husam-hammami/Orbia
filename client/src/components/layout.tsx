@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Settings, Briefcase, Wallet, ClipboardList, Orbit, Lock, Sun, Moon, Newspaper, Clock, Stethoscope, Monitor, MoreHorizontal, BookOpen, X, Eye } from "lucide-react";
+import { LayoutDashboard, Settings, Briefcase, Wallet, ClipboardList, Orbit, Lock, Sun, Moon, Newspaper, Clock, Stethoscope, Monitor, MoreHorizontal, BookOpen, X, Eye, BrainCircuit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GardenTopBar } from "@/components/garden-top-bar";
 import { WatchIconButton } from "@/components/watch-companion";
@@ -116,7 +116,7 @@ function Sidebar({ className }: SidebarProps) {
     { href: "/medical", label: "Medical", icon: Stethoscope },
     { href: "/finance", label: "Finance", icon: Wallet },
     { href: "/news", label: "Orbital News", icon: Newspaper },
-    { href: "/agents", label: "Neural Orbits", icon: Orbit },
+    { href: "/agents", label: "Neural Orbits", icon: BrainCircuit },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
 
@@ -197,7 +197,7 @@ const moreNavItems = [
   { href: "/finance", label: "Finance", icon: Wallet },
   { href: "/news", label: "News", icon: Newspaper },
   { href: "/journal", label: "Journal", icon: BookOpen },
-  { href: "/agents", label: "Neural Orbits", icon: Orbit },
+  { href: "/agents", label: "Neural Orbits", icon: BrainCircuit },
   { href: "/career?tab=vision", label: "Vision", icon: Eye },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
