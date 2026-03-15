@@ -8,6 +8,7 @@ import type { IncomingMessage } from "http";
 import { parse as parseUrl } from "url";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
+import crypto from "crypto";
 
 interface TerminalSession {
   ws: WebSocket;
@@ -34,7 +35,6 @@ function unsignCookie(val: string, secret: string): string | false {
   if (dotIdx < 0) return false;
   const sid = raw.slice(0, dotIdx);
   const mac = raw.slice(dotIdx + 1);
-  const crypto = require("crypto");
   const expected = crypto
     .createHmac("sha256", secret)
     .update(sid)
@@ -180,4 +180,15 @@ export function setupAgentTerminalWS(server: Server) {
   });
 
   console.log("[agent-terminal] WebSocket terminal handler registered");
+}
+
+export function injectCommand(agentId: string, command: string): boolean {
+  const session = sessions.get(agentId);
+  if (!session || !session.process.stdin) return false;
+  session.process.stdin.write(command + "\n");
+  return true;
+}
+
+export function hasActiveSession(agentId: string): boolean {
+  return sessions.has(agentId);
 }

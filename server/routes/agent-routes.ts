@@ -1,6 +1,7 @@
 import { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { agentProcessManager } from "../lib/agent-process-manager";
+import { injectCommand, hasActiveSession } from "../lib/agent-terminal";
 import * as repoManager from "../lib/repo-manager";
 import * as githubOAuth from "../lib/github-oauth";
 import { requireAuth } from "../auth";
@@ -306,20 +307,32 @@ export function registerAgentRoutes(app: Express) {
       currentTaskSummary: task.description,
     } as any);
 
-    try {
-      await agentProcessManager.startAgent({
-        agentId: agent.id,
-        taskId: task.id,
-        sessionId: session.id,
-        workdir: repoManager.getRepoDir(agent.id),
-        prompt: task.description,
-        conversationId: session.claudeConversationId || undefined,
+    const escapedPrompt = task.description.replace(/'/g, "'\\''");
+    const claudeCmd = `claude -p '${escapedPrompt}' --dangerously-skip-permissions`;
+
+    if (hasActiveSession(agent.id)) {
+      injectCommand(agent.id, claudeCmd);
+      broadcastToAgent(agent.id, "output", {
+        type: "text",
+        content: `Executing in terminal: ${claudeCmd}`,
       });
-      res.json({ ok: true, sessionId: session.id });
-    } catch (err: any) {
-      await storage.updateAgentTask(task.id, { status: "failed", errorMessage: err.message });
-      await storage.updateAgentProfile(ctx.userId, agent.id, { status: "idle", currentTaskSummary: null } as any);
-      res.status(500).json({ error: err.message });
+      res.json({ ok: true, sessionId: session.id, mode: "terminal" });
+    } else {
+      try {
+        await agentProcessManager.startAgent({
+          agentId: agent.id,
+          taskId: task.id,
+          sessionId: session.id,
+          workdir: repoManager.getRepoDir(agent.id),
+          prompt: task.description,
+          conversationId: session.claudeConversationId || undefined,
+        });
+        res.json({ ok: true, sessionId: session.id, mode: "process" });
+      } catch (err: any) {
+        await storage.updateAgentTask(task.id, { status: "failed", errorMessage: err.message });
+        await storage.updateAgentProfile(ctx.userId, agent.id, { status: "idle", currentTaskSummary: null } as any);
+        res.status(500).json({ error: err.message });
+      }
     }
   });
 
@@ -327,6 +340,10 @@ export function registerAgentRoutes(app: Express) {
     const ctx = await requireAgentOwnership(req, res);
     if (!ctx) return;
     const stopped = agentProcessManager.stopAgent(ctx.agentId);
+    if (!stopped && hasActiveSession(ctx.agentId)) {
+      injectCommand(ctx.agentId, "\x03");
+      return res.json({ stopped: true, mode: "terminal-interrupt" });
+    }
     res.json({ stopped });
   });
 
@@ -479,20 +496,32 @@ export function registerAgentRoutes(app: Express) {
       currentTaskSummary: req.body.prompt,
     } as any);
 
-    try {
-      await agentProcessManager.startAgent({
-        agentId: agent.id,
-        taskId: task.id,
-        sessionId: session.id,
-        workdir: repoManager.getRepoDir(agent.id),
-        prompt: req.body.prompt,
-        conversationId: session.claudeConversationId || undefined,
+    const escapedPrompt = req.body.prompt.replace(/'/g, "'\\''");
+    const claudeCmd = `claude -p '${escapedPrompt}' --dangerously-skip-permissions`;
+
+    if (hasActiveSession(agent.id)) {
+      injectCommand(agent.id, claudeCmd);
+      broadcastToAgent(agent.id, "output", {
+        type: "text",
+        content: `Executing in terminal: ${claudeCmd}`,
       });
-      res.json({ ok: true, taskId: task.id, sessionId: session.id });
-    } catch (err: any) {
-      await storage.updateAgentTask(task.id, { status: "failed", errorMessage: err.message });
-      await storage.updateAgentProfile(ctx.userId, agent.id, { status: "idle", currentTaskSummary: null } as any);
-      res.status(500).json({ error: err.message });
+      res.json({ ok: true, taskId: task.id, sessionId: session.id, mode: "terminal" });
+    } else {
+      try {
+        await agentProcessManager.startAgent({
+          agentId: agent.id,
+          taskId: task.id,
+          sessionId: session.id,
+          workdir: repoManager.getRepoDir(agent.id),
+          prompt: req.body.prompt,
+          conversationId: session.claudeConversationId || undefined,
+        });
+        res.json({ ok: true, taskId: task.id, sessionId: session.id, mode: "process" });
+      } catch (err: any) {
+        await storage.updateAgentTask(task.id, { status: "failed", errorMessage: err.message });
+        await storage.updateAgentProfile(ctx.userId, agent.id, { status: "idle", currentTaskSummary: null } as any);
+        res.status(500).json({ error: err.message });
+      }
     }
   });
 }
