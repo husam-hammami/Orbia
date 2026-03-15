@@ -57,8 +57,8 @@ function ensureShell(agentId: string, agentName: string, repoUrl: string): Shell
   envVars.TERM = "xterm-256color";
   envVars.PATH = enhancedPath;
   envVars.PS1 = `\\[\\033[1;36m\\]${agentName}\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]$ `;
-  envVars.COLUMNS = "120";
-  envVars.LINES = "30";
+  envVars.COLUMNS = "80";
+  envVars.LINES = "24";
 
   const shell = spawn("script", ["-qfc", "bash --norc --noprofile -i", "/dev/null"], {
     cwd: repoDir,
@@ -80,7 +80,7 @@ function ensureShell(agentId: string, agentName: string, repoUrl: string): Shell
   const welcome = `\x1b[1;36m=== ${agentName} ===\x1b[0m\r\n` +
     `\x1b[90mRepo: ${repoUrl}\x1b[0m\r\n` +
     `\x1b[90mDir: ${repoDir}\x1b[0m\r\n` +
-    `\x1b[90mType claude commands directly, or send tasks from the chat panel\x1b[0m\r\n\r\n`;
+    `\x1b[90mType commands directly — use claude to start the AI assistant\x1b[0m\r\n\r\n`;
   session.outputBuffer.push(welcome);
 
   const handleOutput = (data: Buffer) => {
@@ -122,9 +122,11 @@ function ensureShell(agentId: string, agentName: string, repoUrl: string): Shell
   });
 
   if (shell.stdin) {
+    shell.stdin.write(`stty -echo 2>/dev/null\n`);
     shell.stdin.write(`export PS1='\\[\\033[1;36m\\]${agentName}\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]$ '\n`);
     shell.stdin.write(`export PATH="${enhancedPath}"\n`);
     shell.stdin.write(`cd "${repoDir}"\n`);
+    shell.stdin.write(`stty echo 2>/dev/null\n`);
     shell.stdin.write("clear\n");
   }
 
@@ -232,11 +234,21 @@ export function setupAgentTerminalWS(server: Server) {
     const history = shellSession.outputBuffer.join("");
     if (history) ws.send(history);
 
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
+
     ws.on("message", (msg: Buffer | string) => {
       const data = msg.toString();
       try {
         const parsed = JSON.parse(data);
         if (parsed.type === "resize" && parsed.cols && parsed.rows) {
+          if (resizeTimer) clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            if (shellSession.alive && shellSession.process.stdin) {
+              const cols = Math.max(10, Math.min(500, parsed.cols));
+              const rows = Math.max(5, Math.min(200, parsed.rows));
+              shellSession.process.stdin.write(` stty cols ${cols} rows ${rows} 2>/dev/null\n`);
+            }
+          }, 300);
           return;
         }
         if (parsed.type === "input") {
@@ -252,6 +264,7 @@ export function setupAgentTerminalWS(server: Server) {
     });
 
     ws.on("close", () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
       shellSession.clients.delete(ws);
       console.log(`[agent-terminal] Client left "${agent.name}" (${shellSession.clients.size} remaining)`);
     });

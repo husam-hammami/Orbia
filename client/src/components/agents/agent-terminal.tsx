@@ -16,6 +16,12 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [connected, setConnected] = useState(false);
 
+  const sendResize = useCallback((ws: WebSocket, cols: number, rows: number) => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "resize", cols, rows }));
+    }
+  }, []);
+
   const connect = useCallback((term: Terminal) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
 
@@ -30,6 +36,7 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
       }
+      sendResize(ws, term.cols, term.rows);
     };
 
     ws.onmessage = (event) => {
@@ -44,7 +51,7 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
     ws.onerror = () => {
       setConnected(false);
     };
-  }, [agentId]);
+  }, [agentId, sendResize]);
 
   useEffect(() => {
     if (!termRef.current) return;
@@ -83,7 +90,9 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
     term.loadAddon(fitAddon);
     term.open(termRef.current);
 
-    try { fitAddon.fit(); } catch {}
+    requestAnimationFrame(() => {
+      try { fitAddon.fit(); } catch {}
+    });
 
     terminalRef.current = term;
     fitAddonRef.current = fitAddon;
@@ -95,18 +104,18 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
       }
     });
 
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
     const resizeObserver = new ResizeObserver(() => {
-      try {
-        fitAddon.fit();
-        const ws = wsRef.current;
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({
-            type: "resize",
-            cols: term.cols,
-            rows: term.rows,
-          }));
-        }
-      } catch {}
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        try {
+          fitAddon.fit();
+          const ws = wsRef.current;
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            sendResize(ws, term.cols, term.rows);
+          }
+        } catch {}
+      }, 100);
     });
 
     resizeObserver.observe(termRef.current);
@@ -115,6 +124,7 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
 
     return () => {
       resizeObserver.disconnect();
+      if (resizeTimeout) clearTimeout(resizeTimeout);
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       if (wsRef.current) wsRef.current.close();
       term.dispose();
@@ -122,7 +132,7 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
       wsRef.current = null;
       fitAddonRef.current = null;
     };
-  }, [agentId, connect]);
+  }, [agentId, connect, sendResize]);
 
   return (
     <div className="flex flex-col h-full" data-testid={`terminal-${agentId}`}>
@@ -131,7 +141,7 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
         <span className="text-xs text-white/60 font-mono">
           {connected ? "live" : "reconnecting..."}
         </span>
-        <span className="text-xs text-white/30 ml-auto font-mono truncate max-w-[150px]">{agentName}</span>
+        <span className="text-xs text-white/30 ml-auto font-mono truncate max-w-[200px]">{agentName}</span>
       </div>
       <div ref={termRef} className="flex-1 min-h-0" />
     </div>

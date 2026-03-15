@@ -4,12 +4,12 @@ import { API_BASE_URL } from "@/lib/queryClient";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
-  Plus, GitBranch, Terminal, Send,
-  Trash2, RefreshCw, Circle,
+  Plus, GitBranch, Terminal,
+  Trash2, RefreshCw,
   Github, X, Check, Loader2, Zap,
   FolderGit2, ArrowLeft, MoreVertical, Cpu,
-  Clock, CheckCircle2, XCircle, WifiOff,
-  Square, MessageSquare, ChevronDown, ExternalLink
+  CheckCircle2, WifiOff,
+  Square, ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PixelAgent, EmptyDesk } from "@/components/agents/pixel-agent";
@@ -31,18 +31,6 @@ interface Agent {
   isRunning: boolean;
   repoCloned: boolean;
   createdAt: string;
-}
-
-interface AgentTask {
-  id: string;
-  agentId: string;
-  description: string;
-  status: string | null;
-  result: string | null;
-  errorMessage: string | null;
-  createdAt: string;
-  startedAt: string | null;
-  completedAt: string | null;
 }
 
 interface GithubRepo {
@@ -705,20 +693,12 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
 }
 
 function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBack: () => void; onDelete: () => void }) {
-  const [prompt, setPrompt] = useState("");
-  const [mobileTab, setMobileTab] = useState<"terminal" | "chat" | "project">("terminal");
+  const [mobileTab, setMobileTab] = useState<"terminal" | "project">("terminal");
   const [showMenu, setShowMenu] = useState(false);
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const color = agent.accentColor || "#6366f1";
   const status = (agent.status || "idle") as "idle" | "working" | "error" | "waiting";
-
-  const { data: tasks = [] } = useQuery<AgentTask[]>({
-    queryKey: ["agent-tasks", agent.id],
-    queryFn: () => apiFetch(`${API_BASE_URL}/api/agents/${agent.id}/tasks`),
-    refetchInterval: 5000,
-    retry: 1,
-  });
 
   const { data: gitStatus } = useQuery({
     queryKey: ["agent-git-status", agent.id],
@@ -733,19 +713,6 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
     queryFn: () => apiFetch(`${API_BASE_URL}/api/agents/${agent.id}/git/log`),
     enabled: agent.repoCloned,
     retry: 1,
-  });
-
-  const sendMutation = useMutation({
-    mutationFn: (p: string) => apiFetch(`${API_BASE_URL}/api/agents/${agent.id}/send`, {
-      method: "POST",
-      body: JSON.stringify({ prompt: p }),
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["agents"] });
-      queryClient.invalidateQueries({ queryKey: ["agent-tasks", agent.id] });
-      toast.success("Task dispatched");
-    },
-    onError: (err: Error) => toast.error(err.message),
   });
 
   const stopMutation = useMutation({
@@ -769,32 +736,6 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
     onError: (err: Error) => toast.error(`Pull failed: ${err.message}`),
   });
 
-  useEffect(() => {
-    const es = new EventSource(`${API_BASE_URL}/api/agents/${agent.id}/stream`);
-    es.onopen = () => {
-      queryClient.invalidateQueries({ queryKey: ["agents"] });
-      queryClient.invalidateQueries({ queryKey: ["agent-tasks", agent.id] });
-    };
-    es.addEventListener("completed", () => {
-      queryClient.invalidateQueries({ queryKey: ["agents"] });
-      queryClient.invalidateQueries({ queryKey: ["agent-tasks", agent.id] });
-      queryClient.invalidateQueries({ queryKey: ["agent-git-status", agent.id] });
-    });
-    es.addEventListener("error", () => {
-      queryClient.invalidateQueries({ queryKey: ["agents"] });
-      queryClient.invalidateQueries({ queryKey: ["agent-tasks", agent.id] });
-    });
-    return () => es.close();
-  }, [agent.id]);
-
-  const handleSend = () => {
-    if (!prompt.trim()) return;
-    sendMutation.mutate(prompt);
-    setPrompt("");
-  };
-
-  const QUICK_ACTIONS = ["Continue", "Run tests", "Explain changes", "Revert last"];
-
   const repoName = agent.repoUrl.replace("https://github.com/", "");
   const changedFiles = gitStatus ? [...(gitStatus.modified || []), ...(gitStatus.created || []), ...(gitStatus.deleted || [])] : [];
 
@@ -803,7 +744,6 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
       {...agentAnimations.panelSlideUp}
       className="h-[100dvh] bg-gradient-to-br from-gray-950 via-[#0a0a1a] to-indigo-950/40 flex flex-col pb-[92px]"
     >
-      {/* HEADER */}
       <div className="bg-black/60 backdrop-blur-xl border-b border-indigo-500/10 px-4 py-3 flex-shrink-0">
         <div className="flex items-center gap-3 max-w-6xl mx-auto">
           <button onClick={onBack} className="text-gray-500 hover:text-white transition-colors p-1" data-testid="button-back">
@@ -873,9 +813,8 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
         </div>
       </div>
 
-      {/* MOBILE TABS */}
       <div className="md:hidden flex border-b border-indigo-500/10 bg-black/40 flex-shrink-0">
-        {(["terminal", "chat", "project"] as const).map(t => (
+        {(["terminal", "project"] as const).map(t => (
           <button
             key={t}
             onClick={() => setMobileTab(t)}
@@ -886,30 +825,17 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
             data-testid={`tab-${t}`}
           >
             {t === "terminal" && <Terminal className="w-3.5 h-3.5" />}
-            {t === "chat" && <MessageSquare className="w-3.5 h-3.5" />}
             {t === "project" && <GitBranch className="w-3.5 h-3.5" />}
             {t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
       </div>
 
-      {/* CONTENT */}
       <div className="flex-1 overflow-hidden min-h-0">
-        {/* DESKTOP: 3-column */}
-        <div className="hidden md:grid md:grid-cols-[1fr_1.2fr_280px] h-full max-w-6xl mx-auto gap-0">
-          <div className="border-r border-indigo-500/10 overflow-hidden">
+        <div className="hidden md:grid md:grid-cols-[1fr_280px] h-full max-w-6xl mx-auto gap-0">
+          <div className="overflow-hidden">
             {!isMobile && <AgentTerminal agentId={agent.id} agentName={agent.name} />}
           </div>
-          <ChatPane
-            prompt={prompt}
-            setPrompt={setPrompt}
-            onSend={handleSend}
-            sending={sendMutation.isPending}
-            tasks={tasks}
-            quickActions={QUICK_ACTIONS}
-            color={color}
-            className="border-r border-indigo-500/10"
-          />
           <ProjectPane
             agent={agent}
             gitStatus={gitStatus}
@@ -918,27 +844,15 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
             cloneMutation={cloneMutation}
             pullMutation={pullMutation}
             color={color}
+            className="border-l border-indigo-500/10"
           />
         </div>
 
-        {/* MOBILE: single pane */}
         <div className="md:hidden h-full flex flex-col">
           {mobileTab === "terminal" && isMobile && (
             <div className="flex-1 overflow-hidden">
               <AgentTerminal agentId={agent.id} agentName={agent.name} />
             </div>
-          )}
-          {mobileTab === "chat" && (
-            <ChatPane
-              prompt={prompt}
-              setPrompt={setPrompt}
-              onSend={handleSend}
-              sending={sendMutation.isPending}
-              tasks={tasks}
-              quickActions={QUICK_ACTIONS}
-              color={color}
-              className="flex-1"
-            />
           )}
           {mobileTab === "project" && (
             <ProjectPane
@@ -958,118 +872,6 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
   );
 }
 
-
-function ChatPane({
-  prompt,
-  setPrompt,
-  onSend,
-  sending,
-  tasks,
-  quickActions,
-  color,
-  className,
-}: {
-  prompt: string;
-  setPrompt: (s: string) => void;
-  onSend: () => void;
-  sending: boolean;
-  tasks: AgentTask[];
-  quickActions: string[];
-  color: string;
-  className?: string;
-}) {
-  const currentTask = tasks.find(t => t.status === "running");
-  const recentTasks = tasks.filter(t => t.status !== "running").slice(0, 5);
-
-  return (
-    <div className={cn("flex flex-col h-full bg-black/10", className)}>
-      <div className="px-3 py-2 flex items-center gap-2 border-b border-indigo-500/8 flex-shrink-0">
-        <MessageSquare className="w-3.5 h-3.5 text-indigo-400/50" />
-        <span className="text-[10px] text-indigo-400/40 uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-          Communication
-        </span>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        {currentTask && (
-          <div className="rounded-xl p-3 border" style={{ borderColor: `${color}30`, backgroundColor: `${color}08` }}>
-            <div className="flex items-center gap-2 mb-1.5">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color }} />
-              <span className="text-[10px] uppercase tracking-wider" style={{ color, fontFamily: "'JetBrains Mono', monospace" }}>Active Task</span>
-            </div>
-            <p className="text-sm text-white">{currentTask.description}</p>
-          </div>
-        )}
-
-        {recentTasks.length > 0 && (
-          <div className="space-y-1.5">
-            <span className="text-[10px] text-gray-600 uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-              History
-            </span>
-            {recentTasks.map(task => (
-              <div key={task.id} className="flex items-start gap-2 py-1.5 px-2 rounded-lg hover:bg-white/[0.02] transition-colors" data-testid={`task-${task.id}`}>
-                {task.status === "completed" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400/60 mt-0.5 flex-shrink-0" />}
-                {task.status === "failed" && <XCircle className="w-3.5 h-3.5 text-red-400/60 mt-0.5 flex-shrink-0" />}
-                {task.status === "queued" && <Circle className="w-3.5 h-3.5 text-gray-600 mt-0.5 flex-shrink-0" />}
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-400 break-words">{task.description}</p>
-                  <p className="text-[10px] text-gray-700 mt-0.5" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    {task.status} {task.completedAt && `· ${new Date(task.completedAt).toLocaleTimeString()}`}
-                  </p>
-                  {task.errorMessage && <p className="text-[10px] text-red-400/70 mt-0.5 break-words">{task.errorMessage}</p>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {tasks.length === 0 && !currentTask && (
-          <div className="text-center py-8">
-            <MessageSquare className="w-6 h-6 text-gray-800 mx-auto mb-2" />
-            <p className="text-xs text-gray-700">No tasks yet</p>
-            <p className="text-[10px] text-gray-800 mt-0.5">Type a task below to get started</p>
-          </div>
-        )}
-      </div>
-
-      <div className="border-t border-indigo-500/8 p-3 flex-shrink-0 space-y-2">
-        <div className="flex gap-1.5 flex-wrap">
-          {quickActions.map(action => (
-            <button
-              key={action}
-              onClick={() => { setPrompt(action); }}
-              className="text-[10px] px-2 py-1 rounded-lg bg-white/[0.03] border border-indigo-500/10 text-gray-500 hover:text-indigo-400 hover:border-indigo-500/25 transition-colors"
-              style={{ fontFamily: "'JetBrains Mono', monospace" }}
-            >
-              {action}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            value={prompt}
-            onChange={e => setPrompt(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && !e.shiftKey && onSend()}
-            placeholder="Describe a task..."
-            className="flex-1 bg-black/40 border border-indigo-500/15 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500/30 placeholder:text-gray-700 min-w-0 transition-colors"
-            disabled={sending}
-            data-testid="input-agent-prompt"
-          />
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={onSend}
-            disabled={!prompt.trim() || sending}
-            className="p-2.5 rounded-xl transition-colors flex-shrink-0 disabled:opacity-30"
-            style={{ backgroundColor: `${color}20`, color }}
-            data-testid="button-send-prompt"
-          >
-            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          </motion.button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function ProjectPane({
   agent,
