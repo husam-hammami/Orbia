@@ -73,7 +73,6 @@ const SpeechRecognitionAPI: SpeechRecognitionConstructor | null =
 interface ListeningOverlayProps {
   phase: OverlayPhase;
   onStop: () => void;
-  onInterrupt: () => void;
   onEndCall: () => void;
   liveTranscript: string;
   interimText: string;
@@ -81,7 +80,7 @@ interface ListeningOverlayProps {
   conversationMode: boolean;
 }
 
-function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscript, interimText, orbiaResponse, conversationMode }: ListeningOverlayProps) {
+function ListeningOverlay({ phase, onStop, onEndCall, liveTranscript, interimText, orbiaResponse, conversationMode }: ListeningOverlayProps) {
   const [elapsed, setElapsed] = useState(0);
   const [idleMsgIndex, setIdleMsgIndex] = useState(0);
   const [thinkMsgIndex] = useState(() => Math.floor(Math.random() * thinkingMessages.length));
@@ -246,7 +245,7 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
               <motion.span
                 className="inline-block w-0.5 h-4 bg-primary/70 ml-0.5 align-text-bottom"
                 animate={{ opacity: [1, 0, 1] }}
-                transition={{ duration: 1, repeat: Infinity, ease: "steps(2)" }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
               />
             </p>
           </div>
@@ -309,11 +308,18 @@ function ListeningOverlay({ phase, onStop, onInterrupt, onEndCall, liveTranscrip
             </p>
           </div>
           <div className="flex items-center justify-center gap-2 mt-3">
-            <div className="flex items-center gap-1">
-              {[0, 1, 2, 3].map((i) => (
-                <div
+            <div className="flex items-center gap-0.5">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <motion.div
                   key={i}
-                  className="w-1 h-2 rounded-full bg-primary/60"
+                  className="w-1 rounded-full bg-primary/60"
+                  animate={{ height: [4, 12 + Math.random() * 6, 4] }}
+                  transition={{
+                    duration: 0.6 + i * 0.1,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: i * 0.12,
+                  }}
                 />
               ))}
             </div>
@@ -419,6 +425,11 @@ export function VoiceInputButton({
   const abortRef = useRef<AbortController | null>(null);
   const startRecordingRef = useRef<(() => void) | null>(null);
   const userCanceledRef = useRef(false);
+  const phaseRef = useRef<OverlayPhase | null>(null);
+
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
 
   const cleanup = useCallback(() => {
     if (recognitionRef.current) {
@@ -443,6 +454,7 @@ export function VoiceInputButton({
       abortRef.current = null;
     }
     setPhase(null);
+    phaseRef.current = null;
     setLiveTranscript("");
     setInterimText("");
     setOrbiaResponse("");
@@ -470,20 +482,10 @@ export function VoiceInputButton({
     };
   }, []);
 
-  const interruptSpeaking = useCallback(() => {
-    userCanceledRef.current = true;
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = "";
-      audioRef.current = null;
-    }
-    cleanup();
-  }, [cleanup]);
-
   const playAudio = useCallback((base64Audio: string): Promise<void> => {
     return new Promise((resolve) => {
       try {
-        const audio = new Audio(`data:audio/mp3;base64,${base64Audio}`);
+        const audio = new Audio(`data:audio/mpeg;base64,${base64Audio}`);
         audioRef.current = audio;
         audio.onended = () => {
           audioRef.current = null;
@@ -619,6 +621,7 @@ export function VoiceInputButton({
         finalTranscriptRef.current = "";
         stoppingRef.current = false;
         setPhase(null);
+        phaseRef.current = null;
         setTimeout(() => {
           if (!userCanceledRef.current) {
             startRecordingRef.current?.();
@@ -698,7 +701,8 @@ export function VoiceInputButton({
   }, [onTranscript, conversationMode, onConversationResponse, doConversation, cleanup]);
 
   const startRecording = useCallback(async () => {
-    if (stoppingRef.current || phase) return;
+    if (stoppingRef.current || phaseRef.current) return;
+    phaseRef.current = "listening";
 
     userCanceledRef.current = false;
     setLiveTranscript("");
@@ -752,13 +756,14 @@ export function VoiceInputButton({
       startSpeechRecognition();
     } catch (err: unknown) {
       console.error("[Voice] Microphone error:", err);
+      phaseRef.current = null;
       if (err instanceof DOMException && err.name === "NotAllowedError") {
         toast.error("Microphone access denied. Please allow microphone access in your browser settings.");
       } else {
         toast.error("Could not access microphone");
       }
     }
-  }, [processRecording, startSpeechRecognition, cleanup, phase]);
+  }, [processRecording, startSpeechRecognition, cleanup]);
 
   useEffect(() => {
     startRecordingRef.current = startRecording;
@@ -767,7 +772,7 @@ export function VoiceInputButton({
   const stopRecording = useCallback(() => {
     if (stoppingRef.current) return;
     const recorder = mediaRecorderRef.current;
-    if (!recorder || recorder.state !== "recording") return;
+    if (!recorder || recorder.state === "inactive") return;
 
     stoppingRef.current = true;
     stopSpeechRecognition();
@@ -775,7 +780,7 @@ export function VoiceInputButton({
     try { recorder.requestData(); } catch (e) {}
     setTimeout(() => {
       try {
-        if (recorder.state === "recording") recorder.stop();
+        if (recorder.state !== "inactive") recorder.stop();
       } catch (e) {
         cleanup();
       }
@@ -826,6 +831,7 @@ export function VoiceInputButton({
           className
         )}
         data-testid="button-voice-input"
+        aria-label={phase ? "Stop voice input" : "Start voice input"}
       >
         {phase === "transcribing" || phase === "thinking" ? (
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -839,7 +845,6 @@ export function VoiceInputButton({
           <ListeningOverlay
             phase={phase}
             onStop={stopRecording}
-            onInterrupt={interruptSpeaking}
             onEndCall={endCall}
             liveTranscript={liveTranscript}
             interimText={interimText}

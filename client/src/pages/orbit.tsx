@@ -1766,6 +1766,9 @@ export default function OrbitPage() {
 
                 <div className="flex items-center gap-1.5">
                   <VoiceInputButton
+                    size="icon"
+                    className="h-8 w-8"
+                    variant="ghost"
                     onTranscript={(text) => {
                       setInput(prev => prev ? prev + "\n" + text : text);
                       setTimeout(() => {
