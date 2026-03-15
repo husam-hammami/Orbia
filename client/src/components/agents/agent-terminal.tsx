@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
+import { RefreshCw } from "lucide-react";
+import { API_BASE_URL } from "@/lib/queryClient";
 import "@xterm/xterm/css/xterm.css";
 
 interface AgentTerminalProps {
@@ -15,6 +17,7 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
   const fitAddonRef = useRef<FitAddon | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [connected, setConnected] = useState(false);
+  const [restarting, setRestarting] = useState(false);
 
   const sendResize = useCallback((ws: WebSocket, cols: number, rows: number) => {
     if (ws.readyState === WebSocket.OPEN) {
@@ -52,6 +55,26 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
       setConnected(false);
     };
   }, [agentId, sendResize]);
+
+  const restartTerminal = useCallback(async () => {
+    setRestarting(true);
+    try {
+      await fetch(`${API_BASE_URL}/api/agents/${agentId}/terminal/restart`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      const term = terminalRef.current;
+      if (term) {
+        term.clear();
+        setTimeout(() => connect(term), 500);
+      }
+    } catch {}
+    setTimeout(() => setRestarting(false), 1000);
+  }, [agentId, connect]);
 
   useEffect(() => {
     if (!termRef.current) return;
@@ -142,6 +165,15 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
           {connected ? "live" : "reconnecting..."}
         </span>
         <span className="text-xs text-white/30 ml-auto font-mono truncate max-w-[200px]">{agentName}</span>
+        <button
+          onClick={restartTerminal}
+          disabled={restarting}
+          className="ml-1 p-1 rounded hover:bg-white/10 text-white/40 hover:text-white/70 transition-colors"
+          title="Restart terminal"
+          data-testid="btn-restart-terminal"
+        >
+          <RefreshCw className={`w-3 h-3 ${restarting ? "animate-spin" : ""}`} />
+        </button>
       </div>
       <div ref={termRef} className="flex-1 min-h-0" />
     </div>

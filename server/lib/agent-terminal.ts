@@ -30,7 +30,7 @@ function getClaudePath(): string {
   return path.join(process.cwd(), ".config/npm/node_global/bin");
 }
 
-function ensureShell(agentId: string, agentName: string, repoUrl: string): ShellSession {
+async function ensureShell(agentId: string, agentName: string, repoUrl: string, repoBranch?: string): Promise<ShellSession> {
   const existing = shells.get(agentId);
   if (existing && existing.alive) return existing;
 
@@ -42,6 +42,23 @@ function ensureShell(agentId: string, agentName: string, repoUrl: string): Shell
   let repoDir: string;
   if (repoManager.isRepoCloned(agentId)) {
     repoDir = repoManager.getRepoDir(agentId);
+  } else if (repoUrl) {
+    try {
+      let token: string | undefined;
+      try {
+        const agents = await db.execute(sql`SELECT "userId" FROM agent_profiles WHERE id = ${agentId} LIMIT 1`);
+        const row = (agents as any).rows?.[0] || (agents as any)[0];
+        if (row?.userId) {
+          const conn = await storage.getGithubConnection(row.userId);
+          if (conn?.accessToken) token = conn.accessToken;
+        }
+      } catch {}
+      repoDir = await repoManager.cloneRepo(agentId, repoUrl, repoBranch || "main", token);
+      console.log(`[agent-terminal] Auto-cloned repo for "${agentName}" into ${repoDir}`);
+    } catch (err: any) {
+      console.error(`[agent-terminal] Auto-clone failed for "${agentName}":`, err.message);
+      repoDir = "/tmp";
+    }
   } else {
     repoDir = "/tmp";
   }
@@ -224,10 +241,10 @@ export function setupAgentTerminalWS(server: Server) {
     });
   });
 
-  wss.on("connection", (ws: WebSocket, _req: IncomingMessage, agent: any) => {
+  wss.on("connection", async (ws: WebSocket, _req: IncomingMessage, agent: any) => {
     const agentId = agent.id;
     console.log(`[agent-terminal] Client connected to "${agent.name}" (${agentId})`);
-    const shellSession = ensureShell(agentId, agent.name, agent.repoUrl);
+    const shellSession = await ensureShell(agentId, agent.name, agent.repoUrl, agent.repoBranch);
 
     shellSession.clients.add(ws);
 
@@ -285,6 +302,24 @@ export function injectCommand(agentId: string, command: string): boolean {
   const session = shells.get(agentId);
   if (!session || !session.alive || !session.process.stdin) return false;
   session.process.stdin.write(command + "\n");
+  return true;
+}
+
+export function killSession(agentId: string): boolean {
+  const session = shells.get(agentId);
+  if (!session) return false;
+  try {
+    session.process.kill("SIGTERM");
+    setTimeout(() => {
+      try { session.process.kill("SIGKILL"); } catch {}
+    }, 2000);
+  } catch {}
+  session.alive = false;
+  shells.delete(agentId);
+  const msg = `\r\n\x1b[33m[Shell restarting...]\x1b[0m\r\n`;
+  for (const ws of session.clients) {
+    if (ws.readyState === WebSocket.OPEN) ws.send(msg);
+  }
   return true;
 }
 

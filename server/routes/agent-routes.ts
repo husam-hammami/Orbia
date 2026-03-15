@@ -1,7 +1,7 @@
 import { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { agentProcessManager } from "../lib/agent-process-manager";
-import { injectCommand, hasActiveSession, subscribeToOutput } from "../lib/agent-terminal";
+import { injectCommand, hasActiveSession, subscribeToOutput, killSession } from "../lib/agent-terminal";
 import * as repoManager from "../lib/repo-manager";
 import * as githubOAuth from "../lib/github-oauth";
 import { requireAuth } from "../auth";
@@ -393,6 +393,13 @@ export function registerAgentRoutes(app: Express) {
       return res.json({ stopped: true, mode: "terminal-interrupt" });
     }
     res.json({ stopped });
+  });
+
+  app.post("/api/agents/:id/terminal/restart", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+    killSession(ctx.agentId);
+    res.json({ ok: true });
   });
 
   // Git operations (all with ownership check)
