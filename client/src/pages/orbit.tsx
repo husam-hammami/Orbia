@@ -1646,6 +1646,9 @@ export default function OrbitPage() {
                 };
                 setMessages(prev => [...prev, userMsg, assistantMsg]);
               }}
+              onActionsExecuted={() => {
+                queryClient.invalidateQueries();
+              }}
               chatHistory={messages.slice(-40).map(m => ({ role: m.role, content: m.content }))}
               therapyMode={therapyMode}
               aiMode="orbit"

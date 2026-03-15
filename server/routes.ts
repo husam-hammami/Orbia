@@ -5817,7 +5817,14 @@ ${rawText}`
         systemPrompt = `${basePrompt}\n\n## CONTEXT DATA (use silently)\n${unifiedContext}`;
       }
 
-      systemPrompt += `\n\nIMPORTANT: This is a VOICE conversation. The user is speaking to you and your response will be read aloud. Keep your response concise, conversational, and natural for spoken delivery. Avoid markdown formatting, bullet points, or structured lists — speak as you would in a natural conversation. Keep responses under 3-4 sentences unless the user asked for detailed information. NEVER output JSON action objects in voice responses — just acknowledge what the user wants and tell them you'll handle it. Do not use any {"type":"action"} objects.`;
+      const ACTION_KEYWORDS_VOICE = /\b(create|add|make|set up|build|deploy|delete|remove|update|change|edit|mark|complete|done|toggle|log|track|schedule|cancel|send|message|agent|orbit)\b/i;
+      const needsActions = ACTION_KEYWORDS_VOICE.test(message);
+
+      if (needsActions) {
+        systemPrompt += `\n\nIMPORTANT: This is a VOICE conversation. Your response will be read aloud AND parsed for actions. You MUST still emit {"type":"action"} JSON blocks to perform tasks (create tasks, send messages, create agents, etc.) — these are stripped before speaking. Keep your spoken text concise and conversational (2-3 sentences). Place action JSON on its own line, separate from conversational text.`;
+      } else {
+        systemPrompt += `\n\nIMPORTANT: This is a VOICE conversation. Your response will be read aloud. Keep it concise, conversational, and natural for spoken delivery. Avoid markdown formatting. Keep responses under 3-4 sentences unless detailed info was requested.`;
+      }
 
       const chatMessages: { role: "user" | "assistant"; content: string }[] = [];
       if (history && Array.isArray(history)) {
@@ -5834,46 +5841,282 @@ ${rawText}`
       }
 
       const { createRawCompletion } = await import("./lib/ai-client");
-      const voiceModel = therapyMode ? "claude-sonnet-4-6" : "claude-haiku-4-5";
+      const voiceModel = therapyMode ? "claude-sonnet-4-6" : (needsActions ? MODEL_FAST : "claude-haiku-4-5");
       const textResponse = await createRawCompletion(systemPrompt, chatMessages, {
         model: voiceModel,
-        maxTokens: 400,
+        maxTokens: needsActions ? 1500 : 400,
       });
 
-      console.log("[voice-converse] AI response in", Date.now() - converseStart, "ms, length:", textResponse.length);
+      console.log("[voice-converse] AI response in", Date.now() - converseStart, "ms, length:", textResponse.length, "model:", voiceModel);
+
+      const voiceActionResults: Array<{ name: string; title: string; success: boolean; error?: string }> = [];
+      let spokenText = textResponse;
+
+      if (needsActions) {
+        function extractVoiceJsonActions(text: string): string[] {
+          const results: string[] = [];
+          let i = 0;
+          while (i < text.length) {
+            const start = text.indexOf('{"type"', i);
+            if (start === -1) break;
+            let depth = 0;
+            let inString = false;
+            let escape = false;
+            let end = -1;
+            for (let j = start; j < text.length; j++) {
+              const ch = text[j];
+              if (escape) { escape = false; continue; }
+              if (ch === '\\' && inString) { escape = true; continue; }
+              if (ch === '"') { inString = !inString; continue; }
+              if (inString) continue;
+              if (ch === '{') depth++;
+              else if (ch === '}') { depth--; if (depth === 0) { end = j; break; } }
+            }
+            if (end === -1) break;
+            const candidate = text.slice(start, end + 1);
+            try {
+              const parsed = JSON.parse(candidate);
+              if (parsed.type === "action" && parsed.name && parsed.args) {
+                results.push(candidate);
+              }
+            } catch {}
+            i = end + 1;
+          }
+          return results;
+        }
+
+        const actionMatches = extractVoiceJsonActions(textResponse);
+
+        for (const jsonStr of actionMatches) {
+          try {
+            const action = JSON.parse(jsonStr);
+            if (action.type !== "action" || !action.name || !action.args) continue;
+            const { name, args } = action;
+            console.log(`[voice-action] Executing: ${name}`, JSON.stringify(args).slice(0, 100));
+
+            switch (name) {
+              case "add_task": {
+                await storage.createTodo(userId, { userId, title: args.title, priority: args.priority || "medium", completed: 0, dueDate: args.due ? new Date(args.due) : undefined } as any);
+                voiceActionResults.push({ name, title: args.title, success: true });
+                break;
+              }
+              case "mark_task": {
+                if (args.task_id) {
+                  await storage.updateTodo(userId, args.task_id, { completed: args.completed ? 1 : 0 });
+                  voiceActionResults.push({ name, title: args.task_id, success: true });
+                }
+                break;
+              }
+              case "update_task": {
+                if (args.task_id) {
+                  const updates: any = {};
+                  if (args.title !== undefined) updates.title = args.title;
+                  if (args.priority !== undefined) updates.priority = args.priority;
+                  if (args.completed !== undefined) updates.completed = args.completed ? 1 : 0;
+                  await storage.updateTodo(userId, args.task_id, updates);
+                  voiceActionResults.push({ name, title: args.title || args.task_id, success: true });
+                }
+                break;
+              }
+              case "delete_task": {
+                if (args.task_id) {
+                  await storage.deleteTodo(userId, args.task_id);
+                  voiceActionResults.push({ name, title: args.task_id, success: true });
+                }
+                break;
+              }
+              case "create_habit": {
+                await storage.createHabit(userId, { userId, title: args.title, category: args.category || "work", description: args.description || null, target: args.target || 1, unit: args.unit || "times" } as any);
+                voiceActionResults.push({ name, title: args.title, success: true });
+                break;
+              }
+              case "create_career_project": {
+                await storage.createCareerProject(userId, { title: args.title, description: args.description || null, status: args.status || "planning", deadline: args.deadline || null, progress: 0, nextAction: null, color: args.color || null, tags: null });
+                voiceActionResults.push({ name, title: args.title, success: true });
+                break;
+              }
+              case "create_career_task": {
+                await storage.createCareerTask(userId, { title: args.title, projectId: args.project_id || null, parentId: null, completed: false, priority: args.priority || "medium", due: args.due || null, tags: null, description: null });
+                voiceActionResults.push({ name, title: args.title, success: true });
+                break;
+              }
+              case "update_career_project": {
+                if (args.project_id) {
+                  const updates: any = {};
+                  if (args.title !== undefined) updates.title = args.title;
+                  if (args.status !== undefined) updates.status = args.status;
+                  if (args.progress !== undefined) updates.progress = args.progress;
+                  await storage.updateCareerProject(userId, args.project_id, updates);
+                  voiceActionResults.push({ name, title: args.title || args.project_id, success: true });
+                }
+                break;
+              }
+              case "delete_career_project": {
+                if (args.project_id) {
+                  await storage.deleteCareerProject(userId, args.project_id);
+                  voiceActionResults.push({ name, title: args.project_id, success: true });
+                }
+                break;
+              }
+              case "create_journal": {
+                await storage.createJournal(userId, { userId, content: args.content, entryType: args.entry_type || "note", mood: args.mood || null, energy: args.energy || null, tags: args.tags || null, isPrivate: args.is_private || false } as any);
+                voiceActionResults.push({ name, title: "journal entry", success: true });
+                break;
+              }
+              case "add_transaction": {
+                await storage.createFinanceTransaction(userId, { userId, type: args.type, name: args.name, amount: String(args.amount), category: args.category || "other", notes: args.notes || null, date: new Date() } as any);
+                voiceActionResults.push({ name, title: args.name, success: true });
+                break;
+              }
+              case "create_tracker_entry": {
+                await storage.createTrackerEntry(userId, { userId, mood: args.mood ?? null, energy: args.energy ?? null, stress: args.stress ?? null, sleepHours: args.sleepHours ? String(args.sleepHours) : null, capacity: args.capacity ?? null, pain: args.pain ?? null, notes: args.notes || null } as any);
+                voiceActionResults.push({ name, title: "tracker entry", success: true });
+                break;
+              }
+              case "create_agent": {
+                const githubConn = await storage.getGithubConnection(userId);
+                let repoUrl = "";
+                let repoBranch = "main";
+                if (args.repo_keyword && githubConn?.accessToken) {
+                  try {
+                    const { listRepos } = await import("./lib/github-oauth");
+                    const repos = await listRepos(githubConn.accessToken, 1, 100);
+                    const keyword = args.repo_keyword.toLowerCase();
+                    const match = repos.find((r: any) => r.full_name.toLowerCase().includes(keyword) || r.name.toLowerCase().includes(keyword));
+                    if (match) { repoUrl = match.html_url; repoBranch = match.default_branch || "main"; }
+                  } catch {}
+                }
+                let linkedProjectId: string | null = null;
+                if (args.project_keyword) {
+                  const projects = await storage.getAllCareerProjects(userId);
+                  const kw = args.project_keyword.toLowerCase();
+                  const projMatch = projects.find((p: any) => p.title.toLowerCase().includes(kw));
+                  if (projMatch) linkedProjectId = projMatch.id;
+                }
+                const presetConfig: Record<string, any> = {
+                  designer: { designation: "UI/UX Designer", accentColor: "#ec4899", avatar: "nexus" },
+                  reviewer: { designation: "Design & Code Reviewer", accentColor: "#f59e0b", avatar: "◈" },
+                };
+                const preset = presetConfig[args.preset] || {};
+                const agentData: any = {
+                  userId, name: args.name, role: args.role || preset.designation || "General",
+                  designation: args.designation || preset.designation || null,
+                  repoUrl: repoUrl || "https://github.com", repoBranch,
+                  accentColor: args.accent_color || preset.accentColor || "#6366f1",
+                  avatar: args.avatar || preset.avatar || "🤖", linkedProjectId, systemPrompt: null,
+                };
+                const agent = await storage.createAgentProfile(userId, agentData);
+                if (repoUrl && githubConn?.accessToken) {
+                  try {
+                    const repoManager = await import("./lib/repo-manager");
+                    await repoManager.cloneRepo(agent.id, repoUrl, repoBranch, githubConn.accessToken);
+                  } catch {}
+                }
+                if (args.preset === "designer") {
+                  try {
+                    const repoManager = await import("./lib/repo-manager");
+                    const repoDir = repoManager.getRepoDir(agent.id);
+                    const fs = await import("fs");
+                    const path = await import("path");
+                    if (!fs.existsSync(repoDir)) fs.mkdirSync(repoDir, { recursive: true });
+                    const claudeDir = path.join(repoDir, ".claude");
+                    if (!fs.existsSync(claudeDir)) fs.mkdirSync(claudeDir, { recursive: true });
+                    const mcpConfig = { mcpServers: { "21st_magic": { command: "npx", args: ["-y", "@21st-dev/magic@latest"] } } };
+                    fs.writeFileSync(path.join(claudeDir, "settings.json"), JSON.stringify(mcpConfig, null, 2));
+                    fs.writeFileSync(path.join(claudeDir, "settings.local.json"), JSON.stringify(mcpConfig, null, 2));
+                  } catch {}
+                }
+                voiceActionResults.push({ name, title: args.name, success: true });
+                break;
+              }
+              case "update_agent": {
+                if (args.agent_id) {
+                  const updates: any = {};
+                  if (args.name !== undefined) updates.name = args.name;
+                  if (args.role !== undefined) updates.role = args.role;
+                  if (args.status !== undefined) updates.status = args.status;
+                  if (args.linked_project_keyword) {
+                    const projects = await storage.getAllCareerProjects(userId);
+                    const kw = args.linked_project_keyword.toLowerCase();
+                    const projMatch = projects.find((p: any) => p.title.toLowerCase().includes(kw));
+                    if (projMatch) updates.linkedProjectId = projMatch.id;
+                  }
+                  await storage.updateAgentProfile(userId, args.agent_id, updates);
+                  voiceActionResults.push({ name, title: args.name || args.agent_id, success: true });
+                }
+                break;
+              }
+              case "get_agent_status": {
+                let statusInfo: string;
+                if (args.agent_id === "all") {
+                  const allAgents = await storage.getAllAgentProfiles(userId);
+                  statusInfo = allAgents.map((a: any) => `${a.name} is ${a.status}`).join(", ");
+                } else {
+                  const ag = await storage.getAgentProfile(userId, args.agent_id);
+                  statusInfo = ag ? `${ag.name} is ${ag.status}` : "Agent not found";
+                }
+                spokenText = spokenText.replace(jsonStr, "") + " " + statusInfo;
+                voiceActionResults.push({ name, title: "agent status", success: true });
+                break;
+              }
+              default:
+                console.log(`[voice-action] Unknown action: ${name}`);
+            }
+          } catch (err: any) {
+            console.error(`[voice-action] Failed:`, err.message);
+          }
+        }
+
+        for (const jsonStr2 of actionMatches) {
+          spokenText = spokenText.replace(jsonStr2, "");
+        }
+        spokenText = spokenText.replace(/\n{2,}/g, "\n").trim();
+
+        if (voiceActionResults.length > 0) {
+          try {
+            const { invalidateContextCache } = await import("./lib/unified-context");
+            invalidateContextCache(userId);
+          } catch {}
+        }
+
+        console.log("[voice-converse] Actions executed:", voiceActionResults.length, "spoken text:", spokenText.substring(0, 80));
+      }
 
       let audioData: string | null = null;
-      try {
-        const OpenAI = (await import("openai")).default;
-        const openai = new OpenAI({
-          apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-          baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-        });
+      if (spokenText.trim()) {
+        try {
+          const OpenAI = (await import("openai")).default;
+          const openai = new OpenAI({
+            apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+            baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+          });
 
-        const ttsResponse = await openai.chat.completions.create({
-          model: "gpt-audio-mini",
-          modalities: ["text", "audio"],
-          audio: { voice: "sage", format: "mp3" },
-          messages: [
-            { role: "system", content: "You are reading a response aloud. Repeat the following text exactly as given, naturally and warmly. Do not add, remove, or change any words." },
-            { role: "user", content: textResponse },
-          ],
-          max_tokens: 2000,
-        });
+          const ttsResponse = await openai.chat.completions.create({
+            model: "gpt-audio-mini",
+            modalities: ["text", "audio"],
+            audio: { voice: "sage", format: "mp3" },
+            messages: [
+              { role: "system", content: "You are reading a response aloud. Repeat the following text exactly as given, naturally and warmly. Do not add, remove, or change any words." },
+              { role: "user", content: spokenText },
+            ],
+            max_tokens: 2000,
+          });
 
-        const audio = ttsResponse.choices[0]?.message?.audio;
-        if (audio?.data) {
-          audioData = audio.data;
-          console.log("[voice-converse] Audio generated, size:", audioData.length);
+          const audio = ttsResponse.choices[0]?.message?.audio;
+          if (audio?.data) {
+            audioData = audio.data;
+            console.log("[voice-converse] Audio generated, size:", audioData.length);
+          }
+        } catch (ttsError: any) {
+          console.error("[voice-converse] TTS failed (returning text only):", ttsError?.message);
         }
-      } catch (ttsError: any) {
-        console.error("[voice-converse] TTS failed (returning text only):", ttsError?.message);
       }
 
       res.json({
-        text: textResponse,
+        text: spokenText,
         audio: audioData,
         audioFormat: "mp3",
+        actions: voiceActionResults.length > 0 ? voiceActionResults : undefined,
       });
     } catch (error: any) {
       console.error("[voice-converse] Error:", error?.message || error);

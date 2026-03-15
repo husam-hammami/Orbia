@@ -44,6 +44,7 @@ interface VoiceInputButtonProps {
   size?: "default" | "sm" | "lg" | "icon";
   conversationMode?: boolean;
   onConversationResponse?: (userText: string, assistantText: string) => void;
+  onActionsExecuted?: (actions: Array<{ name: string; title: string; success: boolean }>) => void;
   chatHistory?: Array<{ role: string; content: string }>;
   therapyMode?: boolean;
   aiMode?: "orbit" | "work" | "medical";
@@ -399,6 +400,7 @@ export function VoiceInputButton({
   size = "icon",
   conversationMode = false,
   onConversationResponse,
+  onActionsExecuted,
   chatHistory,
   therapyMode = false,
   aiMode = "orbit",
@@ -587,6 +589,10 @@ export function VoiceInputButton({
       const data = await res.json();
       const responseText = data.text || "";
 
+      if (data.actions?.length > 0 && onActionsExecuted && !userCanceledRef.current) {
+        onActionsExecuted(data.actions);
+      }
+
       if (data.audio) {
         setPhase("speaking");
         setOrbiaResponse(responseText);
@@ -628,7 +634,7 @@ export function VoiceInputButton({
       toast.error(message);
       cleanup();
     }
-  }, [chatHistory, therapyMode, aiMode, onConversationResponse, playAudio, cleanup, conversationMode]);
+  }, [chatHistory, therapyMode, aiMode, onConversationResponse, onActionsExecuted, playAudio, cleanup, conversationMode]);
 
   const processRecording = useCallback(async (chunks: Blob[], mimeType: string) => {
     const blob = new Blob(chunks, { type: mimeType });
