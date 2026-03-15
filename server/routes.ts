@@ -3417,7 +3417,44 @@ ${JSON.stringify(context, null, 2)}`;
       }
 
       const allActionRegex = /\[(TEAMS_SEND|CREATE_EVENT|CREATE_TASK|SEND_EMAIL|SCHEDULE_MESSAGE|CREATE_PROJECT|ADD_TASK|UPDATE_PROJECT_STATUS|COMPLETE_TASK|ZOHO_CREATE|ZOHO_UPDATE|ZOHO_COMPLETE)\s[^\]]+\]/g;
-      const jsonActionRegex = /\{"type"\s*:\s*"action"\s*,\s*"name"\s*:\s*"[^"]+"\s*,\s*"args"\s*:\s*\{[^}]*\}(?:\s*,\s*"confirm"\s*:\s*(?:true|false))?\s*\}/g;
+      function extractJsonActions(text: string): string[] {
+        const results: string[] = [];
+        let i = 0;
+        while (i < text.length) {
+          const start = text.indexOf('{"type"', i);
+          if (start === -1) break;
+          let depth = 0;
+          let inString = false;
+          let escape = false;
+          let end = -1;
+          for (let j = start; j < text.length; j++) {
+            const ch = text[j];
+            if (escape) { escape = false; continue; }
+            if (ch === '\\' && inString) { escape = true; continue; }
+            if (ch === '"') { inString = !inString; continue; }
+            if (inString) continue;
+            if (ch === '{') depth++;
+            else if (ch === '}') { depth--; if (depth === 0) { end = j; break; } }
+          }
+          if (end === -1) break;
+          const candidate = text.slice(start, end + 1);
+          try {
+            const parsed = JSON.parse(candidate);
+            if (parsed.type === "action" && parsed.name && parsed.args) {
+              results.push(candidate);
+            }
+          } catch {}
+          i = end + 1;
+        }
+        return results;
+      }
+
+      function stripJsonActions(text: string): string {
+        const actions = extractJsonActions(text);
+        let result = text;
+        for (const a of actions) result = result.replace(a, "");
+        return result.replace(/\n{3,}/g, "\n\n");
+      }
 
       const actionResults: Array<{ name: string; title: string; success: boolean; error?: string }> = [];
 
@@ -3525,6 +3562,47 @@ ${JSON.stringify(context, null, 2)}`;
               actionResults.push({ name, title: args.name, success: true });
               break;
             }
+            case "update_task": {
+              if (args.task_id) {
+                const updates: any = {};
+                if (args.title !== undefined) updates.title = args.title;
+                if (args.priority !== undefined) updates.priority = args.priority;
+                if (args.completed !== undefined) updates.completed = args.completed ? 1 : 0;
+                if (args.due !== undefined) updates.dueDate = args.due ? new Date(args.due) : null;
+                await storage.updateTodo(userId, args.task_id, updates);
+                actionResults.push({ name, title: args.title || args.task_id, success: true });
+              }
+              break;
+            }
+            case "delete_task": {
+              if (args.task_id) {
+                await storage.deleteTodo(userId, args.task_id);
+                actionResults.push({ name, title: args.task_id, success: true });
+              }
+              break;
+            }
+            case "update_career_project": {
+              if (args.project_id) {
+                const updates: any = {};
+                if (args.title !== undefined) updates.title = args.title;
+                if (args.description !== undefined) updates.description = args.description;
+                if (args.status !== undefined) updates.status = args.status;
+                if (args.progress !== undefined) updates.progress = args.progress;
+                if (args.deadline !== undefined) updates.deadline = args.deadline;
+                if (args.color !== undefined) updates.color = args.color;
+                if (args.next_action !== undefined) updates.nextAction = args.next_action;
+                await storage.updateCareerProject(userId, args.project_id, updates);
+                actionResults.push({ name, title: args.title || args.project_id, success: true });
+              }
+              break;
+            }
+            case "delete_career_project": {
+              if (args.project_id) {
+                await storage.deleteCareerProject(userId, args.project_id);
+                actionResults.push({ name, title: args.project_id, success: true });
+              }
+              break;
+            }
             case "create_tracker_entry": {
               await storage.createTrackerEntry(userId, {
                 userId,
@@ -3552,10 +3630,6 @@ ${JSON.stringify(context, null, 2)}`;
         }
       }
 
-      function stripJsonActions(text: string): string {
-        return text.replace(jsonActionRegex, "").replace(/\n{3,}/g, "\n\n");
-      }
-
       let bufferedContent = "";
 
       function findActionStart(text: string): number {
@@ -3574,8 +3648,8 @@ ${JSON.stringify(context, null, 2)}`;
       }
 
       async function processAndFlush(): Promise<void> {
-        const jsonMatches = bufferedContent.match(jsonActionRegex);
-        if (jsonMatches) {
+        const jsonMatches = extractJsonActions(bufferedContent);
+        if (jsonMatches.length > 0) {
           for (const m of jsonMatches) {
             if (!executedActions.has(m)) {
               executedActions.add(m);
