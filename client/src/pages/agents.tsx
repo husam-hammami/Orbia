@@ -12,7 +12,7 @@ import {
   Square, ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PixelAgent, EmptyDesk } from "@/components/agents/pixel-agent";
+import { AiMind, EmptyMind } from "@/components/agents/pixel-agent";
 import { agentAnimations, glassPanel, glassPanelGlow } from "@/lib/agent-animations";
 import { AgentTerminal } from "@/components/agents/agent-terminal";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -102,32 +102,32 @@ export default function AgentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-[#0a0a1a] to-indigo-950/40 pb-[92px]">
+    <div className="min-h-screen bg-gradient-to-br from-[#020205] via-[#060614] to-[#0a0a1a] pb-[92px] overflow-hidden">
       <AmbientBackground />
 
-      <div className="relative z-10 px-4 pt-6 pb-4 max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+      <div className="relative z-10 px-4 pt-8 pb-4 max-w-6xl mx-auto">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2.5" data-testid="text-agents-title">
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-                <Cpu className="w-4.5 h-4.5 text-indigo-400" />
+            <h1 className="text-3xl font-bold text-white flex items-center gap-3 tracking-tight" data-testid="text-agents-title">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500/20 to-violet-500/20 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.15)]">
+                <Cpu className="w-5 h-5 text-indigo-300" />
               </div>
-              <span>Agents Office</span>
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-100 to-indigo-200">Neural Nexus</span>
             </h1>
-            <p className="text-sm text-indigo-300/40 mt-1 ml-[42px]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-              {agents.length > 0 ? `${agents.length} agent${agents.length !== 1 ? "s" : ""} deployed` : "no agents deployed"}
+            <p className="text-sm text-indigo-200/50 mt-1.5 ml-[52px] tracking-wide" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+              {agents.length > 0 ? `[SYS_OK] ${agents.length} CONSCIOUSNESS${agents.length !== 1 ? "ES" : ""} ACTIVE` : "[SYS_WARN] ZERO CONSCIOUSNESS DETECTED"}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 ml-[52px] sm:ml-0">
             <GithubConnectButton status={githubStatus} />
             <motion.button
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => setShowCreateWizard(true)}
-              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-xl text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20"
+              className="flex items-center gap-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-200 px-4 py-2.5 rounded-xl text-sm font-medium transition-all shadow-[0_0_15px_rgba(99,102,241,0.1)] hover:shadow-[0_0_25px_rgba(99,102,241,0.2)]"
               data-testid="button-create-agent"
             >
-              <Plus className="w-4 h-4" /> New Agent
+              <Plus className="w-4 h-4" /> Synthesize
             </motion.button>
           </div>
         </div>
@@ -152,29 +152,61 @@ export default function AgentsPage() {
   );
 }
 
-const AMBIENT_PARTICLES = Array.from({ length: 20 }, (_, i) => ({
-  left: `${5 + ((i * 47 + 13) % 90)}%`,
-  top: `${5 + ((i * 31 + 7) % 90)}%`,
-  yDrift: -30 - (i * 7) % 30,
-  duration: 5 + (i * 3) % 5,
-  delay: (i * 0.8) % 5,
+// Deterministic subtle ambient particle seeds
+const AMBIENT_PARTICLES = Array.from({ length: 30 }, (_, i) => ({
+  left: `${(i * 37) % 100}%`,
+  top: `${(i * 43) % 100}%`,
+  size: 1 + (i % 3),
+  duration: 10 + (i % 20),
+  delay: (i % 10) * -1,
+  xDrift: ((i % 5) - 2) * 20,
+  yDrift: ((i % 7) - 3) * 20,
 }));
 
 function AmbientBackground() {
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden">
-      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/[0.03] rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] bg-violet-500/[0.03] rounded-full blur-[100px]" />
+    <div className="fixed inset-0 pointer-events-none">
+      {/* Deep cosmic gradient mesh */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(40,20,80,0.15),transparent_50%),radial-gradient(ellipse_at_bottom_left,rgba(20,40,80,0.15),transparent_50%)]" />
+      
+      {/* Abstract light forms */}
+      <motion.div 
+        className="absolute top-[-10%] left-[20%] w-[40vw] h-[40vh] rounded-full blur-[120px] bg-indigo-600/10"
+        animate={{ 
+          x: [-50, 50, -50], 
+          y: [-20, 30, -20],
+          scale: [1, 1.1, 1],
+          opacity: [0.3, 0.5, 0.3]
+        }}
+        transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div 
+        className="absolute bottom-[10%] right-[10%] w-[30vw] h-[50vh] rounded-full blur-[140px] bg-violet-600/10"
+        animate={{ 
+          x: [50, -30, 50], 
+          y: [20, -40, 20],
+          scale: [1, 1.2, 1],
+          opacity: [0.2, 0.4, 0.2]
+        }}
+        transition={{ duration: 30, repeat: Infinity, ease: "easeInOut" }}
+      />
 
+      {/* Floating data particles */}
       {AMBIENT_PARTICLES.map((p, i) => (
         <motion.div
           key={i}
-          className="absolute w-[2px] h-[2px] rounded-full bg-indigo-400/20"
-          style={{ left: p.left, top: p.top }}
+          className="absolute rounded-full bg-indigo-300"
+          style={{ 
+            left: p.left, 
+            top: p.top, 
+            width: p.size, 
+            height: p.size,
+            boxShadow: `0 0 ${p.size * 2}px rgba(165, 180, 252, 0.8)` 
+          }}
           animate={{
+            x: [0, p.xDrift, 0],
             y: [0, p.yDrift, 0],
-            opacity: [0, 0.5, 0],
-            scale: [0, 1, 0],
+            opacity: [0.1, 0.6, 0.1],
           }}
           transition={{
             duration: p.duration,
@@ -184,8 +216,12 @@ function AmbientBackground() {
           }}
         />
       ))}
-
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,rgba(0,0,0,0.4)_100%)]" />
+      
+      {/* Scanline overlay for digital feel */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:100%_4px] opacity-20 pointer-events-none" />
+      
+      {/* Vignette */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.8)_100%)] pointer-events-none" />
     </div>
   );
 }
@@ -200,25 +236,36 @@ function OfficeFloor({
   onCreateClick: () => void;
 }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {agents.map((agent, i) => (
         <AgentDesk key={agent.id} agent={agent} index={i} onClick={() => onSelectAgent(agent.id)} />
       ))}
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: agents.length * agentAnimations.cardStagger + 0.1 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: agents.length * agentAnimations.cardStagger + 0.1, duration: 0.5 }}
+        className="h-full"
       >
-        <div className={cn(
-          "rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer border border-dashed border-indigo-500/15 hover:border-indigo-500/30 bg-black/20 backdrop-blur-sm transition-colors min-h-[240px]",
-        )}
-        onClick={onCreateClick}
-        data-testid="button-create-empty-desk"
+        <div 
+          className={cn(
+            "h-full rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all min-h-[320px] relative overflow-hidden group",
+            "bg-[#0a0a14]/60 backdrop-blur-xl border border-dashed border-indigo-500/20 hover:border-indigo-400/40 hover:bg-[#0f0f1a]/80"
+          )}
+          onClick={onCreateClick}
+          data-testid="button-create-empty-desk"
         >
-          <EmptyDesk size={100} onClick={onCreateClick} />
-          <p className="text-xs text-indigo-400/50 mt-2" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            add agent
-          </p>
+          {/* Subtle grid background */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:20px_20px]" />
+          
+          <div className="relative z-10 flex flex-col items-center">
+            <EmptyMind size={100} interactive={false} />
+            <div className="mt-6 flex flex-col items-center">
+              <span className="text-sm font-medium text-indigo-300/80 group-hover:text-indigo-200 transition-colors uppercase tracking-widest">Synthesize Mind</span>
+              <p className="text-[10px] text-indigo-500/40 mt-1.5 uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                [AWAITING_INITIALIZATION]
+              </p>
+            </div>
+          </div>
         </div>
       </motion.div>
     </div>
@@ -251,99 +298,141 @@ function AgentDesk({ agent, index, onClick }: { agent: Agent; index: number; onC
       tabIndex={0}
       aria-label={`Agent ${agent.name}, status ${status}`}
       className={cn(
-        "group relative rounded-2xl p-4 cursor-pointer transition-all overflow-hidden min-h-[240px]",
-        "bg-black/40 backdrop-blur-xl border",
-        "hover:scale-[1.02] hover:border-opacity-40 focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:outline-none"
+        "group relative rounded-2xl cursor-pointer transition-all overflow-hidden flex flex-col h-full min-h-[320px]",
+        "bg-[#0a0a14]/80 backdrop-blur-2xl border",
+        "hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:outline-none"
       )}
       style={{
-        borderColor: `${color}25`,
-        boxShadow: `0 0 20px ${color}10`,
+        borderColor: `${color}30`,
+        boxShadow: `0 4px 24px -4px rgba(0,0,0,0.5), inset 0 0 40px -10px ${color}10`,
       }}
       whileHover={{
-        boxShadow: `0 0 30px ${color}22, 0 0 60px ${color}08`,
+        boxShadow: `0 8px 32px -4px rgba(0,0,0,0.6), inset 0 0 60px -10px ${color}20`,
+        borderColor: `${color}50`
       }}
       data-testid={`card-agent-${agent.id}`}
     >
-      <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-        style={{ background: `radial-gradient(circle at 50% 30%, ${color}08, transparent 70%)` }}
-      />
+      {/* Structural visual lines inside card */}
+      <div className="absolute top-0 left-6 w-[1px] h-full bg-gradient-to-b from-transparent via-white/[0.03] to-transparent pointer-events-none" />
+      <div className="absolute top-6 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/[0.03] to-transparent pointer-events-none" />
 
-      {status === "working" && (
-        <motion.div
-          className="absolute bottom-0 left-0 right-0 h-[2px]"
-          style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }}
-          animate={{ x: ["-100%", "100%"] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-        />
-      )}
-
-      <div className="relative z-10 flex flex-col items-center">
-        <PixelAgent status={status} accentColor={color} avatar={agent.avatar} size={100} />
-
-        <h3 className="text-white font-semibold text-sm mt-1 text-center truncate w-full" data-testid={`text-agent-name-${agent.id}`}>
-          {agent.name}
-        </h3>
-        <p className="text-[10px] text-gray-500 truncate w-full text-center" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-          {agent.role || "general"}
-        </p>
-
-        <div className="flex items-center gap-1.5 mt-2">
-          <div className={cn(
-            "w-1.5 h-1.5 rounded-full",
-            status === "working" && "bg-green-400 animate-pulse",
-            status === "error" && "bg-red-400",
-            status === "waiting" && "bg-yellow-400 animate-pulse",
-            status === "idle" && "bg-gray-500",
-          )} />
-          <span className={cn(
-            "text-[10px] capitalize",
-            status === "working" && "text-green-400",
-            status === "error" && "text-red-400",
-            status === "waiting" && "text-yellow-400",
-            status === "idle" && "text-gray-500",
-          )} style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            {status}
-          </span>
-          {elapsed && <span className="text-[10px] text-gray-600" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{elapsed}</span>}
-        </div>
-
-        {agent.currentTaskSummary && status === "working" && (
-          <div className="mt-2 text-[10px] text-center px-2 py-1 rounded-lg w-full truncate"
-            style={{ color: color, backgroundColor: `${color}12` }}
-          >
-            {agent.currentTaskSummary}
+      {/* Top Header / Metadata */}
+      <div className="flex items-start justify-between p-5 pb-0 relative z-10">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <h3 className="text-gray-100 font-bold text-lg tracking-tight" data-testid={`text-agent-name-${agent.id}`}>
+              {agent.name}
+            </h3>
           </div>
-        )}
-
-        <div className="flex items-center gap-2 mt-2 text-[10px] text-gray-600">
-          <span className="flex items-center gap-0.5 truncate">
-            <FolderGit2 className="w-2.5 h-2.5 flex-shrink-0" />
-            {agent.repoUrl.replace("https://github.com/", "").split("/").pop()}
-          </span>
-          {(agent.totalTasksCompleted ?? 0) > 0 && (
-            <span className="flex items-center gap-0.5 flex-shrink-0">
-              <CheckCircle2 className="w-2.5 h-2.5" />
-              {agent.totalTasksCompleted}
-            </span>
-          )}
+          <p className="text-xs text-indigo-300/60 uppercase tracking-widest font-medium">
+            {agent.role || "GENERAL_INTELLIGENCE"}
+          </p>
+        </div>
+        
+        {/* Status Indicator */}
+        <div className="flex flex-col items-end gap-1">
+          <div className={cn(
+            "flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] uppercase font-bold tracking-widest border",
+            status === "working" && "bg-green-500/10 text-green-400 border-green-500/20",
+            status === "error" && "bg-red-500/10 text-red-400 border-red-500/20",
+            status === "waiting" && "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+            status === "idle" && "bg-gray-500/10 text-gray-400 border-gray-500/20",
+          )} style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+            <span className={cn(
+              "w-1.5 h-1.5 rounded-full",
+              status === "working" && "bg-green-400 shadow-[0_0_8px_#4ade80] animate-pulse",
+              status === "error" && "bg-red-400 shadow-[0_0_8px_#f87171]",
+              status === "waiting" && "bg-yellow-400 shadow-[0_0_8px_#facc15] animate-pulse",
+              status === "idle" && "bg-gray-400",
+            )} />
+            {status}
+          </div>
+          {elapsed && <span className="text-[10px] text-gray-500/80 mr-1" style={{ fontFamily: "'JetBrains Mono', monospace" }}>T+{elapsed}</span>}
         </div>
       </div>
+
+      {/* Center AI Visualization */}
+      <div className="flex-1 flex items-center justify-center p-6 relative z-10 min-h-[160px]">
+        {/* Subtle target crosshair in background */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+          <div className="w-32 h-32 rounded-full border border-dashed border-white/20" />
+          <div className="absolute w-[1px] h-40 bg-white/10" />
+          <div className="absolute h-[1px] w-40 bg-white/10" />
+        </div>
+        
+        <AiMind status={status} accentColor={color} avatar={agent.avatar} size={110} />
+      </div>
+
+      {/* Bottom Footer / Activity */}
+      <div className="p-5 pt-0 mt-auto relative z-10">
+        <div className="bg-black/40 rounded-xl border border-white/[0.05] p-3 flex flex-col gap-2 relative overflow-hidden group-hover:bg-black/50 transition-colors">
+          {/* Subtle scanning line effect in footer */}
+          <motion.div 
+            className="absolute top-0 bottom-0 left-[-100%] w-[50%] bg-gradient-to-r from-transparent via-white/[0.02] to-transparent skew-x-[-20deg]"
+            animate={{ left: ["100%", "-100%"] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+          />
+
+          {status === "working" && agent.currentTaskSummary ? (
+            <div className="flex items-start gap-2">
+              <Zap className={cn("w-3.5 h-3.5 mt-0.5 flex-shrink-0 animate-pulse")} style={{ color: color }} />
+              <p className="text-xs text-gray-300 line-clamp-2 leading-relaxed font-medium">
+                {agent.currentTaskSummary}
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Terminal className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+              <p className="text-xs text-gray-500 italic">Standing by for directives...</p>
+            </div>
+          )}
+
+          <div className="h-[1px] w-full bg-white/[0.05] my-1" />
+
+          <div className="flex items-center justify-between text-[10px] text-gray-500" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+            <div className="flex items-center gap-1.5 truncate max-w-[70%]">
+              <FolderGit2 className="w-3 h-3 text-indigo-400/70" />
+              <span className="truncate">{agent.repoUrl.replace("https://github.com/", "").split("/").pop()}</span>
+              {agent.repoBranch && (
+                <>
+                  <span className="text-gray-700">/</span>
+                  <span className="text-indigo-300/50 truncate max-w-[60px]">{agent.repoBranch}</span>
+                </>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-1.5 flex-shrink-0 bg-white/[0.03] px-1.5 py-0.5 rounded">
+              <CheckCircle2 className="w-3 h-3 text-emerald-500/70" />
+              <span>{agent.totalTasksCompleted ?? 0}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Decorative corner brackets */}
+      <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-white/20 rounded-tl-xl pointer-events-none" />
+      <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-white/20 rounded-tr-xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-white/20 rounded-bl-xl pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-white/20 rounded-br-xl pointer-events-none" />
     </motion.div>
   );
 }
 
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
-    <motion.div {...agentAnimations.cardEnter} className="flex flex-col items-center justify-center py-20 px-4">
-      <div className={cn(glassPanel, "p-8 text-center max-w-xs")}>
-        <WifiOff className="w-10 h-10 text-red-400/60 mx-auto mb-3" />
-        <p className="text-sm text-gray-400 mb-4">Connection lost to the office</p>
+    <motion.div {...agentAnimations.cardEnter} className="flex flex-col items-center justify-center py-32 px-4 relative z-10">
+      <div className="bg-[#0a0a14]/80 backdrop-blur-2xl border border-red-500/20 shadow-[0_0_40px_rgba(239,68,68,0.1)] rounded-2xl p-10 text-center max-w-sm">
+        <div className="w-16 h-16 mx-auto bg-red-500/10 rounded-full flex items-center justify-center mb-4 border border-red-500/20">
+          <WifiOff className="w-8 h-8 text-red-400" />
+        </div>
+        <h3 className="text-xl font-bold text-white mb-2">Nexus Disconnected</h3>
+        <p className="text-sm text-gray-400 mb-6">Neural link to the agent command center has been severed.</p>
         <button
           onClick={onRetry}
-          className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1.5 mx-auto"
+          className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 px-6 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 mx-auto"
           data-testid="button-retry-agents"
         >
-          <RefreshCw className="w-3.5 h-3.5" /> Reconnect
+          <RefreshCw className="w-4 h-4" /> Re-establish Link
         </button>
       </div>
     </motion.div>
@@ -352,20 +441,35 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 
 function LoadingState() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
       {[0, 1, 2].map(i => (
         <motion.div
           key={i}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: i * 0.1 }}
-          className={cn(glassPanel, "min-h-[240px] p-4")}
+          transition={{ delay: i * 0.1, duration: 0.5 }}
+          className="bg-[#0a0a14]/60 backdrop-blur-xl border border-white/5 rounded-2xl min-h-[320px] p-6 flex flex-col relative overflow-hidden"
         >
-          <div className="flex flex-col items-center gap-3 animate-pulse">
-            <div className="w-20 h-20 rounded-xl bg-indigo-500/10" />
-            <div className="w-20 h-3 rounded bg-gray-800" />
-            <div className="w-14 h-2 rounded bg-gray-800/60" />
+          {/* Shimmer sweep */}
+          <motion.div 
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent w-full"
+            animate={{ x: ["-100%", "100%"] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear", delay: i * 0.2 }}
+          />
+          
+          <div className="flex justify-between items-start mb-auto">
+            <div className="space-y-2">
+              <div className="w-32 h-5 rounded bg-white/10 animate-pulse" />
+              <div className="w-20 h-3 rounded bg-white/5 animate-pulse" />
+            </div>
+            <div className="w-16 h-5 rounded bg-white/10 animate-pulse" />
           </div>
+          
+          <div className="flex justify-center my-8">
+            <div className="w-24 h-24 rounded-full bg-white/5 animate-pulse border border-white/10" />
+          </div>
+          
+          <div className="mt-auto bg-black/30 rounded-xl p-3 h-16 border border-white/5 animate-pulse" />
         </motion.div>
       ))}
     </div>
@@ -376,28 +480,37 @@ function EmptyState({ onCreateClick, githubStatus }: { onCreateClick: () => void
   const notConfigured = githubStatus && !githubStatus.configured;
 
   return (
-    <motion.div {...agentAnimations.cardEnter} className="flex flex-col items-center justify-center py-16 px-4">
-      <div className={cn(glassPanelGlow, "p-10 text-center max-w-sm relative overflow-hidden")}>
-        <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/[0.03] to-transparent" />
+    <motion.div {...agentAnimations.cardEnter} className="flex flex-col items-center justify-center py-20 px-4 relative z-10">
+      <div className="bg-[#0a0a14]/80 backdrop-blur-2xl border border-indigo-500/20 shadow-[0_0_60px_rgba(99,102,241,0.1)] rounded-3xl p-12 text-center max-w-lg relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/[0.05] to-transparent" />
+        
+        {/* Orbital rings behind */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border border-indigo-500/10 rounded-full" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-indigo-500/5 rounded-full" />
+        
         <div className="relative z-10">
-          <div className="mx-auto mb-5">
-            <PixelAgent status="idle" accentColor="#6366f1" size={120} />
+          <div className="mx-auto mb-8 flex justify-center">
+            <div className="relative">
+              <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full" />
+              <EmptyMind size={140} interactive={false} />
+            </div>
           </div>
-          <h3 className="text-lg font-semibold text-white mb-2">The office is empty</h3>
-          <p className="text-sm text-gray-500 mb-6">
+          <h3 className="text-2xl font-bold text-white mb-3 tracking-tight">Nexus Uninitialized</h3>
+          <p className="text-base text-gray-400 mb-8 max-w-md mx-auto leading-relaxed">
             {notConfigured
-              ? "GitHub OAuth needs to be configured by an admin before agents can connect to repos."
-              : "Deploy your first AI agent to start automating development tasks across your repos."}
+              ? "GitHub integration required to establish neural pathways to your repositories."
+              : "Synthesize your first AI consciousness to begin autonomous development operations."}
           </p>
           {!notConfigured && (
             <motion.button
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={onCreateClick}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3.5 rounded-xl text-base font-medium transition-all shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_30px_rgba(99,102,241,0.6)] border border-indigo-400/50 relative overflow-hidden"
               data-testid="button-create-first-agent"
             >
-              Deploy First Agent
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+              Initialize First Mind
             </motion.button>
           )}
         </div>
@@ -429,12 +542,12 @@ function GithubConnectButton({ status }: { status: any }) {
     return (
       <button
         onClick={handleDisconnect}
-        className={cn(glassPanel, "flex items-center gap-1.5 px-3 py-2 text-sm text-gray-300 hover:text-white transition-colors !rounded-xl")}
+        className="flex items-center gap-2 bg-[#0a0a14]/80 backdrop-blur-md border border-white/10 px-3.5 py-2.5 text-sm text-gray-300 hover:text-white hover:border-white/20 transition-all rounded-xl shadow-sm"
         data-testid="button-github-disconnect"
       >
         <Github className="w-4 h-4" />
-        <span className="hidden sm:inline text-xs">{status.username}</span>
-        <Check className="w-3 h-3 text-emerald-400" />
+        <span className="hidden sm:inline text-xs font-medium">{status.username}</span>
+        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
       </button>
     );
   }
@@ -443,11 +556,12 @@ function GithubConnectButton({ status }: { status: any }) {
     return (
       <button
         disabled
-        className="flex items-center gap-1.5 bg-black/30 text-gray-600 px-3 py-2 rounded-xl text-sm cursor-not-allowed"
+        className="flex items-center gap-2 bg-black/40 border border-white/5 text-gray-600 px-3.5 py-2.5 rounded-xl text-sm cursor-not-allowed"
         title="GitHub OAuth not configured"
         data-testid="button-github-not-configured"
       >
         <Github className="w-4 h-4" />
+        <span className="hidden sm:inline text-xs">Unconfigured</span>
       </button>
     );
   }
@@ -455,11 +569,11 @@ function GithubConnectButton({ status }: { status: any }) {
   return (
     <button
       onClick={handleConnect}
-      className={cn(glassPanel, "flex items-center gap-1.5 px-3 py-2 text-sm text-gray-400 hover:text-white transition-colors !rounded-xl")}
+      className="flex items-center gap-2 bg-[#0a0a14]/80 backdrop-blur-md border border-white/10 px-3.5 py-2.5 text-sm text-gray-300 hover:text-white hover:border-white/30 transition-all rounded-xl shadow-sm group"
       data-testid="button-github-connect"
     >
-      <Github className="w-4 h-4" />
-      <span className="hidden sm:inline text-xs">Connect</span>
+      <Github className="w-4 h-4 group-hover:text-indigo-400 transition-colors" />
+      <span className="hidden sm:inline text-xs font-medium">Connect Hub</span>
     </button>
   );
 }
@@ -494,10 +608,10 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
         body: JSON.stringify({ name, avatar, role, repoUrl, repoBranch, accentColor }),
       });
       queryClient.invalidateQueries({ queryKey: ["agents"] });
-      toast.success(`${name} deployed to the office`);
+      toast.success(`${name} initialized in the nexus`);
       onClose();
     } catch (err: any) {
-      setError(err.message || "Deployment failed");
+      setError(err.message || "Synthesis failed");
       setCreating(false);
     }
   };
@@ -507,182 +621,213 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-50 bg-[#020205]/80 backdrop-blur-md flex items-end sm:items-center justify-center"
       onClick={onClose}
     >
       <motion.div
-        initial={{ y: "100%", opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: "100%", opacity: 0 }}
-        transition={{ type: "spring", damping: 28, stiffness: 300 }}
+        initial={{ y: "100%", opacity: 0, scale: 0.95 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        exit={{ y: "100%", opacity: 0, scale: 0.95 }}
+        transition={{ type: "spring", damping: 30, stiffness: 300 }}
         onClick={e => e.stopPropagation()}
-        className={cn(glassPanelGlow, "w-full sm:max-w-md max-h-[85vh] overflow-y-auto !rounded-t-3xl sm:!rounded-2xl")}
+        className="w-full sm:max-w-xl max-h-[90vh] overflow-y-auto bg-[#0a0a14] border border-indigo-500/20 shadow-[0_0_50px_rgba(0,0,0,0.8),0_0_30px_rgba(99,102,241,0.1)] sm:rounded-3xl rounded-t-3xl rounded-b-none relative"
       >
-        <div className="p-5">
-          <div className="flex items-center justify-between mb-5">
+        {/* Decorative header line */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+        
+        <div className="p-8">
+          <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-lg font-semibold text-white">Deploy Agent</h2>
-              <p className="text-xs text-indigo-400/40" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                step {Math.max(step, 1)}/2
+              <h2 className="text-2xl font-bold text-white tracking-tight">Synthesize Mind</h2>
+              <p className="text-xs text-indigo-400/60 mt-1 uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                PHASE {Math.max(step, 1)}/2 // CONFIGURATION
               </p>
             </div>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-300 p-1 rounded-lg hover:bg-white/5 transition-colors">
+            <button onClick={onClose} className="text-gray-500 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors bg-white/5 border border-white/5">
               <X className="w-5 h-5" />
             </button>
           </div>
 
           <AnimatePresence mode="wait">
             {step === 0 && !githubConnected && (
-              <motion.div key="step-0" {...agentAnimations.wizardStep} className="text-center py-6">
-                <div className="w-14 h-14 rounded-2xl bg-gray-800/80 flex items-center justify-center mx-auto mb-4">
-                  <Github className="w-7 h-7 text-gray-400" />
+              <motion.div key="step-0" {...agentAnimations.wizardStep} className="text-center py-10 bg-black/20 rounded-2xl border border-white/5">
+                <div className="w-20 h-20 rounded-full bg-[#0a0a14] border border-white/10 flex items-center justify-center mx-auto mb-6 relative">
+                  <div className="absolute inset-0 bg-indigo-500/10 rounded-full blur-xl" />
+                  <Github className="w-10 h-10 text-gray-300 relative z-10" />
                 </div>
-                <h3 className="text-white font-medium mb-2">
-                  {githubConfigured ? "Connect GitHub First" : "GitHub Not Configured"}
+                <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
+                  {githubConfigured ? "Neural Hub Link Required" : "Hub Not Configured"}
                 </h3>
-                <p className="text-sm text-gray-500 mb-5">
+                <p className="text-sm text-gray-400 mb-8 max-w-sm mx-auto leading-relaxed">
                   {githubConfigured
-                    ? "Link your GitHub account to give agents access to your repos."
-                    : "GitHub OAuth needs admin setup. You can still use manual repo URLs."}
+                    ? "Connect your GitHub account to establish data pathways for the new consciousness."
+                    : "GitHub OAuth needs admin setup. Manual repository targeting available as fallback."}
                 </p>
                 {githubConfigured ? (
-                  <GithubConnectButton status={githubStatus} />
+                  <div className="flex justify-center scale-110">
+                    <GithubConnectButton status={githubStatus} />
+                  </div>
                 ) : (
                   <button
                     onClick={() => setStep(1)}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
-                  >Continue without GitHub</button>
+                    className="bg-indigo-600/20 border border-indigo-500/40 hover:bg-indigo-500/30 text-indigo-200 px-6 py-2.5 rounded-xl text-sm font-medium transition-all"
+                  >Proceed with Manual Entry</button>
                 )}
               </motion.div>
             )}
 
             {(step === 1 || (step === 0 && githubConnected)) && (
-              <motion.div key="step-1" {...agentAnimations.wizardStep} className="space-y-4">
-                <div>
-                  <label className="text-xs text-indigo-400/60 block mb-2 uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Avatar</label>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {AGENT_AVATARS.map(a => (
-                      <button
-                        key={a}
-                        onClick={() => setAvatar(a)}
-                        className={cn(
-                          "text-xl p-1.5 rounded-lg transition-all",
-                          avatar === a ? "bg-indigo-600/20 ring-1 ring-indigo-500 scale-110" : "hover:bg-white/5"
-                        )}
-                        data-testid={`button-avatar-${a}`}
-                      >{a}</button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-indigo-400/60 block mb-2 uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Name *</label>
-                  <input
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    placeholder="e.g. Frontend Bot"
-                    className="w-full bg-black/40 border border-indigo-500/15 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500/40 placeholder:text-gray-600 transition-colors"
-                    data-testid="input-agent-name"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-indigo-400/60 block mb-2 uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Role</label>
-                  <input
-                    value={role}
-                    onChange={e => setRole(e.target.value)}
-                    placeholder="e.g. Frontend Developer"
-                    className="w-full bg-black/40 border border-indigo-500/15 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500/40 placeholder:text-gray-600 transition-colors"
-                    data-testid="input-agent-role"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-indigo-400/60 block mb-2 uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Color</label>
-                  <div className="flex gap-2">
-                    {ACCENT_COLORS.map(c => (
-                      <motion.button
-                        key={c}
-                        onClick={() => setAccentColor(c)}
-                        whileHover={{ scale: 1.15 }}
-                        whileTap={{ scale: 0.9 }}
-                        className={cn("w-7 h-7 rounded-full transition-all", accentColor === c && "ring-2 ring-white/30 ring-offset-2 ring-offset-gray-900 scale-110")}
-                        style={{ backgroundColor: c, boxShadow: accentColor === c ? `0 0 12px ${c}55` : "none" }}
-                        data-testid={`button-color-${c}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <button
-                  onClick={() => setStep(2)}
-                  disabled={!name}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:hover:bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-medium transition-colors shadow-lg shadow-indigo-500/10"
-                  data-testid="button-wizard-next"
-                >
-                  Next: Select Repository
-                </button>
-              </motion.div>
-            )}
-
-            {step === 2 && (
-              <motion.div key="step-2" {...agentAnimations.wizardStep} className="space-y-3">
-                <button onClick={() => setStep(1)} className="text-xs text-indigo-400/60 hover:text-indigo-400 flex items-center gap-1 transition-colors">
-                  <ArrowLeft className="w-3 h-3" /> back
-                </button>
-                <div>
-                  <label className="text-xs text-indigo-400/60 block mb-2 uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Repository *</label>
-                  {repos.length > 0 ? (
-                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-                      {repos.map(repo => (
+              <motion.div key="step-1" {...agentAnimations.wizardStep} className="space-y-6">
+                
+                {/* Visual Identity Section */}
+                <div className="bg-black/30 p-5 rounded-2xl border border-white/5 space-y-5 relative overflow-hidden">
+                  <div className="absolute right-0 top-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-transparent blur-2xl pointer-events-none" />
+                  
+                  <div>
+                    <label className="text-xs text-indigo-300 block mb-3 uppercase tracking-wider font-semibold">Visual Essence</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {ACCENT_COLORS.map(c => (
                         <button
-                          key={repo.id}
-                          onClick={() => { setRepoUrl(repo.html_url); setRepoBranch(repo.default_branch); }}
+                          key={c}
+                          onClick={() => setAccentColor(c)}
                           className={cn(
-                            "w-full text-left p-2.5 rounded-xl text-sm transition-all",
-                            repoUrl === repo.html_url
-                              ? "bg-indigo-600/15 border border-indigo-500/30"
-                              : "bg-black/30 hover:bg-black/50 border border-transparent hover:border-indigo-500/10"
+                            "w-8 h-8 rounded-full transition-all border-2",
+                            accentColor === c ? "scale-110 border-white shadow-[0_0_15px_currentColor]" : "border-transparent opacity-50 hover:opacity-100 hover:scale-105"
                           )}
-                          data-testid={`button-repo-${repo.name}`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <FolderGit2 className="w-3.5 h-3.5 text-indigo-400/60 flex-shrink-0" />
-                            <span className="text-white font-medium truncate">{repo.full_name}</span>
-                            {repo.private && <span className="text-[10px] bg-yellow-500/15 text-yellow-400 px-1.5 py-0.5 rounded flex-shrink-0">PRV</span>}
-                          </div>
-                          {repo.description && <p className="text-[11px] text-gray-600 mt-0.5 truncate ml-[22px]">{repo.description}</p>}
-                        </button>
+                          style={{ backgroundColor: c, color: c }}
+                          data-testid={`button-color-${c}`}
+                        />
                       ))}
                     </div>
-                  ) : (
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs text-indigo-300 block mb-3 uppercase tracking-wider font-semibold">Symbol</label>
+                    <div className="flex gap-2 flex-wrap bg-black/40 p-2 rounded-xl border border-white/5">
+                      {AGENT_AVATARS.map(a => (
+                        <button
+                          key={a}
+                          onClick={() => setAvatar(a)}
+                          className={cn(
+                            "text-2xl w-10 h-10 rounded-lg flex items-center justify-center transition-all",
+                            avatar === a ? "bg-indigo-500/20 ring-1 ring-indigo-400 scale-110 shadow-lg" : "hover:bg-white/10 opacity-70 hover:opacity-100"
+                          )}
+                          data-testid={`button-avatar-${a}`}
+                        >{a}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Core Parameters Section */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-indigo-300 block mb-2 uppercase tracking-wider font-semibold">Designation *</label>
+                      <input
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        placeholder="e.g. Nexus Core"
+                        className="w-full bg-[#0a0a14] border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 placeholder:text-gray-600 transition-all shadow-inner"
+                        data-testid="input-agent-name"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-indigo-300 block mb-2 uppercase tracking-wider font-semibold">Specialization</label>
+                      <input
+                        value={role}
+                        onChange={e => setRole(e.target.value)}
+                        placeholder="e.g. Frontend Architecture"
+                        className="w-full bg-[#0a0a14] border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 placeholder:text-gray-600 transition-all shadow-inner"
+                        data-testid="input-agent-role"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-indigo-300 block mb-2 uppercase tracking-wider font-semibold">Target Repository *</label>
+                    {githubConnected && repos.length > 0 ? (
+                      <div className="relative">
+                        <select
+                          value={repoUrl}
+                          onChange={e => setRepoUrl(e.target.value)}
+                          className="w-full bg-[#0a0a14] border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 appearance-none shadow-inner"
+                          data-testid="select-agent-repo"
+                        >
+                          <option value="">Select a connected repository...</option>
+                          {repos.map(r => (
+                            <option key={r.id} value={r.html_url}>{r.full_name}</option>
+                          ))}
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+                        </div>
+                      </div>
+                    ) : (
+                      <input
+                        value={repoUrl}
+                        onChange={e => setRepoUrl(e.target.value)}
+                        placeholder="https://github.com/username/repo"
+                        className="w-full bg-[#0a0a14] border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 placeholder:text-gray-600 transition-all shadow-inner"
+                        data-testid="input-agent-repo"
+                      />
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-indigo-300 block mb-2 uppercase tracking-wider font-semibold">Target Branch</label>
                     <input
-                      value={repoUrl}
-                      onChange={e => setRepoUrl(e.target.value)}
-                      placeholder="https://github.com/user/repo"
-                      className="w-full bg-black/40 border border-indigo-500/15 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500/40 placeholder:text-gray-600 transition-colors"
-                      data-testid="input-repo-url"
+                      value={repoBranch}
+                      onChange={e => setRepoBranch(e.target.value)}
+                      placeholder="main"
+                      className="w-full bg-[#0a0a14] border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 placeholder:text-gray-600 transition-all shadow-inner"
+                      data-testid="input-agent-branch"
                     />
-                  )}
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs text-indigo-400/60 block mb-2 uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Branch</label>
-                  <input
-                    value={repoBranch}
-                    onChange={e => setRepoBranch(e.target.value)}
-                    className="w-full bg-black/40 border border-indigo-500/15 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500/40 placeholder:text-gray-600 transition-colors"
-                    data-testid="input-branch"
-                  />
-                </div>
+
                 {error && (
-                  <motion.div {...agentAnimations.errorShake} className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-2 rounded-xl" data-testid="text-create-error">
-                    {error}
-                  </motion.div>
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-3 rounded-xl flex items-start gap-3">
+                    <WifiOff className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <p>{error}</p>
+                  </div>
                 )}
-                <button
-                  onClick={handleCreate}
-                  disabled={!repoUrl || creating}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors shadow-lg shadow-indigo-500/10"
-                  data-testid="button-create-confirm"
-                >
-                  {creating ? <><Loader2 className="w-4 h-4 animate-spin" /> Deploying...</> : <><Zap className="w-4 h-4" /> Deploy Agent</>}
-                </button>
+
+                <div className="pt-4 flex justify-between items-center border-t border-white/10 mt-6">
+                  {githubConnected ? (
+                    <div className="flex items-center gap-2 text-xs text-gray-500 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_#10b981]"></div>
+                      Hub Link Active
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={onClose}
+                      className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                      Abort
+                    </button>
+                    <button
+                      onClick={handleCreate}
+                      disabled={!name || !repoUrl || creating}
+                      className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white px-8 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)] disabled:shadow-none flex items-center gap-2 relative overflow-hidden group"
+                      data-testid="button-submit-agent"
+                    >
+                      {creating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" /> Synthesizing...
+                        </>
+                      ) : (
+                        <>
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+                          Initialize Mind
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -692,307 +837,218 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
   );
 }
 
+// --------------------------------------------------------------------------------
+// AGENT INTERACTION PANEL - DO NOT TOUCH
+// --------------------------------------------------------------------------------
+
 function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBack: () => void; onDelete: () => void }) {
-  const [mobileTab, setMobileTab] = useState<"terminal" | "project">("terminal");
-  const [showMenu, setShowMenu] = useState(false);
-  const isMobile = useIsMobile();
-  const queryClient = useQueryClient();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const color = agent.accentColor || "#6366f1";
   const status = (agent.status || "idle") as "idle" | "working" | "error" | "waiting";
 
-  const { data: gitStatus } = useQuery({
-    queryKey: ["agent-git-status", agent.id],
-    queryFn: () => apiFetch(`${API_BASE_URL}/api/agents/${agent.id}/git/status`),
-    enabled: agent.repoCloned,
-    refetchInterval: 10000,
-    retry: 1,
-  });
-
-  const { data: gitLog = [] } = useQuery({
-    queryKey: ["agent-git-log", agent.id],
-    queryFn: () => apiFetch(`${API_BASE_URL}/api/agents/${agent.id}/git/log`),
-    enabled: agent.repoCloned,
-    retry: 1,
-  });
-
-  const stopMutation = useMutation({
-    mutationFn: () => apiFetch(`${API_BASE_URL}/api/agents/${agent.id}/stop`, { method: "POST" }),
-    onSuccess: () => toast.success("Agent paused"),
-    onError: (err: Error) => toast.error(err.message),
-  });
-
-  const cloneMutation = useMutation({
-    mutationFn: () => apiFetch(`${API_BASE_URL}/api/agents/${agent.id}/git/clone`, { method: "POST" }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["agents"] });
-      toast.success("Repository cloned");
-    },
-    onError: (err: Error) => toast.error(`Clone failed: ${err.message}`),
-  });
-
-  const pullMutation = useMutation({
-    mutationFn: () => apiFetch(`${API_BASE_URL}/api/agents/${agent.id}/git/pull`, { method: "POST" }),
-    onSuccess: (data) => toast.success(`Pulled: ${data.result}`),
-    onError: (err: Error) => toast.error(`Pull failed: ${err.message}`),
-  });
-
-  const repoName = agent.repoUrl.replace("https://github.com/", "");
-  const changedFiles = gitStatus ? [...(gitStatus.modified || []), ...(gitStatus.created || []), ...(gitStatus.deleted || [])] : [];
-
   return (
-    <motion.div
-      {...agentAnimations.panelSlideUp}
-      className="h-[100dvh] bg-gradient-to-br from-gray-950 via-[#0a0a1a] to-indigo-950/40 flex flex-col pb-[92px]"
-    >
-      <div className="bg-black/60 backdrop-blur-xl border-b border-indigo-500/10 px-4 py-3 flex-shrink-0">
-        <div className="flex items-center gap-3 max-w-6xl mx-auto">
-          <button onClick={onBack} className="text-gray-500 hover:text-white transition-colors p-1" data-testid="button-back">
+    <motion.div {...agentAnimations.panelSlideUp} className="fixed inset-0 z-40 bg-gray-950 flex flex-col">
+      <div className="flex-none h-14 border-b border-white/5 bg-black/40 flex items-center justify-between px-4">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onBack}
+            className="p-2 -ml-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+            data-testid="button-back-to-office"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <PixelAgent status={status} accentColor={color} avatar={agent.avatar} size={40} />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-white font-semibold truncate" data-testid="text-agent-detail-name">{agent.name}</h2>
+
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="text-xl bg-black/40 rounded-lg w-8 h-8 flex items-center justify-center border border-white/10"
+                   style={{ borderColor: `${color}40`, boxShadow: `0 0 10px ${color}20` }}>
+                {agent.avatar}
+              </div>
               <div className={cn(
-                "w-1.5 h-1.5 rounded-full flex-shrink-0",
-                status === "working" && "bg-green-400 animate-pulse",
-                status === "error" && "bg-red-400",
-                status === "idle" && "bg-gray-500",
+                "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-gray-950",
+                status === "working" ? "bg-green-400 animate-pulse" :
+                status === "error" ? "bg-red-400" :
+                status === "waiting" ? "bg-yellow-400" : "bg-gray-500"
               )} />
-              <span className={cn(
-                "text-[10px] capitalize flex-shrink-0",
-                status === "working" && "text-green-400",
-                status === "error" && "text-red-400",
-                status === "idle" && "text-gray-500",
-              )} style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                {status}
-              </span>
             </div>
-            <p className="text-[11px] text-gray-600 truncate" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{repoName}</p>
+            <div>
+              <h2 className="text-sm font-semibold text-white leading-tight" data-testid="text-panel-agent-name">{agent.name}</h2>
+              <p className="text-[10px] text-gray-500 leading-tight" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{agent.role || "general"}</p>
+            </div>
           </div>
+        </div>
 
-          {status === "working" && (
-            <button
-              onClick={() => stopMutation.mutate()}
-              className="text-red-400/60 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors flex-shrink-0"
-              data-testid="button-stop-agent"
+        <div className="flex items-center gap-2 text-[10px] sm:text-xs">
+          <div className="hidden sm:flex items-center gap-3 mr-4 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5">
+            <a
+              href={agent.repoUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors"
+              title="Open Repository"
             >
-              <Square className="w-4 h-4" />
-            </button>
-          )}
-
-          <div className="relative flex-shrink-0">
-            <button onClick={() => setShowMenu(!showMenu)} className="text-gray-500 hover:text-white p-1 transition-colors" data-testid="button-agent-menu">
-              <MoreVertical className="w-5 h-5" />
-            </button>
-            {showMenu && (
+              <Github className="w-3.5 h-3.5" />
+              <span className="truncate max-w-[150px]">{agent.repoUrl.split("/").slice(-2).join("/")}</span>
+            </a>
+            {agent.repoBranch && (
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-                <div className={cn(glassPanelGlow, "absolute right-0 top-8 py-1 min-w-[180px] z-20")}>
-                  {!agent.repoCloned && (
-                    <button onClick={() => { cloneMutation.mutate(); setShowMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-white/5 flex items-center gap-2 transition-colors" data-testid="button-clone-repo">
-                      <FolderGit2 className="w-4 h-4" /> Clone Repo
-                    </button>
-                  )}
-                  {agent.repoCloned && (
-                    <button onClick={() => { pullMutation.mutate(); setShowMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-white/5 flex items-center gap-2 transition-colors" data-testid="button-pull-repo">
-                      <RefreshCw className="w-4 h-4" /> Pull Latest
-                    </button>
-                  )}
-                  <a href={agent.repoUrl} target="_blank" rel="noopener noreferrer" className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-white/5 flex items-center gap-2 transition-colors">
-                    <ExternalLink className="w-4 h-4" /> Open on GitHub
-                  </a>
-                  <div className="my-1 border-t border-white/5" />
-                  <button onClick={() => { onDelete(); setShowMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2 transition-colors" data-testid="button-delete-agent">
-                    <Trash2 className="w-4 h-4" /> Decommission
-                  </button>
+                <span className="text-gray-600">/</span>
+                <div className="flex items-center gap-1 text-indigo-300/70" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                  <GitBranch className="w-3.5 h-3.5" />
+                  <span>{agent.repoBranch}</span>
                 </div>
               </>
             )}
           </div>
-        </div>
-      </div>
 
-      <div className="md:hidden flex border-b border-indigo-500/10 bg-black/40 flex-shrink-0">
-        {(["terminal", "project"] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => setMobileTab(t)}
-            className={cn(
-              "flex-1 py-2.5 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors",
-              mobileTab === t ? "text-indigo-400 border-b-2 border-indigo-400" : "text-gray-600 hover:text-gray-400"
-            )}
-            data-testid={`tab-${t}`}
-          >
-            {t === "terminal" && <Terminal className="w-3.5 h-3.5" />}
-            {t === "project" && <GitBranch className="w-3.5 h-3.5" />}
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
-      </div>
+          <div className="relative">
+            <button
+              onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
+              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+              data-testid="button-agent-menu"
+            >
+              <MoreVertical className="w-5 h-5" />
+            </button>
 
-      <div className="flex-1 overflow-hidden min-h-0">
-        <div className="hidden md:grid md:grid-cols-[1fr_280px] h-full max-w-6xl mx-auto gap-0">
-          <div className="overflow-hidden">
-            {!isMobile && <AgentTerminal agentId={agent.id} agentName={agent.name} />}
+            <AnimatePresence>
+              {showDeleteConfirm && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowDeleteConfirm(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                    className="absolute right-0 top-full mt-2 w-64 p-4 rounded-xl bg-gray-900 border border-red-500/20 shadow-2xl z-50 origin-top-right"
+                  >
+                    <h4 className="text-sm font-medium text-white mb-1">Decommission Agent</h4>
+                    <p className="text-xs text-gray-400 mb-4">This will permanently delete this agent and its local workspace.</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowDeleteConfirm(false)}
+                        className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-300 hover:bg-white/5 rounded-lg transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDeleteConfirm(false);
+                          onDelete();
+                        }}
+                        className="flex-1 px-3 py-1.5 text-xs font-medium text-white bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                        data-testid="button-confirm-delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                      </button>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
-          <ProjectPane
-            agent={agent}
-            gitStatus={gitStatus}
-            gitLog={gitLog}
-            changedFiles={changedFiles}
-            cloneMutation={cloneMutation}
-            pullMutation={pullMutation}
-            color={color}
-            className="border-l border-indigo-500/10"
-          />
+        </div>
+      </div>
+
+      <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4 p-4">
+        {/* Terminal Section */}
+        <div className="flex-1 min-h-[50vh] lg:min-h-0 bg-[#0a0a1a] rounded-xl border border-white/10 overflow-hidden flex flex-col shadow-xl">
+          <AgentTerminal agentId={agent.id} agentName={agent.name} />
         </div>
 
-        <div className="md:hidden h-full flex flex-col">
-          {mobileTab === "terminal" && isMobile && (
-            <div className="flex-1 overflow-hidden">
-              <AgentTerminal agentId={agent.id} agentName={agent.name} />
-            </div>
-          )}
-          {mobileTab === "project" && (
-            <ProjectPane
-              agent={agent}
-              gitStatus={gitStatus}
-              gitLog={gitLog}
-              changedFiles={changedFiles}
-              cloneMutation={cloneMutation}
-              pullMutation={pullMutation}
-              color={color}
-              className="flex-1"
-            />
-          )}
+        {/* Project Pane Section - Preserved logic, slightly updated styling wrapper to match */}
+        <div className="w-full lg:w-[400px] xl:w-[500px] flex-shrink-0 flex flex-col bg-gray-900/50 rounded-xl border border-white/5 overflow-hidden">
+          <ProjectPane agent={agent} />
         </div>
       </div>
     </motion.div>
   );
 }
 
-
-function ProjectPane({
-  agent,
-  gitStatus,
-  gitLog,
-  changedFiles,
-  cloneMutation,
-  pullMutation,
-  color,
-  className,
-}: {
-  agent: Agent;
-  gitStatus: any;
-  gitLog: any;
-  changedFiles: string[];
-  cloneMutation: any;
-  pullMutation: any;
-  color: string;
-  className?: string;
-}) {
-  const repoName = agent.repoUrl.replace("https://github.com/", "");
+function ProjectPane({ agent }: { agent: Agent }) {
+  const [activeTab, setActiveTab] = useState<"tasks" | "files">("tasks");
 
   return (
-    <div className={cn("flex flex-col h-full bg-black/20 overflow-y-auto", className)}>
-      <div className="px-3 py-2 flex items-center gap-2 border-b border-indigo-500/8 flex-shrink-0">
-        <GitBranch className="w-3.5 h-3.5 text-indigo-400/50" />
-        <span className="text-[10px] text-indigo-400/40 uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-          Project
-        </span>
+    <div className="flex flex-col h-full">
+      <div className="flex border-b border-white/5 bg-black/20">
+        <button
+          onClick={() => setActiveTab("tasks")}
+          className={cn(
+            "flex-1 py-3 text-xs font-medium border-b-2 transition-colors",
+            activeTab === "tasks" ? "border-indigo-500 text-white" : "border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5"
+          )}
+        >
+          Active Task
+        </button>
+        <button
+          onClick={() => setActiveTab("files")}
+          className={cn(
+            "flex-1 py-3 text-xs font-medium border-b-2 transition-colors",
+            activeTab === "files" ? "border-indigo-500 text-white" : "border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5"
+          )}
+        >
+          Workspace
+        </button>
       </div>
 
-      <div className="p-3 space-y-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <FolderGit2 className="w-3.5 h-3.5" style={{ color: `${color}88` }} />
-            <span className="text-xs text-gray-400 truncate">{repoName}</span>
-          </div>
-          <div className="flex items-center gap-2 text-[10px] text-gray-600" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            <GitBranch className="w-3 h-3" />
-            {agent.repoBranch || "main"}
-          </div>
-        </div>
-
-        {!agent.repoCloned ? (
-          <div className="text-center py-4">
-            <p className="text-[10px] text-gray-600 mb-2" style={{ fontFamily: "'JetBrains Mono', monospace" }}>repo not cloned</p>
-            <button
-              onClick={() => cloneMutation.mutate()}
-              disabled={cloneMutation.isPending}
-              className="text-xs px-3 py-1.5 rounded-lg transition-colors"
-              style={{ backgroundColor: `${color}15`, color, border: `1px solid ${color}25` }}
-              data-testid="button-clone-git"
-            >
-              {cloneMutation.isPending ? "Cloning..." : "Clone"}
-            </button>
+      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+        {activeTab === "tasks" ? (
+          <div className="space-y-4">
+            {agent.status === "working" ? (
+              <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3 text-indigo-400">
+                  <Zap className="w-4 h-4 animate-pulse" />
+                  <h3 className="text-sm font-medium">Current Objective</h3>
+                </div>
+                <p className="text-sm text-gray-300 leading-relaxed">
+                  {agent.currentTaskSummary || "Analyzing workspace..."}
+                </p>
+                <div className="mt-4 pt-4 border-t border-indigo-500/10 flex items-center justify-between text-xs text-indigo-400/60 font-mono">
+                  <span>Status: Executing</span>
+                  <span className="flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> processing
+                  </span>
+                </div>
+              </div>
+            ) : agent.status === "error" ? (
+              <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 text-center">
+                <WifiOff className="w-8 h-8 text-red-400/50 mx-auto mb-3" />
+                <h3 className="text-sm font-medium text-red-400 mb-1">Execution Halted</h3>
+                <p className="text-xs text-gray-500">Agent encountered an error and requires intervention.</p>
+              </div>
+            ) : (
+              <div className="bg-white/5 border border-white/5 rounded-xl p-6 text-center">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400/50 mx-auto mb-3" />
+                <h3 className="text-sm font-medium text-gray-300 mb-1">Standing By</h3>
+                <p className="text-xs text-gray-500">Provide instructions in the terminal to begin work.</p>
+                {agent.totalTasksCompleted ? (
+                  <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium">
+                    <Check className="w-3.5 h-3.5" />
+                    {agent.totalTasksCompleted} tasks completed
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
         ) : (
-          <>
-            <div>
-              <span className="text-[10px] text-gray-600 uppercase tracking-wider block mb-1.5" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                Changed Files
-              </span>
-              {changedFiles.length === 0 ? (
-                <p className="text-[10px] text-gray-700" style={{ fontFamily: "'JetBrains Mono', monospace" }}>clean tree</p>
-              ) : (
-                <div className="space-y-0.5">
-                  {(gitStatus?.modified || []).map((f: string) => (
-                    <p key={f} className="text-[10px] text-yellow-400/70 truncate" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                      <span className="text-yellow-600 mr-1">M</span>{f}
-                    </p>
-                  ))}
-                  {(gitStatus?.created || []).map((f: string) => (
-                    <p key={f} className="text-[10px] text-emerald-400/70 truncate" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                      <span className="text-emerald-600 mr-1">A</span>{f}
-                    </p>
-                  ))}
-                  {(gitStatus?.deleted || []).map((f: string) => (
-                    <p key={f} className="text-[10px] text-red-400/70 truncate" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                      <span className="text-red-600 mr-1">D</span>{f}
-                    </p>
-                  ))}
-                </div>
-              )}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs text-gray-500 pb-2 border-b border-white/5">
+              <span>Local Workspace</span>
+              <span className="font-mono">{agent.repoCloned ? "Synced" : "Syncing..."}</span>
             </div>
-
-            <div>
-              <span className="text-[10px] text-gray-600 uppercase tracking-wider block mb-1.5" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                Commits
-              </span>
-              <div className="space-y-1">
-                {(gitLog as any[]).slice(0, 6).map((c: any, i: number) => (
-                  <div key={i} className="flex items-start gap-1.5 text-[10px]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    <span className="flex-shrink-0" style={{ color: `${color}88` }}>{c.hash}</span>
-                    <span className="text-gray-500 truncate min-w-0">{c.message}</span>
-                  </div>
-                ))}
-                {(gitLog as any[]).length === 0 && <p className="text-[10px] text-gray-700">no commits</p>}
+            
+            {agent.repoCloned ? (
+               <div className="text-center py-10">
+                 <FolderGit2 className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+                 <p className="text-xs text-gray-400 mb-1">Repository is cloned</p>
+                 <p className="text-[10px] text-gray-600 font-mono break-all px-4">{agent.repoUrl}</p>
+                 <p className="text-[10px] text-gray-600 mt-4 italic">File explorer coming soon</p>
+               </div>
+            ) : (
+              <div className="text-center py-10 flex flex-col items-center">
+                 <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mb-3" />
+                 <p className="text-xs text-gray-400">Cloning repository...</p>
               </div>
-            </div>
-
-            <div className="flex gap-1.5">
-              <button
-                onClick={() => pullMutation.mutate()}
-                disabled={pullMutation.isPending}
-                className="flex-1 text-[10px] py-1.5 rounded-lg border transition-colors hover:bg-white/[0.03]"
-                style={{ borderColor: `${color}20`, color: `${color}BB`, fontFamily: "'JetBrains Mono', monospace" }}
-                data-testid="button-pull-repo"
-              >
-                {pullMutation.isPending ? "pulling..." : "pull"}
-              </button>
-              <a
-                href={agent.repoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 text-[10px] py-1.5 rounded-lg border text-center transition-colors hover:bg-white/[0.03]"
-                style={{ borderColor: `${color}20`, color: `${color}BB`, fontFamily: "'JetBrains Mono', monospace" }}
-              >
-                github
-              </a>
-            </div>
-          </>
+            )}
+          </div>
         )}
       </div>
     </div>

@@ -1,294 +1,252 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import { agentAnimations } from "@/lib/agent-animations";
+import { cn } from "@/lib/utils";
 
-interface PixelAgentProps {
+interface AiMindProps {
   status: "idle" | "working" | "error" | "waiting";
   accentColor: string;
   avatar?: string | null;
   size?: number;
 }
 
-const SKIN = "#FFD5B8";
-const SKIN_SHADOW = "#E8B896";
-const HAIR_DARK = "#3D2B1F";
-const HAIR_LIGHT = "#6B4226";
-const DESK_TOP = "#2A2A3E";
-const DESK_FRONT = "#1E1E2E";
-const MONITOR_BEZEL = "#1A1A2A";
-const SCREEN_BG = "#0D1117";
-
-function MonitorScreen({ color, status }: { color: string; status: string }) {
-  const lines = status === "working" ? 4 : status === "error" ? 2 : 3;
-  return (
-    <g>
-      <rect x="14" y="4" width="22" height="16" rx="1.5" fill={MONITOR_BEZEL} />
-      <rect x="15.5" y="5.5" width="19" height="13" rx="0.8" fill={SCREEN_BG} />
-
-      {status === "working" && (
-        <>
-          <motion.rect
-            x="17" y="7.5" width="8" height="1.2" rx="0.4" fill={color}
-            animate={{ opacity: [0.4, 1, 0.4] }}
-            transition={{ duration: 1.2, repeat: Infinity, delay: 0 }}
-          />
-          <motion.rect
-            x="17" y="10" width="12" height="1.2" rx="0.4" fill={`${color}88`}
-            animate={{ opacity: [0.3, 0.8, 0.3] }}
-            transition={{ duration: 1.2, repeat: Infinity, delay: 0.2 }}
-          />
-          <motion.rect
-            x="17" y="12.5" width="6" height="1.2" rx="0.4" fill={`${color}66`}
-            animate={{ opacity: [0.3, 0.7, 0.3] }}
-            transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}
-          />
-          <motion.rect
-            x="17" y="15" width="14" height="1.2" rx="0.4" fill={`${color}44`}
-            animate={{ opacity: [0.2, 0.6, 0.2] }}
-            transition={{ duration: 1.2, repeat: Infinity, delay: 0.6 }}
-          />
-        </>
-      )}
-
-      {status === "error" && (
-        <>
-          <motion.text
-            x="25" y="13.5" textAnchor="middle" fontSize="7" fill="#ef4444" fontWeight="bold"
-            animate={{ opacity: [1, 0.4, 1] }}
-            transition={{ duration: 0.8, repeat: Infinity }}
-          >!</motion.text>
-        </>
-      )}
-
-      {status === "idle" && (
-        <>
-          <rect x="17" y="7.5" width="10" height="1" rx="0.4" fill={`${color}55`} />
-          <rect x="17" y="10" width="14" height="1" rx="0.4" fill={`${color}33`} />
-          <rect x="17" y="12.5" width="7" height="1" rx="0.4" fill={`${color}33`} />
-          <motion.rect
-            x="30" y="15" width="2" height="1.2" rx="0.4" fill={color}
-            animate={{ opacity: [1, 0, 1] }}
-            transition={{ duration: 1, repeat: Infinity }}
-          />
-        </>
-      )}
-
-      {status === "waiting" && (
-        <motion.text
-          x="25" y="14" textAnchor="middle" fontSize="5" fill="#f59e0b"
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        >...</motion.text>
-      )}
-
-      <rect x="23" y="20" width="4" height="2" fill={MONITOR_BEZEL} />
-      <rect x="20" y="22" width="10" height="1.2" rx="0.5" fill={MONITOR_BEZEL} />
-    </g>
-  );
-}
-
-function Character({ status, color }: { status: string; color: string }) {
-  const isWorking = status === "working";
-
-  return (
-    <g transform="translate(15, 10)">
-      <rect x="5" y="21" width="10" height="12" rx="1.5" fill={color} />
-      <rect x="6" y="22" width="8" height="4" rx="1" fill={`${color}DD`} />
-
-      {isWorking ? (
-        <motion.g
-          animate={{ y: [0, -1, 0, -1.5, 0] }}
-          transition={{ duration: 0.55, repeat: Infinity, ease: "linear" }}
-        >
-          <rect x="2" y="26" width="5" height="2.5" rx="1" fill={SKIN} />
-          <rect x="13" y="26" width="5" height="2.5" rx="1" fill={SKIN} />
-        </motion.g>
-      ) : (
-        <>
-          <rect x="3" y="27" width="4" height="2.5" rx="1" fill={SKIN} />
-          <rect x="13" y="27" width="4" height="2.5" rx="1" fill={SKIN} />
-        </>
-      )}
-
-      <circle cx="10" cy="16" r="6" fill={SKIN} />
-      <ellipse cx="10" cy="15.5" rx="6.5" ry="3.5" fill={HAIR_DARK} />
-      <rect x="3.5" y="12" width="4" height="5" rx="1" fill={HAIR_DARK} />
-      <rect x="12.5" y="12" width="4" height="5" rx="1" fill={HAIR_DARK} />
-
-      <circle cx="7.5" cy="17" r="0.9" fill="#1a1a2e" />
-      <circle cx="12.5" cy="17" r="0.9" fill="#1a1a2e" />
-      <circle cx="7.8" cy="16.7" r="0.3" fill="white" />
-      <circle cx="12.8" cy="16.7" r="0.3" fill="white" />
-
-      {status === "idle" && (
-        <line x1="7" y1="19.5" x2="13" y2="19.5" stroke={SKIN_SHADOW} strokeWidth="0.6" strokeLinecap="round" />
-      )}
-      {isWorking && (
-        <path d="M 7.5 19.2 Q 10 20.5 12.5 19.2" stroke={SKIN_SHADOW} strokeWidth="0.6" fill="none" strokeLinecap="round" />
-      )}
-      {status === "error" && (
-        <>
-          <path d="M 7.5 20 Q 10 18.5 12.5 20" stroke="#ef4444" strokeWidth="0.7" fill="none" strokeLinecap="round" />
-          <motion.g animate={{ opacity: [0, 1, 0] }} transition={{ duration: 2, repeat: Infinity }}>
-            <circle cx="15" cy="11" r="3" fill="none" stroke="#ef4444" strokeWidth="0.5" opacity="0.6" />
-          </motion.g>
-        </>
-      )}
-      {status === "waiting" && (
-        <>
-          <line x1="7" y1="19.5" x2="13" y2="19.5" stroke={SKIN_SHADOW} strokeWidth="0.6" strokeLinecap="round" />
-          <motion.g
-            animate={{ y: [-1, 1, -1], opacity: [0.7, 1, 0.7] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <circle cx="18" cy="10" r="4" fill="white" opacity="0.9" />
-            <text x="18" y="12" textAnchor="middle" fontSize="5" fill="#333">?</text>
-          </motion.g>
-        </>
-      )}
-    </g>
-  );
-}
-
-function Desk({ color }: { color: string }) {
-  return (
-    <g>
-      <rect x="4" y="44" width="42" height="3" rx="0.8" fill={DESK_TOP} />
-      <rect x="4" y="44" width="42" height="1" rx="0.5" fill={`${color}15`} />
-      <motion.rect
-        x="4" y="44" width="8" height="0.5" rx="0.25" fill={`${color}66`}
-        animate={{ x: [4, 38, 4] }}
-        transition={{ duration: 5, repeat: Infinity, ease: "linear", repeatDelay: 4 }}
-      />
-      <rect x="8" y="47" width="4" height="6" fill={DESK_FRONT} />
-      <rect x="38" y="47" width="4" height="6" fill={DESK_FRONT} />
-    </g>
-  );
-}
-
-const PARTICLE_SEEDS = Array.from({ length: 6 }, (_, i) => ({
-  x: 10 + (i * 5.3 + 3) % 30,
-  delay: (i * 0.7) % 3,
-  size: 1 + (i * 0.4) % 1.5,
-}));
-
-const LABEL_SEEDS = [
-  { x: 12, delay: 1, label: "fn()" },
-  { x: 22, delay: 2.5, label: "*.tsx" },
-  { x: 32, delay: 4, label: "</>" },
+const SEEDS = [
+  { rx: 40, ry: 15, rot: 30, dash: "10, 20" },
+  { rx: 35, ry: 25, rot: -45, dash: "15, 15" },
+  { rx: 45, ry: 20, rot: 75, dash: "5, 30" },
 ];
 
-function WorkingParticles({ color }: { color: string }) {
-  const particles = PARTICLE_SEEDS;
-  return (
-    <g>
-      {particles.map((p, i) => (
-        <motion.circle
-          key={i}
-          cx={p.x}
-          cy={40}
-          r={p.size}
-          fill={color}
-          initial={{ y: 0, opacity: 0.7, scale: 1 }}
-          animate={{ y: -30, opacity: 0, scale: 0.3 }}
-          transition={{ duration: 2 + p.size * 0.5, repeat: Infinity, delay: p.delay, ease: "easeOut" }}
-        />
-      ))}
-      {LABEL_SEEDS.map((s, i) => (
-        <motion.text
-          key={`label-${i}`}
-          x={s.x}
-          y={38}
-          fontSize="2.2"
-          fill={color}
-          fontFamily="'JetBrains Mono', monospace"
-          initial={{ y: 0, opacity: 0.5 }}
-          animate={{ y: -20, opacity: 0 }}
-          transition={{ duration: 3, repeat: Infinity, delay: s.delay, ease: "easeOut" }}
-        >
-          {s.label}
-        </motion.text>
-      ))}
-    </g>
-  );
-}
-
-export function PixelAgent({ status, accentColor, avatar, size = 120 }: PixelAgentProps) {
-  const safeStatus = (["idle", "working", "error", "waiting"].includes(status) ? status : "idle") as PixelAgentProps["status"];
+export function AiMind({ status, accentColor, avatar, size = 120 }: AiMindProps) {
+  const safeStatus = (["idle", "working", "error", "waiting"].includes(status) ? status : "idle") as AiMindProps["status"];
   const color = accentColor || "#6366f1";
 
-  const useFloat = safeStatus === "idle" || safeStatus === "waiting";
-  const usePulse = safeStatus === "working";
+  // Animation variants based on status
+  let speedMultiplier = 1;
+  let scaleVariance = 1.05;
+  let coreOpacity = [0.5, 0.8, 0.5];
+  
+  if (safeStatus === "working") {
+    speedMultiplier = 3;
+    scaleVariance = 1.15;
+    coreOpacity = [0.8, 1, 0.8];
+  } else if (safeStatus === "waiting") {
+    speedMultiplier = 0.5;
+    scaleVariance = 1.02;
+    coreOpacity = [0.3, 0.5, 0.3];
+  } else if (safeStatus === "error") {
+    speedMultiplier = 4;
+    scaleVariance = 1.1;
+    coreOpacity = [0.4, 0.9, 0.4];
+  }
 
   return (
-    <motion.div
-      className="relative"
-      style={{ width: size, height: size }}
-      animate={useFloat ? agentAnimations.idleFloat.animate : usePulse ? agentAnimations.workingPulse.animate : undefined}
-      transition={useFloat ? agentAnimations.idleFloat.transition : usePulse ? agentAnimations.workingPulse.transition : undefined}
-    >
-      {safeStatus === "error" && (
-        <motion.div
-          className="absolute inset-0 rounded-full"
-          animate={{ boxShadow: [`0 0 0 0 rgba(239,68,68,0.3)`, `0 0 0 ${size/6}px rgba(239,68,68,0)`, `0 0 0 0 rgba(239,68,68,0)`] }}
-          transition={{ duration: 1.6, repeat: Infinity }}
-        />
-      )}
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      {/* Background glow */}
+      <motion.div
+        className="absolute inset-0 rounded-full blur-[20px] opacity-30"
+        style={{ backgroundColor: color }}
+        animate={{
+          scale: [1, scaleVariance, 1],
+          opacity: safeStatus === "error" ? [0.2, 0.5, 0.2] : coreOpacity,
+        }}
+        transition={{
+          duration: 3 / speedMultiplier,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      />
+      
+      {/* Core Energy */}
+      <svg viewBox="0 0 100 100" width={size} height={size} className="overflow-visible absolute inset-0 z-10 drop-shadow-xl">
+        <defs>
+          <radialGradient id={`coreGlow-${color.replace('#', '')}`} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor={color} stopOpacity="1" />
+            <stop offset="60%" stopColor={color} stopOpacity="0.6" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </radialGradient>
+          <filter id={`glitch-${color.replace('#', '')}`}>
+            {safeStatus === "error" && (
+              <feTurbulence type="fractalNoise" baseFrequency="0.15" numOctaves="2" result="noise" />
+            )}
+            {safeStatus === "error" && (
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+            )}
+            <feGaussianBlur stdDeviation={safeStatus === "working" ? 2 : safeStatus === "error" ? 1 : 4} result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in={safeStatus === "error" ? "displaced" : "SourceGraphic"} />
+            </feMerge>
+          </filter>
+        </defs>
 
-      <svg viewBox="0 0 50 55" width={size} height={size} className="drop-shadow-lg">
-        <Desk color={color} />
-        <MonitorScreen color={color} status={safeStatus} />
-        <Character status={safeStatus} color={color} />
-        {safeStatus === "working" && <WorkingParticles color={color} />}
+        <g filter={`url(#glitch-${color.replace('#', '')})`}>
+          {/* Central Core */}
+          <motion.circle
+            cx="50"
+            cy="50"
+            r={safeStatus === "working" ? 18 : 14}
+            fill={`url(#coreGlow-${color.replace('#', '')})`}
+            animate={{
+              r: safeStatus === "working" ? [18, 21, 18] : [14, 16, 14],
+              opacity: coreOpacity,
+            }}
+            transition={{
+              duration: 2 / speedMultiplier,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+
+          {/* Inner Dense Core */}
+          <circle cx="50" cy="50" r="6" fill="#ffffff" opacity="0.8" />
+
+          {/* Orbital Rings */}
+          {SEEDS.map((seed, i) => (
+            <motion.ellipse
+              key={i}
+              cx="50"
+              cy="50"
+              rx={seed.rx}
+              ry={seed.ry}
+              fill="none"
+              stroke={color}
+              strokeWidth={safeStatus === "working" ? 1.5 : 0.8}
+              strokeDasharray={seed.dash}
+              opacity={0.6 + i * 0.1}
+              style={{ originX: "50px", originY: "50px" }}
+              initial={{ rotate: seed.rot }}
+              animate={{
+                rotate: [seed.rot, seed.rot + (i % 2 === 0 ? 360 : -360)],
+                scale: safeStatus === "working" ? [1, 1.05, 1] : [1, 1.02, 1]
+              }}
+              transition={{
+                rotate: {
+                  duration: (15 + i * 5) / speedMultiplier,
+                  repeat: Infinity,
+                  ease: "linear"
+                },
+                scale: {
+                  duration: 4 / speedMultiplier,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }
+              }}
+            />
+          ))}
+
+          {/* Working Particles */}
+          {safeStatus === "working" && [0, 1, 2, 3, 4, 5].map(i => (
+            <motion.circle
+              key={`p-${i}`}
+              r="1.5"
+              fill="#ffffff"
+              style={{ originX: "50px", originY: "50px" }}
+              initial={{
+                cx: 50,
+                cy: 50,
+              }}
+              animate={{
+                cx: [50, 50 + Math.cos(i * 60 * Math.PI / 180) * (40 + (i % 2) * 10)],
+                cy: [50, 50 + Math.sin(i * 60 * Math.PI / 180) * (40 + (i % 2) * 10)],
+                opacity: [1, 0],
+                scale: [1, 0.5]
+              }}
+              transition={{
+                duration: 1.5 - (i % 3) * 0.2,
+                repeat: Infinity,
+                ease: "easeOut",
+                delay: i * 0.15
+              }}
+            />
+          ))}
+
+          {/* Error Glitch Lines */}
+          {safeStatus === "error" && [0, 1, 2].map(i => (
+            <motion.path
+              key={`e-${i}`}
+              d={`M 50 50 L ${20 + i * 30} ${15 + i * 25}`}
+              stroke={color}
+              strokeWidth="2"
+              animate={{ opacity: [0, 1, 0], pathLength: [0, 1, 0] }}
+              transition={{ duration: 0.3 + i * 0.2, repeat: Infinity, ease: "steps(3)" }}
+            />
+          ))}
+        </g>
       </svg>
-
+      
+      {/* Avatar overlay */}
       {avatar && (
-        <div
-          className="absolute top-0 right-0 text-lg bg-black/40 rounded-full w-7 h-7 flex items-center justify-center backdrop-blur-sm border border-white/10"
-          style={{ fontSize: size > 80 ? "14px" : "10px" }}
-        >
-          {avatar}
+        <div className="absolute z-20 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center">
+          <motion.div 
+            className="text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.9)]"
+            style={{ fontSize: size * 0.32 }}
+            animate={{ 
+              scale: safeStatus === "working" ? [1, 1.1, 1] : 1,
+              opacity: safeStatus === "waiting" ? [0.6, 1, 0.6] : 1
+            }}
+            transition={{ duration: 2 / speedMultiplier, repeat: Infinity, ease: "easeInOut" }}
+          >
+            {avatar}
+          </motion.div>
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
 
-export function EmptyDesk({ size = 120, onClick }: { size?: number; onClick: () => void }) {
+export function EmptyMind({ size = 120, onClick, interactive = true }: { size?: number; onClick?: () => void; interactive?: boolean }) {
+  const Container = interactive ? motion.div : "div" as any;
   return (
-    <motion.div
-      className="relative cursor-pointer group focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:outline-none rounded-xl"
+    <Container
+      className={cn(
+        "relative rounded-full flex items-center justify-center",
+        interactive && "cursor-pointer group focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:outline-none"
+      )}
       style={{ width: size, height: size }}
-      whileHover={{ scale: 1.04 }}
-      whileTap={{ scale: 0.97 }}
-      onClick={onClick}
-      onKeyDown={e => (e.key === "Enter" || e.key === " ") && onClick()}
-      role="button"
-      tabIndex={0}
-      aria-label="Add new agent"
+      {...(interactive ? {
+        whileHover: { scale: 1.05 },
+        whileTap: { scale: 0.95 },
+        onClick: onClick,
+        onKeyDown: (e: any) => (e.key === "Enter" || e.key === " ") && onClick?.(),
+        role: "button",
+        tabIndex: 0,
+        "aria-label": "Add new agent"
+      } : {})}
     >
-      <svg viewBox="0 0 50 55" width={size} height={size} className="opacity-40 group-hover:opacity-60 transition-opacity">
-        <rect x="4" y="44" width="42" height="3" rx="0.8" fill={DESK_TOP} />
-        <rect x="8" y="47" width="4" height="6" fill={DESK_FRONT} />
-        <rect x="38" y="47" width="4" height="6" fill={DESK_FRONT} />
-
-        <rect x="14" y="4" width="22" height="16" rx="1.5" fill={MONITOR_BEZEL} opacity="0.5" />
-        <rect x="15.5" y="5.5" width="19" height="13" rx="0.8" fill={SCREEN_BG} opacity="0.5" />
-        <rect x="23" y="20" width="4" height="2" fill={MONITOR_BEZEL} opacity="0.5" />
-        <rect x="20" y="22" width="10" height="1.2" rx="0.5" fill={MONITOR_BEZEL} opacity="0.5" />
+      <svg viewBox="0 0 100 100" width={size} height={size} className={cn("opacity-30 transition-opacity", interactive && "group-hover:opacity-60")}>
+        <motion.circle 
+          cx="50" cy="50" r="42" 
+          fill="none" stroke="#6366f1" strokeWidth="1" strokeDasharray="4 8" 
+          animate={{ rotate: 360 }} 
+          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+          style={{ originX: "50px", originY: "50px" }}
+        />
+        <motion.circle 
+          cx="50" cy="50" r="28" 
+          fill="none" stroke="#6366f1" strokeWidth="0.5" strokeDasharray="2 4" 
+          animate={{ rotate: -360 }} 
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          style={{ originX: "50px", originY: "50px" }}
+        />
       </svg>
 
       <div className="absolute inset-0 flex items-center justify-center">
         <motion.div
-          className="w-10 h-10 rounded-xl border-2 border-dashed border-indigo-500/30 flex items-center justify-center text-indigo-400/50 group-hover:text-indigo-400/80 group-hover:border-indigo-500/50 transition-colors"
-          animate={{ scale: [1, 1.06, 1] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          className={cn(
+            "w-12 h-12 rounded-full border border-dashed border-indigo-500/40 flex items-center justify-center bg-indigo-500/5 backdrop-blur-sm transition-all",
+            interactive && "group-hover:bg-indigo-500/10 group-hover:border-indigo-400/60 group-hover:shadow-[0_0_20px_rgba(99,102,241,0.3)]"
+          )}
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <div className={cn(
+          "absolute flex items-center justify-center transition-colors",
+          interactive ? "text-indigo-400/50 group-hover:text-indigo-300" : "text-indigo-400/50"
+        )}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
-        </motion.div>
+        </div>
       </div>
-    </motion.div>
+    </Container>
   );
 }
