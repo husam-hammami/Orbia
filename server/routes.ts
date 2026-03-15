@@ -3849,6 +3849,12 @@ ${JSON.stringify(context, null, 2)}`;
         const successCount = actionResults.filter(a => a.success).length;
         const failCount = actionResults.filter(a => !a.success).length;
         res.write(`data: ${JSON.stringify({ actionSummary: { total: actionResults.length, success: successCount, failed: failCount, actions: actionResults } })}\n\n`);
+        if (successCount > 0) {
+          try {
+            const { invalidateContextCache } = await import("./lib/unified-context");
+            invalidateContextCache(userId);
+          } catch {}
+        }
       }
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);

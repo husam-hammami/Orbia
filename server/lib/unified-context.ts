@@ -4,6 +4,13 @@ import { buildMemoryContext } from "./memory-graph";
 const githubRepoCache: { repos: any[]; fetchedAt: number; userId: string } = { repos: [], fetchedAt: 0, userId: "" };
 const GITHUB_CACHE_TTL = 5 * 60 * 1000;
 
+const contextCache: Map<string, { context: string; msToken: string | null; fetchedAt: number }> = new Map();
+const CONTEXT_CACHE_TTL = 30_000;
+
+export function invalidateContextCache(userId: string) {
+  contextCache.delete(userId);
+}
+
 export async function buildUnifiedContext(userId: string): Promise<{
   context: string;
   msToken: string | null;
@@ -574,15 +581,22 @@ export async function buildUnifiedContextWithMemory(
   context: string;
   msToken: string | null;
 }> {
+  const cacheKey = `${userId}:${mode}`;
+  const cached = contextCache.get(cacheKey);
+  if (cached && Date.now() - cached.fetchedAt < CONTEXT_CACHE_TTL) {
+    return { context: cached.context, msToken: cached.msToken };
+  }
+
   const [baseResult, memoryContext] = await Promise.all([
     buildUnifiedContext(userId),
     buildMemoryContext(userId, mode),
   ]);
 
-  // Memory graph goes FIRST — it provides the lens through which to interpret the raw data
   const fullContext = memoryContext
     ? memoryContext + "\n\n" + baseResult.context
     : baseResult.context;
+
+  contextCache.set(cacheKey, { context: fullContext, msToken: baseResult.msToken, fetchedAt: Date.now() });
 
   return {
     context: fullContext,
