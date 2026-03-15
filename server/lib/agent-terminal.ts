@@ -100,11 +100,8 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
     `\x1b[90mClaude Code launching automatically...\x1b[0m\r\n\r\n`;
   session.outputBuffer.push(welcome);
 
-  let suppressInit = true;
-
   const handleOutput = (data: Buffer) => {
     const text = data.toString();
-    if (suppressInit) return;
     session.outputBuffer.push(text);
     if (session.outputBuffer.length > MAX_BUFFER_LINES) {
       session.outputBuffer = session.outputBuffer.slice(-MAX_BUFFER_LINES / 2);
@@ -151,12 +148,11 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
   }
 
   setTimeout(() => {
-    suppressInit = false;
     if (session.alive && shell.stdin) {
       shell.stdin.write("clear\n");
       shell.stdin.write("claude\n");
     }
-  }, 1000);
+  }, 500);
 
   shells.set(agentId, session);
   console.log(`[agent-terminal] PTY shell started for "${agentName}" (${agentId}) in ${repoDir}`);
