@@ -779,6 +779,7 @@ export const agentProfiles = pgTable("agent_profiles", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: varchar("user_id").notNull(),
   name: text("name").notNull(),
+  designation: text("designation"),
   avatar: text("avatar"),
   role: text("role"),
   repoUrl: text("repo_url").notNull(),

@@ -638,6 +638,7 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
   const githubConfigured = githubStatus?.configured !== false;
   const [step, setStep] = useState(githubConnected ? 1 : 0);
   const [name, setName] = useState("");
+  const [designation, setDesignation] = useState("");
   const [avatar, setAvatar] = useState("nexus");
   const [role, setRole] = useState("");
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
@@ -670,7 +671,7 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
   });
 
   const handleCreate = async () => {
-    if (!name || !repoUrl) return;
+    if (!name || !designation || !repoUrl) return;
     setCreating(true);
     setError("");
     try {
@@ -681,7 +682,7 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
       await apiFetch(`${API_BASE_URL}/api/agents`, {
         method: "POST",
         body: JSON.stringify({
-          name, avatar, role, repoUrl, repoBranch, accentColor,
+          name, designation, avatar, role, repoUrl, repoBranch, accentColor,
           linkedProjectId: linkedProjectId || null,
           systemPrompt: (systemPrompt || "") + skillsInstruction || null,
         }),
@@ -725,6 +726,7 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
               </div>
               <div>
                 <h2 className="text-lg font-bold text-white tracking-tight">{name || "New Agent"}</h2>
+                {designation && <p className="text-[10px] text-gray-400 font-medium">{designation}</p>}
                 <p className="text-[10px] text-gray-500 mt-0.5 uppercase tracking-widest font-mono">
                   {step === 0 ? "SETUP // CONNECT" : "CONFIGURE // DEPLOY"}
                 </p>
@@ -766,27 +768,27 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
 
                 <div>
                   <label className={labelClasses}>Identity</label>
-                  <div className="flex gap-1.5 items-center bg-[#070711] border border-white/[0.08] rounded-xl p-1.5 overflow-x-auto custom-scrollbar">
+                  <div className="flex gap-1.5 items-center bg-[#070711] border border-white/[0.08] rounded-xl p-1.5 flex-wrap">
                     {ACCENT_COLORS.map(c => (
                       <button
                         key={c}
                         onClick={() => setAccentColor(c)}
                         className={cn(
-                          "w-7 h-7 rounded-lg transition-all flex-shrink-0",
+                          "w-7 h-7 rounded-lg transition-all",
                           accentColor === c ? "ring-2 ring-white/50 scale-110" : "opacity-35 hover:opacity-75"
                         )}
                         style={{ backgroundColor: c }}
                         data-testid={`button-color-${c}`}
                       />
                     ))}
-                    <div className="w-px h-5 bg-white/[0.08] mx-1 flex-shrink-0" />
+                    <div className="w-px h-5 bg-white/[0.08] mx-0.5" />
                     {AGENT_GLYPHS.map(({ id, label }) => (
                       <button
                         key={id}
                         onClick={() => setAvatar(id)}
                         title={label}
                         className={cn(
-                          "w-7 h-7 rounded-lg flex items-center justify-center transition-all flex-shrink-0",
+                          "w-7 h-7 rounded-lg flex items-center justify-center transition-all",
                           avatar === id ? "scale-110" : "opacity-35 hover:opacity-75 hover:bg-white/5"
                         )}
                         style={avatar === id ? { background: `${accentColor}20`, boxShadow: `inset 0 0 0 1px ${accentColor}50` } : {}}
@@ -798,15 +800,26 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
                   </div>
                 </div>
 
+                <div>
+                  <label className={labelClasses}>Name *</label>
+                  <input
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="e.g. Atlas, Sentinel, Forge"
+                    className={inputClasses}
+                    data-testid="input-agent-name"
+                  />
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={labelClasses}>Designation *</label>
                     <input
-                      value={name}
-                      onChange={e => setName(e.target.value)}
+                      value={designation}
+                      onChange={e => setDesignation(e.target.value)}
                       placeholder="e.g. Backend Architect"
                       className={inputClasses}
-                      data-testid="input-agent-name"
+                      data-testid="input-agent-designation"
                     />
                   </div>
                   <div>
@@ -1049,11 +1062,11 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
                     </button>
                     <button
                       onClick={handleCreate}
-                      disabled={!name || !repoUrl || creating}
+                      disabled={!name || !designation || !repoUrl || creating}
                       className="text-white px-6 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 relative overflow-hidden group disabled:opacity-40"
                       style={{
                         background: `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)`,
-                        boxShadow: !name || !repoUrl || creating ? "none" : `0 0 20px ${accentColor}30`,
+                        boxShadow: !name || !designation || !repoUrl || creating ? "none" : `0 0 20px ${accentColor}30`,
                       }}
                       data-testid="button-submit-agent"
                     >
