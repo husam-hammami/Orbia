@@ -22,7 +22,7 @@ import {
   FolderKanban, CheckSquare, Square as SquareIcon, Rocket,
   Bot, Brain, Shield, Crosshair, Cpu, Gem, Flame, Atom,
   Orbit, Hexagon, Wand2, Swords, CircuitBoard, ScanEye, Braces,
-  BookOpen, type LucideIcon
+  BookOpen, Search, type LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NeuralOrbit, EmptyOrbit } from "@/components/agents/pixel-agent";
@@ -86,19 +86,65 @@ function AgentIconById({ iconId, className, color }: { iconId: string; className
 }
 
 const CLAUDE_SKILLS = [
+  { id: "ui-ux-design", name: "UI/UX Design System", desc: "Component design, spacing, color theory, accessibility patterns", category: "Design", stars: 412 },
+  { id: "responsive-design", name: "Responsive Design", desc: "Mobile-first layouts, breakpoints, fluid typography", category: "Design", stars: 367 },
+  { id: "figma-to-code", name: "Figma to Code", desc: "Convert Figma designs to pixel-perfect React components", category: "Design", stars: 358 },
+  { id: "animation-motion", name: "Animation & Motion", desc: "Framer Motion, CSS animations, micro-interactions", category: "Design", stars: 312 },
+  { id: "design-tokens", name: "Design Tokens", desc: "Theme systems, CSS variables, dark mode implementation", category: "Design", stars: 287 },
   { id: "todoist", name: "Todoist", desc: "Task management integration", category: "Productivity", stars: 342 },
   { id: "linear", name: "Linear Issues", desc: "Create and manage Linear issues", category: "Project Mgmt", stars: 289 },
   { id: "playwright", name: "Playwright Testing", desc: "Browser automation & E2E tests", category: "Testing", stars: 256 },
-  { id: "docker", name: "Docker Compose", desc: "Container management commands", category: "DevOps", stars: 231 },
+  { id: "docker", name: "Docker Compose", desc: "Container management & orchestration", category: "DevOps", stars: 231 },
   { id: "prisma", name: "Prisma ORM", desc: "Database schema & migrations", category: "Database", stars: 218 },
   { id: "nextjs", name: "Next.js Patterns", desc: "App router, RSC, server actions", category: "Framework", stars: 204 },
   { id: "github-actions", name: "GitHub Actions", desc: "CI/CD workflow authoring", category: "DevOps", stars: 198 },
-  { id: "tailwind", name: "Tailwind CSS", desc: "Utility-first styling patterns", category: "Styling", stars: 187 },
+  { id: "tailwind", name: "Tailwind CSS", desc: "Utility-first styling patterns", category: "Design", stars: 387 },
   { id: "typescript-strict", name: "Strict TypeScript", desc: "Type-safe patterns & generics", category: "Language", stars: 176 },
   { id: "api-design", name: "REST API Design", desc: "OpenAPI, validation, error handling", category: "Backend", stars: 165 },
   { id: "testing-vitest", name: "Vitest", desc: "Unit & integration test patterns", category: "Testing", stars: 154 },
   { id: "security-audit", name: "Security Audit", desc: "OWASP checks, dependency scanning", category: "Security", stars: 143 },
+  { id: "accessibility", name: "Accessibility (a11y)", desc: "WCAG compliance, ARIA roles, screen reader support", category: "Design", stars: 334 },
+  { id: "react-patterns", name: "React Patterns", desc: "Hooks, context, compound components, render props", category: "Framework", stars: 298 },
+  { id: "vue-patterns", name: "Vue 3 Patterns", desc: "Composition API, Pinia, Vue Router patterns", category: "Framework", stars: 187 },
+  { id: "svelte-patterns", name: "Svelte Patterns", desc: "Stores, actions, SvelteKit routing", category: "Framework", stars: 156 },
+  { id: "graphql", name: "GraphQL", desc: "Schema design, resolvers, Apollo/urql client", category: "Backend", stars: 201 },
+  { id: "trpc", name: "tRPC", desc: "End-to-end typesafe APIs, routers, procedures", category: "Backend", stars: 189 },
+  { id: "drizzle", name: "Drizzle ORM", desc: "Schema definition, queries, migrations", category: "Database", stars: 223 },
+  { id: "supabase", name: "Supabase", desc: "Auth, realtime, storage, edge functions", category: "Database", stars: 245 },
+  { id: "mongodb", name: "MongoDB & Mongoose", desc: "Document modeling, aggregation pipelines", category: "Database", stars: 178 },
+  { id: "redis", name: "Redis Patterns", desc: "Caching, pub/sub, rate limiting, sessions", category: "Database", stars: 167 },
+  { id: "aws", name: "AWS Services", desc: "S3, Lambda, DynamoDB, CloudFront patterns", category: "DevOps", stars: 213 },
+  { id: "terraform", name: "Terraform", desc: "Infrastructure as code, modules, state management", category: "DevOps", stars: 192 },
+  { id: "kubernetes", name: "Kubernetes", desc: "Deployments, services, helm charts, monitoring", category: "DevOps", stars: 186 },
+  { id: "ci-cd", name: "CI/CD Pipelines", desc: "Build, test, deploy automation patterns", category: "DevOps", stars: 174 },
+  { id: "testing-cypress", name: "Cypress", desc: "E2E testing, component testing, fixtures", category: "Testing", stars: 198 },
+  { id: "testing-jest", name: "Jest", desc: "Unit tests, mocking, snapshot testing", category: "Testing", stars: 187 },
+  { id: "testing-rtl", name: "React Testing Library", desc: "Component testing, user events, queries", category: "Testing", stars: 176 },
+  { id: "storybook", name: "Storybook", desc: "Component documentation, visual testing, addons", category: "Design", stars: 234 },
+  { id: "python-fastapi", name: "FastAPI", desc: "Async endpoints, Pydantic models, dependency injection", category: "Backend", stars: 212 },
+  { id: "python-django", name: "Django", desc: "Models, views, templates, REST framework", category: "Backend", stars: 198 },
+  { id: "rust-patterns", name: "Rust Patterns", desc: "Ownership, traits, error handling, async", category: "Language", stars: 167 },
+  { id: "go-patterns", name: "Go Patterns", desc: "Goroutines, channels, interfaces, testing", category: "Language", stars: 156 },
+  { id: "sql-optimization", name: "SQL Optimization", desc: "Query tuning, indexing, explain plans", category: "Database", stars: 189 },
+  { id: "auth-patterns", name: "Auth Patterns", desc: "OAuth, JWT, session mgmt, RBAC", category: "Security", stars: 234 },
+  { id: "websockets", name: "WebSockets", desc: "Real-time communication, Socket.io, WS patterns", category: "Backend", stars: 178 },
+  { id: "performance", name: "Web Performance", desc: "Core Web Vitals, lazy loading, caching strategies", category: "Design", stars: 198 },
+  { id: "seo", name: "SEO Optimization", desc: "Meta tags, structured data, sitemap, crawlability", category: "Productivity", stars: 167 },
+  { id: "i18n", name: "Internationalization", desc: "i18next, locale routing, RTL support", category: "Productivity", stars: 145 },
+  { id: "monorepo", name: "Monorepo (Turborepo)", desc: "Workspace management, build caching, task pipelines", category: "DevOps", stars: 189 },
+  { id: "error-handling", name: "Error Handling", desc: "Error boundaries, logging, Sentry integration", category: "Backend", stars: 156 },
+  { id: "state-mgmt", name: "State Management", desc: "Zustand, Jotai, Redux Toolkit patterns", category: "Framework", stars: 213 },
+  { id: "react-native", name: "React Native", desc: "Mobile UI, navigation, native modules", category: "Framework", stars: 234 },
+  { id: "electron", name: "Electron", desc: "Desktop apps, IPC, auto-updates, packaging", category: "Framework", stars: 145 },
+  { id: "shadcn-ui", name: "shadcn/ui", desc: "Radix primitives, component patterns, theming", category: "Design", stars: 378 },
+  { id: "three-js", name: "Three.js / R3F", desc: "3D rendering, shaders, physics, scene management", category: "Design", stars: 198 },
+  { id: "data-viz", name: "Data Visualization", desc: "D3, Recharts, chart patterns, dashboards", category: "Design", stars: 187 },
+  { id: "code-review", name: "Code Review", desc: "PR analysis, best practices, refactoring suggestions", category: "Productivity", stars: 267 },
+  { id: "documentation", name: "Documentation", desc: "JSDoc, README, API docs, architecture docs", category: "Productivity", stars: 198 },
+  { id: "git-advanced", name: "Git Advanced", desc: "Rebasing, bisect, worktrees, conflict resolution", category: "Productivity", stars: 176 },
 ];
+
+const SKILL_CATEGORIES = [...new Set(CLAUDE_SKILLS.map(s => s.category))].sort();
 
 const ACCENT_COLORS = ["#6366f1", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#3b82f6"];
 
@@ -595,6 +641,8 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
   const [avatar, setAvatar] = useState("bot");
   const [role, setRole] = useState("");
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
+  const [skillSearch, setSkillSearch] = useState("");
+  const [skillCategory, setSkillCategory] = useState("All");
   const [repoUrl, setRepoUrl] = useState("");
   const [repoBranch, setRepoBranch] = useState("main");
   const [accentColor, setAccentColor] = useState("#6366f1");
@@ -848,40 +896,106 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
                     {selectedSkills.size > 0 && <span className="ml-2 text-indigo-400">({selectedSkills.size} selected)</span>}
                   </label>
                   <div className="bg-[#070711] border border-white/[0.08] rounded-xl overflow-hidden">
-                    <div className="max-h-[140px] overflow-y-auto custom-scrollbar p-1.5 grid grid-cols-2 gap-1">
-                      {CLAUDE_SKILLS.map(skill => {
-                        const selected = selectedSkills.has(skill.id);
-                        return (
-                          <button
-                            key={skill.id}
-                            onClick={() => setSelectedSkills(prev => {
-                              const next = new Set(prev);
-                              if (next.has(skill.id)) next.delete(skill.id); else next.add(skill.id);
-                              return next;
-                            })}
-                            className={cn(
-                              "flex items-start gap-2 p-2 rounded-lg text-left transition-all",
-                              selected ? "bg-indigo-500/10 border border-indigo-500/20" : "hover:bg-white/[0.03] border border-transparent"
-                            )}
-                            data-testid={`button-skill-${skill.id}`}
-                          >
-                            <div className="mt-0.5">
-                              {selected ? (
-                                <CheckSquare className="w-3.5 h-3.5 text-indigo-400" />
-                              ) : (
-                                <SquareIcon className="w-3.5 h-3.5 text-gray-600" />
+                    <div className="flex items-center gap-2 px-2.5 py-2 border-b border-white/[0.05]">
+                      <Search className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+                      <input
+                        value={skillSearch}
+                        onChange={e => setSkillSearch(e.target.value)}
+                        placeholder="Search skills..."
+                        className="flex-1 bg-transparent text-xs text-white placeholder:text-gray-600 focus:outline-none"
+                        data-testid="input-skill-search"
+                      />
+                      {skillSearch && (
+                        <button onClick={() => setSkillSearch("")} className="text-gray-600 hover:text-gray-400">
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex gap-1 px-2.5 py-1.5 border-b border-white/[0.05] overflow-x-auto custom-scrollbar">
+                      {["All", ...SKILL_CATEGORIES].map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => setSkillCategory(cat)}
+                          className={cn(
+                            "px-2 py-0.5 rounded-md text-[9px] font-medium whitespace-nowrap transition-all flex-shrink-0",
+                            skillCategory === cat
+                              ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                              : "text-gray-500 hover:text-gray-400 hover:bg-white/[0.04] border border-transparent"
+                          )}
+                        >{cat}</button>
+                      ))}
+                    </div>
+
+                    {selectedSkills.size > 0 && (
+                      <div className="flex gap-1 px-2.5 py-1.5 border-b border-white/[0.05] flex-wrap">
+                        {Array.from(selectedSkills).map(id => {
+                          const skill = CLAUDE_SKILLS.find(s => s.id === id);
+                          if (!skill) return null;
+                          return (
+                            <span
+                              key={id}
+                              className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-500/15 border border-indigo-500/20 text-[9px] text-indigo-300"
+                            >
+                              {skill.name}
+                              <button
+                                onClick={() => setSelectedSkills(prev => { const n = new Set(prev); n.delete(id); return n; })}
+                                className="text-indigo-400/60 hover:text-indigo-300"
+                              ><X className="w-2.5 h-2.5" /></button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div className="max-h-[160px] overflow-y-auto custom-scrollbar p-1.5 grid grid-cols-2 gap-1">
+                      {(() => {
+                        const q = skillSearch.toLowerCase();
+                        const filtered = CLAUDE_SKILLS
+                          .filter(s => skillCategory === "All" || s.category === skillCategory)
+                          .filter(s => !q || s.name.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q) || s.category.toLowerCase().includes(q))
+                          .sort((a, b) => {
+                            const aS = selectedSkills.has(a.id) ? 1 : 0;
+                            const bS = selectedSkills.has(b.id) ? 1 : 0;
+                            if (aS !== bS) return bS - aS;
+                            return b.stars - a.stars;
+                          });
+                        if (filtered.length === 0) {
+                          return <p className="col-span-2 text-[10px] text-gray-600 text-center py-4">No skills match "{skillSearch}"</p>;
+                        }
+                        return filtered.map(skill => {
+                          const selected = selectedSkills.has(skill.id);
+                          return (
+                            <button
+                              key={skill.id}
+                              onClick={() => setSelectedSkills(prev => {
+                                const next = new Set(prev);
+                                if (next.has(skill.id)) next.delete(skill.id); else next.add(skill.id);
+                                return next;
+                              })}
+                              className={cn(
+                                "flex items-start gap-2 p-2 rounded-lg text-left transition-all",
+                                selected ? "bg-indigo-500/10 border border-indigo-500/20" : "hover:bg-white/[0.03] border border-transparent"
                               )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[11px] font-medium text-gray-300 truncate">{skill.name}</span>
-                                <span className="text-[8px] text-yellow-500/70 flex-shrink-0">★{skill.stars}</span>
+                              data-testid={`button-skill-${skill.id}`}
+                            >
+                              <div className="mt-0.5">
+                                {selected ? (
+                                  <CheckSquare className="w-3.5 h-3.5 text-indigo-400" />
+                                ) : (
+                                  <SquareIcon className="w-3.5 h-3.5 text-gray-600" />
+                                )}
                               </div>
-                              <p className="text-[9px] text-gray-600 truncate">{skill.desc}</p>
-                            </div>
-                          </button>
-                        );
-                      })}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[11px] font-medium text-gray-300 truncate">{skill.name}</span>
+                                  <span className="text-[8px] text-yellow-500/70 flex-shrink-0">★{skill.stars}</span>
+                                </div>
+                                <p className="text-[9px] text-gray-600 truncate">{skill.desc}</p>
+                              </div>
+                            </button>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 </div>
