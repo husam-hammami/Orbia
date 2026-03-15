@@ -19,7 +19,10 @@ import {
   ArrowUp, Code,
   Scan, ListChecks, Activity, Send, Sparkles,
   GitPullRequestArrow, Play, TestTube, Zap,
-  FolderKanban, CheckSquare, Square as SquareIcon, Rocket
+  FolderKanban, CheckSquare, Square as SquareIcon, Rocket,
+  Bot, Brain, Shield, Crosshair, Cpu, Gem, Flame, Atom,
+  Orbit, Hexagon, Wand2, Swords, CircuitBoard, ScanEye, Braces,
+  BookOpen, type LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NeuralOrbit, EmptyOrbit } from "@/components/agents/pixel-agent";
@@ -57,7 +60,46 @@ interface GithubRepo {
   updated_at: string;
 }
 
-const AGENT_AVATARS = ["🤖", "🧠", "⚡", "🔮", "🛡️", "🎯", "🚀", "💎", "🌟", "🔥"];
+const AGENT_ICONS: { id: string; icon: LucideIcon; label: string }[] = [
+  { id: "bot", icon: Bot, label: "Bot" },
+  { id: "brain", icon: Brain, label: "Brain" },
+  { id: "cpu", icon: Cpu, label: "Processor" },
+  { id: "circuit", icon: CircuitBoard, label: "Circuit" },
+  { id: "atom", icon: Atom, label: "Atom" },
+  { id: "orbit", icon: Orbit, label: "Orbit" },
+  { id: "shield", icon: Shield, label: "Shield" },
+  { id: "crosshair", icon: Crosshair, label: "Target" },
+  { id: "wand", icon: Wand2, label: "Wand" },
+  { id: "gem", icon: Gem, label: "Gem" },
+  { id: "flame", icon: Flame, label: "Flame" },
+  { id: "hex", icon: Hexagon, label: "Hex" },
+  { id: "swords", icon: Swords, label: "Swords" },
+  { id: "scan-eye", icon: ScanEye, label: "Scanner" },
+  { id: "braces", icon: Braces, label: "Code" },
+  { id: "sparkles", icon: Sparkles, label: "Sparkles" },
+];
+
+function AgentIconById({ iconId, className, color }: { iconId: string; className?: string; color?: string }) {
+  const entry = AGENT_ICONS.find(i => i.id === iconId);
+  const Icon = entry?.icon || Bot;
+  return <Icon className={className} style={color ? { color } : undefined} />;
+}
+
+const CLAUDE_SKILLS = [
+  { id: "todoist", name: "Todoist", desc: "Task management integration", category: "Productivity", stars: 342 },
+  { id: "linear", name: "Linear Issues", desc: "Create and manage Linear issues", category: "Project Mgmt", stars: 289 },
+  { id: "playwright", name: "Playwright Testing", desc: "Browser automation & E2E tests", category: "Testing", stars: 256 },
+  { id: "docker", name: "Docker Compose", desc: "Container management commands", category: "DevOps", stars: 231 },
+  { id: "prisma", name: "Prisma ORM", desc: "Database schema & migrations", category: "Database", stars: 218 },
+  { id: "nextjs", name: "Next.js Patterns", desc: "App router, RSC, server actions", category: "Framework", stars: 204 },
+  { id: "github-actions", name: "GitHub Actions", desc: "CI/CD workflow authoring", category: "DevOps", stars: 198 },
+  { id: "tailwind", name: "Tailwind CSS", desc: "Utility-first styling patterns", category: "Styling", stars: 187 },
+  { id: "typescript-strict", name: "Strict TypeScript", desc: "Type-safe patterns & generics", category: "Language", stars: 176 },
+  { id: "api-design", name: "REST API Design", desc: "OpenAPI, validation, error handling", category: "Backend", stars: 165 },
+  { id: "testing-vitest", name: "Vitest", desc: "Unit & integration test patterns", category: "Testing", stars: 154 },
+  { id: "security-audit", name: "Security Audit", desc: "OWASP checks, dependency scanning", category: "Security", stars: 143 },
+];
+
 const ACCENT_COLORS = ["#6366f1", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#3b82f6"];
 
 function getHeaders() {
@@ -550,8 +592,9 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
   const githubConfigured = githubStatus?.configured !== false;
   const [step, setStep] = useState(githubConnected ? 1 : 0);
   const [name, setName] = useState("");
-  const [avatar, setAvatar] = useState("🤖");
+  const [avatar, setAvatar] = useState("bot");
   const [role, setRole] = useState("");
+  const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
   const [repoUrl, setRepoUrl] = useState("");
   const [repoBranch, setRepoBranch] = useState("main");
   const [accentColor, setAccentColor] = useState("#6366f1");
@@ -583,12 +626,16 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
     setCreating(true);
     setError("");
     try {
+      const skillNames = Array.from(selectedSkills).map(id => CLAUDE_SKILLS.find(s => s.id === id)?.name).filter(Boolean);
+      const skillsInstruction = skillNames.length > 0
+        ? `\n\nInstalled Claude Code skills: ${skillNames.join(", ")}. Use these skills when relevant to tasks.`
+        : "";
       await apiFetch(`${API_BASE_URL}/api/agents`, {
         method: "POST",
         body: JSON.stringify({
           name, avatar, role, repoUrl, repoBranch, accentColor,
           linkedProjectId: linkedProjectId || null,
-          systemPrompt: systemPrompt || null,
+          systemPrompt: (systemPrompt || "") + skillsInstruction || null,
         }),
       });
       queryClient.invalidateQueries({ queryKey: ["agents"] });
@@ -625,7 +672,7 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center relative" style={{ background: `${accentColor}15`, border: `1px solid ${accentColor}30` }}>
-                <span className="text-lg">{avatar}</span>
+                <AgentIconById iconId={avatar} className="w-5 h-5" color={accentColor} />
                 <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0a0a16]" style={{ background: accentColor }} />
               </div>
               <div>
@@ -690,18 +737,21 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-1.5 flex-wrap bg-[#070711] border border-white/[0.08] rounded-xl p-1.5">
-                      {AGENT_AVATARS.map(a => (
+                    <div className="flex gap-1 flex-wrap bg-[#070711] border border-white/[0.08] rounded-xl p-1.5">
+                      {AGENT_ICONS.map(({ id, icon: Icon, label }) => (
                         <button
-                          key={a}
-                          onClick={() => setAvatar(a)}
+                          key={id}
+                          onClick={() => setAvatar(id)}
+                          title={label}
                           className={cn(
-                            "text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-all",
-                            avatar === a ? "ring-1 scale-110" : "opacity-50 hover:opacity-90 hover:bg-white/5"
+                            "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                            avatar === id ? "scale-110" : "opacity-40 hover:opacity-80 hover:bg-white/5"
                           )}
-                          style={avatar === a ? { background: `${accentColor}20`, ringColor: accentColor } : {}}
-                          data-testid={`button-avatar-${a}`}
-                        >{a}</button>
+                          style={avatar === id ? { background: `${accentColor}20`, boxShadow: `inset 0 0 0 1px ${accentColor}50` } : {}}
+                          data-testid={`button-avatar-${id}`}
+                        >
+                          <Icon className="w-4 h-4" style={avatar === id ? { color: accentColor } : { color: "#9ca3af" }} />
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -788,6 +838,50 @@ function CreateAgentWizard({ onClose, githubStatus }: { onClose: () => void; git
                         ))}
                       </select>
                       <FolderKanban className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelClasses}>
+                    Claude Code Skills
+                    {selectedSkills.size > 0 && <span className="ml-2 text-indigo-400">({selectedSkills.size} selected)</span>}
+                  </label>
+                  <div className="bg-[#070711] border border-white/[0.08] rounded-xl overflow-hidden">
+                    <div className="max-h-[140px] overflow-y-auto custom-scrollbar p-1.5 grid grid-cols-2 gap-1">
+                      {CLAUDE_SKILLS.map(skill => {
+                        const selected = selectedSkills.has(skill.id);
+                        return (
+                          <button
+                            key={skill.id}
+                            onClick={() => setSelectedSkills(prev => {
+                              const next = new Set(prev);
+                              if (next.has(skill.id)) next.delete(skill.id); else next.add(skill.id);
+                              return next;
+                            })}
+                            className={cn(
+                              "flex items-start gap-2 p-2 rounded-lg text-left transition-all",
+                              selected ? "bg-indigo-500/10 border border-indigo-500/20" : "hover:bg-white/[0.03] border border-transparent"
+                            )}
+                            data-testid={`button-skill-${skill.id}`}
+                          >
+                            <div className="mt-0.5">
+                              {selected ? (
+                                <CheckSquare className="w-3.5 h-3.5 text-indigo-400" />
+                              ) : (
+                                <SquareIcon className="w-3.5 h-3.5 text-gray-600" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] font-medium text-gray-300 truncate">{skill.name}</span>
+                                <span className="text-[8px] text-yellow-500/70 flex-shrink-0">★{skill.stars}</span>
+                              </div>
+                              <p className="text-[9px] text-gray-600 truncate">{skill.desc}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
