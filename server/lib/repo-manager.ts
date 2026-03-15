@@ -98,6 +98,53 @@ export async function getLog(agentId: string, maxCount = 20): Promise<any[]> {
   }));
 }
 
+export async function listBranches(agentId: string): Promise<{ current: string; all: string[]; remote: string[] }> {
+  const dest = repoPath(agentId);
+  if (!fs.existsSync(dest)) throw new Error("Repo not cloned");
+  const git: SimpleGit = simpleGit(dest);
+  await git.fetch(["--all"]);
+  const summary = await git.branch(["-a"]);
+  const remoteBranches = summary.all
+    .filter(b => b.startsWith("remotes/origin/") && !b.includes("HEAD"))
+    .map(b => b.replace("remotes/origin/", ""));
+  return {
+    current: summary.current,
+    all: summary.all.filter(b => !b.startsWith("remotes/")),
+    remote: remoteBranches,
+  };
+}
+
+export async function resetToCommit(agentId: string, commitHash: string, hard = true): Promise<void> {
+  const dest = repoPath(agentId);
+  if (!fs.existsSync(dest)) throw new Error("Repo not cloned");
+  const git: SimpleGit = simpleGit(dest);
+  await git.reset(hard ? ["--hard", commitHash] : ["--soft", commitHash]);
+}
+
+export async function stashChanges(agentId: string): Promise<string> {
+  const dest = repoPath(agentId);
+  if (!fs.existsSync(dest)) throw new Error("Repo not cloned");
+  const git: SimpleGit = simpleGit(dest);
+  const result = await git.stash();
+  return result;
+}
+
+export async function stashPop(agentId: string): Promise<string> {
+  const dest = repoPath(agentId);
+  if (!fs.existsSync(dest)) throw new Error("Repo not cloned");
+  const git: SimpleGit = simpleGit(dest);
+  const result = await git.stash(["pop"]);
+  return result;
+}
+
+export async function getCurrentBranch(agentId: string): Promise<string> {
+  const dest = repoPath(agentId);
+  if (!fs.existsSync(dest)) throw new Error("Repo not cloned");
+  const git: SimpleGit = simpleGit(dest);
+  const summary = await git.branch();
+  return summary.current;
+}
+
 export async function deleteRepo(agentId: string): Promise<void> {
   const dest = repoPath(agentId);
   if (fs.existsSync(dest)) {

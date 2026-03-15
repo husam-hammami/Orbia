@@ -6,6 +6,8 @@ import * as repoManager from "../lib/repo-manager";
 import * as githubOAuth from "../lib/github-oauth";
 import { requireAuth } from "../auth";
 import crypto from "crypto";
+import * as fs from "fs";
+import * as path from "path";
 import { db } from "../db";
 import { agentProfiles, agentTasks } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -488,6 +490,95 @@ export function registerAgentRoutes(app: Express) {
     try {
       await repoManager.checkoutBranch(ctx.agentId, req.body.branch, req.body.create === true);
       res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/agents/:id/git/branches", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+    try {
+      const branches = await repoManager.listBranches(ctx.agentId);
+      res.json(branches);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/agents/:id/git/reset", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+    const { commitHash, confirmed } = req.body;
+    if (!commitHash || typeof commitHash !== "string" || !/^[a-f0-9]{4,40}$/i.test(commitHash)) {
+      return res.status(400).json({ error: "Invalid commit hash" });
+    }
+    if (!confirmed) {
+      return res.status(400).json({ error: "Reset requires explicit confirmation", requireConfirmation: true });
+    }
+    try {
+      const status = await repoManager.getStatus(ctx.agentId);
+      const dirty = (status.modified.length + status.created.length + status.deleted.length) > 0;
+      if (dirty) {
+        await repoManager.stashChanges(ctx.agentId);
+      }
+      await repoManager.resetToCommit(ctx.agentId, commitHash, true);
+      res.json({ ok: true, stashed: dirty });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/agents/:id/git/stash", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+    try {
+      const result = req.body.pop ? await repoManager.stashPop(ctx.agentId) : await repoManager.stashChanges(ctx.agentId);
+      res.json({ ok: true, result });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/agents/:id/upload", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+
+    const MAX_SIZE = 25 * 1024 * 1024;
+    const ALLOWED_EXTS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".pdf", ".doc", ".docx", ".txt", ".md", ".csv", ".json", ".xml", ".yaml", ".yml"];
+
+    try {
+      const rawFilename = (req.headers["x-filename"] as string) || "uploaded-file";
+      const safeName = path.basename(rawFilename).replace(/[^a-zA-Z0-9._-]/g, "_");
+      const ext = path.extname(safeName).toLowerCase();
+      if (!ALLOWED_EXTS.includes(ext) && ext !== "") {
+        return res.status(400).json({ error: `File type ${ext} not allowed` });
+      }
+
+      const chunks: Buffer[] = [];
+      let totalSize = 0;
+      req.on("data", (chunk: Buffer) => {
+        totalSize += chunk.length;
+        if (totalSize > MAX_SIZE) {
+          req.destroy();
+          return;
+        }
+        chunks.push(chunk);
+      });
+      req.on("end", () => {
+        if (totalSize > MAX_SIZE) {
+          return res.status(413).json({ error: "File too large (max 25MB)" });
+        }
+        const repoDir = repoManager.getRepoDir(ctx.agentId);
+        const uploadDir = path.join(repoDir, ".orbia-uploads");
+        if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+        const filePath = path.join(uploadDir, safeName);
+        if (!filePath.startsWith(uploadDir)) {
+          return res.status(400).json({ error: "Invalid filename" });
+        }
+        fs.writeFileSync(filePath, Buffer.concat(chunks));
+        res.json({ ok: true, path: `.orbia-uploads/${safeName}` });
+      });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

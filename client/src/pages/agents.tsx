@@ -9,7 +9,12 @@ import {
   Github, X, Check, Loader2,
   FolderGit2, ArrowLeft, MoreVertical,
   WifiOff,
-  Square, ExternalLink
+  Square, ExternalLink,
+  Upload, Image, FileText, History,
+  GitCommit, GitMerge, GitPullRequest,
+  RotateCcw, ArrowDownToLine, ArrowUpFromLine,
+  ChevronDown, Clock, AlertTriangle,
+  BrainCircuit
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NeuralOrbit, EmptyOrbit } from "@/components/agents/pixel-agent";
@@ -814,13 +819,11 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="text-xl bg-black/40 rounded-lg w-8 h-8 flex items-center justify-center border border-white/10"
-                   style={{ borderColor: `${color}40`, boxShadow: `0 0 10px ${color}20` }}>
-                {agent.avatar}
-              </div>
+            <div className="relative w-9 h-9 rounded-lg overflow-hidden border border-white/10"
+                 style={{ borderColor: `${color}40`, boxShadow: `0 0 12px ${color}30` }}>
+              <NeuralOrbit status={status} accentColor={color} seed={agent.name.length + (agent.id.charCodeAt(0) || 0)} />
               <div className={cn(
-                "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-gray-950",
+                "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-gray-950 z-10",
                 status === "working" ? "bg-green-400 animate-pulse" :
                 status === "error" ? "bg-red-400" :
                 status === "waiting" ? "bg-yellow-400" : "bg-gray-500"
@@ -920,6 +923,110 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
 
 function ProjectPane({ agent }: { agent: Agent }) {
   const [activeTab, setActiveTab] = useState<"tasks" | "files">("tasks");
+  const queryClient = useQueryClient();
+  const status = (agent.status || "idle") as "idle" | "working" | "error" | "waiting";
+  const color = agent.accentColor || "#6366f1";
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const { data: taskHistory } = useQuery({
+    queryKey: [`/api/agents/${agent.id}/tasks`],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}/tasks`, { credentials: "include" });
+      return res.json();
+    },
+    enabled: showHistory,
+  });
+
+  const [branchDropdown, setBranchDropdown] = useState(false);
+  const [commitLog, setCommitLog] = useState(false);
+  const [newBranchName, setNewBranchName] = useState("");
+  const [showNewBranch, setShowNewBranch] = useState(false);
+  const [gitLoading, setGitLoading] = useState<string | null>(null);
+  const [revertConfirm, setRevertConfirm] = useState<string | null>(null);
+
+  const { data: branches, refetch: refetchBranches } = useQuery({
+    queryKey: [`/api/agents/${agent.id}/git/branches`],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}/git/branches`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: activeTab === "files" && agent.repoCloned,
+  });
+
+  const { data: gitLog, refetch: refetchLog } = useQuery({
+    queryKey: [`/api/agents/${agent.id}/git/log`],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}/git/log?count=30`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: activeTab === "files" && agent.repoCloned && commitLog,
+  });
+
+  const { data: gitStatus, refetch: refetchStatus } = useQuery({
+    queryKey: [`/api/agents/${agent.id}/git/status`],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}/git/status`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: activeTab === "files" && agent.repoCloned,
+    refetchInterval: 10000,
+  });
+
+  async function gitAction(action: string, body?: any) {
+    setGitLoading(action);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}/git/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(`${action} completed`);
+      refetchBranches();
+      refetchStatus();
+      if (commitLog) refetchLog();
+      return data;
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setGitLoading(null);
+    }
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}/upload`, {
+        method: "POST",
+        headers: { "X-Filename": file.name },
+        credentials: "include",
+        body: file,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(`Uploaded ${file.name}`);
+      if (hasActiveSession(agent.id)) {
+        toast.info(`File available at: ${data.path}`);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  const changesCount = gitStatus ? (gitStatus.modified?.length || 0) + (gitStatus.created?.length || 0) + (gitStatus.deleted?.length || 0) : 0;
 
   return (
     <div className="flex flex-col h-full">
@@ -930,6 +1037,7 @@ function ProjectPane({ agent }: { agent: Agent }) {
             "flex-1 py-3 text-xs font-medium border-b-2 transition-colors",
             activeTab === "tasks" ? "border-indigo-500 text-white" : "border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5"
           )}
+          data-testid="tab-active-task"
         >
           Active Task
         </button>
@@ -939,6 +1047,7 @@ function ProjectPane({ agent }: { agent: Agent }) {
             "flex-1 py-3 text-xs font-medium border-b-2 transition-colors",
             activeTab === "files" ? "border-indigo-500 text-white" : "border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5"
           )}
+          data-testid="tab-workspace"
         >
           Workspace
         </button>
@@ -947,7 +1056,7 @@ function ProjectPane({ agent }: { agent: Agent }) {
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
         {activeTab === "tasks" ? (
           <div className="space-y-4">
-            {agent.status === "working" ? (
+            {status === "working" ? (
               <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3 text-indigo-400">
                   <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
@@ -963,7 +1072,7 @@ function ProjectPane({ agent }: { agent: Agent }) {
                   </span>
                 </div>
               </div>
-            ) : agent.status === "error" ? (
+            ) : status === "error" ? (
               <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 text-center">
                 <WifiOff className="w-8 h-8 text-red-400/50 mx-auto mb-3" />
                 <h3 className="text-sm font-medium text-red-400 mb-1">Execution Halted</h3>
@@ -982,30 +1091,316 @@ function ProjectPane({ agent }: { agent: Agent }) {
                 ) : null}
               </div>
             )}
+
+            <div className="space-y-2">
+              <h4 className="text-[10px] uppercase tracking-widest text-gray-500 font-medium">Claude CLI Tools</h4>
+              <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} data-testid="input-file-upload" />
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => { if (fileInputRef.current) { fileInputRef.current.accept = "image/*"; fileInputRef.current.click(); } }}
+                  disabled={uploading}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-xs"
+                  data-testid="button-upload-image"
+                >
+                  <Image className="w-3.5 h-3.5" />
+                  {uploading ? "Uploading..." : "Upload Image"}
+                </button>
+                <button
+                  onClick={() => { if (fileInputRef.current) { fileInputRef.current.accept = ".pdf,.doc,.docx,.txt,.md,.csv,.json,.xml,.yaml,.yml"; fileInputRef.current.click(); } }}
+                  disabled={uploading}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-xs"
+                  data-testid="button-upload-doc"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  {uploading ? "Uploading..." : "Upload Doc"}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="flex items-center justify-between w-full text-[10px] uppercase tracking-widest text-gray-500 font-medium hover:text-gray-300 transition-colors"
+                data-testid="button-toggle-history"
+              >
+                <span className="flex items-center gap-1.5"><History className="w-3 h-3" /> Task History</span>
+                <ChevronDown className={cn("w-3 h-3 transition-transform", showHistory && "rotate-180")} />
+              </button>
+
+              <AnimatePresence>
+                {showHistory && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-1.5 max-h-[200px] overflow-y-auto custom-scrollbar">
+                      {taskHistory?.length ? taskHistory.map((task: any) => (
+                        <div key={task.id} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.04] text-xs">
+                          <div className={cn(
+                            "w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0",
+                            task.status === "completed" ? "bg-emerald-400" :
+                            task.status === "running" ? "bg-indigo-400 animate-pulse" :
+                            task.status === "failed" ? "bg-red-400" : "bg-gray-500"
+                          )} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-gray-300 truncate">{task.description}</p>
+                            <p className="text-[10px] text-gray-600 font-mono mt-0.5">
+                              {task.startedAt ? new Date(task.startedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "Pending"}
+                            </p>
+                          </div>
+                        </div>
+                      )) : (
+                        <p className="text-xs text-gray-600 text-center py-3">No task history yet</p>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs text-gray-500 pb-2 border-b border-white/5">
-              <span>Local Workspace</span>
-              <span className="font-mono">{agent.repoCloned ? "Synced" : "Syncing..."}</span>
-            </div>
-            
-            {agent.repoCloned ? (
-               <div className="text-center py-10">
-                 <FolderGit2 className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-                 <p className="text-xs text-gray-400 mb-1">Repository is cloned</p>
-                 <p className="text-[10px] text-gray-600 font-mono break-all px-4">{agent.repoUrl}</p>
-                 <p className="text-[10px] text-gray-600 mt-4 italic">File explorer coming soon</p>
-               </div>
-            ) : (
+          <div className="space-y-4">
+            {!agent.repoCloned ? (
               <div className="text-center py-10 flex flex-col items-center">
-                 <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mb-3" />
-                 <p className="text-xs text-gray-400">Cloning repository...</p>
+                <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mb-3" />
+                <p className="text-xs text-gray-400">Cloning repository...</p>
               </div>
+            ) : (
+              <>
+                <div className="bg-white/[0.03] border border-white/5 rounded-xl p-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[10px] uppercase tracking-widest text-gray-500 font-medium flex items-center gap-1.5">
+                      <GitBranch className="w-3 h-3" /> Branch
+                    </h4>
+                    <div className="relative">
+                      <button
+                        onClick={() => { setBranchDropdown(!branchDropdown); refetchBranches(); }}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-mono hover:bg-indigo-500/20 transition-colors"
+                        data-testid="button-branch-select"
+                      >
+                        {branches?.current || agent.repoBranch || "main"}
+                        <ChevronDown className={cn("w-3 h-3 transition-transform", branchDropdown && "rotate-180")} />
+                      </button>
+                      <AnimatePresence>
+                        {branchDropdown && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            className="absolute right-0 top-full mt-1 w-56 max-h-48 overflow-y-auto bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-50 custom-scrollbar"
+                          >
+                            {branches?.remote?.map((b: string) => (
+                              <button
+                                key={b}
+                                onClick={async () => {
+                                  setBranchDropdown(false);
+                                  await gitAction("checkout", { branch: b });
+                                  queryClient.invalidateQueries({ queryKey: [`/api/agents/${agent.id}/git/branches`] });
+                                }}
+                                className={cn(
+                                  "w-full text-left px-3 py-2 text-xs font-mono hover:bg-white/5 transition-colors flex items-center gap-2",
+                                  b === branches?.current ? "text-indigo-400" : "text-gray-400"
+                                )}
+                                data-testid={`branch-option-${b}`}
+                              >
+                                <GitBranch className="w-3 h-3 flex-shrink-0" />
+                                <span className="truncate">{b}</span>
+                                {b === branches?.current && <Check className="w-3 h-3 ml-auto text-indigo-400" />}
+                              </button>
+                            )) || <p className="text-xs text-gray-500 p-3">Loading...</p>}
+                            <div className="border-t border-white/5">
+                              {!showNewBranch ? (
+                                <button
+                                  onClick={() => setShowNewBranch(true)}
+                                  className="w-full text-left px-3 py-2 text-xs text-indigo-400 hover:bg-white/5 transition-colors flex items-center gap-2"
+                                  data-testid="button-new-branch"
+                                >
+                                  <Plus className="w-3 h-3" /> New Branch
+                                </button>
+                              ) : (
+                                <div className="p-2 flex gap-1.5">
+                                  <input
+                                    value={newBranchName}
+                                    onChange={e => setNewBranchName(e.target.value)}
+                                    placeholder="branch-name"
+                                    className="flex-1 bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-xs font-mono text-white placeholder:text-gray-600 outline-none focus:border-indigo-500/40"
+                                    onKeyDown={async e => {
+                                      if (e.key === "Enter" && newBranchName.trim()) {
+                                        await gitAction("checkout", { branch: newBranchName.trim(), create: true });
+                                        setNewBranchName("");
+                                        setShowNewBranch(false);
+                                        setBranchDropdown(false);
+                                      }
+                                    }}
+                                    data-testid="input-new-branch"
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={async () => {
+                                      if (newBranchName.trim()) {
+                                        await gitAction("checkout", { branch: newBranchName.trim(), create: true });
+                                        setNewBranchName("");
+                                        setShowNewBranch(false);
+                                        setBranchDropdown(false);
+                                      }
+                                    }}
+                                    className="px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded-lg text-xs hover:bg-indigo-500/30"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+
+                  {changesCount > 0 && (
+                    <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-yellow-500/5 border border-yellow-500/10 text-xs text-yellow-400/80">
+                      <AlertTriangle className="w-3 h-3" />
+                      {changesCount} uncommitted {changesCount === 1 ? "change" : "changes"}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="text-[10px] uppercase tracking-widest text-gray-500 font-medium">Quick Actions</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => gitAction("pull")}
+                      disabled={gitLoading !== null}
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-xs disabled:opacity-40"
+                      data-testid="button-git-pull"
+                    >
+                      {gitLoading === "pull" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowDownToLine className="w-3.5 h-3.5" />}
+                      Pull
+                    </button>
+                    <button
+                      onClick={() => gitAction("push")}
+                      disabled={gitLoading !== null}
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-xs disabled:opacity-40"
+                      data-testid="button-git-push"
+                    >
+                      {gitLoading === "push" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowUpFromLine className="w-3.5 h-3.5" />}
+                      Push
+                    </button>
+                    <button
+                      onClick={() => gitAction("commit", { message: `Agent commit - ${new Date().toISOString().slice(0, 16)}` })}
+                      disabled={gitLoading !== null || changesCount === 0}
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-xs disabled:opacity-40"
+                      data-testid="button-git-commit"
+                    >
+                      {gitLoading === "commit" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <GitCommit className="w-3.5 h-3.5" />}
+                      Commit All
+                    </button>
+                    <button
+                      onClick={() => { refetchStatus(); toast.success("Workspace synced"); }}
+                      disabled={gitLoading !== null}
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-xs disabled:opacity-40"
+                      data-testid="button-git-sync"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Sync
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <button
+                    onClick={() => { setCommitLog(!commitLog); if (!commitLog) refetchLog(); }}
+                    className="flex items-center justify-between w-full text-[10px] uppercase tracking-widest text-gray-500 font-medium hover:text-gray-300 transition-colors"
+                    data-testid="button-toggle-commits"
+                  >
+                    <span className="flex items-center gap-1.5"><Clock className="w-3 h-3" /> Commit History</span>
+                    <ChevronDown className={cn("w-3 h-3 transition-transform", commitLog && "rotate-180")} />
+                  </button>
+
+                  <AnimatePresence>
+                    {commitLog && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="space-y-1 max-h-[250px] overflow-y-auto custom-scrollbar">
+                          {gitLog?.length ? gitLog.map((commit: any, i: number) => (
+                            <div key={commit.hash + i} className="group flex items-start gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] transition-colors">
+                              <div className="flex flex-col items-center mt-1">
+                                <GitCommit className="w-3 h-3 text-gray-600" />
+                                {i < (gitLog?.length || 0) - 1 && <div className="w-px h-full bg-white/5 mt-1" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-gray-300 truncate">{commit.message}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="text-[10px] text-indigo-400/60 font-mono">{commit.hash}</span>
+                                  <span className="text-[10px] text-gray-600">{commit.author}</span>
+                                </div>
+                              </div>
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                {revertConfirm === commit.hash ? (
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={async () => { await gitAction("reset", { commitHash: commit.hash, confirmed: true }); setRevertConfirm(null); refetchLog(); }}
+                                      className="px-1.5 py-0.5 text-[10px] bg-red-500/20 text-red-400 rounded hover:bg-red-500/30"
+                                      data-testid={`button-confirm-revert-${commit.hash}`}
+                                    >
+                                      Confirm
+                                    </button>
+                                    <button
+                                      onClick={() => setRevertConfirm(null)}
+                                      className="px-1.5 py-0.5 text-[10px] text-gray-500 hover:text-gray-300"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => setRevertConfirm(commit.hash)}
+                                    className="p-1 rounded hover:bg-white/10 text-gray-600 hover:text-yellow-400 transition-colors"
+                                    title="Revert to this commit"
+                                    data-testid={`button-revert-${commit.hash}`}
+                                  >
+                                    <RotateCcw className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )) : (
+                            <p className="text-xs text-gray-600 text-center py-3">
+                              {gitLog === undefined ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "No commits found"}
+                            </p>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <div className="pt-2 border-t border-white/5">
+                  <div className="flex items-center justify-between text-xs text-gray-600 mb-2">
+                    <span className="flex items-center gap-1.5 font-mono">
+                      <FolderGit2 className="w-3 h-3" />
+                      {agent.repoUrl.split("/").slice(-2).join("/")}
+                    </span>
+                    <span className="text-emerald-500/60 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60" /> Synced
+                    </span>
+                  </div>
+                </div>
+              </>
             )}
           </div>
         )}
       </div>
     </div>
   );
+}
+
+function hasActiveSession(agentId: string): boolean {
+  return true;
 }
