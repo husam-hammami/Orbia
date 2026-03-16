@@ -357,8 +357,14 @@ const PERMISSION_PATTERNS = [
   /Would you like to continue/i,
   /Want to proceed/i,
   /Do you want to run/i,
+  /Do you want to make this edit/i,
+  /Do you want to create/i,
+  /Do you want to delete/i,
+  /Do you want to execute/i,
   /Confirm\?/i,
 ];
+
+const NUMBERED_MENU_PATTERN = />\s*1\.\s*Yes/;
 
 const RISKY_PATTERNS = [
   /rm\s+-rf?\s+\//i,
@@ -416,20 +422,23 @@ function startPermissionWatcher(session: ShellSession, mode: "manual" | "bypass"
     const isPermissionPrompt = PERMISSION_PATTERNS.some(p => p.test(clean));
     if (!isPermissionPrompt) return;
 
+    const recentClean = stripAnsi(state.accumulated).slice(-2000);
+    const isNumberedMenu = NUMBERED_MENU_PATTERN.test(recentClean);
+    const approveResponse = isNumberedMenu ? "1\n" : "y\n";
+
     if (state.mode === "bypass") {
       state.lastPromptHandled = now;
       setTimeout(() => {
         if (session.alive && session.process.stdin) {
-          session.process.stdin.write("y\n");
-          console.log(`[permission-watcher] "${session.agentName}" — bypass: auto-approved`);
+          session.process.stdin.write(approveResponse);
+          console.log(`[permission-watcher] "${session.agentName}" — bypass: auto-approved (${isNumberedMenu ? "numbered" : "y/n"})`);
         }
       }, 300);
       return;
     }
 
     if (state.mode === "auto") {
-      const recentContext = stripAnsi(state.accumulated).slice(-2000);
-      const isRisky = RISKY_PATTERNS.some(p => p.test(recentContext));
+      const isRisky = RISKY_PATTERNS.some(p => p.test(recentClean));
 
       if (isRisky) {
         console.log(`[permission-watcher] "${session.agentName}" — auto: RISKY operation detected, skipping auto-approve`);
@@ -443,8 +452,8 @@ function startPermissionWatcher(session: ShellSession, mode: "manual" | "bypass"
       state.lastPromptHandled = now;
       setTimeout(() => {
         if (session.alive && session.process.stdin) {
-          session.process.stdin.write("y\n");
-          console.log(`[permission-watcher] "${session.agentName}" — auto: approved safe operation`);
+          session.process.stdin.write(approveResponse);
+          console.log(`[permission-watcher] "${session.agentName}" — auto: approved safe operation (${isNumberedMenu ? "numbered" : "y/n"})`);
         }
       }, 300);
     }
