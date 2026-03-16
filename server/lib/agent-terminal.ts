@@ -74,8 +74,8 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
   envVars.TERM = "xterm-256color";
   envVars.PATH = enhancedPath;
   envVars.PS1 = `\\[\\033[1;36m\\]${agentName}\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]$ `;
-  envVars.COLUMNS = "80";
-  envVars.LINES = "24";
+  envVars.COLUMNS = "180";
+  envVars.LINES = "50";
 
   const shell = spawn("script", ["-qfc", "bash --norc --noprofile -i", "/dev/null"], {
     cwd: repoDir,
@@ -100,34 +100,19 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
     `\x1b[90mClaude Code launching automatically...\x1b[0m\r\n\r\n`;
   session.outputBuffer.push(welcome);
 
-  const sttyRegex = /^.*stty cols \d+ rows \d+ 2>\/dev\/null\r?\n?/gm;
-  const spinnerLineRegex = /^[\s\x1b\[\d;]*[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏•●◦◆◇▪▫✦✧⚡★☆♦♢◈⬡⬢⟐⟡❯❮▶▷►▸▹▻◃◂◄◅◁⏵⏴⭐⚙⟳↻↺⊕⊗⊛⊙⊚][\s]*\w[\w\s]*\.{2,3}\s*$/;
-  const barLineRegex = /^[\s\x1b\[\d;m]*[━─═╌╍┄┅┈┉⎯]{4,}\s*$/;
-
   const handleOutput = (data: Buffer) => {
-    let text = data.toString();
-    const filtered = text
-      .replace(sttyRegex, "")
-      .split("\n")
-      .filter(line => {
-        const stripped = line.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "").replace(/\r/g, "").trim();
-        if (!stripped) return true;
-        if (spinnerLineRegex.test(stripped)) return false;
-        if (barLineRegex.test(stripped)) return false;
-        return true;
-      })
-      .join("\n");
-    if (filtered.length === 0 || filtered === "\n") return;
+    const text = data.toString();
+    if (text.length === 0) return;
 
-    session.outputBuffer.push(filtered);
+    session.outputBuffer.push(text);
     if (session.outputBuffer.length > MAX_BUFFER_LINES) {
       session.outputBuffer = session.outputBuffer.slice(-MAX_BUFFER_LINES / 2);
     }
     for (const ws of session.clients) {
-      if (ws.readyState === WebSocket.OPEN) ws.send(filtered);
+      if (ws.readyState === WebSocket.OPEN) ws.send(text);
     }
     for (const listener of session.outputListeners) {
-      try { listener(filtered); } catch {}
+      try { listener(text); } catch {}
     }
   };
 
@@ -280,26 +265,11 @@ export function setupAgentTerminalWS(server: Server) {
     const history = shellSession.outputBuffer.join("");
     if (history) ws.send(history);
 
-    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
-    let lastCols = 0;
-    let lastRows = 0;
-
     ws.on("message", (msg: Buffer | string) => {
       const data = msg.toString();
       try {
         const parsed = JSON.parse(data);
-        if (parsed.type === "resize" && parsed.cols && parsed.rows) {
-          const cols = Math.max(10, Math.min(500, parsed.cols));
-          const rows = Math.max(5, Math.min(200, parsed.rows));
-          if (cols === lastCols && rows === lastRows) return;
-          if (resizeTimer) clearTimeout(resizeTimer);
-          resizeTimer = setTimeout(() => {
-            if (shellSession.alive && shellSession.process.stdin) {
-              lastCols = cols;
-              lastRows = rows;
-              shellSession.process.stdin.write(`stty cols ${cols} rows ${rows} 2>/dev/null\r`);
-            }
-          }, 500);
+        if (parsed.type === "resize") {
           return;
         }
         if (parsed.type === "input") {
@@ -315,7 +285,6 @@ export function setupAgentTerminalWS(server: Server) {
     });
 
     ws.on("close", () => {
-      if (resizeTimer) clearTimeout(resizeTimer);
       shellSession.clients.delete(ws);
       console.log(`[agent-terminal] Client left "${agent.name}" (${shellSession.clients.size} remaining)`);
     });
