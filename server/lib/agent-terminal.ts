@@ -501,7 +501,7 @@ function getClaudePath(): string {
 
 const shellCreationLocks = new Map<string, Promise<ShellSession>>();
 
-async function ensureShell(agentId: string, agentName: string, repoUrl: string, repoBranch?: string, userId?: string): Promise<ShellSession> {
+async function ensureShell(agentId: string, agentName: string, repoUrl: string, repoBranch?: string, userId?: string, permissionMode?: string): Promise<ShellSession> {
   const existing = shells.get(agentId);
   if (existing && existing.alive) return existing;
 
@@ -511,7 +511,7 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
     return pendingLock;
   }
 
-  const createPromise = createShell(agentId, agentName, repoUrl, repoBranch, userId);
+  const createPromise = createShell(agentId, agentName, repoUrl, repoBranch, userId, permissionMode);
   shellCreationLocks.set(agentId, createPromise);
   try {
     const session = await createPromise;
@@ -521,7 +521,7 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
   }
 }
 
-async function createShell(agentId: string, agentName: string, repoUrl: string, repoBranch?: string, userId?: string): Promise<ShellSession> {
+async function createShell(agentId: string, agentName: string, repoUrl: string, repoBranch?: string, userId?: string, permissionMode?: string): Promise<ShellSession> {
   const existing = shells.get(agentId);
   if (existing && existing.alive) return existing;
 
@@ -694,7 +694,13 @@ async function createShell(agentId: string, agentName: string, repoUrl: string, 
       shell.stdin.write("clear\n");
       setTimeout(() => {
         if (session.alive && shell.stdin) {
-          shell.stdin.write("claude\n");
+          const claudeCmd = permissionMode === "bypass"
+            ? "claude --dangerously-skip-permissions"
+            : "claude";
+          shell.stdin.write(claudeCmd + "\n");
+          if (permissionMode === "bypass") {
+            console.log(`[agent-terminal] "${agentName}" — launched with --dangerously-skip-permissions`);
+          }
           startBootstrapWatcher(session);
         }
       }, 200);
@@ -799,7 +805,7 @@ export function setupAgentTerminalWS(server: Server) {
   wss.on("connection", async (ws: WebSocket, _req: IncomingMessage, agent: any) => {
     const agentId = agent.id;
     console.log(`[agent-terminal] Client connected to "${agent.name}" (${agentId})`);
-    const shellSession = await ensureShell(agentId, agent.name, agent.repoUrl, agent.repoBranch, agent.userId);
+    const shellSession = await ensureShell(agentId, agent.name, agent.repoUrl, agent.repoBranch, agent.userId, agent.permissionMode);
 
     const existingWatcher = permissionWatchers.get(agentId);
     const mode = (agent.permissionMode || "manual") as "manual" | "bypass" | "auto";
