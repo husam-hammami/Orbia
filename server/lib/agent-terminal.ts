@@ -204,6 +204,9 @@ function startBootstrapWatcher(session: ShellSession) {
   const processOutput = (data: string) => {
     if (state.phase === "done") return;
     state.accumulated += data;
+    if (state.accumulated.length > 20000) {
+      state.accumulated = state.accumulated.slice(-10000);
+    }
     state.lastActivity = Date.now();
 
     const clean = stripAnsi(state.accumulated);
@@ -214,7 +217,8 @@ function startBootstrapWatcher(session: ShellSession) {
       console.log(`[bootstrap] "${session.agentName}" — Claude Code detected, watching for prompts`);
     }
 
-    if (/Select login method|login method:/i.test(recentClean) && state.phase !== "done") {
+    if (/Select login method|login method:/i.test(recentClean) && state.phase !== "done" && !(state as any)._loginMethodSent) {
+      (state as any)._loginMethodSent = true;
       setTimeout(() => {
         if (session.alive && session.process.stdin) {
           session.process.stdin.write("1\n");
@@ -247,8 +251,8 @@ function startBootstrapWatcher(session: ShellSession) {
       }
     }
 
-    const urlMatch = clean.match(LOGIN_URL_PATTERN);
-    if (urlMatch && state.phase !== "done") {
+    const urlMatch = recentClean.match(LOGIN_URL_PATTERN);
+    if (urlMatch && state.phase !== "login_required" && state.phase !== "done") {
       state.phase = "login_required";
       state.loginUrl = urlMatch[0];
       console.log(`[bootstrap] "${session.agentName}" — login required: ${state.loginUrl}`);
@@ -259,7 +263,8 @@ function startBootstrapWatcher(session: ShellSession) {
       });
     }
 
-    if (TOKEN_PROMPT_PATTERN.test(recentClean) && state.phase === "login_required") {
+    if (TOKEN_PROMPT_PATTERN.test(recentClean) && state.phase === "login_required" && !(state as any)._tokenPromptSent) {
+      (state as any)._tokenPromptSent = true;
       console.log(`[bootstrap] "${session.agentName}" — waiting for token paste from user`);
       broadcastBootstrapEvent(session, {
         type: "token_needed",

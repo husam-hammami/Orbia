@@ -26,6 +26,7 @@ export function AgentTerminal({ agentId, agentName, onBootstrapEvent }: AgentTer
   const [connected, setConnected] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [bootstrapStatus, setBootstrapStatus] = useState<string | null>(null);
+  const loginUrlOpenedRef = useRef(false);
   const onBootstrapEventRef = useRef(onBootstrapEvent);
   onBootstrapEventRef.current = onBootstrapEvent;
 
@@ -64,7 +65,10 @@ export function AgentTerminal({ agentId, agentName, onBootstrapEvent }: AgentTer
 
             if (evt.type === "login_required" && evt.url) {
               setBootstrapStatus("Login required — opening browser...");
-              window.open(evt.url, "_blank");
+              if (!loginUrlOpenedRef.current) {
+                loginUrlOpenedRef.current = true;
+                window.open(evt.url, "_blank");
+              }
             } else if (evt.type === "token_needed") {
               setBootstrapStatus("Paste auth token in terminal");
             } else if (evt.type === "ready") {
@@ -119,6 +123,7 @@ export function AgentTerminal({ agentId, agentName, onBootstrapEvent }: AgentTer
         method: "POST",
         credentials: "include",
       });
+      loginUrlOpenedRef.current = false;
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
