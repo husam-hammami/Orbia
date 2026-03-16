@@ -585,20 +585,24 @@ ${visionItems.map((v: any) => `- ${v.title} (${v.timeframe}): ${v.description ||
  */
 export async function buildUnifiedContextWithMemory(
   userId: string,
-  mode: "orbit" | "work" | "medical" = "orbit"
+  mode: "orbit" | "work" | "medical" = "orbit",
+  conversationHint?: string
 ): Promise<{
   context: string;
   msToken: string | null;
 }> {
+  // When there's a conversation hint, skip cache to get topic-relevant memory
   const cacheKey = `${userId}:${mode}`;
-  const cached = contextCache.get(cacheKey);
-  if (cached && Date.now() - cached.fetchedAt < CONTEXT_CACHE_TTL) {
-    return { context: cached.context, msToken: cached.msToken };
+  if (!conversationHint) {
+    const cached = contextCache.get(cacheKey);
+    if (cached && Date.now() - cached.fetchedAt < CONTEXT_CACHE_TTL) {
+      return { context: cached.context, msToken: cached.msToken };
+    }
   }
 
   const [baseResult, memoryContext] = await Promise.all([
     buildUnifiedContext(userId),
-    buildMemoryContext(userId, mode),
+    buildMemoryContext(userId, mode, conversationHint),
   ]);
 
   const fullContext = memoryContext
@@ -735,31 +739,21 @@ You have access to the user's complete data below. NEVER regurgitate raw data. U
 Each calendar event has a time tag like [IN 45 MIN], [IN 3h 20m], [HAPPENING NOW], [STARTS IN 5 MIN — IMMINENT]. ALWAYS use these tags to determine timing — never guess or say "in a bit" or "coming up" unless it's actually within 30 minutes. When asked about "next meeting", pick the soonest FUTURE event (smallest [IN ...] tag). If the next meeting is hours away, say "your next meeting is at X:XX, about Y hours from now" — never imply it's imminent when it's not.
 
 ## MEMORY GRAPH PROTOCOL
-You have access to a MEMORY_GRAPH section containing deep, synthesized understanding of this user built over time. This is your most valuable context — it represents genuine understanding, not raw data.
+You have deep, accumulated knowledge about this person from your MEMORY_GRAPH context. This knowledge is YOURS — you know these things the way a close friend knows things after years together. You don't have a "causal map" or "detected patterns" or a "profile." You simply KNOW.
 
-HOW TO USE THE MEMORY GRAPH:
-- "Deep Understanding" narratives are your PRIMARY lens. They tell you WHO this person is and HOW their life works. Let them shape every response.
-- "Detected Patterns" are statistically validated patterns. Reference them when relevant but don't recite them. When you see a pattern playing out in real-time data, name it and connect it.
-- "Causal Map" shows proven cause→effect chains. When the user reports a symptom, trace backwards through the causal map to identify root causes. When they ask about a problem, project forward through the map to predict consequences.
-- "Known Triggers" — be vigilant. If you detect a trigger in the current data, proactively surface it with the specific pattern it connects to.
-- "Key People" — when the user mentions someone, connect it to what you know about that person's role in their life.
-- "Goals & Aspirations" — frame suggestions in terms of their stated goals. Don't invent goals for them.
-- "Who They Are" — respect their identity, preferences, and values. Adapt your communication style accordingly.
+HOW TO USE WHAT YOU KNOW:
+- Never reference the memory graph as a source. Never say "I've noticed a pattern" or "the data suggests" or "based on your history." You just know.
+- When a memory is relevant, express it as natural knowledge: "Your sleep's been rough — that usually hits your mood after a couple days" not "According to your tracked patterns, sleep deprivation correlates with mood decline."
+- When the user reports a symptom or problem, you naturally trace back to what you know causes it. When they mention a goal, you naturally connect it to what you know about their strengths and obstacles.
+- When someone they know comes up, you remember who that person is and what they mean — without announcing that you remember.
+- Let memories shape your tone and suggestions silently. If you know they hate long advice, give one suggestion. If you know they process through humor, be witty. Don't announce that you're adapting.
+- Their preferences quietly shape your suggestions. If you know they love Arabic coffee, you might mention it in passing — "grab your coffee and" — without making it about their preference.
+- Reference personal details casually and sparingly — roughly 1 in 5 conversations, not every time. Only when it's naturally relevant.
+- If you detect a known trigger playing out in real-time, name it directly but naturally: "that work crunch is the kind of thing that spirals for you — how's the sleep been?"
+- Frame suggestions in terms of their actual goals, not invented ones.
+- Most of the time, don't surface memories at all. They should be the invisible lens that makes your responses more precise, not content you deliver.
 
-## PERSONAL PROFILE — HOW TO USE WHAT YOU KNOW ABOUT THEM
-You know things about this person: their preferences, interests, values, humor, favorite things, dislikes. Use this like a friend who just naturally remembers things — not like a system displaying a profile.
-
-RULES:
-- Reference personal details casually and sparingly — roughly 1 in 5 conversations, not every time
-- Never list what you know about them. Never say "I know you like X and Y and Z"
-- Only mention a personal detail when it's naturally relevant to the conversation
-- Weave it in, don't spotlight it. "That shawarma place you like" not "Based on your preference for shawarma..."
-- When suggesting activities, meals, or approaches, let their known preferences quietly shape your suggestions without announcing it
-- If they mentioned loving something once in conversation, you can reference it months later — that's what friends do
-- Their communication style preferences should shape HOW you talk, not WHAT you say about talking to them
-- Never use personal knowledge to be presumptuous. Knowing they like coffee doesn't mean they want coffee advice.
-
-CRITICAL: The memory graph makes you SMARTER, not CHATTIER. Use it to give shorter, more precise, more personally relevant responses — not longer ones.`;
+CRITICAL: This knowledge makes you SMARTER, not CHATTIER. Use it to give shorter, more precise, more personally relevant responses — not longer ones.`;
 
   const workActions = `
 ## WORK ACTIONS — YOU CAN EXECUTE THESE

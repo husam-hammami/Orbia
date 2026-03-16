@@ -126,13 +126,12 @@ export async function registerRoutes(
       const entry = await storage.createTrackerEntry(userId, validatedData);
       res.status(201).json(entry);
 
-      // Background: extract memories from this tracker entry
-      import("./lib/memory-graph").then(({ extractFromTracker, persistMemories }) => {
+      // Background: extract memories from this tracker entry + auto-consolidate
+      import("./lib/memory-graph").then(async ({ extractFromTracker, persistMemories, maybeConsolidate }) => {
         const result = extractFromTracker(entry);
         if (result.entities.length > 0 || result.connections.length > 0) {
-          persistMemories(userId, result, "tracker_entry", entry.id).catch((err) =>
-            console.error("[MemoryGraph] Tracker extraction failed:", err)
-          );
+          await persistMemories(userId, result, "tracker_entry", entry.id);
+          maybeConsolidate(userId).catch(() => {});
         }
       }).catch(() => {});
     } catch (error) {
@@ -3177,7 +3176,7 @@ MERCHANT FIELD:
       }
 
       const { buildUnifiedContextWithMemory, buildUnifiedSystemPrompt, buildTherapeuticPrompt } = await import("./lib/unified-context");
-      const { context: unifiedContext, msToken } = await buildUnifiedContextWithMemory(userId, "orbit");
+      const { context: unifiedContext, msToken } = await buildUnifiedContextWithMemory(userId, "orbit", message);
 
       let orbitSystemPrompt: string;
       if (therapyMode) {
@@ -4039,7 +4038,7 @@ ${JSON.stringify(context, null, 2)}`;
       if (fullResponse && message) {
         (async () => {
           try {
-            const { extractFromConversation, persistMemories } = await import("./lib/memory-graph");
+            const { extractFromConversation, persistMemories, maybeConsolidate } = await import("./lib/memory-graph");
             const convMessages = [
               ...(history || []).slice(-30).map((h: any) => ({ role: h.role, content: h.content })),
               { role: "user", content: message },
@@ -4049,6 +4048,7 @@ ${JSON.stringify(context, null, 2)}`;
             const result = await extractFromConversation(convMessages, "orbit", existingEntities);
             if (result.entities.length > 0 || result.connections.length > 0) {
               await persistMemories(userId, result, "conversation_orbit", new Date().toISOString());
+              maybeConsolidate(userId).catch(() => {});
             }
           } catch (err) {
             console.error("[PostChat] Orbit conversation extraction failed:", err);
@@ -4162,12 +4162,13 @@ ${JSON.stringify(context, null, 2)}`;
       const entry = await storage.createJournalEntry(userId, validatedData);
       res.status(201).json(entry);
 
-      // Background: AI-extract memories from this journal entry
-      import("./lib/memory-graph").then(async ({ extractFromJournalAI, persistMemories }) => {
+      // Background: AI-extract memories from this journal entry + auto-consolidate
+      import("./lib/memory-graph").then(async ({ extractFromJournalAI, persistMemories, maybeConsolidate }) => {
         const existingEntities = await storage.getMemoryEntities(userId);
         const result = await extractFromJournalAI(entry, existingEntities);
         if (result.entities.length > 0 || result.connections.length > 0) {
           await persistMemories(userId, result, "journal_entry", entry.id);
+          maybeConsolidate(userId).catch(() => {});
         }
       }).catch((err) => console.error("[MemoryGraph] Journal extraction failed:", err));
     } catch (error) {
@@ -4844,7 +4845,8 @@ Think like a doctor building a patient's problem list — not like a text parser
       const { messages: chatMessages } = req.body;
 
       const { buildUnifiedContextWithMemory, buildUnifiedSystemPrompt } = await import("./lib/unified-context");
-      const { context: unifiedContext } = await buildUnifiedContextWithMemory(userId, "medical");
+      const lastUserMsg = chatMessages?.filter((m: any) => m.role === "user").pop()?.content || "";
+      const { context: unifiedContext } = await buildUnifiedContextWithMemory(userId, "medical", lastUserMsg);
 
       const [painMechanisms, timelineEvents, vaultDocs] = await Promise.all([
         storage.getMedPainMechanisms(userId),
@@ -4893,7 +4895,7 @@ ${unifiedContext}${extraMedContext}`;
       if (fullMedResponse && chatMessages.length > 0) {
         (async () => {
           try {
-            const { extractFromConversation, persistMemories } = await import("./lib/memory-graph");
+            const { extractFromConversation, persistMemories, maybeConsolidate } = await import("./lib/memory-graph");
             const convMessages = [
               ...chatMessages.slice(-6).map((m: any) => ({ role: m.role, content: m.content })),
               { role: "assistant", content: fullMedResponse },
@@ -4902,6 +4904,7 @@ ${unifiedContext}${extraMedContext}`;
             const result = await extractFromConversation(convMessages, "medical", existingEntities);
             if (result.entities.length > 0 || result.connections.length > 0) {
               await persistMemories(userId, result, "conversation_medical", new Date().toISOString());
+              maybeConsolidate(userId).catch(() => {});
             }
           } catch (err) {
             console.error("[PostChat] Medical conversation extraction failed:", err);
@@ -5379,7 +5382,8 @@ ${unifiedContext}${extraMedContext}`;
       }
 
       const { buildUnifiedContextWithMemory, buildUnifiedSystemPrompt } = await import("./lib/unified-context");
-      const { context: unifiedContext, msToken } = await buildUnifiedContextWithMemory(userId, "work");
+      const lastUserMsg = chatMessages.filter((m: any) => m.role === "user").pop()?.content || "";
+      const { context: unifiedContext, msToken } = await buildUnifiedContextWithMemory(userId, "work", lastUserMsg);
       const basePrompt = buildUnifiedSystemPrompt("work");
 
       const systemPrompt = `${basePrompt}
@@ -5665,7 +5669,7 @@ ${unifiedContext}`;
       if (fullResponse && chatMessages.length > 0) {
         (async () => {
           try {
-            const { extractFromConversation, persistMemories } = await import("./lib/memory-graph");
+            const { extractFromConversation, persistMemories, maybeConsolidate } = await import("./lib/memory-graph");
             const convMessages = [
               ...chatMessages.slice(-6).map((m: any) => ({ role: m.role, content: m.content })),
               { role: "assistant", content: fullResponse },
@@ -5674,6 +5678,7 @@ ${unifiedContext}`;
             const result = await extractFromConversation(convMessages, "work", existingEntities);
             if (result.entities.length > 0 || result.connections.length > 0) {
               await persistMemories(userId, result, "conversation_work", new Date().toISOString());
+              maybeConsolidate(userId).catch(() => {});
             }
           } catch (err) {
             console.error("[PostChat] Work conversation extraction failed:", err);
@@ -5958,7 +5963,7 @@ ${rawText}`
       console.log("[voice-converse] Starting conversation for user:", userId, "mode:", safeMode);
 
       const { buildUnifiedContextWithMemory, buildUnifiedSystemPrompt, buildTherapeuticPrompt } = await import("./lib/unified-context");
-      const { context: unifiedContext } = await buildUnifiedContextWithMemory(userId, safeMode);
+      const { context: unifiedContext } = await buildUnifiedContextWithMemory(userId, safeMode, message);
       console.log("[voice-converse] Context built in", Date.now() - converseStart, "ms");
 
       let systemPrompt: string;

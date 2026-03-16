@@ -660,8 +660,8 @@ Return JSON:
 {
   "entities": [
     {
-      "entityType": "preference|interest|like|dislike|value|personality_trait|person|communication_style",
-      "category": "identity",
+      "entityType": "preference|interest|like|dislike|value|personality_trait|person|communication_style|state|situation",
+      "category": "identity|wellness|work|social",
       "name": "lowercase_snake_case_identifier",
       "summary": "One clear sentence about what this reveals",
       "importance": 0.0-1.0,
@@ -687,6 +687,8 @@ WHAT TO EXTRACT:
 - Personality traits: how they communicate, think, make decisions, handle stress
 - People: relationships mentioned — names, roles, dynamics
 - Communication style: do they prefer brevity? humor? directness? do they use specific phrases?
+- Emotional undertones (entityType: "state", category: "wellness"): HOW they felt during this conversation — frustrated, excited, vulnerable, deflecting, processing something heavy. Only extract when the emotion is significant, not routine.
+- Life situations (entityType: "situation", category matching the domain): Major things happening in their life RIGHT NOW that aren't permanent traits — "preparing for interview Thursday", "wife traveling this week", "fasting for Ramadan", "moving apartments". These are temporary contexts that shape interactions. Importance 0.5-0.7, expected to be temporary.
 
 WHAT NOT TO EXTRACT:
 - Raw data that's already captured (mood scores, habits, finances) — those have their own extractors
@@ -696,12 +698,14 @@ WHAT NOT TO EXTRACT:
 - Anything speculative. Only extract what the user actually said or clearly implied.
 
 RULES:
-- Extract 0-4 entities MAX. Most conversations yield 0-1 personal insights. That's fine.
+- Extract 0-5 entities MAX. Most conversations yield 0-1 personal insights. That's fine.
 - Importance: 0.3 = passing mention, 0.5 = clear statement, 0.7 = core to who they are, 0.9 = defining trait
+- For "state" entities: importance 0.4-0.6, these are temporary emotional observations
+- For "situation" entities: importance 0.5-0.7, these are time-bounded life contexts
 - Confidence: based on how explicitly they stated it vs. how much you're inferring
 - If a conversation is purely transactional (mark habit, check weather), return empty arrays
 - If this deepens something already known, create the entity with the SAME name to update it
-- Names should be descriptive: "prefers_direct_communication", "loves_arabic_coffee", "close_with_mother"`,
+- Names should be descriptive: "prefers_direct_communication", "loves_arabic_coffee", "close_with_mother", "situation:preparing_for_interview", "state:frustrated_about_work"`,
         },
         {
           role: "user",
@@ -727,12 +731,57 @@ RULES:
 }
 
 // ============================================================
-// 3. PERSISTENCE — Save extracted memories to the database
+// 3. FUZZY DEDUPLICATION — Prevent near-duplicate entities
+// ============================================================
+
+/**
+ * Normalize an entity name for fuzzy comparison.
+ * Strips prefixes (trigger:, person:, goal:), underscores, and lowercases.
+ */
+function normalizeName(name: string): string {
+  return name
+    .replace(/^(trigger|person|goal|pattern|state|situation|strong_habit|struggling_habit|habit_focus):?\s?/, "")
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * Find a fuzzy match for an entity name in the existing entity map.
+ * Matches on: substring containment, shared word prefix (≥70% overlap).
+ */
+function findFuzzyMatch(name: string, entityMap: Map<string, MemoryEntity>): MemoryEntity | undefined {
+  const normalizedName = normalizeName(name);
+  if (normalizedName.length < 3) return undefined;
+
+  for (const [existingName, entity] of entityMap) {
+    const normalizedExisting = normalizeName(existingName);
+    if (normalizedExisting.length < 3) continue;
+
+    // Substring containment in either direction
+    if (normalizedName.includes(normalizedExisting) || normalizedExisting.includes(normalizedName)) {
+      return entity;
+    }
+
+    // Shared word prefix: e.g., "low mood episode" vs "low mood"
+    const nameWords = normalizedName.split(" ");
+    const existWords = normalizedExisting.split(" ");
+    const commonPrefix = nameWords.filter((w, i) => existWords[i] === w).length;
+    if (commonPrefix >= 2 && commonPrefix >= Math.min(nameWords.length, existWords.length) * 0.7) {
+      return entity;
+    }
+  }
+
+  return undefined;
+}
+
+// ============================================================
+// 4. PERSISTENCE — Save extracted memories to the database
 // ============================================================
 
 /**
  * Persist extraction results into the memory graph.
- * Handles deduplication: if an entity with the same name exists, update it instead of creating a duplicate.
+ * Handles deduplication: exact match first, then fuzzy match.
  * For connections, reinforce existing ones or create new ones.
  */
 export async function persistMemories(
@@ -751,13 +800,15 @@ export async function persistMemories(
   const newEntityIds = new Map<string, string>(); // name -> id (for connection resolution)
 
   for (const extracted of result.entities) {
-    const existing = entityMap.get(extracted.name);
+    // Try fuzzy match if exact match fails
+    const existing = entityMap.get(extracted.name) || findFuzzyMatch(extracted.name, entityMap);
 
     if (existing) {
-      // Reinforce existing entity: merge content, update importance/confidence
+      // Reinforce existing entity: merge content, refresh importance (don't inflate)
       const mergedContent = { ...existing.content, ...extracted.content };
-      const newImportance = Math.min((existing.importance + extracted.importance) / 2 + 0.05, 1);
-      const newConfidence = Math.min((existing.confidence + extracted.confidence) / 2 + 0.05, 1);
+      // Use max of old/new + small boost for repetition (prevents indefinite inflation)
+      const newImportance = Math.min(Math.max(existing.importance, extracted.importance) + 0.02, 1);
+      const newConfidence = Math.min(Math.max(existing.confidence, extracted.confidence) + 0.02, 1);
       const sourceRefs = [...(existing.sourceRefs || []), { type: sourceType, id: sourceId }].slice(-20);
 
       await storage.updateMemoryEntity(userId, existing.id, {
@@ -856,15 +907,22 @@ export async function consolidateMemories(userId: string): Promise<void> {
     byCategory[e.category].push(e);
   });
 
-  // Build a summary of the graph for AI synthesis
+  // Build a summary of the graph for AI synthesis, sorted by effective importance (time-decayed)
+  const todayStr = new Date().toISOString().split("T")[0];
   const graphSummary = entities
-    .sort((a, b) => b.importance - a.importance)
+    .map((e) => ({ entity: e, eff: effectiveImportance(e) }))
+    .sort((a, b) => b.eff - a.eff)
     .slice(0, 40)
-    .map((e) => `[${e.entityType}/${e.category}] ${e.name}: ${e.summary} (importance: ${e.importance.toFixed(2)})`)
+    .map(({ entity: e, eff }) => {
+      const lastUpdated = e.lastUpdated || e.createdAt;
+      const daysAgo = lastUpdated ? Math.round((Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24)) : 999;
+      const recency = daysAgo === 0 ? "today" : daysAgo === 1 ? "yesterday" : `${daysAgo}d ago`;
+      return `[${e.entityType}/${e.category}] ${e.name}: ${e.summary} (importance: ${eff.toFixed(2)}, last seen: ${recency})`;
+    })
     .join("\n");
 
   const connectionSummary = connections
-    .sort((a, b) => b.strength - a.strength)
+    .sort((a, b) => b.strength * b.occurrences - a.strength * a.occurrences)
     .slice(0, 30)
     .map((c) => {
       const source = entities.find((e) => e.id === c.sourceId);
@@ -873,12 +931,24 @@ export async function consolidateMemories(userId: string): Promise<void> {
     })
     .join("\n");
 
+  // Include existing narratives so the AI can update/retire them
+  const existingNarratives = await storage.getMemoryNarratives(userId);
+  const existingNarrativeSummary = existingNarratives.length > 0
+    ? existingNarratives.map((n) => {
+        const lastUpdated = n.lastUpdated || n.createdAt;
+        const daysAgo = lastUpdated ? Math.round((Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24)) : 999;
+        return `[${n.domain}] "${n.narrativeKey}": ${n.narrative} (confidence: ${n.confidence.toFixed(2)}, last updated: ${daysAgo}d ago)`;
+      }).join("\n")
+    : "None yet.";
+
   try {
     const responseText = await aiComplete(
       [
         {
           role: "system",
           content: `You are a narrative synthesis engine for a personal intelligence system. Given the memory graph (entities and connections), generate deep understandings about this person.
+
+Today's date is ${todayStr}. Weight recent observations more heavily than old ones. A pattern from last week is more relevant than one from 3 months ago — unless it's a stable identity trait.
 
 Return JSON:
 {
@@ -900,7 +970,13 @@ RULES:
 - Don't state the obvious. "User has low mood sometimes" is useless. "Your mood crashes tend to follow 2+ days of poor sleep and usually coincide with heavy work weeks — the combination, not either alone, is the trigger" is valuable.
 - Write in second person ("You tend to...", "Your pattern shows...")
 - If the data is insufficient for a domain, skip it entirely
-- confidence: based on how much evidence supports the narrative
+- confidence: based on how much evidence supports the narrative AND how recent it is
+
+NARRATIVE LIFECYCLE:
+- Review the EXISTING NARRATIVES below. If one is no longer supported by recent data, LOWER its confidence or rewrite it.
+- If a previous pattern has resolved (e.g., sleep improved, stress decreased), update the narrative to reflect the change rather than repeating the old version.
+- Always generate a "current_situation" narrative (domain: "cross_domain") that captures what's happening in their life RIGHT NOW based on the most recent entities. This narrative should change frequently.
+- Retire (omit) narratives that have no recent supporting evidence.
 
 IDENTITY NARRATIVES (important):
 - If there are entities with category "identity" (preferences, interests, likes, dislikes, values, personality traits, communication style), synthesize them into 1-2 "identity" domain narratives
@@ -910,7 +986,7 @@ IDENTITY NARRATIVES (important):
         },
         {
           role: "user",
-          content: `MEMORY GRAPH ENTITIES:\n${graphSummary}\n\nCONNECTIONS:\n${connectionSummary}`,
+          content: `MEMORY GRAPH ENTITIES:\n${graphSummary}\n\nCONNECTIONS:\n${connectionSummary}\n\nEXISTING NARRATIVES:\n${existingNarrativeSummary}`,
         },
       ],
       { maxTokens: 2048, temperature: 0.4 }
@@ -940,16 +1016,151 @@ IDENTITY NARRATIVES (important):
 }
 
 // ============================================================
-// 5. RETRIEVAL — Build memory context for AI interactions
+// 5. AUTO-CONSOLIDATION & PRUNING
 // ============================================================
 
 /**
+ * Debounced auto-consolidation. Runs consolidation at most once every 4 hours per user.
+ * Call this after persisting new entities to keep narratives fresh.
+ */
+const consolidationTimestamps = new Map<string, number>();
+const CONSOLIDATION_COOLDOWN = 4 * 60 * 60 * 1000; // 4 hours
+
+export async function maybeConsolidate(userId: string): Promise<void> {
+  const lastRun = consolidationTimestamps.get(userId) || 0;
+  if (Date.now() - lastRun < CONSOLIDATION_COOLDOWN) return;
+
+  const entities = await storage.getMemoryEntities(userId);
+  if (entities.length < 5) return;
+
+  consolidationTimestamps.set(userId, Date.now());
+
+  try {
+    await consolidateMemories(userId);
+    await pruneMemoryGraph(userId);
+  } catch (err) {
+    console.error("[MemoryGraph] Auto-consolidation failed:", err);
+  }
+}
+
+/**
+ * Prune stale and low-signal entities from the memory graph.
+ * Deactivates entities whose effective importance has decayed below threshold.
+ * Identity entities are protected unless truly dead (1+ year stale).
+ */
+export async function pruneMemoryGraph(userId: string): Promise<number> {
+  const entities = await storage.getMemoryEntities(userId);
+  let deactivated = 0;
+
+  for (const entity of entities) {
+    if (entity.active !== 1) continue;
+
+    const eff = effectiveImportance(entity);
+    const lastUpdated = entity.lastUpdated || entity.createdAt || new Date();
+    const daysSinceUpdate = (Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24);
+
+    const isIdentity = entity.category === "identity" ||
+      ["preference", "interest", "like", "dislike", "value", "personality_trait", "communication_style"].includes(entity.entityType);
+
+    // Never prune identity entities unless they're over a year stale
+    if (isIdentity && daysSinceUpdate < 365) continue;
+
+    const shouldDeactivate =
+      (eff < 0.15 && daysSinceUpdate > 30) ||           // Low importance and stale
+      (entity.entityType === "state" && daysSinceUpdate > 60) || // Old transient states
+      (entity.confidence < 0.2 && daysSinceUpdate > 45);        // Low confidence and aging
+
+    if (shouldDeactivate) {
+      await storage.updateMemoryEntity(userId, entity.id, { active: 0 });
+      deactivated++;
+    }
+  }
+
+  if (deactivated > 0) {
+    console.log(`[MemoryGraph] Pruned ${deactivated} stale entities for user ${userId}`);
+  }
+  return deactivated;
+}
+
+// ============================================================
+// 6. TIME DECAY — Proper weighting based on recency and type
+// ============================================================
+
+/**
+ * Calculate effective importance with time decay.
+ * Identity entities (preferences, values, traits) decay very slowly.
+ * Transient states (mood episodes, stress spikes) decay fast.
+ * Patterns and triggers sit in between.
+ */
+export function effectiveImportance(entity: MemoryEntity): number {
+  const lastUpdated = entity.lastUpdated || entity.createdAt || new Date();
+  const daysSinceUpdate = (Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24);
+
+  const isIdentity = entity.category === "identity" ||
+    ["preference", "interest", "like", "dislike", "value", "personality_trait", "communication_style"].includes(entity.entityType);
+  const isGoal = entity.entityType === "goal";
+  const isTransient = entity.entityType === "state" || entity.entityType === "situation";
+
+  let halfLifeDays: number;
+  if (isIdentity) halfLifeDays = 180;      // 6 months — identity is stable
+  else if (isGoal) halfLifeDays = 90;       // 3 months — goals shift
+  else if (isTransient) halfLifeDays = 14;  // 2 weeks — states are fleeting
+  else halfLifeDays = 45;                    // patterns, triggers: ~6 weeks
+
+  const decayFactor = Math.pow(0.5, daysSinceUpdate / halfLifeDays);
+  return entity.importance * decayFactor;
+}
+
+/**
+ * Calculate effective narrative confidence with time decay.
+ * Narratives go stale after ~1 month without consolidation refresh.
+ */
+function effectiveNarrativeConfidence(narrative: MemoryNarrative): number {
+  const lastUpdated = narrative.lastUpdated || narrative.createdAt || new Date();
+  const daysSinceUpdate = (Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24);
+  const halfLifeDays = 30;
+  const decayFactor = Math.pow(0.5, daysSinceUpdate / halfLifeDays);
+  return narrative.confidence * decayFactor;
+}
+
+// ============================================================
+// 6. RETRIEVAL — Build memory context as natural prose
+// ============================================================
+
+/**
+ * Render a connection as natural language (no arrows or technical syntax).
+ */
+function connectionToNaturalLanguage(
+  source: MemoryEntity | undefined,
+  target: MemoryEntity | undefined,
+  relationType: string
+): string | null {
+  if (!source || !target) return null;
+  const s = source.name.replace(/_/g, " ").replace(/^(trigger|person|goal|pattern|state):?\s?/, "");
+  const t = target.name.replace(/_/g, " ").replace(/^(trigger|person|goal|pattern|state):?\s?/, "");
+  switch (relationType) {
+    case "causes": return `${s} tends to cause ${t}`;
+    case "correlates_with": return `${s} and ${t} tend to go together`;
+    case "triggers": return `${s} can trigger ${t}`;
+    case "alleviates": return `${s} helps with ${t}`;
+    case "worsens": return `${s} makes ${t} worse`;
+    case "improves": return `${s} improves ${t}`;
+    case "precedes": return `${s} usually comes before ${t}`;
+    case "influences": return `${s} influences ${t}`;
+    case "contradicts": return `${s} conflicts with ${t}`;
+    default: return `${s} is connected to ${t}`;
+  }
+}
+
+/**
  * Build the memory graph context section for AI prompts.
- * This replaces raw data dumps with genuine understanding.
+ * Outputs natural prose — no section headers, no technical syntax.
+ * The AI should read this as internalized knowledge, not a data report.
  */
 export async function buildMemoryContext(
   userId: string,
-  mode: "orbit" | "work" | "medical"
+  mode: "orbit" | "work" | "medical",
+  conversationHint?: string
 ): Promise<string> {
   const [entities, connections, narratives] = await Promise.all([
     storage.getMemoryEntities(userId),
@@ -961,142 +1172,149 @@ export async function buildMemoryContext(
     return "";
   }
 
-  let sections: string[] = [];
+  // --- Topic-aware relevance boosting ---
+  const hint = (conversationHint || "").toLowerCase();
+  const topicSignals: Record<string, RegExp> = {
+    wellness: /mood|energy|sleep|stress|tired|exhausted|feeling|pain|health|anxious|depress/,
+    work: /work|meeting|email|teams|project|deadline|boss|colleague|office|zoho/,
+    medical: /doctor|medication|diagnosis|pain|symptom|appointment|medical|hospital|test/,
+    finance: /money|budget|spend|loan|salary|expense|save|debt|payment|income/,
+    career: /career|job|goal|vision|skill|learn|interview|promotion|resume|course/,
+    identity: /who am i|about me|preference|like|value|personality/,
+    social: /friend|family|wife|husband|mother|father|brother|sister|son|daughter|relationship/,
+  };
+  const activeTopics = new Set(
+    Object.entries(topicSignals)
+      .filter(([, regex]) => regex.test(hint))
+      .map(([topic]) => topic)
+  );
+  const hasTopicFocus = activeTopics.size > 0;
 
-  // Section 1: Narratives (the highest-value content)
+  // Helper: boost entities matching active topics
+  const topicRelevance = (e: MemoryEntity): number => {
+    if (!hasTopicFocus) return 1;
+    return activeTopics.has(e.category) ? 1.5 : 0.7;
+  };
+
+  const paragraphs: string[] = [];
+
+  // --- 1. Synthesized narratives (backbone of understanding) ---
   if (narratives.length > 0) {
-    // Filter narratives by mode relevance
     const relevantNarratives = narratives.filter((n) => {
       if (n.domain === "cross_domain") return true;
-      if (mode === "orbit") return true; // Orbit sees everything
+      if (mode === "orbit") return true;
       if (mode === "work") return ["work", "career", "wellness"].includes(n.domain);
       if (mode === "medical") return ["medical", "wellness"].includes(n.domain);
       return false;
     });
 
-    if (relevantNarratives.length > 0) {
-      const narrativeBlock = relevantNarratives
-        .sort((a, b) => b.confidence - a.confidence)
-        .slice(0, 8)
-        .map((n) => `- [${n.domain}] ${n.narrative}`)
-        .join("\n");
-      sections.push(`## Deep Understanding\n${narrativeBlock}`);
+    const scoredNarratives = relevantNarratives
+      .map((n) => ({
+        ...n,
+        score: effectiveNarrativeConfidence(n) * (hasTopicFocus && activeTopics.has(n.domain) ? 1.5 : 1),
+      }))
+      .filter((n) => n.score > 0.15)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6);
+
+    if (scoredNarratives.length > 0) {
+      paragraphs.push(scoredNarratives.map((n) => n.narrative).join(" "));
     }
   }
 
-  // Section 2: Active patterns (high importance entities)
-  const patterns = entities
-    .filter((e) => e.entityType === "pattern" && e.active === 1)
-    .sort((a, b) => b.importance - a.importance)
-    .slice(0, 8);
-
-  if (patterns.length > 0) {
-    const patternBlock = patterns
-      .map((p) => `- ${p.summary} (confidence: ${(p.confidence * 100).toFixed(0)}%)`)
-      .join("\n");
-    sections.push(`## Detected Patterns\n${patternBlock}`);
-  }
-
-  // Section 3: Known triggers
-  const triggers = entities
-    .filter((e) => e.entityType === "trigger" && e.active === 1)
-    .sort((a, b) => b.importance - a.importance)
-    .slice(0, 5);
-
-  if (triggers.length > 0) {
-    const triggerBlock = triggers
-      .map((t) => `- ${t.summary}`)
-      .join("\n");
-    sections.push(`## Known Triggers\n${triggerBlock}`);
-  }
-
-  // Section 4: Key connections (the "because" layer)
+  // --- 2. Known connections as natural knowledge ---
   const strongConnections = connections
     .filter((c) => c.strength >= 0.5 && c.occurrences >= 2)
     .sort((a, b) => b.strength * b.occurrences - a.strength * a.occurrences)
-    .slice(0, 8);
+    .slice(0, 6);
 
   if (strongConnections.length > 0) {
-    const connBlock = strongConnections
+    const connSentences = strongConnections
       .map((c) => {
         const source = entities.find((e) => e.id === c.sourceId);
         const target = entities.find((e) => e.id === c.targetId);
-        if (!source || !target) return null;
-        return `- ${source.name} → [${c.relationType}] → ${target.name} (strength: ${(c.strength * 100).toFixed(0)}%, observed ${c.occurrences}x)`;
+        return connectionToNaturalLanguage(source, target, c.relationType);
       })
-      .filter(Boolean)
-      .join("\n");
-    sections.push(`## Causal Map\n${connBlock}`);
+      .filter(Boolean);
+    if (connSentences.length > 0) {
+      paragraphs.push(connSentences.join(". ") + ".");
+    }
   }
 
-  // Section 5: People in their life (for orbit and work modes)
+  // --- 3. Known triggers (things to be vigilant about) ---
+  const triggers = entities
+    .filter((e) => e.entityType === "trigger" && e.active === 1)
+    .sort((a, b) => effectiveImportance(b) * topicRelevance(b) - effectiveImportance(a) * topicRelevance(a))
+    .slice(0, 4);
+
+  if (triggers.length > 0) {
+    const triggerParts = triggers.map((t) => t.summary.replace(/^Trigger:\s*/i, "").toLowerCase());
+    paragraphs.push(`Known triggers: ${triggerParts.join(", ")}.`);
+  }
+
+  // --- 4. People in their life ---
   if (mode === "orbit" || mode === "work") {
     const people = entities
       .filter((e) => e.entityType === "person" && e.active === 1)
-      .sort((a, b) => b.importance - a.importance)
-      .slice(0, 6);
+      .sort((a, b) => effectiveImportance(b) - effectiveImportance(a))
+      .slice(0, 5);
 
     if (people.length > 0) {
-      const peopleBlock = people
-        .map((p) => `- ${p.name}: ${p.summary}`)
-        .join("\n");
-      sections.push(`## Key People\n${peopleBlock}`);
+      const peopleParts = people.map((p) => {
+        const name = p.name.replace(/^person:/, "").replace(/_/g, " ");
+        return `${name} (${p.summary})`;
+      });
+      paragraphs.push(`People: ${peopleParts.join("; ")}.`);
     }
   }
 
-  // Section 6: Current goals and aspirations
+  // --- 5. Goals & aspirations ---
   const goals = entities
     .filter((e) => e.entityType === "goal" && e.active === 1)
-    .sort((a, b) => b.importance - a.importance)
-    .slice(0, 5);
+    .sort((a, b) => effectiveImportance(b) - effectiveImportance(a))
+    .slice(0, 4);
 
   if (goals.length > 0) {
-    const goalBlock = goals
-      .map((g) => `- ${g.summary}`)
-      .join("\n");
-    sections.push(`## Goals & Aspirations\n${goalBlock}`);
+    const goalParts = goals.map((g) => g.summary);
+    paragraphs.push(`Current goals: ${goalParts.join("; ")}.`);
   }
 
-  // Section 7: Identity markers — personal profile from conversations and data
+  // --- 6. Identity (who they are) woven as prose ---
   const personalTypes = new Set(["preference", "interest", "like", "dislike", "value", "personality_trait", "communication_style", "insight"]);
   const identity = entities
     .filter((e) => (personalTypes.has(e.entityType) || e.category === "identity") && e.active === 1)
-    .sort((a, b) => b.importance - a.importance)
-    .slice(0, 10);
+    .sort((a, b) => effectiveImportance(b) - effectiveImportance(a))
+    .slice(0, 8);
 
-  if (identity.length > 0) {
-    // Group by type for cleaner context
-    const likes = identity.filter((e) => e.entityType === "like" || e.entityType === "interest");
-    const dislikes = identity.filter((e) => e.entityType === "dislike");
-    const values = identity.filter((e) => e.entityType === "value" || e.entityType === "personality_trait");
-    const prefs = identity.filter((e) => e.entityType === "preference" || e.entityType === "communication_style");
-    const insights = identity.filter((e) => e.entityType === "insight" && e.category === "identity");
-    const allOther = identity.filter((e) => !likes.includes(e) && !dislikes.includes(e) && !values.includes(e) && !prefs.includes(e) && !insights.includes(e));
-
-    const lines: string[] = [];
-    for (const e of [...likes, ...dislikes, ...values, ...prefs, ...insights, ...allOther]) {
-      lines.push(`- [${e.entityType}] ${e.summary}`);
-    }
-    // Deduplicate in case of overlap
-    const uniqueLines = [...new Set(lines)];
-    sections.push(`## Who They Are\n${uniqueLines.join("\n")}`);
-
-    // Also include identity narratives if they exist
-    const identityNarratives = narratives.filter((n) => n.domain === "identity");
-    if (identityNarratives.length > 0) {
-      const narBlock = identityNarratives
-        .sort((a, b) => b.confidence - a.confidence)
-        .slice(0, 3)
-        .map((n) => `- ${n.narrative}`)
-        .join("\n");
-      sections.push(`## Personal Profile Summary\n${narBlock}`);
-    }
+  // Include identity narratives first (they're already prose)
+  const identityNarratives = narratives.filter((n) => n.domain === "identity" && effectiveNarrativeConfidence(n) > 0.15);
+  if (identityNarratives.length > 0) {
+    paragraphs.push(identityNarratives.sort((a, b) => effectiveNarrativeConfidence(b) - effectiveNarrativeConfidence(a)).slice(0, 2).map((n) => n.narrative).join(" "));
+  } else if (identity.length > 0) {
+    // Fallback: build identity from entities if no narratives yet
+    const parts = identity.map((e) => e.summary);
+    paragraphs.push(parts.join(". ") + ".");
   }
 
-  if (sections.length === 0) return "";
+  // --- 7. Current situation markers (transient states, recent situations) ---
+  const recentStates = entities
+    .filter((e) => (e.entityType === "state" || e.entityType === "situation") && e.active === 1)
+    .sort((a, b) => {
+      const aDate = new Date(a.lastUpdated || a.createdAt || 0).getTime();
+      const bDate = new Date(b.lastUpdated || b.createdAt || 0).getTime();
+      return bDate - aDate;
+    })
+    .slice(0, 3);
+
+  if (recentStates.length > 0) {
+    const situationParts = recentStates.map((s) => s.summary);
+    paragraphs.push(`Right now: ${situationParts.join(". ")}.`);
+  }
+
+  if (paragraphs.length === 0) return "";
 
   return `<MEMORY_GRAPH>
-${sections.join("\n\n")}
+${paragraphs.join("\n\n")}
 </MEMORY_GRAPH>`;
 }
 
