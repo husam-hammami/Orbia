@@ -261,6 +261,16 @@ function startBootstrapWatcher(session: ShellSession) {
       }, 800);
     }
 
+    if (/Yes, I trust this folder|trust this folder|Quick safety check/i.test(recentClean) && !(state as any)._trustSent) {
+      (state as any)._trustSent = true;
+      setTimeout(() => {
+        if (session.alive && session.process.stdin) {
+          session.process.stdin.write("1\n");
+          console.log(`[bootstrap] "${session.agentName}" — auto-trusted folder`);
+        }
+      }, 500);
+    }
+
     if (state.phase === "waiting_for_prompts" || state.phase === "launching") {
       for (const pattern of ENTER_PATTERNS) {
         if (pattern.test(recentClean) && state.entersSent < MAX_ENTERS) {
