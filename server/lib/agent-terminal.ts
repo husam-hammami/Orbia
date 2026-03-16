@@ -214,6 +214,15 @@ function startBootstrapWatcher(session: ShellSession) {
       console.log(`[bootstrap] "${session.agentName}" — Claude Code detected, watching for prompts`);
     }
 
+    if (/Select login method|login method:/i.test(recentClean) && state.phase !== "done") {
+      setTimeout(() => {
+        if (session.alive && session.process.stdin) {
+          session.process.stdin.write("1\n");
+          console.log(`[bootstrap] "${session.agentName}" — auto-selected login method 1 (Claude subscription)`);
+        }
+      }, 500);
+    }
+
     if (state.phase === "waiting_for_prompts" || state.phase === "launching") {
       for (const pattern of ENTER_PATTERNS) {
         if (pattern.test(recentClean) && state.entersSent < MAX_ENTERS) {
