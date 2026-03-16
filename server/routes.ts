@@ -4784,13 +4784,14 @@ ${unifiedContext}${extraMedContext}`;
       const { getAuthUrl } = await import("./lib/microsoft-graph");
       const { randomBytes } = await import("crypto");
       const oauthState = randomBytes(32).toString("hex");
-      const expiresAt = Date.now() + 10 * 60 * 1000;
+      const expiresAt = String(Date.now() + 10 * 60 * 1000);
       await db.execute(sql`
         INSERT INTO oauth_states (state, user_id, expires_at) VALUES (${oauthState}, ${req.session.userId!}, ${expiresAt})
       `);
       const authUrl = getAuthUrl(oauthState);
       res.json({ authUrl });
     } catch (error: any) {
+      console.error("[microsoft-auth] Error:", error?.message || error);
       res.status(500).json({ error: "Failed to initiate authentication" });
     }
   });
