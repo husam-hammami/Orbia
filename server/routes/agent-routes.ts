@@ -108,19 +108,32 @@ function monitorTerminalTask(agentId: string, taskId: string, userId: string) {
   let outputAccumulator = "";
   let lastOutputTime = Date.now();
   let promptReturnCount = 0;
+  let lastPromptTime = 0;
+
+  const SHELL_PROMPT_RE = /\$\s*$/m;
+  const TASK_DONE_RE = /Task completed|All done|✓\s*Done|completed successfully/i;
 
   const unsub = subscribeToOutput(agentId, (data) => {
     outputAccumulator += data;
     lastOutputTime = Date.now();
-    if (data.includes("$ ") && outputAccumulator.length > 100) {
-      promptReturnCount++;
+
+    const stripped = data.replace(/\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07/g, "");
+    if (TASK_DONE_RE.test(stripped)) {
+      promptReturnCount += 3;
+      lastPromptTime = Date.now();
+    } else if (SHELL_PROMPT_RE.test(stripped) && outputAccumulator.length > 500) {
+      const timeSinceLastPrompt = Date.now() - lastPromptTime;
+      if (timeSinceLastPrompt > 5000) {
+        promptReturnCount++;
+        lastPromptTime = Date.now();
+      }
     }
   });
 
   const checkInterval = setInterval(async () => {
     const timeSinceOutput = Date.now() - lastOutputTime;
 
-    const hasFinished = (promptReturnCount > 0 && timeSinceOutput > 15000) ||
+    const hasFinished = (promptReturnCount >= 3 && timeSinceOutput > 30000) ||
       timeSinceOutput > 600000;
 
     if (hasFinished) {

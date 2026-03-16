@@ -166,6 +166,7 @@ function startBootstrapWatcher(session: ShellSession) {
     }
   };
 
+  (state as any)._listener = processOutput;
   session.outputListeners.add(processOutput);
 
   state.timeoutHandle = setTimeout(() => {
@@ -183,7 +184,12 @@ function startBootstrapWatcher(session: ShellSession) {
 
 function cleanupBootstrap(agentId: string) {
   const state = bootstrapStates.get(agentId);
-  if (state?.timeoutHandle) clearTimeout(state.timeoutHandle);
+  if (!state) return;
+  if (state.timeoutHandle) clearTimeout(state.timeoutHandle);
+  const session = shells.get(agentId);
+  if (session && (state as any)._listener) {
+    session.outputListeners.delete((state as any)._listener);
+  }
   bootstrapStates.delete(agentId);
 }
 
@@ -273,6 +279,8 @@ function startPermissionWatcher(session: ShellSession, mode: "manual" | "bypass"
     if (state.accumulated.length > 8000) {
       state.accumulated = state.accumulated.slice(-4000);
     }
+
+    if (!session.bootstrapComplete) return;
 
     const clean = stripAnsi(data);
     const now = Date.now();
@@ -590,10 +598,13 @@ export function setupAgentTerminalWS(server: Server) {
     console.log(`[agent-terminal] Client connected to "${agent.name}" (${agentId})`);
     const shellSession = await ensureShell(agentId, agent.name, agent.repoUrl, agent.repoBranch);
 
-    stopPermissionWatcher(agentId);
+    const existingWatcher = permissionWatchers.get(agentId);
     const mode = (agent.permissionMode || "manual") as "manual" | "bypass" | "auto";
     const notify = !!(agent.notifyOnComplete);
-    startPermissionWatcher(shellSession, mode, notify);
+    if (!existingWatcher || existingWatcher.mode !== mode || existingWatcher.notifyOnComplete !== notify) {
+      stopPermissionWatcher(agentId);
+      startPermissionWatcher(shellSession, mode, notify);
+    }
 
     shellSession.clients.add(ws);
 
