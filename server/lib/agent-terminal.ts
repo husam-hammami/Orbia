@@ -766,7 +766,7 @@ async function createShell(agentId: string, agentName: string, repoUrl: string, 
 
     session.outputBuffer.push(text);
     if (session.outputBuffer.length > MAX_BUFFER_LINES) {
-      session.outputBuffer = session.outputBuffer.slice(-MAX_BUFFER_LINES / 2);
+      session.outputBuffer = session.outputBuffer.slice(-MAX_BUFFER_LINES);
     }
     for (const ws of session.clients) {
       if (ws.readyState === WebSocket.OPEN) ws.send(text);

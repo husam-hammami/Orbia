@@ -63,12 +63,12 @@ agentProcessManager.on("agent:completed", async (data) => {
     if (success) {
       await storage.incrementAgentTasksCompleted(data.agentId);
     }
-    const agent = await storage.getAgentProfile(data.agentId);
-    if (agent?.notifyOnComplete && agent.userId) {
+    const [agentRow] = await db.select().from(agentProfiles).where(eq(agentProfiles.id, data.agentId)).limit(1);
+    if (agentRow?.notifyOnComplete && agentRow.userId) {
       const { sendPushToUser } = await import("../lib/push-notify");
       const taskName = task?.name || "Task";
-      sendPushToUser(agent.userId, {
-        title: `${agent.name}: ${success ? "Done" : "Failed"}`,
+      sendPushToUser(agentRow.userId, {
+        title: `${agentRow.name}: ${success ? "Done" : "Failed"}`,
         body: success ? `${taskName} completed successfully` : `${taskName} failed (exit ${data.exitCode})`,
         url: `/agents`,
       }).catch(() => {});
@@ -175,6 +175,18 @@ function monitorTerminalTask(agentId: string, taskId: string, userId: string) {
             type: "notification",
             message: timedOut ? "Task timed out" : "Task completed successfully",
           });
+        }
+
+        const [agentRow] = await db.select().from(agentProfiles).where(eq(agentProfiles.id, agentId)).limit(1);
+        if (agentRow?.notifyOnComplete && agentRow.userId) {
+          const { sendPushToUser } = await import("../lib/push-notify");
+          const taskInfo = await storage.getAgentTask(taskId);
+          const taskName = taskInfo?.name || "Task";
+          sendPushToUser(agentRow.userId, {
+            title: `${agentRow.name}: ${timedOut ? "Timed Out" : "Done"}`,
+            body: timedOut ? `${taskName} timed out after 10 minutes` : `${taskName} completed successfully`,
+            url: `/agents`,
+          }).catch(() => {});
         }
 
         if (!timedOut && hasPendingFollowUp(agentId)) {
@@ -1006,15 +1018,18 @@ If no test script exists, tell the user and suggest what testing approach would 
 
 Execute the test command now via [TERMINAL_CMD] and explain what you're running.`;
     } else if (action === "push_merge") {
-      userMessage = `Push all changes to the remote repository. Follow this sequence:
+      userMessage = `Push all changes and merge to the main branch. Follow this sequence:
 
 1. Check for uncommitted changes (git status)
 2. If there are uncommitted changes, stage and commit them with a descriptive commit message based on what the terminal history shows was done
 3. Push to origin on the current branch
-4. Report: commit hash, branch name, files changed, success/failure
+4. If the current branch is NOT main/master, attempt to merge into main:
+   a. git checkout main && git merge <branch> && git push origin main
+   b. If merge conflicts arise, report them clearly and stop
+5. Report: commit hash, branch name, files changed, merge status, success/failure
 
-Execute this now. Use a single chained command via [TERMINAL_CMD].
-If there's nothing to push, say so.`;
+Execute this now. Use chained commands via [TERMINAL_CMD].
+If there's nothing to push, say so. If already on main, just push.`;
     } else if (action === "chat" && safeMessage) {
       userMessage = safeMessage;
     } else {

@@ -1973,7 +1973,7 @@ function ProjectPane({ agent }: { agent: Agent }) {
                   {[
                     { action: "review", icon: Code, label: "Review" },
                     { action: "test", icon: TestTube, label: "Test" },
-                    { action: "push_merge", icon: ArrowUpFromLine, label: "Push" },
+                    { action: "push_merge", icon: ArrowUpFromLine, label: "Push & Merge" },
                   ].map(({ action, icon: Icon, label }) => (
                     <button
                       key={action}
