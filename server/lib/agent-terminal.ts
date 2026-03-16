@@ -100,17 +100,22 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
     `\x1b[90mClaude Code launching automatically...\x1b[0m\r\n\r\n`;
   session.outputBuffer.push(welcome);
 
+  const sttyRegex = /^.*stty cols \d+ rows \d+ 2>\/dev\/null\r?\n?/gm;
+
   const handleOutput = (data: Buffer) => {
-    const text = data.toString();
-    session.outputBuffer.push(text);
+    let text = data.toString();
+    const filtered = text.replace(sttyRegex, "");
+    if (filtered.length === 0) return;
+
+    session.outputBuffer.push(filtered);
     if (session.outputBuffer.length > MAX_BUFFER_LINES) {
       session.outputBuffer = session.outputBuffer.slice(-MAX_BUFFER_LINES / 2);
     }
     for (const ws of session.clients) {
-      if (ws.readyState === WebSocket.OPEN) ws.send(text);
+      if (ws.readyState === WebSocket.OPEN) ws.send(filtered);
     }
     for (const listener of session.outputListeners) {
-      try { listener(text); } catch {}
+      try { listener(filtered); } catch {}
     }
   };
 
@@ -264,20 +269,25 @@ export function setupAgentTerminalWS(server: Server) {
     if (history) ws.send(history);
 
     let resizeTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastCols = 0;
+    let lastRows = 0;
 
     ws.on("message", (msg: Buffer | string) => {
       const data = msg.toString();
       try {
         const parsed = JSON.parse(data);
         if (parsed.type === "resize" && parsed.cols && parsed.rows) {
+          const cols = Math.max(10, Math.min(500, parsed.cols));
+          const rows = Math.max(5, Math.min(200, parsed.rows));
+          if (cols === lastCols && rows === lastRows) return;
           if (resizeTimer) clearTimeout(resizeTimer);
           resizeTimer = setTimeout(() => {
             if (shellSession.alive && shellSession.process.stdin) {
-              const cols = Math.max(10, Math.min(500, parsed.cols));
-              const rows = Math.max(5, Math.min(200, parsed.rows));
-              shellSession.process.stdin.write(` stty cols ${cols} rows ${rows} 2>/dev/null\n`);
+              lastCols = cols;
+              lastRows = rows;
+              shellSession.process.stdin.write(`stty cols ${cols} rows ${rows} 2>/dev/null\r`);
             }
-          }, 300);
+          }, 500);
           return;
         }
         if (parsed.type === "input") {
