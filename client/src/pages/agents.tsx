@@ -1683,6 +1683,59 @@ function ProjectPane({ agent }: { agent: Agent }) {
     setPipelineRunning(false);
   }
 
+  const [notifyOn, setNotifyOn] = useState(!!(agent.notifyOnComplete));
+  const updateNotifySetting = useCallback(async (val: boolean) => {
+    try {
+      await fetch(`${API_BASE_URL}/api/agents/${agent.id}/settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ notifyOnComplete: val }),
+      });
+      queryClient.invalidateQueries({ queryKey: ["agents"] });
+    } catch {}
+  }, [agent.id, queryClient]);
+
+  const handleNotifyToggle = useCallback(async () => {
+    const newVal = !notifyOn;
+    if (newVal && "Notification" in window && Notification.permission !== "granted") {
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") {
+        toast.error("Please allow notifications in your browser settings");
+        return;
+      }
+    }
+    if (newVal && "serviceWorker" in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.register("/sw.js");
+        const vapidRes = await fetch(`${API_BASE_URL}/api/push/vapid-key`);
+        const { publicKey } = await vapidRes.json();
+        if (publicKey) {
+          const padding = "=".repeat((4 - (publicKey.length % 4)) % 4);
+          const base64 = (publicKey + padding).replace(/-/g, "+").replace(/_/g, "/");
+          const raw = atob(base64);
+          const keyArray = new Uint8Array(raw.length);
+          for (let i = 0; i < raw.length; i++) keyArray[i] = raw.charCodeAt(i);
+          const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyArray });
+          await fetch(`${API_BASE_URL}/api/push/subscribe`, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(sub.toJSON()) });
+        }
+      } catch (e) { console.warn("Push subscription failed:", e); }
+    }
+    if (!newVal && "serviceWorker" in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+        const sub = await reg?.pushManager?.getSubscription();
+        if (sub) {
+          await fetch(`${API_BASE_URL}/api/push/unsubscribe`, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ endpoint: sub.endpoint }) });
+          await sub.unsubscribe();
+        }
+      } catch (e) { console.warn("Push unsubscribe failed:", e); }
+    }
+    setNotifyOn(newVal);
+    updateNotifySetting(newVal);
+    toast.success(newVal ? "Will notify when done" : "Notifications off");
+  }, [notifyOn, updateNotifySetting]);
+
   const [orbitLoading, setOrbitLoading] = useState(false);
   const [orbitResponse, setOrbitResponse] = useState("");
   const [orbitChat, setOrbitChat] = useState("");
