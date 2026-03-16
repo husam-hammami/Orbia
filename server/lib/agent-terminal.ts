@@ -173,11 +173,33 @@ function startBootstrapWatcher(session: ShellSession) {
   const CLAUDE_READY_PATTERN = /[❯>]\s*$/;
   const CLAUDE_RUNNING = /Claude Code v|Opus|Sonnet|model:/i;
   const YES_NO_PROMPT = /\(Y\)es\s*\/\s*\(N\)o|\(y\/n\)|\[Y\/n\]/i;
-  const LOGIN_SUCCESS_PATTERN = /Login successful|Logged in as|Authentication successful/i;
+  const LOGIN_SUCCESS_PATTERN = /Login successful|Logged in as|Authentication successful|successfully authenticated|Welcome back|signed in/i;
 
   const MAX_ENTERS = 8;
   const BOOTSTRAP_TIMEOUT = 120000;
   let credentialsSaved = false;
+
+  let credFileWatcher: ReturnType<typeof setInterval> | null = null;
+  if (session.userId) {
+    const credFilePath = path.join(getClaudeConfigDir(session.userId), ".credentials.json");
+    credFileWatcher = setInterval(async () => {
+      if (credentialsSaved) {
+        if (credFileWatcher) clearInterval(credFileWatcher);
+        return;
+      }
+      try {
+        if (fs.existsSync(credFilePath) && fs.statSync(credFilePath).size > 10) {
+          credentialsSaved = true;
+          if (credFileWatcher) clearInterval(credFileWatcher);
+          console.log(`[bootstrap] "${session.agentName}" — .credentials.json detected on disk, saving to DB...`);
+          await saveClaudeCredentials(session.userId!);
+        }
+      } catch {}
+    }, 3000);
+    setTimeout(() => {
+      if (credFileWatcher) clearInterval(credFileWatcher);
+    }, BOOTSTRAP_TIMEOUT);
+  }
 
   const processOutput = (data: string) => {
     if (state.phase === "done") return;
@@ -293,6 +315,7 @@ function startBootstrapWatcher(session: ShellSession) {
   };
 
   (state as any)._listener = processOutput;
+  (state as any)._credFileWatcher = credFileWatcher;
   session.outputListeners.add(processOutput);
 
   state.timeoutHandle = setTimeout(() => {
@@ -312,6 +335,7 @@ function cleanupBootstrap(agentId: string) {
   const state = bootstrapStates.get(agentId);
   if (!state) return;
   if (state.timeoutHandle) clearTimeout(state.timeoutHandle);
+  if ((state as any)._credFileWatcher) clearInterval((state as any)._credFileWatcher);
   const session = shells.get(agentId);
   if (session && (state as any)._listener) {
     session.outputListeners.delete((state as any)._listener);
