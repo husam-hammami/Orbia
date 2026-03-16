@@ -962,7 +962,14 @@ export function registerAgentRoutes(app: Express) {
     if (agent.currentTaskSummary) taskContext += `Current Task: ${agent.currentTaskSummary}\n`;
     taskContext += `Agent Status: ${agent.status || "idle"}\n`;
 
-    const terminalIdle = !cleanTerminal.trim() || /[❯\$>]\s*$/.test(cleanTerminal.trim());
+    const trimmed = cleanTerminal.trim();
+    const terminalIdle = !trimmed
+      || /[❯\$>]\s*$/.test(trimmed)
+      || /bypass permissions/i.test(trimmed.slice(-200))
+      || /Try "edit/i.test(trimmed.slice(-200))
+      || /\(shift\+tab to cycle\)/i.test(trimmed.slice(-200))
+      || /Voice mode is now available/i.test(trimmed.slice(-300))
+      || /Welcome back/i.test(trimmed.slice(-500));
 
     const systemPrompt = `You are Orbit — the AI orchestrator and supervisor for the "${agent.name}" agent workspace within Orbia.
 You are NOT a passive reporter. You are an ACTIVE operator. You read the full terminal history, understand what the CLI agent has been doing, and you ACT.
@@ -986,10 +993,12 @@ Examples:
 - Run tests: [TERMINAL_CMD]npm test 2>&1[/TERMINAL_CMD]
 
 RULES:
-- ${terminalIdle ? "The terminal is IDLE — you can send commands." : "The terminal is BUSY — do NOT send commands now. Report what it's doing and wait."}
-- When an action requires execution (push, test, review with commands), DO IT. Don't ask for permission.
+- ${terminalIdle ? "The terminal is IDLE — you can send commands RIGHT NOW." : "The terminal is BUSY — do NOT send commands now. Report what it's doing and wait."}
+- When an action requires execution (push, test, review with commands), DO IT IMMEDIATELY. Don't ask for permission, don't explain first — EXECUTE.
 - You can send ONE command per response. Chain multiple operations with && if needed.
-- Always explain what you're doing and why.
+- For multi-step requests (e.g. "run plan X, then review, then test, then push"), start with the FIRST step immediately. Execute the command that kicks it off. The user will trigger subsequent steps.
+- When the user asks to run a plan or build something, send the command to Claude Code CLI using: [TERMINAL_CMD]claude -p 'instruction here' --dangerously-skip-permissions[/TERMINAL_CMD]
+- IMPORTANT: Always include exactly ONE [TERMINAL_CMD]...[/TERMINAL_CMD] block when execution is needed. Never skip it.
 
 ## Style
 - Be concise, direct, actionable. Senior architect voice.
@@ -1052,32 +1061,34 @@ If there's nothing to push, say so. If already on main, just push.`;
 
       messages.push({ role: "user", content: userMessage });
 
-      let fullText = "";
       let commandExecuted = false;
       const canExecute = hasActiveSession(agent.id) && terminalIdle;
 
       const originalWrite = res.write.bind(res);
       res.write = ((chunk: any, ...args: any[]) => {
-        const str = typeof chunk === "string" ? chunk : chunk.toString();
-        fullText += str;
-
-        if (canExecute && !commandExecuted && !req.socket.destroyed) {
-          const cmdMatch = fullText.match(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/);
-          if (cmdMatch) {
-            const cmd = cmdMatch[1].trim();
-            if (cmd && cmd.length < 4000) {
-              commandExecuted = true;
-              injectCommand(agent.id, cmd);
-              console.log(`[orbit] Injected command for "${agent.name}": ${cmd.slice(0, 100)}`);
-            }
-          }
-        }
-
         return originalWrite(chunk, ...args);
       }) as any;
 
-      await aiStream(messages, res, { model: MODEL_FAST, maxTokens: 4096 });
+      const fullAIText = await aiStream(messages, res, { model: MODEL_FAST, maxTokens: 4096 });
       res.write = originalWrite;
+
+      if (canExecute && !commandExecuted) {
+        const cmdMatch = fullAIText.match(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/);
+        if (cmdMatch) {
+          const cmd = cmdMatch[1].trim();
+          if (cmd && cmd.length < 4000) {
+            commandExecuted = true;
+            injectCommand(agent.id, cmd);
+            console.log(`[orbit] Injected command for "${agent.name}": ${cmd.slice(0, 100)}`);
+          }
+        }
+      }
+      if (!canExecute && !commandExecuted) {
+        const cmdMatch = fullAIText.match(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/);
+        if (cmdMatch) {
+          console.log(`[orbit] Command found but terminal not idle/active for "${agent.name}" (hasSession=${hasActiveSession(agent.id)}, idle=${terminalIdle})`);
+        }
+      }
       res.write("data: [DONE]\n\n");
       res.end();
     } catch (err: any) {
