@@ -17,6 +17,7 @@ interface ShellSession {
   agentId: string;
   agentName: string;
   repoUrl: string;
+  userId?: string;
   outputBuffer: string[];
   clients: Set<WebSocket>;
   alive: boolean;
@@ -37,6 +38,109 @@ interface BootstrapState {
 const MAX_BUFFER_LINES = 2000;
 const shells = new Map<string, ShellSession>();
 const bootstrapStates = new Map<string, BootstrapState>();
+
+function getClaudeConfigDir(userId?: string): string {
+  if (userId) {
+    return path.join(os.tmpdir(), "claude-config", userId);
+  }
+  return path.join(os.homedir(), ".claude");
+}
+
+const SAFE_FILENAME_RE = /^[a-zA-Z0-9._-]+$/;
+
+function isValidCredentialFilename(filename: string): boolean {
+  return SAFE_FILENAME_RE.test(filename) && !filename.includes("..") && filename.length < 256;
+}
+
+const credentialMutex = new Map<string, Promise<void>>();
+async function withCredentialLock<T>(userId: string, fn: () => Promise<T>): Promise<T> {
+  const prev = credentialMutex.get(userId) || Promise.resolve();
+  let resolve: () => void;
+  const next = new Promise<void>((r) => { resolve = r; });
+  credentialMutex.set(userId, next);
+  await prev;
+  try {
+    return await fn();
+  } finally {
+    resolve!();
+    if (credentialMutex.get(userId) === next) credentialMutex.delete(userId);
+  }
+}
+
+async function saveClaudeCredentials(userId: string): Promise<boolean> {
+  return withCredentialLock(userId, async () => {
+    const configDir = getClaudeConfigDir(userId);
+    if (!fs.existsSync(configDir)) return false;
+
+    const credentialData: Record<string, string> = {};
+    try {
+      const files = fs.readdirSync(configDir);
+      for (const file of files) {
+        if (!isValidCredentialFilename(file)) continue;
+        const filePath = path.join(configDir, file);
+        const stat = fs.statSync(filePath);
+        if (stat.isFile() && stat.size < 50000) {
+          credentialData[file] = fs.readFileSync(filePath, "utf-8");
+        }
+      }
+    } catch (err) {
+      console.error("[claude-creds] Failed to read credential files:", err);
+      return false;
+    }
+
+    if (Object.keys(credentialData).length === 0) return false;
+
+    try {
+      const serialized = JSON.stringify(credentialData);
+      await db.execute(
+        sql`UPDATE users SET claude_credentials = ${serialized} WHERE id = ${userId}`
+      );
+      console.log(`[claude-creds] Saved ${Object.keys(credentialData).length} credential files for user ${userId}`);
+      return true;
+    } catch (err) {
+      console.error("[claude-creds] Failed to save to DB:", err);
+      return false;
+    }
+  });
+}
+
+async function restoreClaudeCredentials(userId: string): Promise<boolean> {
+  return withCredentialLock(userId, async () => {
+    try {
+      const result = await db.execute(
+        sql`SELECT claude_credentials FROM users WHERE id = ${userId}`
+      );
+      const row = (result as any).rows?.[0] || (result as any)[0];
+      if (!row?.claude_credentials) return false;
+
+      const credentialData: Record<string, string> = JSON.parse(row.claude_credentials);
+      const configDir = getClaudeConfigDir(userId);
+
+      if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
+      }
+
+      let restored = 0;
+      for (const [filename, content] of Object.entries(credentialData)) {
+        if (!isValidCredentialFilename(filename)) {
+          console.warn(`[claude-creds] Skipping invalid filename: ${filename}`);
+          continue;
+        }
+        const filePath = path.join(configDir, filename);
+        fs.writeFileSync(filePath, content, "utf-8");
+        restored++;
+      }
+
+      if (restored > 0) {
+        console.log(`[claude-creds] Restored ${restored} credential files for user ${userId}`);
+      }
+      return restored > 0;
+    } catch (err) {
+      console.error("[claude-creds] Failed to restore from DB:", err);
+      return false;
+    }
+  });
+}
 
 const STRIP_ANSI = /\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07/g;
 
@@ -69,9 +173,11 @@ function startBootstrapWatcher(session: ShellSession) {
   const CLAUDE_READY_PATTERN = /[❯>]\s*$/;
   const CLAUDE_RUNNING = /Claude Code v|Opus|Sonnet|model:/i;
   const YES_NO_PROMPT = /\(Y\)es\s*\/\s*\(N\)o|\(y\/n\)|\[Y\/n\]/i;
+  const LOGIN_SUCCESS_PATTERN = /Login successful|Logged in as|Authentication successful/i;
 
   const MAX_ENTERS = 8;
   const BOOTSTRAP_TIMEOUT = 120000;
+  let credentialsSaved = false;
 
   const processOutput = (data: string) => {
     if (state.phase === "done") return;
@@ -130,6 +236,16 @@ function startBootstrapWatcher(session: ShellSession) {
       });
     }
 
+    if (LOGIN_SUCCESS_PATTERN.test(recentClean) && !credentialsSaved && session.userId) {
+      credentialsSaved = true;
+      console.log(`[bootstrap] "${session.agentName}" — login success detected, saving credentials...`);
+      setTimeout(async () => {
+        if (session.userId) {
+          await saveClaudeCredentials(session.userId);
+        }
+      }, 2000);
+    }
+
     if (CLAUDE_READY_PATTERN.test(clean.trim()) && state.phase !== "done") {
       const hasClaudeMarkers = CLAUDE_RUNNING.test(clean) || clean.includes("guest passes") || clean.includes("/passes") || clean.includes("context");
 
@@ -161,6 +277,16 @@ function startBootstrapWatcher(session: ShellSession) {
         }
 
         state.phase = "done";
+
+        if (!credentialsSaved && session.userId) {
+          credentialsSaved = true;
+          setTimeout(async () => {
+            if (session.userId) {
+              await saveClaudeCredentials(session.userId);
+            }
+          }, 3000);
+        }
+
         cleanupBootstrap(agentId);
       }
     }
@@ -366,7 +492,7 @@ function getClaudePath(): string {
 
 const shellCreationLocks = new Map<string, Promise<ShellSession>>();
 
-async function ensureShell(agentId: string, agentName: string, repoUrl: string, repoBranch?: string): Promise<ShellSession> {
+async function ensureShell(agentId: string, agentName: string, repoUrl: string, repoBranch?: string, userId?: string): Promise<ShellSession> {
   const existing = shells.get(agentId);
   if (existing && existing.alive) return existing;
 
@@ -376,7 +502,7 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
     return pendingLock;
   }
 
-  const createPromise = createShell(agentId, agentName, repoUrl, repoBranch);
+  const createPromise = createShell(agentId, agentName, repoUrl, repoBranch, userId);
   shellCreationLocks.set(agentId, createPromise);
   try {
     const session = await createPromise;
@@ -386,7 +512,7 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
   }
 }
 
-async function createShell(agentId: string, agentName: string, repoUrl: string, repoBranch?: string): Promise<ShellSession> {
+async function createShell(agentId: string, agentName: string, repoUrl: string, repoBranch?: string, userId?: string): Promise<ShellSession> {
   const existing = shells.get(agentId);
   if (existing && existing.alive) return existing;
 
@@ -402,10 +528,10 @@ async function createShell(agentId: string, agentName: string, repoUrl: string, 
     try {
       let token: string | undefined;
       try {
-        const agents = await db.execute(sql`SELECT "userId" FROM agent_profiles WHERE id = ${agentId} LIMIT 1`);
+        const agents = await db.execute(sql`SELECT user_id FROM agent_profiles WHERE id = ${agentId} LIMIT 1`);
         const row = (agents as any).rows?.[0] || (agents as any)[0];
-        if (row?.userId) {
-          const conn = await storage.getGithubConnection(row.userId);
+        if (row?.user_id) {
+          const conn = await storage.getGithubConnection(row.user_id);
           if (conn?.accessToken) token = conn.accessToken;
         }
       } catch {}
@@ -425,10 +551,10 @@ async function createShell(agentId: string, agentName: string, repoUrl: string, 
       try {
         let token: string | undefined;
         try {
-          const agents = await db.execute(sql`SELECT "userId" FROM agent_profiles WHERE id = ${agentId} LIMIT 1`);
+          const agents = await db.execute(sql`SELECT user_id FROM agent_profiles WHERE id = ${agentId} LIMIT 1`);
           const row = (agents as any).rows?.[0] || (agents as any)[0];
-          if (row?.userId) {
-            const conn = await storage.getGithubConnection(row.userId);
+          if (row?.user_id) {
+            const conn = await storage.getGithubConnection(row.user_id);
             if (conn?.accessToken) token = conn.accessToken;
           }
         } catch {}
@@ -441,6 +567,18 @@ async function createShell(agentId: string, agentName: string, repoUrl: string, 
     } else {
       repoDir = os.tmpdir();
     }
+  }
+
+  const resolvedUserId = userId || await (async () => {
+    try {
+      const agents = await db.execute(sql`SELECT user_id FROM agent_profiles WHERE id = ${agentId} LIMIT 1`);
+      const row = (agents as any).rows?.[0] || (agents as any)[0];
+      return row?.user_id as string | undefined;
+    } catch { return undefined; }
+  })();
+
+  if (resolvedUserId) {
+    await restoreClaudeCredentials(resolvedUserId);
   }
 
   const claudeBinDir = getClaudePath();
@@ -457,6 +595,14 @@ async function createShell(agentId: string, agentName: string, repoUrl: string, 
   envVars.COLUMNS = "180";
   envVars.LINES = "50";
 
+  if (resolvedUserId) {
+    const userConfigDir = getClaudeConfigDir(resolvedUserId);
+    if (!fs.existsSync(userConfigDir)) {
+      fs.mkdirSync(userConfigDir, { recursive: true });
+    }
+    envVars.CLAUDE_CONFIG_DIR = userConfigDir;
+  }
+
   const shell = spawn("script", ["-qfc", "bash --norc --noprofile -i", "/dev/null"], {
     cwd: repoDir,
     env: envVars,
@@ -468,6 +614,7 @@ async function createShell(agentId: string, agentName: string, repoUrl: string, 
     agentId,
     agentName,
     repoUrl,
+    userId: resolvedUserId,
     outputBuffer: [],
     clients: new Set(),
     alive: true,
@@ -643,7 +790,7 @@ export function setupAgentTerminalWS(server: Server) {
   wss.on("connection", async (ws: WebSocket, _req: IncomingMessage, agent: any) => {
     const agentId = agent.id;
     console.log(`[agent-terminal] Client connected to "${agent.name}" (${agentId})`);
-    const shellSession = await ensureShell(agentId, agent.name, agent.repoUrl, agent.repoBranch);
+    const shellSession = await ensureShell(agentId, agent.name, agent.repoUrl, agent.repoBranch, agent.userId);
 
     const existingWatcher = permissionWatchers.get(agentId);
     const mode = (agent.permissionMode || "manual") as "manual" | "bypass" | "auto";
