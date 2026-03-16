@@ -1608,7 +1608,8 @@ function ProjectPane({ agent }: { agent: Agent }) {
                 const parsed = JSON.parse(data);
                 if (parsed.content) {
                   accumulated += parsed.content;
-                  setOrbitResponse(accumulated);
+                  const display = accumulated.replace(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/g, (_m, cmd) => `\n> ▶ Running: \`${cmd.trim()}\`\n`);
+                  setOrbitResponse(display);
                 }
               } catch {}
             }
@@ -1618,13 +1619,18 @@ function ProjectPane({ agent }: { agent: Agent }) {
         if (lineBuffer.startsWith("data: ") && lineBuffer.slice(6) !== "[DONE]") {
           try {
             const parsed = JSON.parse(lineBuffer.slice(6));
-            if (parsed.content) { accumulated += parsed.content; setOrbitResponse(accumulated); }
+            if (parsed.content) {
+              accumulated += parsed.content;
+              const display = accumulated.replace(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/g, (_m, cmd) => `\n> ▶ Running: \`${cmd.trim()}\`\n`);
+              setOrbitResponse(display);
+            }
           } catch {}
         }
       }
 
       if (requestId === orbitRequestIdRef.current) {
-        setOrbitHistory([...newHistory, { role: "assistant", content: accumulated }]);
+        const cleanHistory = accumulated.replace(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/g, (_m, cmd) => `[Executed: ${cmd.trim()}]`);
+        setOrbitHistory([...newHistory, { role: "assistant", content: cleanHistory }]);
       }
     } catch (err: any) {
       if (err.name !== "AbortError" && requestId === orbitRequestIdRef.current) {

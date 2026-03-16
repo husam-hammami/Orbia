@@ -873,6 +873,8 @@ export function registerAgentRoutes(app: Express) {
     if (agent.currentTaskSummary) taskContext += `Current Task: ${agent.currentTaskSummary}\n`;
     taskContext += `Agent Status: ${agent.status || "idle"}\n`;
 
+    const terminalIdle = !cleanTerminal.trim() || /[❯\$>]\s*$/.test(cleanTerminal.trim());
+
     const systemPrompt = `You are Orbit — an AI analysis companion embedded in the "${agent.name}" agent workspace within Orbia.
 Your role is to be a brilliant, concise technical advisor. You have full context of this agent's repository, terminal activity, and current work.
 
@@ -885,6 +887,24 @@ ${cleanTerminal ? `## Recent Terminal Output\n\`\`\`\n${cleanTerminal}\n\`\`\`\n
 - **Review**: Review uncommitted changes, diffs, recent commits with actionable feedback
 - **Plan**: Generate detailed task plans, suggest next steps, architecture recommendations
 - **Monitor**: Interpret what the CLI agent is doing from terminal output
+- **Execute**: You CAN send commands directly to the terminal. Use the [TERMINAL_CMD]...[/TERMINAL_CMD] tag to inject a command.
+
+## Sending Terminal Commands
+When you need to run something in the terminal (git commands, install dependencies, run Claude Code with a prompt, etc.), wrap the command in tags:
+[TERMINAL_CMD]the command here[/TERMINAL_CMD]
+
+Examples:
+- To run Claude Code with a task: [TERMINAL_CMD]claude -p 'Implement the login page following the plan in docs/plan.md' --dangerously-skip-permissions[/TERMINAL_CMD]
+- To run a git command: [TERMINAL_CMD]git status[/TERMINAL_CMD]
+- To install dependencies: [TERMINAL_CMD]npm install[/TERMINAL_CMD]
+
+IMPORTANT RULES:
+- ${terminalIdle ? "The terminal is IDLE — you can send commands directly." : "The terminal appears BUSY — do NOT send commands. Tell the user the terminal is busy and they should wait or ask you again when it's free."}
+- ${action === "chat" ? "Terminal execution is ENABLED for this request." : "Terminal execution is DISABLED for preset actions. Only provide analysis."}
+- When the user asks you to do something actionable (run a task, install deps, commit code), DO IT by emitting the command. Don't tell them to copy-paste.
+- For complex multi-step work, send it as a single Claude Code prompt with --dangerously-skip-permissions flag.
+- You can only send ONE command per response. If multiple steps are needed, handle one now and explain the next ones.
+- Always explain what you're doing before or after sending a command.
 
 ## Style
 - Be concise but thorough. Use markdown formatting.
@@ -955,7 +975,32 @@ Be concise. If the terminal is idle, just say so.`;
 
       messages.push({ role: "user", content: userMessage });
 
+      let fullText = "";
+      let commandExecuted = false;
+      const canExecute = action === "chat" && hasActiveSession(agent.id) && terminalIdle;
+
+      const originalWrite = res.write.bind(res);
+      res.write = ((chunk: any, ...args: any[]) => {
+        const str = typeof chunk === "string" ? chunk : chunk.toString();
+        fullText += str;
+
+        if (canExecute && !commandExecuted && !req.socket.destroyed) {
+          const cmdMatch = fullText.match(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/);
+          if (cmdMatch) {
+            const cmd = cmdMatch[1].trim();
+            if (cmd && cmd.length < 4000) {
+              commandExecuted = true;
+              injectCommand(agent.id, cmd);
+              console.log(`[orbit] Injected command for "${agent.name}": ${cmd.slice(0, 100)}`);
+            }
+          }
+        }
+
+        return originalWrite(chunk, ...args);
+      }) as any;
+
       await aiStream(messages, res, { model: MODEL_FAST, maxTokens: 4096 });
+      res.write = originalWrite;
       res.write("data: [DONE]\n\n");
       res.end();
     } catch (err: any) {
