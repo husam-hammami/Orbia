@@ -904,6 +904,13 @@ function NexusChat({ connected }: { connected: boolean }) {
                   send_email_failed: `\n\n❌ **Failed to send email**: ${data.error || "Unknown error"}`,
                   message_scheduled: `\n\n🔁 **Scheduled message set up** — "${data.message}" will be sent to ${data.recipient} every ${data.recurrence === "weekdays" ? "weekday" : "day"} at ${data.time}`,
                   schedule_message_failed: `\n\n❌ **Failed to schedule message**: ${data.error || "Unknown error"}`,
+                  project_created: `\n\n📁 **Project created**: ${data.title}`,
+                  project_task_added: `\n\n✅ **Task added to project**: ${data.title} (${data.project})`,
+                  project_status_updated: `\n\n📁 **Project status updated**: ${data.project} → ${data.status}`,
+                  task_completed: `\n\n✅ **Task marked as completed**: ${data.task}`,
+                  zoho_task_created: `\n\n✅ **Zoho task created**: ${data.name}`,
+                  zoho_task_updated: `\n\n✅ **Zoho task updated** (${data.id})`,
+                  zoho_task_completed: `\n\n✅ **Zoho task completed** (${data.id})`,
                 };
                 const confirm = actionConfirms[data.action];
                 if (confirm) {

@@ -1123,6 +1123,52 @@ export default function OrbitPage() {
           return { success: true, message: `Deleted loan` };
         }
 
+        // AGENT ACTIONS
+        case "create_agent": {
+          const { name, description, model, systemPrompt, repoUrl, repoBranch, ...rest } = action.args;
+          const resp = await fetch("/api/agents", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              name,
+              description: description || "",
+              model: model || "claude-sonnet-4-20250514",
+              systemPrompt: systemPrompt || "",
+              repoUrl: repoUrl || "",
+              repoBranch: repoBranch || "main",
+              ...rest,
+            }),
+          });
+          if (!resp.ok) throw new Error("Failed to create agent");
+          const agent = await resp.json();
+          queryClient.invalidateQueries({ queryKey: ["agents"] });
+          return { success: true, message: `Created agent: "${agent.name || name}"` };
+        }
+        case "update_agent": {
+          const { agent_id, ...updates } = action.args;
+          if (!agent_id) return { success: false, message: "Missing agent_id" };
+          const resp = await fetch(`/api/agents/${agent_id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(updates),
+          });
+          if (!resp.ok) throw new Error("Failed to update agent");
+          queryClient.invalidateQueries({ queryKey: ["agents"] });
+          return { success: true, message: `Updated agent` };
+        }
+        case "get_agent_status": {
+          const { agent_id } = action.args;
+          if (!agent_id) return { success: false, message: "Missing agent_id" };
+          const resp = await fetch(`/api/agents/${agent_id}`, {
+            credentials: "include",
+          });
+          if (!resp.ok) throw new Error("Failed to get agent status");
+          const agent = await resp.json();
+          return { success: true, message: `Agent "${agent.name}" — status: ${agent.status}${agent.currentTaskSummary ? `, task: ${agent.currentTaskSummary}` : ""}` };
+        }
+
         // ROADMAP ACTION
         case "refresh_roadmap": {
           const response = await fetch("/api/career/coach", { method: "POST" });

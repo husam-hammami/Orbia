@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Layout } from "@/components/layout";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import sphereUrl from '@assets/orbia_sphere_transparent.png';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || "";
@@ -587,7 +588,81 @@ function UploadZone() {
   );
 }
 
+async function executeMedicalAction(
+  action: { type: string; name: string; args: Record<string, any> }
+): Promise<{ success: boolean; message: string; queryKeys?: string[] }> {
+  try {
+    const actionMap: Record<string, { endpoint: string; method: string; queryKeys: string[] }> = {
+      create_diagnosis: { endpoint: "/api/medical/diagnoses", method: "POST", queryKeys: ["/api/medical/diagnoses"] },
+      update_diagnosis: { endpoint: "/api/medical/diagnoses", method: "PATCH", queryKeys: ["/api/medical/diagnoses"] },
+      delete_diagnosis: { endpoint: "/api/medical/diagnoses", method: "DELETE", queryKeys: ["/api/medical/diagnoses"] },
+      create_medication: { endpoint: "/api/medical/medications", method: "POST", queryKeys: ["/api/medical/medications"] },
+      update_medication: { endpoint: "/api/medical/medications", method: "PATCH", queryKeys: ["/api/medical/medications"] },
+      delete_medication: { endpoint: "/api/medical/medications", method: "DELETE", queryKeys: ["/api/medical/medications"] },
+      create_med_priority: { endpoint: "/api/medical/priorities", method: "POST", queryKeys: ["/api/medical/priorities"] },
+      update_med_priority: { endpoint: "/api/medical/priorities", method: "PATCH", queryKeys: ["/api/medical/priorities"] },
+      delete_med_priority: { endpoint: "/api/medical/priorities", method: "DELETE", queryKeys: ["/api/medical/priorities"] },
+      create_timeline_event: { endpoint: "/api/medical/timeline-events", method: "POST", queryKeys: ["/api/medical/timeline-events"] },
+      update_timeline_event: { endpoint: "/api/medical/timeline-events", method: "PATCH", queryKeys: ["/api/medical/timeline-events"] },
+      delete_timeline_event: { endpoint: "/api/medical/timeline-events", method: "DELETE", queryKeys: ["/api/medical/timeline-events"] },
+      create_med_contact: { endpoint: "/api/medical/medical-network", method: "POST", queryKeys: ["/api/medical/medical-network"] },
+      update_med_contact: { endpoint: "/api/medical/medical-network", method: "PATCH", queryKeys: ["/api/medical/medical-network"] },
+      delete_med_contact: { endpoint: "/api/medical/medical-network", method: "DELETE", queryKeys: ["/api/medical/medical-network"] },
+    };
+
+    if (action.name === "medical_note") {
+      return { success: true, message: "Note recorded" };
+    }
+
+    const mapping = actionMap[action.name];
+    if (!mapping) return { success: false, message: `Unknown action: ${action.name}` };
+
+    const { endpoint, method, queryKeys } = mapping;
+
+    // Extract the correct ID field (diagnosis_id, medication_id, priority_id, event_id, contact_id)
+    const idFields: Record<string, string> = {
+      update_diagnosis: "diagnosis_id", delete_diagnosis: "diagnosis_id",
+      update_medication: "medication_id", delete_medication: "medication_id",
+      update_med_priority: "priority_id", delete_med_priority: "priority_id",
+      update_timeline_event: "event_id", delete_timeline_event: "event_id",
+      update_med_contact: "contact_id", delete_med_contact: "contact_id",
+    };
+    const idField = idFields[action.name];
+    const entityId = idField ? action.args[idField] : undefined;
+    const body = idField
+      ? Object.fromEntries(Object.entries(action.args).filter(([k]) => k !== idField))
+      : action.args;
+
+    let url = endpoint;
+    if (method === "PATCH" || method === "DELETE") {
+      if (!entityId) return { success: false, message: `Missing ${idField || "id"} for ${action.name}` };
+      url = `${endpoint}/${entityId}`;
+    }
+
+    const fullUrl = API_BASE_URL ? `${API_BASE_URL}${url}` : url;
+    const fetchOpts: RequestInit = {
+      method,
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+    };
+    if (method === "POST" || method === "PATCH") {
+      fetchOpts.body = JSON.stringify(body);
+    }
+
+    const res = await fetch(fullUrl, fetchOpts);
+    if (!res.ok && res.status !== 204) throw new Error(`API error: ${res.status}`);
+
+    const label = action.args.label || action.args.name || action.args.title || "";
+    const verb = method === "POST" ? "Created" : method === "PATCH" ? "Updated" : "Deleted";
+    return { success: true, message: `${verb}${label ? `: "${label}"` : ""}`, queryKeys };
+  } catch (e: any) {
+    return { success: false, message: e.message || "Action failed" };
+  }
+}
+
 function MedicalChatPanel() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<{ role: string; content: string; isStreaming?: boolean }[]>([]);
   const [input, setInput] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -656,6 +731,48 @@ function MedicalChatPanel() {
           }
         }
       }
+
+      // Parse and execute JSON actions from AI response
+      const actionPattern = /\{"type"\s*:\s*"action"\s*,\s*"name"\s*:\s*"[^"]+"\s*,\s*"args"\s*:\s*\{[^}]*\}[^}]*\}/g;
+      const actionMatches = accumulated.match(actionPattern);
+      if (actionMatches) {
+        let displayContent = accumulated;
+        const invalidatedKeys = new Set<string>();
+
+        for (const match of actionMatches) {
+          try {
+            const action = JSON.parse(match);
+            if (action.type === "action" && action.name && action.args) {
+              displayContent = displayContent.replace(match, "").trim();
+              const result = await executeMedicalAction(action);
+              if (result.success) {
+                toast({ title: result.message });
+                if (result.queryKeys) result.queryKeys.forEach(k => invalidatedKeys.add(k));
+              } else {
+                toast({ title: "Action failed", description: result.message, variant: "destructive" });
+              }
+            }
+          } catch {
+            // Skip malformed action JSON
+          }
+        }
+
+        if (invalidatedKeys.size > 0) {
+          for (const key of invalidatedKeys) {
+            queryClient.invalidateQueries({ queryKey: [key] });
+          }
+        }
+
+        // Update final message with actions stripped
+        setMessages(prev => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last.role === "assistant") {
+            updated[updated.length - 1] = { ...last, content: displayContent };
+          }
+          return updated;
+        });
+      }
     } catch {
       setMessages(prev => {
         const updated = [...prev];
@@ -668,7 +785,7 @@ function MedicalChatPanel() {
     } finally {
       setIsProcessing(false);
     }
-  }, [input, messages, isProcessing]);
+  }, [input, messages, isProcessing, queryClient, toast]);
 
   return (
     <div className={cn(hudPanelGlow, "flex flex-col h-full overflow-hidden")}>

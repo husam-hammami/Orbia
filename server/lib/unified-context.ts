@@ -941,7 +941,40 @@ ACTION OUTPUT RULES:
     prompt += "\n" + workActions;
     prompt += `\n\n## OUTPUT FORMAT\nFor assessments/strategy questions:\n**The Situation** — 2-3 sentences max\n**Moves** — numbered action items\nFor quick questions, just answer directly.`;
   } else if (mode === "medical") {
-    prompt += `\n\n## OUTPUT FORMAT\nKeep responses focused, structured, and actionable. For assessments:\n- The Clinical Picture: A high-density synthesis\n- Medical-Grade Action Items: Pragmatic next steps`;
+    prompt += `\n\n## EXECUTABLE ACTIONS
+You can execute actions by outputting JSON on its own line. Format: {"type":"action","name":"action_name","args":{...}}
+
+MEDICAL:
+- create_diagnosis: {"label": "...", "severity": "mild/moderate/severe", "description": "...", "onsetDate": "YYYY-MM-DD"}
+- update_diagnosis: {"diagnosis_id": "...", "label": "...", "severity": "...", "description": "..."}
+- delete_diagnosis: {"diagnosis_id": "..."} - ALWAYS set confirm:true
+- create_medication: {"name": "...", "dosage": "...", "purpose": "...", "frequency": "daily/twice daily/as needed/etc", "startDate": "YYYY-MM-DD"}
+- update_medication: {"medication_id": "...", "name": "...", "dosage": "...", "purpose": "..."}
+- delete_medication: {"medication_id": "..."} - ALWAYS set confirm:true
+- create_med_priority: {"label": "...", "description": "...", "severity": "low/medium/high/critical"}
+- update_med_priority: {"priority_id": "...", "label": "...", "description": "..."}
+- delete_med_priority: {"priority_id": "..."} - ALWAYS set confirm:true
+- create_timeline_event: {"title": "...", "date": "YYYY-MM-DD", "type": "standard/diagnosis/procedure/test/medication/symptom/appointment", "description": "..."}
+- update_timeline_event: {"event_id": "...", "title": "...", "date": "YYYY-MM-DD", "type": "...", "description": "..."}
+- delete_timeline_event: {"event_id": "..."} - ALWAYS set confirm:true
+- create_med_contact: {"name": "...", "role": "...", "facility": "...", "category": "treating/specialist/pharmacy/lab/emergency/other", "status": "current/past"}
+- update_med_contact: {"contact_id": "...", "name": "...", "role": "...", "facility": "...", "status": "..."}
+- delete_med_contact: {"contact_id": "..."} - ALWAYS set confirm:true
+
+CONFIRMATION: set confirm:true and confirm_text for all delete actions.
+
+ACTION OUTPUT RULES:
+- When user asks to ADD, CREATE, EDIT, UPDATE, CHANGE, DELETE something, output the action JSON on its OWN LINE. The client will execute it silently.
+- NEVER wrap action JSON in code blocks or backticks.
+- For BULK actions: Output ALL action JSON objects first, each on its own line, then write a CLEAN SUMMARY paragraph confirming what was done.
+- For single actions: Output the JSON on its own line, then confirm naturally.
+- NEVER display raw JSON to explain what you're doing. The JSON is for the client, your text is for the user.
+- NEVER tell the user to do it manually — always use action JSON.
+
+## OUTPUT FORMAT
+Keep responses focused, structured, and actionable. For assessments:
+- The Clinical Picture: A high-density synthesis
+- Medical-Grade Action Items: Pragmatic next steps`;
   }
 
   return prompt;
