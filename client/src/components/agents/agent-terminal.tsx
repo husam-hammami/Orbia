@@ -6,7 +6,7 @@ import { API_BASE_URL } from "@/lib/queryClient";
 import "@xterm/xterm/css/xterm.css";
 
 interface BootstrapEvent {
-  type: "login_required" | "token_needed" | "ready" | "task_sent" | "timeout";
+  type: "login_required" | "token_needed" | "ready" | "task_sent" | "timeout" | "notification" | "permission_risky";
   url?: string;
   message: string;
 }
@@ -75,6 +75,18 @@ export function AgentTerminal({ agentId, agentName, onBootstrapEvent }: AgentTer
               setTimeout(() => setBootstrapStatus(null), 5000);
             } else if (evt.type === "timeout") {
               setBootstrapStatus(null);
+            } else if (evt.type === "notification" || evt.type === "permission_risky") {
+              if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(`${agentName}`, {
+                  body: evt.message,
+                  icon: "/favicon.ico",
+                  tag: `agent-${agentId}`,
+                });
+              }
+              if (evt.type === "permission_risky") {
+                setBootstrapStatus("Risky op — manual approval needed");
+                setTimeout(() => setBootstrapStatus(null), 10000);
+              }
             }
           }
         } catch {}

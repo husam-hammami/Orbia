@@ -1,7 +1,7 @@
 import { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { agentProcessManager } from "../lib/agent-process-manager";
-import { injectCommand, hasActiveSession, subscribeToOutput, killSession, getOutputBuffer } from "../lib/agent-terminal";
+import { injectCommand, hasActiveSession, subscribeToOutput, killSession, getOutputBuffer, updatePermissionMode, getPermissionMode, broadcastBootstrapEventById } from "../lib/agent-terminal";
 import { aiStream, MODEL_FAST } from "../lib/ai-client";
 import * as repoManager from "../lib/repo-manager";
 import * as githubOAuth from "../lib/github-oauth";
@@ -144,6 +144,14 @@ function monitorTerminalTask(agentId: string, taskId: string, userId: string) {
           await storage.incrementAgentTasksCompleted(agentId);
         }
         broadcastToAgent(agentId, timedOut ? "error" : "completed", { agentId, taskId });
+
+        const permState = getPermissionMode(agentId);
+        if (permState?.notifyOnComplete && hasActiveSession(agentId)) {
+          broadcastBootstrapEventById(agentId, {
+            type: "notification",
+            message: timedOut ? "Task timed out" : "Task completed successfully",
+          });
+        }
       } catch (err) {
         console.error("[monitor] Failed to update task:", err);
       }
@@ -807,6 +815,38 @@ export function registerAgentRoutes(app: Express) {
         res.status(500).json({ error: err.message });
       }
     }
+  });
+
+  app.patch("/api/agents/:id/settings", requireAuth, async (req: Request, res: Response) => {
+    const ctx = await requireAgentOwnership(req, res);
+    if (!ctx) return;
+
+    const { notifyOnComplete, permissionMode } = req.body;
+    const updates: any = {};
+
+    if (notifyOnComplete !== undefined) updates.notifyOnComplete = notifyOnComplete ? 1 : 0;
+    if (permissionMode !== undefined && ["manual", "bypass", "auto"].includes(permissionMode)) {
+      updates.permissionMode = permissionMode;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: "No valid settings provided" });
+    }
+
+    await storage.updateAgentProfile(ctx.userId, ctx.agentId, updates);
+
+    if (updates.permissionMode !== undefined || updates.notifyOnComplete !== undefined) {
+      const agent = await storage.getAgentProfile(ctx.userId, ctx.agentId);
+      if (agent && hasActiveSession(ctx.agentId)) {
+        updatePermissionMode(
+          ctx.agentId,
+          (agent.permissionMode || "manual") as "manual" | "bypass" | "auto",
+          !!(agent.notifyOnComplete)
+        );
+      }
+    }
+
+    res.json({ ok: true });
   });
 
   app.post("/api/agents/:id/orbit", requireAuth, async (req: Request, res: Response) => {

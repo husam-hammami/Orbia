@@ -23,7 +23,7 @@ import {
   FolderKanban, CheckSquare, Square as SquareIcon, Rocket,
   Bot, Brain, Shield, Crosshair, Cpu, Gem, Flame, Atom,
   Orbit, Hexagon, Wand2, Swords, CircuitBoard, ScanEye, Braces,
-  BookOpen, Search, Home, type LucideIcon
+  BookOpen, Search, Home, Bell, ShieldCheck, Gauge, type LucideIcon
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -46,6 +46,8 @@ interface Agent {
   totalTasksCompleted: number | null;
   linkedProjectId: string | null;
   systemPrompt: string | null;
+  notifyOnComplete: number | null;
+  permissionMode: string | null;
   isRunning: boolean;
   repoCloned: boolean;
   createdAt: string;
@@ -1325,9 +1327,58 @@ function CreateAgentWizard({ onClose, onCreated, githubStatus }: { onClose: () =
 
 function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBack: () => void; onDelete: () => void }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const queryClient = useQueryClient();
   const color = agent.accentColor || "#6366f1";
   const dbStatus = (agent.status || "idle") as "idle" | "working" | "error" | "waiting";
   const status = (agent.isRunning && dbStatus === "idle") ? "working" : dbStatus;
+
+  const [notifyOn, setNotifyOn] = useState(!!(agent.notifyOnComplete));
+  const [permMode, setPermMode] = useState<string>(agent.permissionMode || "manual");
+
+  useEffect(() => {
+    setNotifyOn(!!(agent.notifyOnComplete));
+    setPermMode(agent.permissionMode || "manual");
+  }, [agent.notifyOnComplete, agent.permissionMode]);
+
+  const updateSettings = useCallback(async (settings: { notifyOnComplete?: boolean; permissionMode?: string }) => {
+    const prevNotify = notifyOn;
+    const prevPerm = permMode;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}/settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(settings),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      queryClient.invalidateQueries({ queryKey: ["agents"] });
+    } catch (err: any) {
+      setNotifyOn(prevNotify);
+      setPermMode(prevPerm);
+      toast.error(err.message);
+    }
+  }, [agent.id, queryClient, notifyOn, permMode]);
+
+  const handleNotifyToggle = useCallback(async () => {
+    const newVal = !notifyOn;
+    if (newVal && "Notification" in window && Notification.permission !== "granted") {
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") {
+        toast.error("Please allow notifications in your browser settings");
+        return;
+      }
+    }
+    setNotifyOn(newVal);
+    updateSettings({ notifyOnComplete: newVal });
+    toast.success(newVal ? "Will notify when done" : "Notifications off");
+  }, [notifyOn, updateSettings]);
+
+  const handlePermModeChange = useCallback((mode: string) => {
+    setPermMode(mode);
+    updateSettings({ permissionMode: mode });
+    const labels: Record<string, string> = { manual: "Manual approval", bypass: "Full bypass", auto: "Auto-approve (safe only)" };
+    toast.success(labels[mode] || mode);
+  }, [updateSettings]);
 
   return (
     <motion.div {...agentAnimations.panelSlideUp} className="fixed inset-0 z-40 bg-gray-950 flex flex-col">
@@ -1380,6 +1431,45 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
                 </div>
               </>
             )}
+          </div>
+
+          <div className="hidden sm:flex items-center gap-1 mr-2">
+            <button
+              onClick={handleNotifyToggle}
+              className={cn(
+                "p-1.5 rounded-lg transition-all border",
+                notifyOn
+                  ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
+                  : "bg-white/[0.03] border-white/[0.06] text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"
+              )}
+              title={notifyOn ? "Notifications ON — will alert when done" : "Notify me when done"}
+              data-testid="button-notify-toggle"
+            >
+              <Bell className="w-3.5 h-3.5" />
+            </button>
+
+            {[
+              { mode: "manual", icon: Shield, label: "Manual", desc: "You approve everything" },
+              { mode: "auto", icon: Gauge, label: "Auto", desc: "Auto-approve safe, block risky" },
+              { mode: "bypass", icon: ShieldCheck, label: "Bypass", desc: "Full access, auto-approve all" },
+            ].map(({ mode, icon: Icon, label, desc }) => (
+              <button
+                key={mode}
+                onClick={() => handlePermModeChange(mode)}
+                className={cn(
+                  "p-1.5 rounded-lg transition-all border",
+                  permMode === mode
+                    ? mode === "bypass" ? "bg-red-500/15 border-red-500/30 text-red-400"
+                    : mode === "auto" ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                    : "bg-indigo-500/15 border-indigo-500/30 text-indigo-400"
+                    : "bg-white/[0.03] border-white/[0.06] text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"
+                )}
+                title={`${label}: ${desc}`}
+                data-testid={`button-perm-${mode}`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+              </button>
+            ))}
           </div>
 
           <div className="relative">

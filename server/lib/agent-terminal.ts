@@ -196,6 +196,162 @@ function broadcastBootstrapEvent(session: ShellSession, event: { type: string; u
   }
 }
 
+export function broadcastBootstrapEventById(agentId: string, event: { type: string; url?: string; message: string }) {
+  const session = shells.get(agentId);
+  if (session) broadcastBootstrapEvent(session, event);
+}
+
+interface PermissionWatcherState {
+  mode: "manual" | "bypass" | "auto";
+  notifyOnComplete: boolean;
+  listener: ((data: string) => void) | null;
+  accumulated: string;
+  lastPromptHandled: number;
+}
+
+const permissionWatchers = new Map<string, PermissionWatcherState>();
+
+const PERMISSION_PATTERNS = [
+  /Do you want to proceed\?/i,
+  /Allow this action\?/i,
+  /\(y\/n\)/,
+  /\[Y\/n\]/,
+  /\[y\/N\]/,
+  /Press Enter to continue/i,
+  /\(Y\)es\s*\/\s*\(N\)o/i,
+  /Do you want to allow/i,
+  /Allow .+ to/i,
+  /Approve\?/i,
+  /Would you like to continue/i,
+  /Want to proceed/i,
+  /Do you want to run/i,
+  /Confirm\?/i,
+];
+
+const RISKY_PATTERNS = [
+  /rm\s+-rf?\s+\//i,
+  /drop\s+(table|database)/i,
+  /delete\s+from\s+\w+\s*(;|$)/i,
+  /force\s+push/i,
+  /--force/i,
+  /format\s+/i,
+  /truncate\s+/i,
+  /destroy/i,
+  /nuke/i,
+  /wipe/i,
+  /git\s+push.*-f/i,
+  /overwrite/i,
+  /reset\s+--hard/i,
+];
+
+const TASK_COMPLETE_PATTERNS = [
+  /Task completed/i,
+  /All done/i,
+  /✓\s*Done/i,
+  /completed successfully/i,
+  /\$ $/m,
+];
+
+function startPermissionWatcher(session: ShellSession, mode: "manual" | "bypass" | "auto", notifyOnComplete: boolean) {
+  stopPermissionWatcher(session.agentId);
+
+  const state: PermissionWatcherState = {
+    mode,
+    notifyOnComplete,
+    listener: null,
+    accumulated: "",
+    lastPromptHandled: 0,
+  };
+
+  if (mode === "manual") {
+    permissionWatchers.set(session.agentId, state);
+    return;
+  }
+
+  const processOutput = (data: string) => {
+    state.accumulated += data;
+    if (state.accumulated.length > 8000) {
+      state.accumulated = state.accumulated.slice(-4000);
+    }
+
+    const clean = stripAnsi(data);
+    const now = Date.now();
+
+    if (now - state.lastPromptHandled < 1000) return;
+
+    const isPermissionPrompt = PERMISSION_PATTERNS.some(p => p.test(clean));
+    if (!isPermissionPrompt) return;
+
+    if (state.mode === "bypass") {
+      state.lastPromptHandled = now;
+      setTimeout(() => {
+        if (session.alive && session.process.stdin) {
+          session.process.stdin.write("y\n");
+          console.log(`[permission-watcher] "${session.agentName}" — bypass: auto-approved`);
+        }
+      }, 300);
+      return;
+    }
+
+    if (state.mode === "auto") {
+      const recentContext = stripAnsi(state.accumulated).slice(-2000);
+      const isRisky = RISKY_PATTERNS.some(p => p.test(recentContext));
+
+      if (isRisky) {
+        console.log(`[permission-watcher] "${session.agentName}" — auto: RISKY operation detected, skipping auto-approve`);
+        broadcastBootstrapEvent(session, {
+          type: "permission_risky",
+          message: "Risky operation detected — needs manual approval",
+        });
+        return;
+      }
+
+      state.lastPromptHandled = now;
+      setTimeout(() => {
+        if (session.alive && session.process.stdin) {
+          session.process.stdin.write("y\n");
+          console.log(`[permission-watcher] "${session.agentName}" — auto: approved safe operation`);
+        }
+      }, 300);
+    }
+  };
+
+  state.listener = processOutput;
+  session.outputListeners.add(processOutput);
+  permissionWatchers.set(session.agentId, state);
+  console.log(`[permission-watcher] "${session.agentName}" — started in ${mode} mode (notify: ${notifyOnComplete})`);
+}
+
+function stopPermissionWatcher(agentId: string) {
+  const state = permissionWatchers.get(agentId);
+  if (!state) return;
+  if (state.listener) {
+    const session = shells.get(agentId);
+    if (session) session.outputListeners.delete(state.listener);
+  }
+  permissionWatchers.delete(agentId);
+}
+
+function sendNotification(session: ShellSession, message: string) {
+  broadcastBootstrapEvent(session, {
+    type: "notification",
+    message,
+  });
+}
+
+export function updatePermissionMode(agentId: string, mode: "manual" | "bypass" | "auto", notifyOnComplete: boolean) {
+  const session = shells.get(agentId);
+  if (!session || !session.alive) return false;
+  startPermissionWatcher(session, mode, notifyOnComplete);
+  return true;
+}
+
+export function getPermissionMode(agentId: string): { mode: string; notifyOnComplete: boolean } | null {
+  const state = permissionWatchers.get(agentId);
+  if (!state) return null;
+  return { mode: state.mode, notifyOnComplete: state.notifyOnComplete };
+}
+
 function getClaudePath(): string {
   return path.join(process.cwd(), ".config/npm/node_global/bin");
 }
@@ -292,6 +448,7 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
 
   shell.on("close", (code) => {
     session.alive = false;
+    stopPermissionWatcher(agentId);
     const msg = `\r\n\x1b[33m[Shell exited with code ${code}]\x1b[0m\r\n`;
     session.outputBuffer.push(msg);
     for (const ws of session.clients) {
@@ -303,6 +460,7 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
 
   shell.on("error", (err) => {
     session.alive = false;
+    stopPermissionWatcher(agentId);
     const msg = `\r\n\x1b[31m[Shell error: ${err.message}]\x1b[0m\r\n`;
     session.outputBuffer.push(msg);
     for (const ws of session.clients) {
@@ -432,6 +590,11 @@ export function setupAgentTerminalWS(server: Server) {
     console.log(`[agent-terminal] Client connected to "${agent.name}" (${agentId})`);
     const shellSession = await ensureShell(agentId, agent.name, agent.repoUrl, agent.repoBranch);
 
+    stopPermissionWatcher(agentId);
+    const mode = (agent.permissionMode || "manual") as "manual" | "bypass" | "auto";
+    const notify = !!(agent.notifyOnComplete);
+    startPermissionWatcher(shellSession, mode, notify);
+
     shellSession.clients.add(ws);
 
     const history = shellSession.outputBuffer.join("");
@@ -489,6 +652,7 @@ export function injectCommand(agentId: string, command: string): boolean {
 export function killSession(agentId: string): boolean {
   const session = shells.get(agentId);
   if (!session) return false;
+  stopPermissionWatcher(agentId);
   try {
     session.process.kill("SIGTERM");
     setTimeout(() => {
