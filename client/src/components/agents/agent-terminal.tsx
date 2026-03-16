@@ -97,8 +97,13 @@ export function AgentTerminal({ agentId, agentName, onBootstrapEvent }: AgentTer
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       setConnected(false);
+      if (event.code === 4404) {
+        console.log(`[agent-terminal] Agent ${agentId} not found, stopping reconnect`);
+        term.write("\r\n\x1b[31mAgent not found — it may have been deleted.\x1b[0m\r\n");
+        return;
+      }
       reconnectTimerRef.current = setTimeout(() => connect(term), 3000);
     };
 

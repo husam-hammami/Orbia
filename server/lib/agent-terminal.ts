@@ -364,7 +364,29 @@ function getClaudePath(): string {
   return path.join(process.cwd(), ".config/npm/node_global/bin");
 }
 
+const shellCreationLocks = new Map<string, Promise<ShellSession>>();
+
 async function ensureShell(agentId: string, agentName: string, repoUrl: string, repoBranch?: string): Promise<ShellSession> {
+  const existing = shells.get(agentId);
+  if (existing && existing.alive) return existing;
+
+  const pendingLock = shellCreationLocks.get(agentId);
+  if (pendingLock) {
+    console.log(`[agent-terminal] Shell creation already in progress for "${agentName}", waiting...`);
+    return pendingLock;
+  }
+
+  const createPromise = createShell(agentId, agentName, repoUrl, repoBranch);
+  shellCreationLocks.set(agentId, createPromise);
+  try {
+    const session = await createPromise;
+    return session;
+  } finally {
+    shellCreationLocks.delete(agentId);
+  }
+}
+
+async function createShell(agentId: string, agentName: string, repoUrl: string, repoBranch?: string): Promise<ShellSession> {
   const existing = shells.get(agentId);
   if (existing && existing.alive) return existing;
 
@@ -395,6 +417,30 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
     }
   } else {
     repoDir = "/tmp";
+  }
+
+  if (!fs.existsSync(repoDir)) {
+    console.log(`[agent-terminal] Repo dir "${repoDir}" missing for "${agentName}", re-cloning...`);
+    if (repoUrl) {
+      try {
+        let token: string | undefined;
+        try {
+          const agents = await db.execute(sql`SELECT "userId" FROM agent_profiles WHERE id = ${agentId} LIMIT 1`);
+          const row = (agents as any).rows?.[0] || (agents as any)[0];
+          if (row?.userId) {
+            const conn = await storage.getGithubConnection(row.userId);
+            if (conn?.accessToken) token = conn.accessToken;
+          }
+        } catch {}
+        repoDir = await repoManager.cloneRepo(agentId, repoUrl, repoBranch || "main", token);
+        console.log(`[agent-terminal] Re-cloned repo for "${agentName}" into ${repoDir}`);
+      } catch (err: any) {
+        console.error(`[agent-terminal] Re-clone failed for "${agentName}":`, err.message);
+        repoDir = os.tmpdir();
+      }
+    } else {
+      repoDir = os.tmpdir();
+    }
   }
 
   const claudeBinDir = getClaudePath();
@@ -583,8 +629,9 @@ export function setupAgentTerminalWS(server: Server) {
     const agent = await storage.getAgentProfile(session.userId, agentId);
     if (!agent) {
       console.log(`[agent-terminal] Agent ${agentId} not found`);
-      socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
-      socket.destroy();
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        ws.close(4404, "Agent not found");
+      });
       return;
     }
 
