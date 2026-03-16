@@ -132,8 +132,18 @@ async function restoreClaudeCredentials(userId: string): Promise<boolean> {
           console.warn(`[claude-creds] Skipping invalid filename: ${filename}`);
           continue;
         }
-        fs.writeFileSync(path.join(perUserDir, filename), content, "utf-8");
-        fs.writeFileSync(path.join(defaultDir, filename), content, "utf-8");
+        let fileContent = content;
+        if (filename === ".claude.json") {
+          try {
+            const parsed = JSON.parse(content);
+            parsed.hasCompletedOnboarding = true;
+            if (!parsed.uiPreferences) parsed.uiPreferences = {};
+            parsed.uiPreferences.theme = "dark";
+            fileContent = JSON.stringify(parsed, null, 2);
+          } catch {}
+        }
+        fs.writeFileSync(path.join(perUserDir, filename), fileContent, "utf-8");
+        fs.writeFileSync(path.join(defaultDir, filename), fileContent, "utf-8");
         if (filename === ".credentials.json") {
           fs.chmodSync(path.join(perUserDir, filename), 0o600);
           fs.chmodSync(path.join(defaultDir, filename), 0o600);
@@ -241,6 +251,16 @@ function startBootstrapWatcher(session: ShellSession) {
       }, 500);
     }
 
+    if (/Choose the text style|let's get started|Dark mode|Light mode/i.test(recentClean) && !(state as any)._themeSent) {
+      (state as any)._themeSent = true;
+      setTimeout(() => {
+        if (session.alive && session.process.stdin) {
+          session.process.stdin.write("1\n");
+          console.log(`[bootstrap] "${session.agentName}" — auto-selected theme (Dark mode)`);
+        }
+      }, 800);
+    }
+
     if (state.phase === "waiting_for_prompts" || state.phase === "launching") {
       for (const pattern of ENTER_PATTERNS) {
         if (pattern.test(recentClean) && state.entersSent < MAX_ENTERS) {
@@ -301,6 +321,13 @@ function startBootstrapWatcher(session: ShellSession) {
         state.phase = "ready";
         console.log(`[bootstrap] "${session.agentName}" — Claude Code is ready!`);
         session.bootstrapComplete = true;
+
+        if (session.userId) {
+          setTimeout(async () => {
+            await saveClaudeCredentials(session.userId!);
+            console.log(`[bootstrap] "${session.agentName}" — saved credentials on ready`);
+          }, 2000);
+        }
 
         broadcastBootstrapEvent(session, {
           type: "ready",
