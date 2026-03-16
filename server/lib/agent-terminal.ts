@@ -142,6 +142,18 @@ async function restoreClaudeCredentials(userId: string): Promise<boolean> {
             fileContent = JSON.stringify(parsed, null, 2);
           } catch {}
         }
+        if (filename === "settings.json") {
+          try {
+            const parsed = JSON.parse(content);
+            if (!parsed.trustedDirectories) parsed.trustedDirectories = [];
+            const trustPaths = ["/tmp/orbia-agent-repos", "/home/runner/workspace", "/tmp"];
+            for (const tp of trustPaths) {
+              if (!parsed.trustedDirectories.includes(tp)) parsed.trustedDirectories.push(tp);
+            }
+            parsed.skipDangerousModePermissionPrompt = true;
+            fileContent = JSON.stringify(parsed, null, 2);
+          } catch {}
+        }
         fs.writeFileSync(path.join(perUserDir, filename), fileContent, "utf-8");
         fs.writeFileSync(path.join(defaultDir, filename), fileContent, "utf-8");
         if (filename === ".credentials.json") {
@@ -149,6 +161,20 @@ async function restoreClaudeCredentials(userId: string): Promise<boolean> {
           fs.chmodSync(path.join(defaultDir, filename), 0o600);
         }
         restored++;
+      }
+
+      const settingsFile = "settings.json";
+      if (!credentialData[settingsFile]) {
+        const settings = {
+          skipDangerousModePermissionPrompt: true,
+          trustedDirectories: ["/tmp/orbia-agent-repos", "/home/runner/workspace", "/tmp"],
+        };
+        const settingsContent = JSON.stringify(settings, null, 2);
+        for (const dir of [perUserDir, defaultDir]) {
+          fs.writeFileSync(path.join(dir, settingsFile), settingsContent, "utf-8");
+        }
+        restored++;
+        console.log("[claude-creds] Injected settings.json with trustedDirectories");
       }
 
       if (restored > 0) {
@@ -261,12 +287,22 @@ function startBootstrapWatcher(session: ShellSession) {
       }, 800);
     }
 
-    if (/Yes, I trust this folder|trust this folder|Quick safety check/i.test(recentClean) && !(state as any)._trustSent) {
+    if (/Yes, I trust this folder|trust this folder|Quick safety check|Enter to confirm/i.test(recentClean) && !(state as any)._trustSent) {
       (state as any)._trustSent = true;
       setTimeout(() => {
         if (session.alive && session.process.stdin) {
           session.process.stdin.write("1\n");
           console.log(`[bootstrap] "${session.agentName}" — auto-trusted folder`);
+        }
+      }, 500);
+    }
+
+    if (!((state as any)._trustSent) && /I trust this folder|safety check|Enter to confirm/i.test(clean)) {
+      (state as any)._trustSent = true;
+      setTimeout(() => {
+        if (session.alive && session.process.stdin) {
+          session.process.stdin.write("1\n");
+          console.log(`[bootstrap] "${session.agentName}" — auto-trusted folder (accumulated)`);
         }
       }, 500);
     }
