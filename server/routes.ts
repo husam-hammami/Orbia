@@ -3875,6 +3875,18 @@ ${JSON.stringify(context, null, 2)}`;
               actionResults.push({ name, title: "agent status", success: true });
               break;
             }
+            case "agent_review":
+            case "agent_git_diff":
+            case "agent_git_push":
+            case "agent_git_push_branch":
+            case "agent_run_tests":
+            case "agent_send_command":
+            case "agent_on_done": {
+              const agentOps = await import("./lib/agent-orchestrator");
+              const result = await agentOps.handleAgentAction(name, args, userId, res);
+              actionResults.push(result);
+              break;
+            }
             default:
               console.log(`[orbit-action] Unknown action: ${name}`);
               actionResults.push({ name, title: args.title || "unknown", success: false, error: `Unknown action: ${name}` });
@@ -6206,6 +6218,24 @@ ${rawText}`
                 }
                 spokenText = spokenText.replace(jsonStr, "") + " " + statusInfo;
                 voiceActionResults.push({ name, title: "agent status", success: true });
+                break;
+              }
+              case "agent_review":
+              case "agent_git_diff":
+              case "agent_git_push":
+              case "agent_git_push_branch":
+              case "agent_run_tests":
+              case "agent_send_command":
+              case "agent_on_done": {
+                const agentOps = await import("./lib/agent-orchestrator");
+                const result = await agentOps.handleAgentAction(name, args, userId, undefined, false);
+                voiceActionResults.push(result);
+                if (result.events?.length > 0) {
+                  const summaries = result.events.map((e: any) => e.message || e.result || e.review?.slice(0, 200) || e.action).filter(Boolean);
+                  if (summaries.length > 0) {
+                    spokenText = spokenText.replace(jsonStr, "") + " " + summaries.join(". ");
+                  }
+                }
                 break;
               }
               default:

@@ -1326,6 +1326,24 @@ export default function OrbitPage() {
               workActionResults.push(`Email sent to ${data.to}`);
             } else if (data.action === "message_scheduled") {
               workActionResults.push(`Scheduled message to ${data.recipient} at ${data.time}`);
+            } else if (data.action === "agent_review") {
+              workActionResults.push(`Reviewed ${data.agentName}'s changes`);
+            } else if (data.action === "agent_diff") {
+              workActionResults.push(`Got diff for ${data.agentName}`);
+            } else if (data.action === "agent_pushed") {
+              workActionResults.push(`Pushed ${data.agentName}${data.branch ? ` to ${data.branch}` : ""}: ${data.result}`);
+            } else if (data.action === "agent_test_result") {
+              workActionResults.push(`Tests for ${data.agentName} completed`);
+            } else if (data.action === "agent_command_sent") {
+              workActionResults.push(`Sent command to ${data.agentName}: ${data.command}`);
+            } else if (data.action === "agent_follow_up_registered") {
+              workActionResults.push(`Queued follow-up for ${data.agentName}: ${data.actions?.join(" → ")}`);
+            } else if (data.action === "agent_error") {
+              workActionResults.push(`Agent error: ${data.message}`);
+            } else if (data.action === "agent_created") {
+              workActionResults.push(`Created agent: ${data.name}`);
+            } else if (data.action === "agent_status") {
+              workActionResults.push(`Agent status: ${data.info}`);
             }
           } catch {}
         }

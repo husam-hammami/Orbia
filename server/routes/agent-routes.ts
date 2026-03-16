@@ -2,6 +2,7 @@ import { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { agentProcessManager } from "../lib/agent-process-manager";
 import { injectCommand, hasActiveSession, subscribeToOutput, killSession, getOutputBuffer, updatePermissionMode, getPermissionMode, broadcastBootstrapEventById } from "../lib/agent-terminal";
+import { triggerFollowUp, hasPendingFollowUp } from "../lib/agent-orchestrator";
 import { aiStream, MODEL_FAST } from "../lib/ai-client";
 import * as repoManager from "../lib/repo-manager";
 import * as githubOAuth from "../lib/github-oauth";
@@ -164,6 +165,11 @@ function monitorTerminalTask(agentId: string, taskId: string, userId: string) {
             type: "notification",
             message: timedOut ? "Task timed out" : "Task completed successfully",
           });
+        }
+
+        if (!timedOut && hasPendingFollowUp(agentId)) {
+          console.log(`[monitor] Agent ${agentId} task done — triggering follow-up actions`);
+          setTimeout(() => triggerFollowUp(agentId), 3000);
         }
       } catch (err) {
         console.error("[monitor] Failed to update task:", err);

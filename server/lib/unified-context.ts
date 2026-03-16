@@ -528,9 +528,18 @@ ${visionItems.map((v: any) => `- ${v.title} (${v.timeframe}): ${v.description ||
   if (agents.length > 0 || githubConn) {
     let agentSection = "<NEURAL_ORBITS_AGENTS>";
     if (agents.length > 0) {
+      let hasActiveSessionFn: ((id: string) => boolean) | null = null;
+      let isBootstrapCompleteFn: ((id: string) => boolean) | null = null;
+      try {
+        const termLib = await import("./agent-terminal");
+        hasActiveSessionFn = termLib.hasActiveSession;
+        isBootstrapCompleteFn = termLib.isBootstrapComplete;
+      } catch {}
       agentSection += "\nExisting agents:";
       for (const a of agents) {
-        agentSection += `\n- "${a.name}" (id: ${a.id}) [${a.status}] role: ${a.role || "general"}${a.designation ? `, designation: ${a.designation}` : ""}${a.repoUrl ? `, repo: ${a.repoUrl}` : ""}${a.repoBranch ? ` (${a.repoBranch})` : ""}${a.linkedProjectId ? `, linked_project: ${a.linkedProjectId}` : ""}${a.accentColor ? `, color: ${a.accentColor}` : ""}`;
+        const hasSession = hasActiveSessionFn ? hasActiveSessionFn(a.id) : false;
+        const sessionInfo = hasSession ? `, terminal: ACTIVE${isBootstrapCompleteFn?.(a.id) ? " (claude ready)" : ""}` : "";
+        agentSection += `\n- "${a.name}" (id: ${a.id}) [${a.status}] role: ${a.role || "general"}${a.designation ? `, designation: ${a.designation}` : ""}${a.repoUrl ? `, repo: ${a.repoUrl}` : ""}${a.repoBranch ? ` (${a.repoBranch})` : ""}${a.linkedProjectId ? `, linked_project: ${a.linkedProjectId}` : ""}${a.accentColor ? `, color: ${a.accentColor}` : ""}${sessionInfo}${a.currentTaskSummary ? `, working on: ${a.currentTaskSummary}` : ""}`;
       }
     } else {
       agentSection += "\nNo agents created yet.";
@@ -894,11 +903,22 @@ NEURAL ORBITS (AI AGENTS):
 - create_agent: {"name": "...", "role": "...", "designation": "UI/UX Designer/Design & Code Reviewer/...", "repo_keyword": "keyword to fuzzy-match from available GitHub repos", "project_keyword": "keyword to fuzzy-match from existing career projects to link", "accent_color": "#hex", "avatar": "emoji or 'nexus'", "preset": "designer/reviewer/none"}
 - update_agent: {"agent_id": "...", "name": "...", "role": "...", "status": "...", "linked_project_keyword": "keyword to match project"}
 - get_agent_status: {"agent_id": "..." or "all"} — returns current state of one or all agents
+- agent_review: {"agent_keyword": "name or keyword to match agent"} — reviews the agent's local code changes (git diff) and provides a code review summary
+- agent_git_diff: {"agent_keyword": "..."} — shows the agent's current local git diff (unstaged changes)
+- agent_git_push: {"agent_keyword": "...", "branch": "optional branch name, default: current branch"} — pushes the agent's local changes to remote
+- agent_git_push_branch: {"agent_keyword": "...", "branch": "new-branch-name"} — creates a new branch and pushes the agent's changes there
+- agent_run_tests: {"agent_keyword": "..."} — runs tests in the agent's repo
+- agent_send_command: {"agent_keyword": "...", "command": "shell command to run"} — sends a shell command to the agent's terminal
+- agent_on_done: {"agent_keyword": "...", "actions": ["review", "push", "push_branch:branch-name", "notify", "test"]} — queues follow-up actions to run automatically WHEN the agent finishes its current task. Multiple actions run in sequence. Example: ["review", "test", "push", "notify"]
 - When the user says a keyword like "waterfall" or "orbia", match it against available GitHub repos and career projects from context. Pick the BEST match.
 - For preset "designer": sets UI/UX Designer designation, pink accent, nexus avatar, and includes the 21st.dev Magic MCP config.
 - For preset "reviewer": sets Design & Code Reviewer designation, amber accent.
 - ALWAYS include repo_keyword if the user mentions any project/repo name, even partially. Match against NEURAL_ORBITS_AGENTS > Available GitHub repos list.
 - ALWAYS include project_keyword if the user wants to link the agent to a career project. Match against PROJECTS list.
+- agent_keyword: Use the agent's name or any identifying keyword from the NEURAL_ORBITS_AGENTS context. Match against existing agents by name.
+- When user says "review what the agent did" or "review the changes" — use agent_review.
+- When user says "when the agent is done, review and push" — use agent_on_done with actions: ["review", "push", "notify"].
+- When user says "push to a new branch called X" — use agent_git_push_branch.
 
 CONFIRMATION: set confirm:true and confirm_text for all delete actions.
 
