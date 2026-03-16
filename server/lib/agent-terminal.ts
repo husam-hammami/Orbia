@@ -69,23 +69,26 @@ async function withCredentialLock<T>(userId: string, fn: () => Promise<T>): Prom
 
 async function saveClaudeCredentials(userId: string): Promise<boolean> {
   return withCredentialLock(userId, async () => {
-    const configDir = getClaudeConfigDir(userId);
-    if (!fs.existsSync(configDir)) return false;
+    const perUserDir = getClaudeConfigDir(userId);
+    const defaultDir = path.join(os.homedir(), ".claude");
 
     const credentialData: Record<string, string> = {};
-    try {
-      const files = fs.readdirSync(configDir);
-      for (const file of files) {
-        if (!isValidCredentialFilename(file)) continue;
-        const filePath = path.join(configDir, file);
-        const stat = fs.statSync(filePath);
-        if (stat.isFile() && stat.size < 50000) {
-          credentialData[file] = fs.readFileSync(filePath, "utf-8");
+    for (const configDir of [perUserDir, defaultDir]) {
+      if (!fs.existsSync(configDir)) continue;
+      try {
+        const files = fs.readdirSync(configDir);
+        for (const file of files) {
+          if (!isValidCredentialFilename(file)) continue;
+          if (credentialData[file]) continue;
+          const filePath = path.join(configDir, file);
+          const stat = fs.statSync(filePath);
+          if (stat.isFile() && stat.size < 50000) {
+            credentialData[file] = fs.readFileSync(filePath, "utf-8");
+          }
         }
+      } catch (err) {
+        console.error(`[claude-creds] Failed to read from ${configDir}:`, err);
       }
-    } catch (err) {
-      console.error("[claude-creds] Failed to read credential files:", err);
-      return false;
     }
 
     if (Object.keys(credentialData).length === 0) return false;
@@ -114,10 +117,13 @@ async function restoreClaudeCredentials(userId: string): Promise<boolean> {
       if (!row?.claude_credentials) return false;
 
       const credentialData: Record<string, string> = JSON.parse(row.claude_credentials);
-      const configDir = getClaudeConfigDir(userId);
+      const perUserDir = getClaudeConfigDir(userId);
+      const defaultDir = path.join(os.homedir(), ".claude");
 
-      if (!fs.existsSync(configDir)) {
-        fs.mkdirSync(configDir, { recursive: true });
+      for (const dir of [perUserDir, defaultDir]) {
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
       }
 
       let restored = 0;
@@ -126,13 +132,17 @@ async function restoreClaudeCredentials(userId: string): Promise<boolean> {
           console.warn(`[claude-creds] Skipping invalid filename: ${filename}`);
           continue;
         }
-        const filePath = path.join(configDir, filename);
-        fs.writeFileSync(filePath, content, "utf-8");
+        fs.writeFileSync(path.join(perUserDir, filename), content, "utf-8");
+        fs.writeFileSync(path.join(defaultDir, filename), content, "utf-8");
+        if (filename === ".credentials.json") {
+          fs.chmodSync(path.join(perUserDir, filename), 0o600);
+          fs.chmodSync(path.join(defaultDir, filename), 0o600);
+        }
         restored++;
       }
 
       if (restored > 0) {
-        console.log(`[claude-creds] Restored ${restored} credential files for user ${userId}`);
+        console.log(`[claude-creds] Restored ${restored} credential files to ${perUserDir} AND ${defaultDir}`);
       }
       return restored > 0;
     } catch (err) {
@@ -181,17 +191,21 @@ function startBootstrapWatcher(session: ShellSession) {
 
   let credFileWatcher: ReturnType<typeof setInterval> | null = null;
   if (session.userId) {
-    const credFilePath = path.join(getClaudeConfigDir(session.userId), ".credentials.json");
+    const credPaths = [
+      path.join(getClaudeConfigDir(session.userId), ".credentials.json"),
+      path.join(os.homedir(), ".claude", ".credentials.json"),
+    ];
     credFileWatcher = setInterval(async () => {
       if (credentialsSaved) {
         if (credFileWatcher) clearInterval(credFileWatcher);
         return;
       }
       try {
-        if (fs.existsSync(credFilePath) && fs.statSync(credFilePath).size > 10) {
+        const found = credPaths.find(p => fs.existsSync(p) && fs.statSync(p).size > 10);
+        if (found) {
           credentialsSaved = true;
           if (credFileWatcher) clearInterval(credFileWatcher);
-          console.log(`[bootstrap] "${session.agentName}" — .credentials.json detected on disk, saving to DB...`);
+          console.log(`[bootstrap] "${session.agentName}" — .credentials.json detected at ${found}, saving to DB...`);
           await saveClaudeCredentials(session.userId!);
         }
       } catch {}
