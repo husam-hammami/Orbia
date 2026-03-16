@@ -463,7 +463,8 @@ function OfficeFloor({
 
 function AgentDesk({ agent, index, onClick }: { agent: Agent; index: number; onClick: () => void }) {
   const color = agent.accentColor || "#6366f1";
-  const status = (agent.status || "idle") as "idle" | "working" | "error" | "waiting";
+  const dbStatus = (agent.status || "idle") as "idle" | "working" | "error" | "waiting";
+  const status = (agent.isRunning && dbStatus === "idle") ? "working" : dbStatus;
   const [elapsed, setElapsed] = useState("");
 
   useEffect(() => {
@@ -1325,7 +1326,8 @@ function CreateAgentWizard({ onClose, onCreated, githubStatus }: { onClose: () =
 function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBack: () => void; onDelete: () => void }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const color = agent.accentColor || "#6366f1";
-  const status = (agent.status || "idle") as "idle" | "working" | "error" | "waiting";
+  const dbStatus = (agent.status || "idle") as "idle" | "working" | "error" | "waiting";
+  const status = (agent.isRunning && dbStatus === "idle") ? "working" : dbStatus;
 
   return (
     <motion.div {...agentAnimations.panelSlideUp} className="fixed inset-0 z-40 bg-gray-950 flex flex-col">
@@ -1445,7 +1447,8 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
 function ProjectPane({ agent }: { agent: Agent }) {
   const [activeTab, setActiveTab] = useState<"tasks" | "files">("tasks");
   const queryClient = useQueryClient();
-  const status = (agent.status || "idle") as "idle" | "working" | "error" | "waiting";
+  const dbStatus = (agent.status || "idle") as "idle" | "working" | "error" | "waiting";
+  const status = (agent.isRunning && dbStatus === "idle") ? "working" : dbStatus;
   const color = agent.accentColor || "#6366f1";
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);

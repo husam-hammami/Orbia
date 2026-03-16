@@ -99,9 +99,11 @@ async function recoverStaleAgentStates() {
 recoverStaleAgentStates();
 
 const terminalTaskMonitors = new Map<string, NodeJS.Timeout>();
+const activeTerminalTasks = new Set<string>();
 
 function monitorTerminalTask(agentId: string, taskId: string, userId: string) {
   if (terminalTaskMonitors.has(taskId)) return;
+  activeTerminalTasks.add(agentId);
 
   let outputAccumulator = "";
   let lastOutputTime = Date.now();
@@ -118,12 +120,14 @@ function monitorTerminalTask(agentId: string, taskId: string, userId: string) {
   const checkInterval = setInterval(async () => {
     const timeSinceOutput = Date.now() - lastOutputTime;
 
-    const hasFinished = (promptReturnCount > 0 && timeSinceOutput > 5000) ||
+    const hasFinished = (promptReturnCount > 0 && timeSinceOutput > 15000) ||
       timeSinceOutput > 600000;
 
     if (hasFinished) {
       clearInterval(checkInterval);
       terminalTaskMonitors.delete(taskId);
+      activeTerminalTasks.delete(agentId);
+      unsub();
 
       const timedOut = timeSinceOutput > 600000;
       try {
@@ -265,7 +269,7 @@ export function registerAgentRoutes(app: Express) {
     const agents = await storage.getAllAgentProfiles(userId);
     const enriched = agents.map((a) => ({
       ...a,
-      isRunning: agentProcessManager.isRunning(a.id),
+      isRunning: agentProcessManager.isRunning(a.id) || activeTerminalTasks.has(a.id),
       repoCloned: repoManager.isRepoCloned(a.id),
     }));
     res.json(enriched);
@@ -277,7 +281,7 @@ export function registerAgentRoutes(app: Express) {
     if (!agent) return res.status(404).json({ error: "Agent not found" });
     res.json({
       ...agent,
-      isRunning: agentProcessManager.isRunning(agent.id),
+      isRunning: agentProcessManager.isRunning(agent.id) || activeTerminalTasks.has(agent.id),
       repoCloned: repoManager.isRepoCloned(agent.id),
     });
   });
