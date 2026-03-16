@@ -56,6 +56,9 @@ ZOHO_PORTAL_ID = "905717188"
 GITHUB_CLIENT_ID = "Ov23liLYKitrwqHFK9Eh"
 GITHUB_CLIENT_SECRET = "06541cd6b49065c52037d6cbcf11be11ad56450d"
 GITHUB_REDIRECT_URI = "https://myorbia.com/api/agents/github/callback"
+GITHUB_PAT = ""
+VAPID_PUBLIC_KEY = "BFqWP7xwuqleG_P1fMfNC6u7qzmN7kibCkKB4E2ONTyKHloQ4pJjLx8uuZTj1Pj6qXZ8NMlQ3vfAMPZ7aDIjO8g"
+VAPID_PRIVATE_KEY = "PVZe32Y3i77dpLAt9wVmdEy1nqGV-cwVgiNtjzit7go"
 
 [userenv.development]
 DATABASE_FALLBACK_URL = "postgresql://neondb_owner:npg_ngvjkw3ic9tY@ep-frosty-wave-ahxls62k.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
