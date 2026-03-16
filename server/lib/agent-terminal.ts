@@ -21,10 +21,180 @@ interface ShellSession {
   clients: Set<WebSocket>;
   alive: boolean;
   outputListeners: Set<(data: string) => void>;
+  bootstrapComplete: boolean;
+  pendingTask?: string;
+}
+
+interface BootstrapState {
+  phase: "launching" | "waiting_for_prompts" | "login_required" | "ready" | "done";
+  entersSent: number;
+  loginUrl?: string;
+  lastActivity: number;
+  timeoutHandle?: ReturnType<typeof setTimeout>;
+  accumulated: string;
 }
 
 const MAX_BUFFER_LINES = 2000;
 const shells = new Map<string, ShellSession>();
+const bootstrapStates = new Map<string, BootstrapState>();
+
+const STRIP_ANSI = /\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07/g;
+
+function stripAnsi(s: string): string {
+  return s.replace(STRIP_ANSI, "");
+}
+
+function startBootstrapWatcher(session: ShellSession) {
+  const agentId = session.agentId;
+  const state: BootstrapState = {
+    phase: "launching",
+    entersSent: 0,
+    lastActivity: Date.now(),
+    accumulated: "",
+  };
+  bootstrapStates.set(agentId, state);
+
+  const ENTER_PATTERNS = [
+    /press enter/i,
+    /press return/i,
+    /hit enter/i,
+    /continue\??\s*$/i,
+    /\(y\/n\)/i,
+    /\[Y\/n\]/i,
+    /\[y\/N\]/i,
+  ];
+
+  const LOGIN_URL_PATTERN = /https?:\/\/[^\s]+(?:login|auth|oauth|claude\.ai)[^\s]*/i;
+  const TOKEN_PROMPT_PATTERN = /paste.*(?:token|code|key)|enter.*(?:token|code|key)|(?:token|code|key).*:/i;
+  const CLAUDE_READY_PATTERN = /[❯>]\s*$/;
+  const CLAUDE_RUNNING = /Claude Code v|Opus|Sonnet|model:/i;
+  const YES_NO_PROMPT = /\(Y\)es\s*\/\s*\(N\)o|\(y\/n\)|\[Y\/n\]/i;
+
+  const MAX_ENTERS = 8;
+  const BOOTSTRAP_TIMEOUT = 120000;
+
+  const processOutput = (data: string) => {
+    if (state.phase === "done") return;
+    state.accumulated += data;
+    state.lastActivity = Date.now();
+
+    const clean = stripAnsi(state.accumulated);
+    const recentClean = stripAnsi(data);
+
+    if (state.phase === "launching" && (CLAUDE_RUNNING.test(clean) || clean.includes("Claude Code"))) {
+      state.phase = "waiting_for_prompts";
+      console.log(`[bootstrap] "${session.agentName}" — Claude Code detected, watching for prompts`);
+    }
+
+    if (state.phase === "waiting_for_prompts" || state.phase === "launching") {
+      for (const pattern of ENTER_PATTERNS) {
+        if (pattern.test(recentClean) && state.entersSent < MAX_ENTERS) {
+          state.entersSent++;
+          setTimeout(() => {
+            if (session.alive && session.process.stdin) {
+              session.process.stdin.write("\n");
+              console.log(`[bootstrap] "${session.agentName}" — auto-pressed Enter (${state.entersSent}/${MAX_ENTERS})`);
+            }
+          }, 500);
+          break;
+        }
+      }
+
+      if (YES_NO_PROMPT.test(recentClean)) {
+        setTimeout(() => {
+          if (session.alive && session.process.stdin) {
+            session.process.stdin.write("y\n");
+            console.log(`[bootstrap] "${session.agentName}" — auto-answered Yes`);
+          }
+        }, 500);
+      }
+    }
+
+    const urlMatch = clean.match(LOGIN_URL_PATTERN);
+    if (urlMatch && state.phase !== "done") {
+      state.phase = "login_required";
+      state.loginUrl = urlMatch[0];
+      console.log(`[bootstrap] "${session.agentName}" — login required: ${state.loginUrl}`);
+      broadcastBootstrapEvent(session, {
+        type: "login_required",
+        url: state.loginUrl,
+        message: "Claude Code needs authentication. Opening login page...",
+      });
+    }
+
+    if (TOKEN_PROMPT_PATTERN.test(recentClean) && state.phase === "login_required") {
+      console.log(`[bootstrap] "${session.agentName}" — waiting for token paste from user`);
+      broadcastBootstrapEvent(session, {
+        type: "token_needed",
+        message: "Please paste the authentication token from your browser.",
+      });
+    }
+
+    if (CLAUDE_READY_PATTERN.test(clean.trim()) && state.phase !== "done") {
+      const hasClaudeMarkers = CLAUDE_RUNNING.test(clean) || clean.includes("guest passes") || clean.includes("/passes") || clean.includes("context");
+
+      if (hasClaudeMarkers) {
+        state.phase = "ready";
+        console.log(`[bootstrap] "${session.agentName}" — Claude Code is ready!`);
+        session.bootstrapComplete = true;
+
+        broadcastBootstrapEvent(session, {
+          type: "ready",
+          message: "Claude Code is ready and waiting for commands.",
+        });
+
+        if (session.pendingTask) {
+          const taskPrompt = session.pendingTask;
+          session.pendingTask = undefined;
+          setTimeout(() => {
+            if (session.alive && session.process.stdin) {
+              const escapedPrompt = taskPrompt.replace(/'/g, "'\\''");
+              const cmd = `claude -p '${escapedPrompt}' --dangerously-skip-permissions`;
+              session.process.stdin.write(cmd + "\n");
+              console.log(`[bootstrap] "${session.agentName}" — auto-sent task: ${taskPrompt.slice(0, 80)}`);
+              broadcastBootstrapEvent(session, {
+                type: "task_sent",
+                message: `Running task: ${taskPrompt.slice(0, 100)}...`,
+              });
+            }
+          }, 1000);
+        }
+
+        state.phase = "done";
+        cleanupBootstrap(agentId);
+      }
+    }
+  };
+
+  session.outputListeners.add(processOutput);
+
+  state.timeoutHandle = setTimeout(() => {
+    if (state.phase !== "done") {
+      console.log(`[bootstrap] "${session.agentName}" — bootstrap timeout after ${BOOTSTRAP_TIMEOUT / 1000}s (phase: ${state.phase})`);
+      session.bootstrapComplete = true;
+      broadcastBootstrapEvent(session, {
+        type: "timeout",
+        message: "Bootstrap timed out. You can interact with the terminal manually.",
+      });
+      cleanupBootstrap(agentId);
+    }
+  }, BOOTSTRAP_TIMEOUT);
+}
+
+function cleanupBootstrap(agentId: string) {
+  const state = bootstrapStates.get(agentId);
+  if (state?.timeoutHandle) clearTimeout(state.timeoutHandle);
+  bootstrapStates.delete(agentId);
+}
+
+function broadcastBootstrapEvent(session: ShellSession, event: { type: string; url?: string; message: string }) {
+  const payload = JSON.stringify({ bootstrap: event });
+  for (const ws of session.clients) {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(`\x1b]bootstrap:${payload}\x07`);
+    }
+  }
+}
 
 function getClaudePath(): string {
   return path.join(process.cwd(), ".config/npm/node_global/bin");
@@ -92,6 +262,7 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
     clients: new Set(),
     alive: true,
     outputListeners: new Set(),
+    bootstrapComplete: false,
   };
 
   const welcome = `\x1b[1;36m=== ${agentName} ===\x1b[0m\r\n` +
@@ -156,6 +327,7 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
       setTimeout(() => {
         if (session.alive && shell.stdin) {
           shell.stdin.write("claude\n");
+          startBootstrapWatcher(session);
         }
       }, 200);
     }
@@ -335,6 +507,22 @@ export function killSession(agentId: string): boolean {
 export function hasActiveSession(agentId: string): boolean {
   const session = shells.get(agentId);
   return !!session && session.alive;
+}
+
+export function isBootstrapComplete(agentId: string): boolean {
+  const session = shells.get(agentId);
+  return !!session && session.bootstrapComplete;
+}
+
+export function setPendingTask(agentId: string, task: string): boolean {
+  const session = shells.get(agentId);
+  if (!session) return false;
+  if (session.bootstrapComplete) {
+    return false;
+  }
+  session.pendingTask = task;
+  console.log(`[bootstrap] "${session.agentName}" — queued pending task: ${task.slice(0, 80)}`);
+  return true;
 }
 
 export function getActiveShellCount(): number {

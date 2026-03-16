@@ -5,12 +5,19 @@ import { RefreshCw } from "lucide-react";
 import { API_BASE_URL } from "@/lib/queryClient";
 import "@xterm/xterm/css/xterm.css";
 
+interface BootstrapEvent {
+  type: "login_required" | "token_needed" | "ready" | "task_sent" | "timeout";
+  url?: string;
+  message: string;
+}
+
 interface AgentTerminalProps {
   agentId: string;
   agentName: string;
+  onBootstrapEvent?: (event: BootstrapEvent) => void;
 }
 
-export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
+export function AgentTerminal({ agentId, agentName, onBootstrapEvent }: AgentTerminalProps) {
   const termRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -18,6 +25,9 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [connected, setConnected] = useState(false);
   const [restarting, setRestarting] = useState(false);
+  const [bootstrapStatus, setBootstrapStatus] = useState<string | null>(null);
+  const onBootstrapEventRef = useRef(onBootstrapEvent);
+  onBootstrapEventRef.current = onBootstrapEvent;
 
   const sendResize = useCallback((ws: WebSocket, cols: number, rows: number) => {
     if (ws.readyState === WebSocket.OPEN) {
@@ -43,7 +53,36 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
     };
 
     ws.onmessage = (event) => {
-      term.write(event.data);
+      const data: string = event.data;
+      const bootstrapMatch = data.match(/\x1b\]bootstrap:(.*?)\x07/);
+      if (bootstrapMatch) {
+        try {
+          const parsed = JSON.parse(bootstrapMatch[1]);
+          if (parsed.bootstrap) {
+            const evt = parsed.bootstrap as BootstrapEvent;
+            if (onBootstrapEventRef.current) onBootstrapEventRef.current(evt);
+
+            if (evt.type === "login_required" && evt.url) {
+              setBootstrapStatus("Login required — opening browser...");
+              window.open(evt.url, "_blank");
+            } else if (evt.type === "token_needed") {
+              setBootstrapStatus("Paste auth token in terminal");
+            } else if (evt.type === "ready") {
+              setBootstrapStatus("Claude Code ready");
+              setTimeout(() => setBootstrapStatus(null), 3000);
+            } else if (evt.type === "task_sent") {
+              setBootstrapStatus("Task sent to Claude");
+              setTimeout(() => setBootstrapStatus(null), 5000);
+            } else if (evt.type === "timeout") {
+              setBootstrapStatus(null);
+            }
+          }
+        } catch {}
+        const cleaned = data.replace(/\x1b\]bootstrap:.*?\x07/g, "");
+        if (cleaned) term.write(cleaned);
+      } else {
+        term.write(data);
+      }
     };
 
     ws.onclose = () => {
@@ -164,6 +203,11 @@ export function AgentTerminal({ agentId, agentName }: AgentTerminalProps) {
         <span className="text-xs text-white/60 font-mono">
           {connected ? "live" : "reconnecting..."}
         </span>
+        {bootstrapStatus && (
+          <span className="text-xs text-amber-400/80 font-mono animate-pulse" data-testid="text-bootstrap-status">
+            {bootstrapStatus}
+          </span>
+        )}
         <span className="text-xs text-white/30 ml-auto font-mono truncate max-w-[200px]">{agentName}</span>
         <button
           onClick={restartTerminal}
