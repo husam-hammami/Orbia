@@ -63,12 +63,8 @@ export function AgentTerminal({ agentId, agentName, onBootstrapEvent }: AgentTer
             const evt = parsed.bootstrap as BootstrapEvent;
             if (onBootstrapEventRef.current) onBootstrapEventRef.current(evt);
 
-            if (evt.type === "login_required" && evt.url) {
-              setBootstrapStatus("Login required — opening browser...");
-              if (!loginUrlOpenedRef.current) {
-                loginUrlOpenedRef.current = true;
-                window.open(evt.url, "_blank");
-              }
+            if (evt.type === "login_required") {
+              setBootstrapStatus("Paste auth token in terminal");
             } else if (evt.type === "token_needed") {
               setBootstrapStatus("Paste auth token in terminal");
             } else if (evt.type === "ready") {

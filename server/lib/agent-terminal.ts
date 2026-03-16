@@ -251,24 +251,22 @@ function startBootstrapWatcher(session: ShellSession) {
       }
     }
 
-    const urlMatch = recentClean.match(LOGIN_URL_PATTERN);
-    if (urlMatch && state.phase !== "login_required" && state.phase !== "done") {
+    if (LOGIN_URL_PATTERN.test(recentClean) && state.phase !== "login_required" && state.phase !== "done") {
       state.phase = "login_required";
-      state.loginUrl = urlMatch[0];
-      console.log(`[bootstrap] "${session.agentName}" — login required: ${state.loginUrl}`);
+      console.log(`[bootstrap] "${session.agentName}" — login required (URL detected in terminal)`);
       broadcastBootstrapEvent(session, {
         type: "login_required",
-        url: state.loginUrl,
-        message: "Claude Code needs authentication. Opening login page...",
+        message: "Claude Code needs authentication. Use the URL shown in the terminal.",
       });
     }
 
-    if (TOKEN_PROMPT_PATTERN.test(recentClean) && state.phase === "login_required" && !(state as any)._tokenPromptSent) {
+    if (TOKEN_PROMPT_PATTERN.test(recentClean) && !(state as any)._tokenPromptSent) {
       (state as any)._tokenPromptSent = true;
+      if (state.phase !== "login_required") state.phase = "login_required";
       console.log(`[bootstrap] "${session.agentName}" — waiting for token paste from user`);
       broadcastBootstrapEvent(session, {
         type: "token_needed",
-        message: "Please paste the authentication token from your browser.",
+        message: "Paste the auth code from your browser into the terminal.",
       });
     }
 
@@ -718,13 +716,16 @@ async function createShell(agentId: string, agentName: string, repoUrl: string, 
   });
 
   if (shell.stdin) {
-    const initCmds = [
+    const initParts = [
       `export PS1='\\[\\033[1;36m\\]${agentName}\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]$ '`,
       `export PATH="${enhancedPath}"`,
-      `cd "${repoDir}"`,
-      `clear`,
-    ].join(" && ");
-    shell.stdin.write(initCmds + "\n");
+    ];
+    if (resolvedUserId) {
+      const userConfigDir = getClaudeConfigDir(resolvedUserId);
+      initParts.push(`export CLAUDE_CONFIG_DIR="${userConfigDir}"`);
+    }
+    initParts.push(`cd "${repoDir}"`, `clear`);
+    shell.stdin.write(initParts.join(" && ") + "\n");
   }
 
   setTimeout(() => {
