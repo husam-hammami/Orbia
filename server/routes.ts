@@ -3539,17 +3539,164 @@ ${JSON.stringify(context, null, 2)}`;
               break;
             }
             case "create_career_task": {
+              let resolvedProjectId = args.project_id || null;
+              if (!resolvedProjectId && args.project_keyword) {
+                const projects = await storage.getAllCareerProjects(userId);
+                const kw = args.project_keyword.toLowerCase();
+                const match = projects.find((p: any) => p.title.toLowerCase().includes(kw));
+                if (match) resolvedProjectId = match.id;
+              }
               await storage.createCareerTask(userId, {
                 title: args.title,
-                projectId: args.project_id || null,
+                projectId: resolvedProjectId,
                 parentId: null,
-                completed: false,
+                completed: 0,
                 priority: args.priority || "medium",
                 due: args.due || null,
-                tags: null,
-                description: null,
+                tags: [],
+                description: args.description || null,
               });
               actionResults.push({ name, title: args.title, success: true });
+              break;
+            }
+            case "update_career_task": {
+              if (args.task_id) {
+                const updates: any = {};
+                if (args.title !== undefined) updates.title = args.title;
+                if (args.priority !== undefined) updates.priority = args.priority;
+                if (args.completed !== undefined) updates.completed = args.completed ? 1 : 0;
+                if (args.due !== undefined) updates.due = args.due;
+                if (args.description !== undefined) updates.description = args.description;
+                if (args.project_id !== undefined) updates.projectId = args.project_id;
+                await storage.updateCareerTask(userId, args.task_id, updates);
+                actionResults.push({ name, title: args.title || args.task_id, success: true });
+              }
+              break;
+            }
+            case "delete_career_task": {
+              if (args.task_id) {
+                await storage.deleteCareerTask(userId, args.task_id);
+                actionResults.push({ name, title: args.task_id, success: true });
+              }
+              break;
+            }
+            case "update_habit": {
+              if (args.habit_id) {
+                const updates: any = {};
+                if (args.title !== undefined) updates.title = args.title;
+                if (args.category !== undefined) updates.category = args.category;
+                if (args.description !== undefined) updates.description = args.description;
+                if (args.target !== undefined) updates.target = args.target;
+                if (args.unit !== undefined) updates.unit = args.unit;
+                await storage.updateHabit(userId, args.habit_id, updates);
+                actionResults.push({ name, title: args.title || args.habit_id, success: true });
+              }
+              break;
+            }
+            case "delete_habit": {
+              if (args.habit_id) {
+                await storage.deleteHabit(userId, args.habit_id);
+                actionResults.push({ name, title: args.habit_id, success: true });
+              }
+              break;
+            }
+            case "create_routine_activity": {
+              await storage.createRoutineActivity(userId, {
+                blockId: args.block_id,
+                name: args.name,
+                time: args.time || null,
+                description: args.description || null,
+                habitId: args.habit_id || null,
+                order: args.order || 0,
+              });
+              actionResults.push({ name, title: args.name, success: true });
+              break;
+            }
+            case "update_routine_activity": {
+              if (args.activity_id) {
+                const updates: any = {};
+                if (args.name !== undefined) updates.name = args.name;
+                if (args.time !== undefined) updates.time = args.time;
+                if (args.description !== undefined) updates.description = args.description;
+                await storage.updateRoutineActivity(userId, args.activity_id, updates);
+                actionResults.push({ name, title: args.name || args.activity_id, success: true });
+              }
+              break;
+            }
+            case "delete_routine_activity": {
+              if (args.activity_id) {
+                await storage.deleteRoutineActivity(userId, args.activity_id);
+                actionResults.push({ name, title: args.activity_id, success: true });
+              }
+              break;
+            }
+            case "mark_routine_activity": {
+              if (args.activity_id && args.date) {
+                await storage.toggleRoutineActivityWithHabit(userId, args.activity_id, args.date, args.habit_id || null, args.done ? "add" : "remove");
+                actionResults.push({ name, title: args.activity_id, success: true });
+              }
+              break;
+            }
+            case "create_expense": {
+              await storage.createExpense(userId, {
+                name: args.name,
+                amount: args.amount || 0,
+                budget: args.budget || args.amount || 0,
+                category: args.category || "Variable",
+                status: args.status || "pending",
+                date: args.date || null,
+                month: args.month || null,
+              });
+              actionResults.push({ name, title: args.name, success: true });
+              break;
+            }
+            case "update_expense": {
+              if (args.expense_id) {
+                const updates: any = {};
+                if (args.name !== undefined) updates.name = args.name;
+                if (args.amount !== undefined) updates.amount = args.amount;
+                if (args.budget !== undefined) updates.budget = args.budget;
+                if (args.category !== undefined) updates.category = args.category;
+                if (args.status !== undefined) updates.status = args.status;
+                await storage.updateExpense(userId, args.expense_id, updates);
+                actionResults.push({ name, title: args.name || args.expense_id, success: true });
+              }
+              break;
+            }
+            case "delete_expense": {
+              if (args.expense_id) {
+                await storage.deleteExpense(userId, args.expense_id);
+                actionResults.push({ name, title: args.expense_id, success: true });
+              }
+              break;
+            }
+            case "create_vision": {
+              await storage.createVisionItem(userId, {
+                userId,
+                title: args.title,
+                timeframe: args.timeframe || "1 year",
+                color: args.color || "text-blue-500",
+                order: 0,
+              } as any);
+              actionResults.push({ name, title: args.title, success: true });
+              break;
+            }
+            case "update_vision": {
+              if (args.vision_id) {
+                const updates: any = {};
+                if (args.title !== undefined) updates.title = args.title;
+                if (args.timeframe !== undefined) updates.timeframe = args.timeframe;
+                if (args.color !== undefined) updates.color = args.color;
+                await storage.updateVisionItem(userId, args.vision_id, updates);
+                actionResults.push({ name, title: args.title || args.vision_id, success: true });
+              }
+              break;
+            }
+            case "delete_vision": {
+              if (args.vision_id) {
+                await storage.deleteVisionItem(userId, args.vision_id);
+                actionResults.push({ name, title: args.vision_id, success: true });
+              }
               break;
             }
             case "create_journal": {
@@ -3730,6 +3877,7 @@ ${JSON.stringify(context, null, 2)}`;
             }
             default:
               console.log(`[orbit-action] Unknown action: ${name}`);
+              actionResults.push({ name, title: args.title || "unknown", success: false, error: `Unknown action: ${name}` });
               break;
           }
         } catch (err: any) {

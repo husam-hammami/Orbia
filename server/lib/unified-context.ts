@@ -824,7 +824,7 @@ CAREER PROJECTS:
 - delete_career_project: {"project_id": "..."}
 
 CAREER TASKS:
-- create_career_task: {"title": "...", "project_id": "..." or null, "priority": "low/medium/high", "due": "YYYY-MM-DD"}
+- create_career_task: {"title": "...", "project_id": "..." or null, "project_keyword": "...", "priority": "low/medium/high", "due": "YYYY-MM-DD", "description": "..."} — Use project_keyword (partial name match) if you don't have the exact project_id
 - update_career_task: {"task_id": "...", "title": "...", "priority": "...", "completed": 0/1}
 - delete_career_task: {"task_id": "..."}
 
