@@ -790,7 +790,13 @@ ACTION RULES:
   const orbitActions = `
 ## APP ACTIONS — JSON FORMAT
 You can execute these by outputting a JSON action object. Format:
-{"type":"action","name":"action_name","args":{...},"confirm":false}
+{"type":"action","name":"action_name","args":{...}}
+
+IMPORTANT RULES FOR ACTIONS:
+- When the user asks you to delete/remove something, just DO IT immediately. Emit the action JSON and confirm what you did. Do NOT say you will show prompts or ask for confirmation — there is no confirmation UI. Just execute the action.
+- When deleting multiple items, emit one action JSON per item, each on its own line.
+- Always use actual IDs from the context data below, never fabricate IDs.
+- If the user asks to delete "all" of something, look up every ID from the context data and emit a delete action for each one.
 
 SUPPORTED ACTIONS:
 
@@ -798,46 +804,46 @@ HABITS:
 - mark_habit: {"habit_id": "...", "date": "YYYY-MM-DD", "done": true/false}
 - create_habit: {"title": "...", "category": "health/movement/mental/work/mindfulness/creativity", "description": "...", "target": number, "unit": "times/minutes/ml/etc"}
 - update_habit: {"habit_id": "...", "title": "...", "category": "...", "description": "..."}
-- delete_habit: {"habit_id": "..."} - ALWAYS set confirm:true
+- delete_habit: {"habit_id": "..."}
 
 TASKS:
 - add_task: {"title": "...", "priority": "low/medium/high"}
 - mark_task: {"task_id": "...", "completed": true/false}
 - update_task: {"task_id": "...", "title": "...", "priority": "..."}
-- delete_task: {"task_id": "..."} - ALWAYS set confirm:true
+- delete_task: {"task_id": "..."}
 
 ROUTINE ACTIVITIES:
 - mark_routine_activity: {"activity_id": "...", "date": "YYYY-MM-DD", "done": true/false, "habit_id": "..." or null}
 - create_routine_activity: {"block_id": "...", "name": "...", "time": "HH:MM", "description": "...", "habit_id": "..."}
 - update_routine_activity: {"activity_id": "...", "name": "...", "time": "...", "description": "..."}
-- delete_routine_activity: {"activity_id": "..."} - ALWAYS set confirm:true
+- delete_routine_activity: {"activity_id": "..."}
 
 CAREER PROJECTS:
 - create_career_project: {"title": "...", "description": "...", "status": "planning/in_progress/ongoing/completed", "deadline": "YYYY-MM-DD", "color": "bg-indigo-500/bg-rose-500/bg-emerald-500/etc"}
 - update_career_project: {"project_id": "...", "title": "...", "status": "...", "progress": 0-100}
-- delete_career_project: {"project_id": "..."} - ALWAYS set confirm:true
+- delete_career_project: {"project_id": "..."}
 
 CAREER TASKS:
 - create_career_task: {"title": "...", "project_id": "..." or null, "priority": "low/medium/high", "due": "YYYY-MM-DD"}
 - update_career_task: {"task_id": "...", "title": "...", "priority": "...", "completed": 0/1}
-- delete_career_task: {"task_id": "..."} - ALWAYS set confirm:true
+- delete_career_task: {"task_id": "..."}
 
 VISION & ROADMAP:
 - create_vision: {"title": "...", "timeframe": "6 months/1 year/3 years/5 years", "color": "text-blue-500/text-purple-500/text-amber-500/etc"}
 - update_vision: {"vision_id": "...", "title": "...", "timeframe": "...", "color": "..."}
-- delete_vision: {"vision_id": "..."} - ALWAYS set confirm:true
+- delete_vision: {"vision_id": "..."}
 - refresh_roadmap: {} - Regenerates the AI roadmap
 
 FINANCE:
 - add_transaction: {"type": "income/expense", "name": "...", "amount": number, "category": "salary/freelance/groceries/food/transport/utilities/entertainment/shopping/health/subscriptions/travel/other", "notes": "..."}
-- delete_transaction: {"transaction_id": "..."} - ALWAYS set confirm:true
+- delete_transaction: {"transaction_id": "..."}
 - add_loan_payment: {"loan_id": "...", "amount": number, "notes": "..."}
 - log_income_payment: {"income_stream_id": "...", "amount": number}
 
 JOURNAL:
 - create_journal: {"content": "...", "entry_type": "reflection/vent/gratitude/grounding/memory/note", "mood": 1-10, "energy": 1-10, "tags": ["..."], "is_private": true/false}
 - update_journal: {"entry_id": "...", "content": "...", "entry_type": "...", "mood": ..., "energy": ...}
-- delete_journal: {"entry_id": "..."} - ALWAYS set confirm:true
+- delete_journal: {"entry_id": "..."}
 
 MEALS:
 - log_meal: {"date": "YYYY-MM-DD", "breakfast": "...", "lunch": "...", "dinner": "..."}
