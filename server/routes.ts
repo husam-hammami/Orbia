@@ -6142,20 +6142,29 @@ ${rawText}`
       let tasksContext = "";
       let membersContext = "";
       let tasklistsContext = "";
-      try {
-        const [tasksData, membersData, tasklistsData] = await Promise.all([
-          zoho.getTasks(projectId),
-          zoho.getProjectMembers(projectId),
-          zoho.getTasklists(projectId),
-        ]);
-        const tasks = tasksData?.tasks || tasksData || [];
-        const members = membersData?.users || membersData || [];
-        const tasklists = tasklistsData?.tasklists || tasklistsData || [];
 
+      const [tasksResult, membersResult, tasklistsResult] = await Promise.allSettled([
+        zoho.getTasks(projectId),
+        zoho.getProjectMembers(projectId),
+        zoho.getTasklists(projectId),
+      ]);
+
+      if (tasklistsResult.status === "fulfilled") {
+        const tasklists = tasklistsResult.value?.tasklists || (Array.isArray(tasklistsResult.value) ? tasklistsResult.value : []);
         tasklistsContext = tasklists.map((tl: any) => `- "${tl.name}" (id: ${tl.id})`).join("\n");
+      } else {
+        console.error("[zoho-chat] Failed to fetch tasklists:", tasklistsResult.reason?.message);
+      }
 
+      if (membersResult.status === "fulfilled") {
+        const members = membersResult.value?.users || (Array.isArray(membersResult.value) ? membersResult.value : []);
         membersContext = members.map((m: any) => `- ${m.name} (zpuid: ${m.zpuid || m.id}${m.email ? `, email: ${m.email}` : ""})`).join("\n");
+      } else {
+        console.error("[zoho-chat] Failed to fetch members:", membersResult.reason?.message);
+      }
 
+      if (tasksResult.status === "fulfilled") {
+        const tasks = tasksResult.value?.tasks || (Array.isArray(tasksResult.value) ? tasksResult.value : []);
         const openTasks = tasks.filter((t: any) => !t.is_completed && !t.status?.is_closed_type);
         const doneTasks = tasks.filter((t: any) => t.is_completed || t.status?.is_closed_type);
 
@@ -6164,7 +6173,8 @@ ${rawText}`
           const overdue = t.end_date && !t.is_completed && new Date(t.end_date) < new Date() ? " [OVERDUE]" : "";
           return `- "${t.name}" (id: ${t.id}) | Status: ${t.status?.name || "Open"} | Priority: ${t.priority || "None"} | Owner: ${owners} | Due: ${t.end_date ? new Date(t.end_date).toLocaleDateString() : "No date"} | Tasklist: ${t.tasklist?.name || "N/A"}${overdue}`;
         }).join("\n") + `\n\nCOMPLETED TASKS (${doneTasks.length}): ${doneTasks.length} tasks done`;
-      } catch (e) {
+      } else {
+        console.error("[zoho-chat] Failed to fetch tasks:", tasksResult.reason?.message);
         tasksContext = "Unable to fetch tasks - API may be temporarily unavailable.";
       }
 
