@@ -11,7 +11,7 @@ import crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";
 import { db } from "../db";
-import { agentProfiles, agentTasks } from "@shared/schema";
+import { agentProfiles, agentTasks, pushSubscriptions } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 const sseClients = new Map<string, Set<Response>>();
@@ -62,6 +62,16 @@ agentProcessManager.on("agent:completed", async (data) => {
     } as any);
     if (success) {
       await storage.incrementAgentTasksCompleted(data.agentId);
+    }
+    const agent = await storage.getAgentProfile(data.agentId);
+    if (agent?.notifyOnComplete && agent.userId) {
+      const { sendPushToUser } = await import("../lib/push-notify");
+      const taskName = task?.name || "Task";
+      sendPushToUser(agent.userId, {
+        title: `${agent.name}: ${success ? "Done" : "Failed"}`,
+        body: success ? `${taskName} completed successfully` : `${taskName} failed (exit ${data.exitCode})`,
+        url: `/agents`,
+      }).catch(() => {});
     }
   } catch (err) {
     console.error("Failed to update agent on completion:", err);
@@ -874,7 +884,8 @@ export function registerAgentRoutes(app: Express) {
     const agent = (await storage.getAgentProfile(ctx.userId, ctx.agentId))!;
 
     const { action, message, history } = req.body;
-    if (!action || !["analyze", "review", "plan", "monitor", "chat"].includes(action)) {
+    const validActions = ["review", "test", "push_merge", "chat"];
+    if (!action || !validActions.includes(action)) {
       return res.status(400).json({ error: "Invalid action" });
     }
     if (action === "chat" && (!message || typeof message !== "string")) {
@@ -912,7 +923,7 @@ export function registerAgentRoutes(app: Express) {
         if (changes.length > 0) {
           repoContext += "## Uncommitted Changes\n" + changes.map(f => `- ${f}`).join("\n") + "\n\n";
           const diff = await repoManager.getDiff(agent.id);
-          if (diff) repoContext += "## Current Diff\n```diff\n" + diff.slice(0, 8000) + "\n```\n\n";
+          if (diff) repoContext += "## Current Diff\n```diff\n" + diff.slice(0, 12000) + "\n```\n\n";
         }
       } catch {}
 
@@ -924,9 +935,16 @@ export function registerAgentRoutes(app: Express) {
       } catch {}
     }
 
+    const ANSI_RE = /\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07/g;
+    const TOKEN_RE = /(?:ghp_[A-Za-z0-9_]{36,}|github_pat_[A-Za-z0-9_]{82,}|x-access-token:[^\s@]+)/g;
     const terminalLines = getOutputBuffer(agent.id);
-    const recentTerminal = terminalLines.slice(-100).join("");
-    const cleanTerminal = recentTerminal.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "").slice(-4000);
+    const fullRaw = terminalLines.join("");
+    const fullClean = fullRaw.replace(ANSI_RE, "").replace(TOKEN_RE, "[REDACTED]");
+    const sessionStart = fullClean.slice(0, 500);
+    const recentActivity = fullClean.slice(-10000);
+    const cleanTerminal = sessionStart.length + recentActivity.length < fullClean.length
+      ? sessionStart + "\n...[earlier output truncated]...\n" + recentActivity
+      : fullClean;
 
     let taskContext = "";
     if (agent.currentTaskSummary) taskContext += `Current Task: ${agent.currentTaskSummary}\n`;
@@ -934,84 +952,69 @@ export function registerAgentRoutes(app: Express) {
 
     const terminalIdle = !cleanTerminal.trim() || /[❯\$>]\s*$/.test(cleanTerminal.trim());
 
-    const systemPrompt = `You are Orbit — an AI analysis companion embedded in the "${agent.name}" agent workspace within Orbia.
-Your role is to be a brilliant, concise technical advisor. You have full context of this agent's repository, terminal activity, and current work.
+    const systemPrompt = `You are Orbit — the AI orchestrator and supervisor for the "${agent.name}" agent workspace within Orbia.
+You are NOT a passive reporter. You are an ACTIVE operator. You read the full terminal history, understand what the CLI agent has been doing, and you ACT.
+
+You have complete visibility into:
+- The full terminal session (every command, every output, every error)
+- The repository structure, uncommitted changes, and git history
+- The agent's current task and status
 
 ${repoContext}
 ${taskContext}
-${cleanTerminal ? `## Recent Terminal Output\n\`\`\`\n${cleanTerminal}\n\`\`\`\n` : ""}
+${cleanTerminal ? `## Full Terminal Session\n\`\`\`\n${cleanTerminal}\n\`\`\`\n` : ""}
 
-## Your Capabilities
-- **Analyze**: Deep repo structure analysis, code quality review, dependency assessment
-- **Review**: Review uncommitted changes, diffs, recent commits with actionable feedback
-- **Plan**: Generate detailed task plans, suggest next steps, architecture recommendations
-- **Monitor**: Interpret what the CLI agent is doing from terminal output
-- **Execute**: You CAN send commands directly to the terminal. Use the [TERMINAL_CMD]...[/TERMINAL_CMD] tag to inject a command.
-
-## Sending Terminal Commands
-When you need to run something in the terminal (git commands, install dependencies, run Claude Code with a prompt, etc.), wrap the command in tags:
+## Command Execution
+You CAN and SHOULD send commands to the terminal when needed. Wrap commands in tags:
 [TERMINAL_CMD]the command here[/TERMINAL_CMD]
 
 Examples:
-- To run Claude Code with a task: [TERMINAL_CMD]claude -p 'Implement the login page following the plan in docs/plan.md' --dangerously-skip-permissions[/TERMINAL_CMD]
-- To run a git command: [TERMINAL_CMD]git status[/TERMINAL_CMD]
-- To install dependencies: [TERMINAL_CMD]npm install[/TERMINAL_CMD]
+- Run Claude Code: [TERMINAL_CMD]claude -p 'Fix the auth bug in login.tsx' --dangerously-skip-permissions[/TERMINAL_CMD]
+- Git operations: [TERMINAL_CMD]git add -A && git commit -m "fix: resolve login redirect" && git push origin main[/TERMINAL_CMD]
+- Run tests: [TERMINAL_CMD]npm test 2>&1[/TERMINAL_CMD]
 
-IMPORTANT RULES:
-- ${terminalIdle ? "The terminal is IDLE — you can send commands directly." : "The terminal appears BUSY — do NOT send commands. Tell the user the terminal is busy and they should wait or ask you again when it's free."}
-- ${action === "chat" ? "Terminal execution is ENABLED for this request." : "Terminal execution is DISABLED for preset actions. Only provide analysis."}
-- When the user asks you to do something actionable (run a task, install deps, commit code), DO IT by emitting the command. Don't tell them to copy-paste.
-- For complex multi-step work, send it as a single Claude Code prompt with --dangerously-skip-permissions flag.
-- You can only send ONE command per response. If multiple steps are needed, handle one now and explain the next ones.
-- Always explain what you're doing before or after sending a command.
+RULES:
+- ${terminalIdle ? "The terminal is IDLE — you can send commands." : "The terminal is BUSY — do NOT send commands now. Report what it's doing and wait."}
+- When an action requires execution (push, test, review with commands), DO IT. Don't ask for permission.
+- You can send ONE command per response. Chain multiple operations with && if needed.
+- Always explain what you're doing and why.
 
 ## Style
-- Be concise but thorough. Use markdown formatting.
-- When reviewing code, be specific about file paths and line-level feedback.
-- When generating plans, use numbered steps with clear outcomes.
-- Speak as a senior architect — confident, direct, actionable.`;
+- Be concise, direct, actionable. Senior architect voice.
+- Use markdown. Be specific about file paths.
+- When reviewing, give line-level feedback with ratings.
+- When pushing, report the exact commit hash and branch.`;
 
     let userMessage = "";
-    if (action === "analyze") {
-      userMessage = `Analyze this repository structure and give me a clear, structured breakdown:
+    if (action === "review") {
+      userMessage = `You are reviewing the work this agent has done. Read the full terminal history to understand WHAT the agent was asked to do and WHAT it produced.
 
-1. **Stack** — List the main technologies, frameworks, and tools (be specific about versions if visible in package.json)
-2. **Architecture** — How is the project organized? What patterns does it follow?
-3. **Key Files** — The 5-8 most important files and what each does (one line each)
-4. **Health Check** — Any red flags: missing tests, no CI config, outdated deps, security concerns
-5. **Quick Assessment** — One sentence: is this codebase in good shape or does it need work?
+Then review the code changes:
 
-Keep it scannable. Use bullet points, not paragraphs.`;
-    } else if (action === "review") {
-      userMessage = `Review the uncommitted changes and recent commits. Structure your response as:
+1. **What Was Done** — Summarize what the agent built/changed based on the terminal conversation
+2. **Changes Breakdown** — For each modified file:
+   - What changed and why
+   - Rate: ✅ Good | ⚠️ Concern | 🔴 Problem
+3. **Code Quality** — Architecture, patterns, edge cases, security
+4. **Verdict** — Is this ready to push? Yes/No with specific reasons
 
-1. **Summary** — What changed, in one sentence
-2. **Changes Breakdown** — For each modified file, explain what changed and rate it:
-   - ✅ Good — Clean, follows conventions
-   - ⚠️ Concern — Works but has issues (explain what)
-   - 🔴 Problem — Bug, security issue, or breaking change
-3. **Suggestions** — Concrete improvements with code snippets if applicable
+If there are issues, be specific about what needs fixing. If it looks good, say so clearly.`;
+    } else if (action === "test") {
+      userMessage = `Run the test suite for this project. Look at the repo structure to determine the right test command (npm test, pytest, cargo test, etc.).
 
-If there are no uncommitted changes, review the last 3-5 commits instead. Be direct and specific — no filler.`;
-    } else if (action === "plan") {
-      userMessage = `Based on the current state of this repo, generate an actionable task plan:
+If no test script exists, tell the user and suggest what testing approach would be appropriate for this codebase.
 
-1. **Current State** — Where the project is right now (one sentence)
-2. **Immediate Tasks** — 3-5 things that should be done next, ordered by priority
-   - For each: what to do, which files to touch, expected outcome
-3. **Technical Debt** — Any cleanup or refactoring worth doing
-4. **Blockers** — Anything that might prevent progress
+Execute the test command now via [TERMINAL_CMD] and explain what you're running.`;
+    } else if (action === "push_merge") {
+      userMessage = `Push all changes to the remote repository. Follow this sequence:
 
-Format as a numbered checklist that could be handed to a developer. Be specific about file paths and function names.`;
-    } else if (action === "monitor") {
-      userMessage = `Analyze the recent terminal output and tell me:
+1. Check for uncommitted changes (git status)
+2. If there are uncommitted changes, stage and commit them with a descriptive commit message based on what the terminal history shows was done
+3. Push to origin on the current branch
+4. Report: commit hash, branch name, files changed, success/failure
 
-1. **Status** — What is the agent currently doing? (one clear sentence)
-2. **Progress** — What has it completed so far?
-3. **Issues** — Any errors, warnings, or stuck processes?
-4. **Action Needed?** — Does anything require human intervention? Yes/No with explanation.
-
-Be concise. If the terminal is idle, just say so.`;
+Execute this now. Use a single chained command via [TERMINAL_CMD].
+If there's nothing to push, say so.`;
     } else if (action === "chat" && safeMessage) {
       userMessage = safeMessage;
     } else {
@@ -1036,7 +1039,7 @@ Be concise. If the terminal is idle, just say so.`;
 
       let fullText = "";
       let commandExecuted = false;
-      const canExecute = action === "chat" && hasActiveSession(agent.id) && terminalIdle;
+      const canExecute = hasActiveSession(agent.id) && terminalIdle;
 
       const originalWrite = res.write.bind(res);
       res.write = ((chunk: any, ...args: any[]) => {
@@ -1066,6 +1069,52 @@ Be concise. If the terminal is idle, just say so.`;
       console.error("[orbit] AI error:", err.message);
       res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
       res.end();
+    }
+  });
+
+  app.get("/api/push/vapid-key", (_req, res) => {
+    res.json({ publicKey: process.env.VAPID_PUBLIC_KEY || "" });
+  });
+
+  app.post("/api/push/subscribe", requireAuth, async (req, res) => {
+    try {
+      const { endpoint, keys } = req.body;
+      if (!endpoint || !keys?.p256dh || !keys?.auth) {
+        return res.status(400).json({ error: "Invalid subscription" });
+      }
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const existing = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+      if (existing.length > 0) {
+        await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+      }
+      await db.insert(pushSubscriptions).values({
+        userId,
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+      });
+      res.json({ ok: true });
+    } catch (err: any) {
+      console.error("[push] subscribe error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/push/unsubscribe", requireAuth, async (req, res) => {
+    try {
+      const { endpoint } = req.body;
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      if (endpoint) {
+        const { and } = await import("drizzle-orm");
+        await db.delete(pushSubscriptions).where(
+          and(eq(pushSubscriptions.endpoint, endpoint), eq(pushSubscriptions.userId, userId))
+        );
+      }
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 }

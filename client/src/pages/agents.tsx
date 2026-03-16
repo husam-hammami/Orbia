@@ -1368,6 +1368,49 @@ function AgentInteractionPanel({ agent, onBack, onDelete }: { agent: Agent; onBa
         return;
       }
     }
+    if (newVal && "serviceWorker" in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.register("/sw.js");
+        const vapidRes = await fetch(`${API_BASE_URL}/api/push/vapid-key`);
+        const { publicKey } = await vapidRes.json();
+        if (publicKey) {
+          const padding = "=".repeat((4 - (publicKey.length % 4)) % 4);
+          const base64 = (publicKey + padding).replace(/-/g, "+").replace(/_/g, "/");
+          const raw = atob(base64);
+          const keyArray = new Uint8Array(raw.length);
+          for (let i = 0; i < raw.length; i++) keyArray[i] = raw.charCodeAt(i);
+          const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: keyArray,
+          });
+          await fetch(`${API_BASE_URL}/api/push/subscribe`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(sub.toJSON()),
+          });
+        }
+      } catch (e) {
+        console.warn("Push subscription failed:", e);
+      }
+    }
+    if (!newVal && "serviceWorker" in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+        const sub = await reg?.pushManager?.getSubscription();
+        if (sub) {
+          await fetch(`${API_BASE_URL}/api/push/unsubscribe`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ endpoint: sub.endpoint }),
+          });
+          await sub.unsubscribe();
+        }
+      } catch (e) {
+        console.warn("Push unsubscribe failed:", e);
+      }
+    }
     setNotifyOn(newVal);
     updateSettings({ notifyOnComplete: newVal });
     toast.success(newVal ? "Will notify when done" : "Notifications off");
@@ -1656,7 +1699,7 @@ function ProjectPane({ agent }: { agent: Agent }) {
 
     setOrbitLoading(true);
     setOrbitResponse("");
-    const userMsg = message || (action === "analyze" ? "Analyze repository" : action === "review" ? "Review changes" : action === "plan" ? "Generate plan" : "Monitor terminal");
+    const userMsg = message || (action === "review" ? "Review changes" : action === "test" ? "Run tests" : action === "push_merge" ? "Push & merge" : action === "chat" ? message || "Chat" : action);
     const newHistory = [...orbitHistory, { role: "user" as const, content: userMsg }];
 
     try {
@@ -1928,10 +1971,9 @@ function ProjectPane({ agent }: { agent: Agent }) {
 
                 <div className="flex gap-1 px-2 py-1.5 border-b" style={{ borderColor: `${color}10` }}>
                   {[
-                    { action: "analyze", icon: Scan, label: "Analyze" },
                     { action: "review", icon: Code, label: "Review" },
-                    { action: "plan", icon: ListChecks, label: "Plan" },
-                    { action: "monitor", icon: Activity, label: "Monitor" },
+                    { action: "test", icon: TestTube, label: "Test" },
+                    { action: "push_merge", icon: ArrowUpFromLine, label: "Push" },
                   ].map(({ action, icon: Icon, label }) => (
                     <button
                       key={action}
@@ -1948,6 +1990,18 @@ function ProjectPane({ agent }: { agent: Agent }) {
                       <span>{label}</span>
                     </button>
                   ))}
+                  <button
+                    onClick={handleNotifyToggle}
+                    className={cn(
+                      "flex items-center gap-1 py-1 px-2 rounded-md text-[10px] transition-all flex-1 justify-center",
+                      notifyOn ? "bg-amber-500/20" : "hover:bg-white/10"
+                    )}
+                    style={{ color: notifyOn ? "#f59e0b" : `${color}bb` }}
+                    data-testid="button-orbit-notify"
+                  >
+                    <Bell className="w-3 h-3" />
+                    <span>{notifyOn ? "Watching" : "Notify"}</span>
+                  </button>
                 </div>
 
                 {(orbitResponse || orbitLoading) ? (

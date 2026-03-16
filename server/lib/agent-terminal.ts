@@ -811,7 +811,12 @@ async function createShell(agentId: string, agentName: string, repoUrl: string, 
       const userConfigDir = getClaudeConfigDir(resolvedUserId);
       initParts.push(`export CLAUDE_CONFIG_DIR="${userConfigDir}"`);
     }
-    initParts.push(`cd "${repoDir}"`, `clear`);
+    const gitToken = process.env.GITHUB_PAT;
+    initParts.push(`cd "${repoDir}"`);
+    if (gitToken) {
+      initParts.push(`git remote get-url origin 2>/dev/null | grep -q "x-access-token" || git remote set-url origin "$(git remote get-url origin 2>/dev/null | sed 's|https://github.com/|https://x-access-token:${gitToken}@github.com/|')" 2>/dev/null`);
+    }
+    initParts.push(`clear`);
     shell.stdin.write(initParts.join(" && ") + "\n");
   }
 

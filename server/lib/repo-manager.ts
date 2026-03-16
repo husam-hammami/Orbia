@@ -15,17 +15,29 @@ function repoPath(agentId: string): string {
   return path.join(REPOS_BASE, agentId);
 }
 
+export function getGitToken(oauthToken?: string): string | undefined {
+  return oauthToken || process.env.GITHUB_PAT || undefined;
+}
+
+export function embedTokenInUrl(repoUrl: string, token?: string): string {
+  if (!token || !repoUrl.startsWith("https://github.com/")) return repoUrl;
+  return repoUrl.replace("https://github.com/", `https://x-access-token:${token}@github.com/`);
+}
+
 export async function cloneRepo(agentId: string, repoUrl: string, branch = "main", token?: string): Promise<string> {
   ensureBaseDir();
   const dest = repoPath(agentId);
   if (fs.existsSync(dest)) {
     await deleteRepo(agentId);
   }
-  let cloneUrl = repoUrl;
-  if (token && repoUrl.startsWith("https://github.com/")) {
-    cloneUrl = repoUrl.replace("https://github.com/", `https://x-access-token:${token}@github.com/`);
-  }
+  const effectiveToken = getGitToken(token);
+  const cloneUrl = embedTokenInUrl(repoUrl, effectiveToken);
   await simpleGit().clone(cloneUrl, dest, ["--branch", branch, "--single-branch", "--depth", "1"]);
+  if (effectiveToken && repoUrl.startsWith("https://github.com/")) {
+    const authedUrl = embedTokenInUrl(repoUrl, effectiveToken);
+    const git = simpleGit(dest);
+    await git.remote(["set-url", "origin", authedUrl]);
+  }
   return dest;
 }
 
@@ -65,9 +77,26 @@ export async function commitChanges(agentId: string, message: string): Promise<s
   return result.commit || "no changes";
 }
 
+export async function ensureRemoteAuth(agentId: string, repoUrl?: string): Promise<void> {
+  const dest = repoPath(agentId);
+  if (!fs.existsSync(dest)) return;
+  const token = getGitToken();
+  if (!token) return;
+  const git = simpleGit(dest);
+  const remotes = await git.getRemotes(true);
+  const origin = remotes.find(r => r.name === "origin");
+  if (origin && origin.refs.push && !origin.refs.push.includes("x-access-token")) {
+    const url = repoUrl || origin.refs.push;
+    if (url.startsWith("https://github.com/")) {
+      await git.remote(["set-url", "origin", embedTokenInUrl(url, token)]);
+    }
+  }
+}
+
 export async function pushChanges(agentId: string, branch?: string): Promise<void> {
   const dest = repoPath(agentId);
   const git: SimpleGit = simpleGit(dest);
+  await ensureRemoteAuth(agentId);
   if (branch) {
     await git.push("origin", branch);
   } else {

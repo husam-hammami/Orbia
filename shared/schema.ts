@@ -853,3 +853,16 @@ export const agentActivityLog = pgTable("agent_activity_log", {
 export const insertAgentActivityLogSchema = createInsertSchema(agentActivityLog).omit({ id: true, timestamp: true });
 export type AgentActivityLogEntry = typeof agentActivityLog.$inferSelect;
 export type InsertAgentActivityLog = z.infer<typeof insertAgentActivityLogSchema>;
+
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: varchar("user_id").notNull(),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({ id: true, createdAt: true });
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
