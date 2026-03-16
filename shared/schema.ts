@@ -646,6 +646,12 @@ export const insertMedVaultDocumentSchema = createInsertSchema(medVaultDocuments
 export type MedVaultDocument = typeof medVaultDocuments.$inferSelect;
 export type InsertMedVaultDocument = z.infer<typeof insertMedVaultDocumentSchema>;
 
+export const oauthStates = pgTable("oauth_states", {
+  state: varchar("state", { length: 255 }).primaryKey(),
+  userId: varchar("user_id").notNull(),
+  expiresAt: text("expires_at").notNull(),
+});
+
 export const microsoftConnections = pgTable("microsoft_connections", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull(),

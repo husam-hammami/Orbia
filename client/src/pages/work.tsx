@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Layout } from "@/components/layout";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || "";
 
@@ -1167,8 +1168,9 @@ export default function WorkPage() {
         }, 3000);
         setTimeout(() => clearInterval(pollInterval), 5 * 60 * 1000);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to initiate Microsoft auth:", error);
+      toast.error("Failed to connect to Microsoft. Please try again.");
       setIsConnecting(false);
     }
   }, [queryClient]);
