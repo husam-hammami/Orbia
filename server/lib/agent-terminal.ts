@@ -101,11 +101,23 @@ async function ensureShell(agentId: string, agentName: string, repoUrl: string, 
   session.outputBuffer.push(welcome);
 
   const sttyRegex = /^.*stty cols \d+ rows \d+ 2>\/dev\/null\r?\n?/gm;
+  const spinnerLineRegex = /^[\s\x1b\[\d;]*[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏•●◦◆◇▪▫✦✧⚡★☆♦♢◈⬡⬢⟐⟡❯❮▶▷►▸▹▻◃◂◄◅◁⏵⏴⭐⚙⟳↻↺⊕⊗⊛⊙⊚][\s]*\w[\w\s]*\.{2,3}\s*$/;
+  const barLineRegex = /^[\s\x1b\[\d;m]*[━─═╌╍┄┅┈┉⎯]{4,}\s*$/;
 
   const handleOutput = (data: Buffer) => {
     let text = data.toString();
-    const filtered = text.replace(sttyRegex, "");
-    if (filtered.length === 0) return;
+    const filtered = text
+      .replace(sttyRegex, "")
+      .split("\n")
+      .filter(line => {
+        const stripped = line.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "").replace(/\r/g, "").trim();
+        if (!stripped) return true;
+        if (spinnerLineRegex.test(stripped)) return false;
+        if (barLineRegex.test(stripped)) return false;
+        return true;
+      })
+      .join("\n");
+    if (filtered.length === 0 || filtered === "\n") return;
 
     session.outputBuffer.push(filtered);
     if (session.outputBuffer.length > MAX_BUFFER_LINES) {
