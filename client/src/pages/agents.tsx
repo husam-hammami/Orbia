@@ -1619,13 +1619,22 @@ function ProjectPane({ agent }: { agent: Agent }) {
   const [showFiles, setShowFiles] = useState(true);
 
   const [notifyOn, setNotifyOn] = useState(!!(agent.notifyOnComplete));
-  const updateNotifySetting = useCallback(async (val: boolean) => {
+  const [autoReview, setAutoReview] = useState(!!(agent.autoReview));
+  const [autoPush, setAutoPush] = useState(!!(agent.autoPush));
+
+  useEffect(() => {
+    setNotifyOn(!!(agent.notifyOnComplete));
+    setAutoReview(!!(agent.autoReview));
+    setAutoPush(!!(agent.autoPush));
+  }, [agent.notifyOnComplete, agent.autoReview, agent.autoPush]);
+
+  const updateAgentSetting = useCallback(async (settings: Record<string, boolean>) => {
     try {
       await fetch(`${API_BASE_URL}/api/agents/${agent.id}/settings`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ notifyOnComplete: val }),
+        body: JSON.stringify(settings),
       });
       queryClient.invalidateQueries({ queryKey: ["agents"] });
     } catch {}
@@ -1667,9 +1676,23 @@ function ProjectPane({ agent }: { agent: Agent }) {
       } catch (e) { console.warn("Push unsubscribe failed:", e); }
     }
     setNotifyOn(newVal);
-    updateNotifySetting(newVal);
+    updateAgentSetting({ notifyOnComplete: newVal });
     toast.success(newVal ? "Will notify when done" : "Notifications off");
-  }, [notifyOn, updateNotifySetting]);
+  }, [notifyOn, updateAgentSetting]);
+
+  const handleAutoReviewToggle = useCallback(() => {
+    const newVal = !autoReview;
+    setAutoReview(newVal);
+    updateAgentSetting({ autoReview: newVal });
+    toast.success(newVal ? "Auto-review ON" : "Auto-review OFF");
+  }, [autoReview, updateAgentSetting]);
+
+  const handleAutoPushToggle = useCallback(() => {
+    const newVal = !autoPush;
+    setAutoPush(newVal);
+    updateAgentSetting({ autoPush: newVal });
+    toast.success(newVal ? "Auto-push ON" : "Auto-push OFF");
+  }, [autoPush, updateAgentSetting]);
 
   const [orbitLoading, setOrbitLoading] = useState(false);
   const [orbitResponse, setOrbitResponse] = useState("");
@@ -1974,205 +1997,252 @@ function ProjectPane({ agent }: { agent: Agent }) {
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-              <div className="rounded-xl border mx-3 mt-3 overflow-hidden flex flex-col" style={{ borderColor: `${color}20`, background: `linear-gradient(135deg, ${color}05, transparent)` }}>
-                <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: `${color}12` }}>
-                  <div className="flex items-center gap-2">
-                    <div className="relative w-4 h-4 rounded-full flex items-center justify-center" style={{ background: `radial-gradient(circle, ${color}40, ${color}15)` }}>
-                      <Sparkles className="w-2.5 h-2.5" style={{ color }} />
-                      {orbitLoading && <span className="absolute inset-0 rounded-full border border-t-transparent animate-spin" style={{ borderColor: `${color}60` }} />}
+              <div className="mx-3 mt-3 space-y-2.5">
+                <div className="rounded-xl border overflow-hidden flex flex-col" style={{ borderColor: `${color}20`, background: `linear-gradient(135deg, ${color}05, transparent)` }}>
+                  <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: `${color}12` }}>
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-4 h-4 rounded-full flex items-center justify-center" style={{ background: `radial-gradient(circle, ${color}40, ${color}15)` }}>
+                        <Sparkles className="w-2.5 h-2.5" style={{ color }} />
+                        {orbitLoading && <span className="absolute inset-0 rounded-full border border-t-transparent animate-spin" style={{ borderColor: `${color}60` }} />}
+                      </div>
+                      <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: `${color}cc` }}>Orbit AI</span>
                     </div>
-                    <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: `${color}cc` }}>Orbit AI</span>
+                    {orbitResponse && !orbitLoading && (
+                      <button
+                        onClick={() => { setOrbitResponse(""); setOrbitHistory([]); }}
+                        className="text-[9px] text-gray-600 hover:text-gray-400 transition-colors px-1.5 py-0.5 rounded hover:bg-white/5"
+                        data-testid="button-orbit-clear"
+                      >
+                        Clear
+                      </button>
+                    )}
                   </div>
-                  {orbitResponse && !orbitLoading && (
-                    <button
-                      onClick={() => { setOrbitResponse(""); setOrbitHistory([]); }}
-                      className="text-[9px] text-gray-600 hover:text-gray-400 transition-colors px-1.5 py-0.5 rounded hover:bg-white/5"
-                      data-testid="button-orbit-clear"
-                    >
-                      Clear
-                    </button>
+
+                  {(orbitResponse || orbitLoading) ? (
+                    <div ref={orbitScrollRef} className="flex-1 overflow-y-auto custom-scrollbar px-3 py-2.5 min-h-0" style={{ maxHeight: "calc(100vh - 450px)" }}>
+                      {orbitLoading && !orbitResponse && (
+                        <div className="flex items-center gap-2 text-xs py-2" style={{ color: `${color}99` }}>
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <span>Orbit is thinking...</span>
+                        </div>
+                      )}
+                      {orbitResponse && (
+                        <div className="orbit-markdown text-[11px] text-gray-300 leading-relaxed break-words" data-testid="text-orbit-response">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              h1: ({ children }) => <h1 className="text-sm font-bold text-white mt-3 mb-1.5 first:mt-0">{children}</h1>,
+                              h2: ({ children }) => <h2 className="text-[12px] font-semibold text-white/90 mt-2.5 mb-1 first:mt-0">{children}</h2>,
+                              h3: ({ children }) => <h3 className="text-[11px] font-semibold text-white/80 mt-2 mb-1 first:mt-0">{children}</h3>,
+                              h4: ({ children }) => <h4 className="text-[11px] font-medium text-white/70 mt-1.5 mb-0.5">{children}</h4>,
+                              p: ({ children }) => <p className="mb-1.5 last:mb-0">{children}</p>,
+                              ul: ({ children }) => <ul className="list-disc list-outside pl-3.5 mb-1.5 space-y-0.5">{children}</ul>,
+                              ol: ({ children }) => <ol className="list-decimal list-outside pl-3.5 mb-1.5 space-y-0.5">{children}</ol>,
+                              li: ({ children }) => <li className="text-gray-300">{children}</li>,
+                              strong: ({ children }) => <strong className="font-semibold text-white/90">{children}</strong>,
+                              em: ({ children }) => <em className="text-gray-400 italic">{children}</em>,
+                              code: ({ className, children, ...props }: any) => {
+                                const isInline = !className && typeof children === "string" && !children.includes("\n");
+                                if (isInline) {
+                                  return <code className="bg-white/[0.08] text-amber-300/80 px-1 py-0.5 rounded text-[10px] font-mono">{children}</code>;
+                                }
+                                return <code className="block bg-black/40 border border-white/[0.06] rounded-md px-2.5 py-2 my-1.5 text-[10px] font-mono text-emerald-300/90 overflow-x-auto whitespace-pre">{children}</code>;
+                              },
+                              pre: ({ children }) => <pre className="my-1.5">{children}</pre>,
+                              blockquote: ({ children }) => <blockquote className="border-l-2 pl-2.5 my-1.5 text-gray-400 italic" style={{ borderColor: `${color}50` }}>{children}</blockquote>,
+                              hr: () => <hr className="border-white/[0.06] my-2" />,
+                              a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: `${color}cc` }}>{children}</a>,
+                              table: ({ children }) => <div className="overflow-x-auto my-1.5"><table className="text-[10px] w-full border-collapse">{children}</table></div>,
+                              th: ({ children }) => <th className="text-left px-2 py-1 border-b border-white/10 text-white/80 font-medium">{children}</th>,
+                              td: ({ children }) => <td className="px-2 py-1 border-b border-white/[0.04] text-gray-400">{children}</td>,
+                            }}
+                          >
+                            {orbitResponse}
+                          </ReactMarkdown>
+                          {orbitLoading && <span className="inline-block w-1.5 h-3.5 ml-0.5 animate-pulse rounded-sm" style={{ background: color }} />}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="px-3 py-3 text-center">
+                      <p className="text-[10px] text-gray-600">Chat with Orbit or use an action below</p>
+                    </div>
+                  )}
+
+                  <div className="flex-none px-2 py-2 border-t" style={{ borderColor: `${color}10` }}>
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        value={orbitChat}
+                        onChange={e => setOrbitChat(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && orbitChat.trim() && !orbitLoading) {
+                            orbitAction("chat", orbitChat.trim());
+                            setOrbitChat("");
+                          }
+                        }}
+                        placeholder="Ask Orbit anything..."
+                        className="flex-1 text-xs bg-white/5 border border-white/[0.06] rounded-lg px-3 py-1.5 text-gray-300 placeholder-gray-600 focus:outline-none focus:border-indigo-500/30"
+                        data-testid="input-orbit-chat"
+                      />
+                      <button
+                        onClick={() => { if (orbitChat.trim() && !orbitLoading) { orbitAction("chat", orbitChat.trim()); setOrbitChat(""); } }}
+                        disabled={!orbitChat.trim() || orbitLoading}
+                        className="p-1.5 rounded-lg transition-colors disabled:opacity-30"
+                        style={{ background: `${color}20`, color }}
+                        data-testid="button-orbit-send"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5 space-y-2">
+                  <h4 className="text-[9px] uppercase tracking-widest text-gray-600 font-medium px-0.5">Actions</h4>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { action: "review", icon: Code, label: "Review", desc: "AI reviews the diff" },
+                      { action: "test", icon: TestTube, label: "Test", desc: "Run test suite" },
+                      { action: "push_merge", icon: ArrowUpFromLine, label: "Push", desc: "Commit & push" },
+                    ].map(({ action, icon: Icon, label, desc }) => (
+                      <button
+                        key={action}
+                        onClick={() => orbitAction(action)}
+                        disabled={orbitLoading}
+                        className={cn(
+                          "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg text-center transition-all",
+                          orbitLoading ? "opacity-30 cursor-wait" : "hover:bg-white/[0.06] cursor-pointer"
+                        )}
+                        data-testid={`button-orbit-${action}`}
+                      >
+                        <Icon className="w-4 h-4 text-gray-400" />
+                        <span className="text-[10px] text-gray-300 font-medium">{label}</span>
+                        <span className="text-[8px] text-gray-600">{desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5 space-y-2">
+                  <h4 className="text-[9px] uppercase tracking-widest text-gray-600 font-medium px-0.5">When done working</h4>
+                  <div className="space-y-1">
+                    {[
+                      { key: "autoReview" as const, icon: Code, label: "Auto-review", desc: "Orbit reviews the code when Claude finishes", active: autoReview, toggle: handleAutoReviewToggle },
+                      { key: "autoPush" as const, icon: ArrowUpFromLine, label: "Auto-push", desc: autoReview ? "Push if review passes" : "Commit & push automatically", active: autoPush, toggle: handleAutoPushToggle },
+                      { key: "notify" as const, icon: Bell, label: "Notify me", desc: "Push notification when complete", active: notifyOn, toggle: handleNotifyToggle },
+                    ].map(({ key, icon: Icon, label, desc, active, toggle }) => (
+                      <button
+                        key={key}
+                        onClick={toggle}
+                        className={cn(
+                          "flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg transition-all text-left",
+                          active ? "bg-white/[0.06] border border-white/[0.08]" : "hover:bg-white/[0.03] border border-transparent"
+                        )}
+                        data-testid={`toggle-${key}`}
+                      >
+                        <div className={cn(
+                          "w-7 h-4 rounded-full relative transition-colors flex-shrink-0",
+                          active ? "bg-emerald-500/60" : "bg-white/10"
+                        )}>
+                          <div className={cn(
+                            "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all shadow-sm",
+                            active ? "left-3.5" : "left-0.5"
+                          )} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <Icon className={cn("w-3 h-3 flex-shrink-0", active ? "text-gray-300" : "text-gray-600")} />
+                            <span className={cn("text-[10px] font-medium", active ? "text-gray-200" : "text-gray-400")}>{label}</span>
+                          </div>
+                          <p className="text-[8px] text-gray-600 mt-0.5">{desc}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  {(autoReview || autoPush || notifyOn) && (
+                    <div className="flex items-center gap-1.5 px-2.5 pt-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+                      <span className="text-[9px] text-gray-500">
+                        {[
+                          autoReview && "review",
+                          autoPush && (autoReview ? "push if approved" : "push"),
+                          notifyOn && "notify",
+                        ].filter(Boolean).join(" → ")}
+                      </span>
+                    </div>
                   )}
                 </div>
 
-                <div className="flex gap-1 px-2 py-1.5 border-b" style={{ borderColor: `${color}10` }}>
-                  {[
-                    { action: "review", icon: Code, label: "Review" },
-                    { action: "test", icon: TestTube, label: "Test" },
-                    { action: "push_merge", icon: ArrowUpFromLine, label: "Push & Merge" },
-                  ].map(({ action, icon: Icon, label }) => (
-                    <button
-                      key={action}
-                      onClick={() => orbitAction(action)}
-                      disabled={orbitLoading}
-                      className={cn(
-                        "flex items-center gap-1 py-1 px-2 rounded-md text-[10px] transition-all flex-1 justify-center",
-                        orbitLoading ? "opacity-40 cursor-wait" : "hover:bg-white/10 cursor-pointer"
-                      )}
-                      style={{ color: `${color}bb` }}
-                      data-testid={`button-orbit-${action}`}
-                    >
-                      <Icon className="w-3 h-3" />
-                      <span>{label}</span>
-                    </button>
-                  ))}
-                  <button
-                    onClick={handleNotifyToggle}
-                    className={cn(
-                      "flex items-center gap-1 py-1 px-2 rounded-md text-[10px] transition-all flex-1 justify-center",
-                      notifyOn ? "bg-amber-500/20" : "hover:bg-white/10"
-                    )}
-                    style={{ color: notifyOn ? "#f59e0b" : `${color}bb` }}
-                    data-testid="button-orbit-notify"
-                  >
-                    <Bell className="w-3 h-3" />
-                    <span>{notifyOn ? "Watching" : "Notify"}</span>
-                  </button>
-                </div>
-
-                {(orbitResponse || orbitLoading) ? (
-                  <div ref={orbitScrollRef} className="flex-1 overflow-y-auto custom-scrollbar px-3 py-2.5 min-h-0" style={{ maxHeight: "calc(100vh - 400px)" }}>
-                    {orbitLoading && !orbitResponse && (
-                      <div className="flex items-center gap-2 text-xs py-2" style={{ color: `${color}99` }}>
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        <span>Orbit is analyzing...</span>
-                      </div>
-                    )}
-                    {orbitResponse && (
-                      <div className="orbit-markdown text-[11px] text-gray-300 leading-relaxed break-words" data-testid="text-orbit-response">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            h1: ({ children }) => <h1 className="text-sm font-bold text-white mt-3 mb-1.5 first:mt-0">{children}</h1>,
-                            h2: ({ children }) => <h2 className="text-[12px] font-semibold text-white/90 mt-2.5 mb-1 first:mt-0">{children}</h2>,
-                            h3: ({ children }) => <h3 className="text-[11px] font-semibold text-white/80 mt-2 mb-1 first:mt-0">{children}</h3>,
-                            h4: ({ children }) => <h4 className="text-[11px] font-medium text-white/70 mt-1.5 mb-0.5">{children}</h4>,
-                            p: ({ children }) => <p className="mb-1.5 last:mb-0">{children}</p>,
-                            ul: ({ children }) => <ul className="list-disc list-outside pl-3.5 mb-1.5 space-y-0.5">{children}</ul>,
-                            ol: ({ children }) => <ol className="list-decimal list-outside pl-3.5 mb-1.5 space-y-0.5">{children}</ol>,
-                            li: ({ children }) => <li className="text-gray-300">{children}</li>,
-                            strong: ({ children }) => <strong className="font-semibold text-white/90">{children}</strong>,
-                            em: ({ children }) => <em className="text-gray-400 italic">{children}</em>,
-                            code: ({ className, children, ...props }: any) => {
-                              const isInline = !className && typeof children === "string" && !children.includes("\n");
-                              if (isInline) {
-                                return <code className="bg-white/[0.08] text-amber-300/80 px-1 py-0.5 rounded text-[10px] font-mono">{children}</code>;
-                              }
-                              return <code className="block bg-black/40 border border-white/[0.06] rounded-md px-2.5 py-2 my-1.5 text-[10px] font-mono text-emerald-300/90 overflow-x-auto whitespace-pre">{children}</code>;
-                            },
-                            pre: ({ children }) => <pre className="my-1.5">{children}</pre>,
-                            blockquote: ({ children }) => <blockquote className="border-l-2 pl-2.5 my-1.5 text-gray-400 italic" style={{ borderColor: `${color}50` }}>{children}</blockquote>,
-                            hr: () => <hr className="border-white/[0.06] my-2" />,
-                            a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: `${color}cc` }}>{children}</a>,
-                            table: ({ children }) => <div className="overflow-x-auto my-1.5"><table className="text-[10px] w-full border-collapse">{children}</table></div>,
-                            th: ({ children }) => <th className="text-left px-2 py-1 border-b border-white/10 text-white/80 font-medium">{children}</th>,
-                            td: ({ children }) => <td className="px-2 py-1 border-b border-white/[0.04] text-gray-400">{children}</td>,
-                          }}
-                        >
-                          {orbitResponse}
-                        </ReactMarkdown>
-                        {orbitLoading && <span className="inline-block w-1.5 h-3.5 ml-0.5 animate-pulse rounded-sm" style={{ background: color }} />}
-                      </div>
-                    )}
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[9px] uppercase tracking-widest text-gray-600 font-medium px-0.5">Quick Commands</h4>
+                    <div className="flex items-center gap-1">
+                      <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} data-testid="input-file-upload" />
+                      <button
+                        onClick={() => { if (fileInputRef.current) { fileInputRef.current.accept = "image/*,.pdf,.doc,.docx,.txt,.md,.csv,.json,.xml,.yaml,.yml"; fileInputRef.current.click(); } }}
+                        disabled={uploading}
+                        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] text-gray-600 hover:text-gray-300 hover:bg-white/[0.06] transition-colors"
+                        data-testid="button-upload-file"
+                      >
+                        <ArrowDownToLine className="w-2.5 h-2.5" />
+                        <span>{uploading ? "..." : "Upload"}</span>
+                      </button>
+                    </div>
                   </div>
-                ) : (
-                  <div className="px-3 py-4 text-center">
-                    <p className="text-[10px] text-gray-600">Select an action or ask a question below</p>
-                  </div>
-                )}
-
-                <div className="flex-none px-2 py-2 border-t" style={{ borderColor: `${color}10` }}>
-                  <div className="flex gap-1.5">
-                    <input
-                      type="text"
-                      value={orbitChat}
-                      onChange={e => setOrbitChat(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === "Enter" && orbitChat.trim() && !orbitLoading) {
-                          orbitAction("chat", orbitChat.trim());
-                          setOrbitChat("");
-                        }
-                      }}
-                      placeholder="Ask Orbit anything..."
-                      className="flex-1 text-xs bg-white/5 border border-white/[0.06] rounded-lg px-3 py-1.5 text-gray-300 placeholder-gray-600 focus:outline-none focus:border-indigo-500/30"
-                      data-testid="input-orbit-chat"
-                    />
-                    <button
-                      onClick={() => { if (orbitChat.trim() && !orbitLoading) { orbitAction("chat", orbitChat.trim()); setOrbitChat(""); } }}
-                      disabled={!orbitChat.trim() || orbitLoading}
-                      className="p-1.5 rounded-lg transition-colors disabled:opacity-30"
-                      style={{ background: `${color}20`, color }}
-                      data-testid="button-orbit-send"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="px-3 py-2 space-y-2">
-                <div className="flex items-center gap-1.5">
-                  {[
-                    { label: "Status", icon: GitBranch, actionId: "git-status" },
-                    { label: "Diff", icon: Code, actionId: "git-diff" },
-                    { label: "Pull", icon: RefreshCw, actionId: "git-pull" },
-                  ].map(({ label, icon: Icon, actionId }) => (
-                    <button
-                      key={actionId}
-                      onClick={async () => {
-                        const ok = await sendShellAction(agent.id, actionId);
-                        if (ok) toast.success(`Sent: ${label}`);
-                        else toast.error("No active terminal session");
-                      }}
-                      className="flex items-center gap-1 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.06] hover:border-white/[0.08] transition-all text-[9px] text-gray-500 hover:text-gray-300"
-                      data-testid={`button-cmd-${actionId}`}
-                    >
-                      <Icon className="w-3 h-3" />
-                      <span>{label}</span>
-                    </button>
-                  ))}
-                  <div className="flex-1" />
-                  <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} data-testid="input-file-upload" />
-                  <button
-                    onClick={() => { if (fileInputRef.current) { fileInputRef.current.accept = "image/*,.pdf,.doc,.docx,.txt,.md,.csv,.json,.xml,.yaml,.yml"; fileInputRef.current.click(); } }}
-                    disabled={uploading}
-                    className="flex items-center gap-1 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.06] hover:border-white/[0.08] transition-all text-[9px] text-gray-500 hover:text-gray-300"
-                    data-testid="button-upload-file"
-                  >
-                    <ArrowDownToLine className="w-3 h-3" />
-                    <span>{uploading ? "..." : "Upload"}</span>
-                  </button>
-                </div>
-
-                {uploadedFiles?.files?.length > 0 && (
-                  <div className="space-y-1">
-                    {uploadedFiles.files.map((f: any) => (
-                      <div key={f.path} className="group flex items-center gap-2 px-2 py-1 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
-                        {/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(f.name) ? (
-                          <Image className="w-3 h-3 text-indigo-400/70 flex-shrink-0" />
-                        ) : (
-                          <FileText className="w-3 h-3 text-gray-500 flex-shrink-0" />
-                        )}
-                        <span className="flex-1 text-[10px] text-gray-400 truncate font-mono">{f.name}</span>
-                        <span className="text-[9px] text-gray-600 flex-shrink-0">{formatFileSize(f.size)}</span>
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 flex-shrink-0">
-                          <button onClick={() => viewFile(f.path)} className="p-0.5 rounded hover:bg-white/10 text-gray-600 hover:text-indigo-400 transition-colors" title="View">
-                            <Eye className="w-2.5 h-2.5" />
-                          </button>
-                          {deleteConfirm === f.path ? (
-                            <div className="flex items-center gap-0.5">
-                              <button onClick={async () => { await deleteFile(f.path); refetchUploads(); }} className="px-1 py-0.5 text-[8px] bg-red-500/20 text-red-400 rounded">Yes</button>
-                              <button onClick={() => setDeleteConfirm(null)} className="px-1 py-0.5 text-[8px] text-gray-500">No</button>
-                            </div>
-                          ) : (
-                            <button onClick={() => setDeleteConfirm(f.path)} className="p-0.5 rounded hover:bg-white/10 text-gray-600 hover:text-red-400 transition-colors" title="Delete">
-                              <Trash2 className="w-2.5 h-2.5" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
+                  <div className="flex items-center gap-1">
+                    {[
+                      { label: "Git Status", icon: GitBranch, actionId: "git-status" },
+                      { label: "Diff", icon: Code, actionId: "git-diff" },
+                      { label: "Pull", icon: RefreshCw, actionId: "git-pull" },
+                      { label: "Install", icon: ArrowDownToLine, actionId: "npm-install" },
+                    ].map(({ label, icon: Icon, actionId }) => (
+                      <button
+                        key={actionId}
+                        onClick={async () => {
+                          const ok = await sendShellAction(agent.id, actionId);
+                          if (ok) toast.success(`Sent: ${label}`);
+                          else toast.error("No active terminal session");
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.06] hover:border-white/[0.08] transition-all text-[9px] text-gray-500 hover:text-gray-300 flex-1 justify-center"
+                        data-testid={`button-cmd-${actionId}`}
+                      >
+                        <Icon className="w-3 h-3" />
+                        <span className="hidden sm:inline">{label}</span>
+                      </button>
                     ))}
                   </div>
-                )}
+                  {uploadedFiles?.files?.length > 0 && (
+                    <div className="space-y-1 pt-1 border-t border-white/[0.04]">
+                      {uploadedFiles.files.map((f: any) => (
+                        <div key={f.path} className="group flex items-center gap-2 px-2 py-1 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
+                          {/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(f.name) ? (
+                            <Image className="w-3 h-3 text-indigo-400/70 flex-shrink-0" />
+                          ) : (
+                            <FileText className="w-3 h-3 text-gray-500 flex-shrink-0" />
+                          )}
+                          <span className="flex-1 text-[10px] text-gray-400 truncate font-mono">{f.name}</span>
+                          <span className="text-[9px] text-gray-600 flex-shrink-0">{formatFileSize(f.size)}</span>
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 flex-shrink-0">
+                            <button onClick={() => viewFile(f.path)} className="p-0.5 rounded hover:bg-white/10 text-gray-600 hover:text-indigo-400 transition-colors" title="View">
+                              <Eye className="w-2.5 h-2.5" />
+                            </button>
+                            {deleteConfirm === f.path ? (
+                              <div className="flex items-center gap-0.5">
+                                <button onClick={async () => { await deleteFile(f.path); refetchUploads(); }} className="px-1 py-0.5 text-[8px] bg-red-500/20 text-red-400 rounded">Yes</button>
+                                <button onClick={() => setDeleteConfirm(null)} className="px-1 py-0.5 text-[8px] text-gray-500">No</button>
+                              </div>
+                            ) : (
+                              <button onClick={() => setDeleteConfirm(f.path)} className="p-0.5 rounded hover:bg-white/10 text-gray-600 hover:text-red-400 transition-colors" title="Delete">
+                                <Trash2 className="w-2.5 h-2.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {viewingFile && activeTab === "tasks" && (

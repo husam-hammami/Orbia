@@ -800,6 +800,8 @@ export const agentProfiles = pgTable("agent_profiles", {
   lastActiveAt: timestamp("last_active_at"),
   totalTasksCompleted: integer("total_tasks_completed").default(0),
   notifyOnComplete: integer("notify_on_complete").default(0),
+  autoReview: integer("auto_review").default(0),
+  autoPush: integer("auto_push").default(0),
   permissionMode: text("permission_mode").default("manual"),
   createdAt: timestamp("created_at").defaultNow(),
 });

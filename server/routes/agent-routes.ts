@@ -862,10 +862,12 @@ export function registerAgentRoutes(app: Express) {
     const ctx = await requireAgentOwnership(req, res);
     if (!ctx) return;
 
-    const { notifyOnComplete, permissionMode } = req.body;
+    const { notifyOnComplete, permissionMode, autoReview, autoPush } = req.body;
     const updates: any = {};
 
     if (notifyOnComplete !== undefined) updates.notifyOnComplete = notifyOnComplete ? 1 : 0;
+    if (autoReview !== undefined) updates.autoReview = autoReview ? 1 : 0;
+    if (autoPush !== undefined) updates.autoPush = autoPush ? 1 : 0;
     if (permissionMode !== undefined && ["manual", "bypass", "auto"].includes(permissionMode)) {
       updates.permissionMode = permissionMode;
     }
@@ -1197,6 +1199,7 @@ Send a [CLAUDE_PROMPT] telling Claude Code to: run git diff, summarize all chang
 
       // Parse follow-up steps and set up completion watcher
       const followUpMatch = fullAIText.match(/\[FOLLOW_UP\]([\s\S]*?)\[\/FOLLOW_UP\]/);
+      let followUpHandled = false;
       if (followUpMatch && promptMatch && hasActiveSession(agent.id)) {
         try {
           const followUp = JSON.parse(followUpMatch[1].trim());
@@ -1204,9 +1207,22 @@ Send a [CLAUDE_PROMPT] telling Claude Code to: run git diff, summarize all chang
           if (steps.length > 0) {
             console.log(`[orbit] Follow-up steps for "${agent.name}": ${steps.join(" → ")}`);
             setupFollowUpChain(agent.id, ctx.userId, steps);
+            followUpHandled = true;
           }
         } catch (e) {
           console.log(`[orbit] Failed to parse [FOLLOW_UP] JSON: ${(e as Error).message}`);
+        }
+      }
+
+      if (!followUpHandled && promptMatch && hasActiveSession(agent.id) && action !== "review") {
+        const autoSteps: string[] = [];
+        if (agent.autoReview) autoSteps.push("review");
+        if (agent.autoPush) autoSteps.push(agent.autoReview ? "push_if_approved" : "push");
+        if (agent.notifyOnComplete && autoSteps.length > 0) autoSteps.push("notify");
+        if (autoSteps.length > 0) {
+          console.log(`[orbit] Auto follow-up for "${agent.name}": ${autoSteps.join(" → ")}`);
+          setupFollowUpChain(agent.id, ctx.userId, autoSteps);
+          broadcastToAgent(agent.id, "orbit_step", { step: "auto_chain", steps: autoSteps });
         }
       }
 
