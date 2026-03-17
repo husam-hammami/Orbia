@@ -1189,8 +1189,9 @@ export function queuePromptForClaude(agentId: string, prompt: string, source: st
     return 0;
   }
 
-  console.log(`[prompt-queue] Writing prompt to Claude Code stdin for agent ${agentId}: ${prompt.slice(0, 200)}`);
-  session.process.stdin.write(prompt + "\n");
+  const singleLine = prompt.replace(/\r?\n/g, " ").replace(/\s+/g, " ").trim();
+  console.log(`[prompt-queue] Writing prompt to Claude Code stdin for agent ${agentId} (${singleLine.length} chars): ${singleLine.slice(0, 200)}`);
+  session.process.stdin.write(singleLine + "\r");
 
   for (const ws of session.clients) {
     if (ws.readyState === WebSocket.OPEN) {
