@@ -969,37 +969,32 @@ export function registerAgentRoutes(app: Express) {
 You are an ACTIVE operator who supervises Claude Code CLI and drives it to complete work.
 
 ## Architecture
-- Claude Code CLI is ALWAYS running in the agent's terminal in interactive mode.
-- You have your OWN separate shell for prep work (reading files, checking git status, etc.) — this is invisible to the user.
-- You communicate with Claude Code through a PROMPT QUEUE — you queue prompts, and they get sent to Claude Code automatically when it's ready.
+- Claude Code CLI is ALWAYS running in the agent's terminal in interactive mode
+- You communicate with Claude Code through a PROMPT QUEUE — you write a prompt, it gets sent to Claude Code when it's ready
+- Claude Code: ${claudeIdle ? "IDLE — your prompt will be sent immediately" : "BUSY — your prompt will be QUEUED and sent when Claude Code finishes"}
+- Queue: ${queueStatus.size} pending prompts
 
-## Your Capabilities
-1. **[CLAUDE_PROMPT]** — Queue a natural language prompt for Claude Code. It will be sent when Claude Code is idle.
-   [CLAUDE_PROMPT]Read the plan in docs/Plans/ and implement the full redesign[/CLAUDE_PROMPT]
+## How to Send Work to Claude Code
+Wrap your prompt in [CLAUDE_PROMPT] tags. This is a natural language instruction sent directly to Claude Code's input:
+[CLAUDE_PROMPT]your instruction to Claude Code here[/CLAUDE_PROMPT]
 
-2. **[SHELL_CMD]** — Run a command in your own private shell (for prep/inspection). The output is returned to you but NOT shown in the user's terminal.
-   [SHELL_CMD]cat docs/Plans/spec.md | head -50[/SHELL_CMD]
-
-## Current State
-- Claude Code: ${claudeIdle ? "IDLE — ready for prompts" : "BUSY — prompts will be QUEUED and sent when idle"}
-- Prompt queue: ${queueStatus.size} pending
-- Session: ${hasActiveSession(agent.id) ? "active" : "no session"}
-
+## What You Already Know
 ${repoContext}
 ${taskContext}
-${cleanTerminal ? `## Terminal Session (Claude Code)\n\`\`\`\n${cleanTerminal}\n\`\`\`\n` : ""}
+${cleanTerminal ? `## Terminal Session\n\`\`\`\n${cleanTerminal}\n\`\`\`\n` : ""}
 
-## Rules
-- Claude Code prompts should be NATURAL LANGUAGE instructions. Claude Code is an AI — talk to it like you'd talk to a developer.
-- For complex tasks, craft ONE detailed prompt that covers everything Claude Code needs to do.
-- When the user asks to build/fix/change something, send a [CLAUDE_PROMPT] immediately.
-- For review/test/push actions, also send a [CLAUDE_PROMPT] telling Claude Code what to do.
-- You can include BOTH [SHELL_CMD] and [CLAUDE_PROMPT] in one response — shell commands run first for context, then the prompt is queued.
-- ALWAYS include a [CLAUDE_PROMPT] block when action is needed. Never skip it. Never just describe what you would do — DO IT.
+## Critical Rules
+1. ALWAYS include exactly ONE [CLAUDE_PROMPT] block when action is needed
+2. Claude Code is an AI — write prompts as natural language, not shell commands
+3. Be COMPREHENSIVE in your prompt — include all context Claude Code needs in a single prompt
+4. DO NOT analyze, plan, or describe what you would do — just SEND the prompt immediately
+5. Keep your own commentary brief (2-3 sentences max). The prompt is what matters.
+6. You already have the repo structure, git status, and file diffs above — use that context to write a precise prompt
+7. If the user asks to read a file or check something, tell Claude Code to do it — don't try to do it yourself
 
 ## Style
-- Be concise, direct, actionable. Senior architect voice.
-- Use markdown. Be specific about file paths.`;
+- Be concise. Action over analysis.
+- Your response: brief explanation + [CLAUDE_PROMPT] block. That's it.`;
 
     let userMessage = "";
     if (action === "review") {
@@ -1036,38 +1031,18 @@ Send a [CLAUDE_PROMPT] telling Claude Code to: run git diff, summarize all chang
 
       const fullAIText = await aiStream(messages, res, { model: MODEL_FAST, maxTokens: 4096 });
 
-      const shellMatches = [...fullAIText.matchAll(/\[SHELL_CMD\]([\s\S]*?)\[\/SHELL_CMD\]/g)];
-      for (const sm of shellMatches) {
-        const shellCmd = sm[1].trim();
-        if (shellCmd) {
-          console.log(`[orbit] Running shell cmd for "${agent.name}": ${shellCmd.slice(0, 100)}`);
-          const output = await execInOrbitShell(agent.id, shellCmd);
-          console.log(`[orbit] Shell output (${output.length} chars): ${output.slice(0, 200)}`);
-        }
-      }
-
-      const promptMatch = fullAIText.match(/\[CLAUDE_PROMPT\]([\s\S]*?)\[\/CLAUDE_PROMPT\]/);
+      const promptMatch = fullAIText.match(/\[CLAUDE_PROMPT\]([\s\S]*?)\[\/CLAUDE_PROMPT\]/)
+        || fullAIText.match(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/);
       if (promptMatch) {
         const prompt = promptMatch[1].trim();
         if (prompt && hasActiveSession(agent.id)) {
           queuePromptForClaude(agent.id, prompt, "orbit");
-          console.log(`[orbit] Queued Claude prompt for "${agent.name}": ${prompt.slice(0, 200)}`);
+          console.log(`[orbit] Queued prompt for "${agent.name}": ${prompt.slice(0, 200)}`);
         } else {
-          console.log(`[orbit] Claude prompt found but no active session for "${agent.name}"`);
+          console.log(`[orbit] Prompt found but no active session for "${agent.name}"`);
         }
-      }
-
-      const legacyCmdMatch = fullAIText.match(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/);
-      if (legacyCmdMatch && !promptMatch) {
-        const cmd = legacyCmdMatch[1].trim();
-        if (cmd && hasActiveSession(agent.id)) {
-          queuePromptForClaude(agent.id, cmd, "orbit-legacy");
-          console.log(`[orbit] Legacy TERMINAL_CMD converted to queue for "${agent.name}": ${cmd.slice(0, 200)}`);
-        }
-      }
-
-      if (!promptMatch && !legacyCmdMatch && shellMatches.length === 0) {
-        console.log(`[orbit] No actionable tags found in AI response for "${agent.name}" (${fullAIText.length} chars)`);
+      } else {
+        console.log(`[orbit] No [CLAUDE_PROMPT] in AI response for "${agent.name}" (${fullAIText.length} chars)`);
       }
 
       res.write("data: [DONE]\n\n");
