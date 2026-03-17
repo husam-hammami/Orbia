@@ -56,7 +56,7 @@ const shells = new Map<string, ShellSession>();
 const bootstrapStates = new Map<string, BootstrapState>();
 const orbitShells = new Map<string, OrbitShell>();
 const promptQueues = new Map<string, QueuedPrompt[]>();
-const ANSI_STRIP = /\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07/g;
+const ANSI_STRIP = /\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?(?:\x07|\x1b\\)|\x1b[()][AB012]|\x1b[=>NOM78H]|\x1b\[[\?]?[0-9;]*[hljmsu]|\x07|\x08/g;
 
 function getClaudeConfigDir(userId?: string): string {
   if (userId) {
@@ -1169,15 +1169,17 @@ export function isClaudeCodeIdle(agentId: string): boolean {
 
   const raw = session.outputBuffer.join("");
   const clean = raw.replace(ANSI_STRIP, "");
-  const tail = clean.slice(-500);
+  const tail = clean.slice(-2000);
 
-  return /bypass permissions/i.test(tail)
+  const idle = /bypass permissions/i.test(tail)
     || /Try "edit/i.test(tail)
     || /\(shift\+tab to cycle\)/i.test(tail)
     || /Voice mode is now available/i.test(tail)
     || /Welcome back/i.test(tail)
     || /Claude Code v\d/i.test(tail)
     || /❯❯/.test(tail);
+
+  return idle;
 }
 
 export function queuePromptForClaude(agentId: string, prompt: string, source: string = "orbit"): number {
@@ -1229,15 +1231,30 @@ const queueWatchers = new Map<string, ReturnType<typeof setInterval>>();
 function startQueueWatcher(agentId: string) {
   if (queueWatchers.has(agentId)) return;
 
+  let watcherTicks = 0;
   const interval = setInterval(() => {
     const queue = promptQueues.get(agentId);
     if (!queue || queue.length === 0) {
       clearInterval(interval);
       queueWatchers.delete(agentId);
+      console.log(`[prompt-queue] Watcher stopped (queue empty) for agent ${agentId}`);
       return;
     }
 
-    if (isClaudeCodeIdle(agentId)) {
+    watcherTicks++;
+    const session = shells.get(agentId);
+    const bufLen = session ? session.outputBuffer.join("").length : 0;
+    const idle = isClaudeCodeIdle(agentId);
+
+    if (watcherTicks <= 5 || watcherTicks % 10 === 0) {
+      const raw = session ? session.outputBuffer.join("") : "";
+      const clean = raw.replace(ANSI_STRIP, "");
+      const last200 = clean.slice(-200).replace(/\n/g, "\\n");
+      console.log(`[prompt-queue] Watcher tick ${watcherTicks}: idle=${idle}, bufLen=${bufLen}, alive=${session?.alive}, tail="${last200}"`);
+    }
+
+    if (idle) {
+      console.log(`[prompt-queue] Claude Code idle detected! Sending queued prompt...`);
       processPromptQueue(agentId);
       if (!queue.length) {
         clearInterval(interval);
