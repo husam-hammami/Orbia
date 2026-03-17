@@ -1744,6 +1744,20 @@ function ProjectPane({ agent }: { agent: Agent }) {
   const orbitAbortRef = React.useRef<AbortController | null>(null);
   const orbitRequestIdRef = React.useRef(0);
 
+  function formatOrbitDisplay(text: string): string {
+    return text
+      .replace(/\[CLAUDE_PROMPT\]([\s\S]*?)\[\/CLAUDE_PROMPT\]/g, (_m, prompt) => `\n> **Sent to Claude Code:**\n> \`${prompt.trim()}\`\n`)
+      .replace(/\[SHELL_CMD\]([\s\S]*?)\[\/SHELL_CMD\]/g, (_m, cmd) => `\n> *Shell:* \`${cmd.trim()}\`\n`)
+      .replace(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/g, (_m, cmd) => `\n> **Sent to Claude Code:**\n> \`${cmd.trim()}\`\n`);
+  }
+
+  function formatOrbitHistory(text: string): string {
+    return text
+      .replace(/\[CLAUDE_PROMPT\]([\s\S]*?)\[\/CLAUDE_PROMPT\]/g, (_m, prompt) => `[Sent to Claude: ${prompt.trim()}]`)
+      .replace(/\[SHELL_CMD\]([\s\S]*?)\[\/SHELL_CMD\]/g, (_m, cmd) => `[Shell: ${cmd.trim()}]`)
+      .replace(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/g, (_m, cmd) => `[Sent to Claude: ${cmd.trim()}]`);
+  }
+
   async function orbitAction(action: string, message?: string) {
     if (orbitAbortRef.current) orbitAbortRef.current.abort();
     const controller = new AbortController();
@@ -1794,7 +1808,7 @@ function ProjectPane({ agent }: { agent: Agent }) {
                 const parsed = JSON.parse(data);
                 if (parsed.content) {
                   accumulated += parsed.content;
-                  const display = accumulated.replace(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/g, (_m, cmd) => `\n> ▶ Running: \`${cmd.trim()}\`\n`);
+                  const display = formatOrbitDisplay(accumulated);
                   setOrbitResponse(display);
                 }
               } catch {}
@@ -1807,7 +1821,7 @@ function ProjectPane({ agent }: { agent: Agent }) {
             const parsed = JSON.parse(lineBuffer.slice(6));
             if (parsed.content) {
               accumulated += parsed.content;
-              const display = accumulated.replace(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/g, (_m, cmd) => `\n> ▶ Running: \`${cmd.trim()}\`\n`);
+              const display = formatOrbitDisplay(accumulated);
               setOrbitResponse(display);
             }
           } catch {}
@@ -1815,7 +1829,7 @@ function ProjectPane({ agent }: { agent: Agent }) {
       }
 
       if (requestId === orbitRequestIdRef.current) {
-        const cleanHistory = accumulated.replace(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/g, (_m, cmd) => `[Executed: ${cmd.trim()}]`);
+        const cleanHistory = formatOrbitHistory(accumulated);
         setOrbitHistory([...newHistory, { role: "assistant", content: cleanHistory }]);
       }
     } catch (err: any) {

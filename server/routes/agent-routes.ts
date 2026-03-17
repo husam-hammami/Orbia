@@ -1,7 +1,7 @@
 import { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { agentProcessManager } from "../lib/agent-process-manager";
-import { injectCommand, hasActiveSession, subscribeToOutput, killSession, getOutputBuffer, updatePermissionMode, getPermissionMode, broadcastBootstrapEventById } from "../lib/agent-terminal";
+import { injectCommand, hasActiveSession, subscribeToOutput, killSession, getOutputBuffer, updatePermissionMode, getPermissionMode, broadcastBootstrapEventById, execInOrbitShell, queuePromptForClaude, isClaudeCodeIdle, getQueueStatus } from "../lib/agent-terminal";
 import { triggerFollowUp, hasPendingFollowUp } from "../lib/agent-orchestrator";
 import { aiStream, MODEL_FAST } from "../lib/ai-client";
 import * as repoManager from "../lib/repo-manager";
@@ -962,135 +962,54 @@ export function registerAgentRoutes(app: Express) {
     if (agent.currentTaskSummary) taskContext += `Current Task: ${agent.currentTaskSummary}\n`;
     taskContext += `Agent Status: ${agent.status || "idle"}\n`;
 
-    const trimmed = cleanTerminal.trim();
-    const tail200 = trimmed.slice(-200);
-    const tail500 = trimmed.slice(-500);
-
-    const claudeCodeInteractive = /bypass permissions/i.test(tail500)
-      || /Try "edit/i.test(tail200)
-      || /\(shift\+tab to cycle\)/i.test(tail200)
-      || /Voice mode is now available/i.test(tail500)
-      || /Welcome back/i.test(tail500)
-      || /Claude Code v\d/i.test(tail500)
-      || /❯❯/.test(tail200);
-
-    const bashIdle = /[❯\$>]\s*$/.test(trimmed);
-
-    const terminalIdle = !trimmed || bashIdle || claudeCodeInteractive;
-
-    const terminalMode = claudeCodeInteractive ? "claude_code" : "shell";
-
-    let commandSection = "";
-    if (terminalMode === "claude_code") {
-      commandSection = `## Terminal Mode: CLAUDE CODE INTERACTIVE
-Claude Code CLI is running in interactive mode in this terminal.
-When you send a [TERMINAL_CMD], the text is typed directly into Claude Code's prompt as a natural language instruction.
-
-To execute work, send a NATURAL LANGUAGE PROMPT that tells Claude Code what to do:
-[TERMINAL_CMD]Read the plan file at docs/Plans/ and then implement it following the specification[/TERMINAL_CMD]
-
-Examples:
-- Ask Claude to build: [TERMINAL_CMD]Read docs/Plans/redesign-spec.md and implement the full redesign following that specification. Start with the component structure, then styling, then integration.[/TERMINAL_CMD]
-- Ask Claude to fix: [TERMINAL_CMD]Fix the auth bug in login.tsx - the redirect URL is wrong after OAuth callback[/TERMINAL_CMD]
-- Ask Claude to review: [TERMINAL_CMD]Review all changes made so far, run git diff, and summarize what was changed and any issues[/TERMINAL_CMD]
-- Git operations: [TERMINAL_CMD]Run git add -A && git commit -m "fix: resolve login redirect" && git push origin main[/TERMINAL_CMD]
-- Run tests: [TERMINAL_CMD]Run the test suite with npm test and report any failures[/TERMINAL_CMD]
-
-IMPORTANT RULES:
-- ${terminalIdle ? "Claude Code is IDLE and waiting for input — send a prompt RIGHT NOW." : "Claude Code is BUSY processing — do NOT send a prompt now. Report what it's doing."}
-- Do NOT send raw shell commands like \`cat file\` or \`ls\`. Send natural language instructions that tell Claude Code what to do.
-- You have ONE prompt per response. Make it count — be specific and comprehensive.
-- When the user gives you a complex instruction (build X, then review, then test), translate the FIRST step into a clear Claude Code prompt and send it.
-- ALWAYS include exactly ONE [TERMINAL_CMD]...[/TERMINAL_CMD] block when action is needed. The text inside goes directly to Claude Code as a prompt.`;
-    } else {
-      commandSection = `## Terminal Mode: BASH SHELL
-The terminal is at a bash shell prompt. You can run shell commands directly.
-
-[TERMINAL_CMD]the shell command here[/TERMINAL_CMD]
-
-Examples:
-- Launch Claude Code: [TERMINAL_CMD]claude -p 'Fix the auth bug in login.tsx' --dangerously-skip-permissions[/TERMINAL_CMD]
-- Git operations: [TERMINAL_CMD]git add -A && git commit -m "fix: resolve login redirect" && git push origin main[/TERMINAL_CMD]
-- Run tests: [TERMINAL_CMD]npm test 2>&1[/TERMINAL_CMD]
-
-RULES:
-- ${terminalIdle ? "The shell is IDLE — run commands RIGHT NOW." : "Something is running — do NOT send commands. Report what's happening."}
-- When the user asks to build or run something complex, use \`claude -p 'instruction' --dangerously-skip-permissions\`
-- Chain commands with && when needed.
-- ALWAYS include exactly ONE [TERMINAL_CMD]...[/TERMINAL_CMD] block when action is needed.`;
-    }
+    const claudeIdle = isClaudeCodeIdle(agent.id);
+    const queueStatus = getQueueStatus(agent.id);
 
     const systemPrompt = `You are Orbit — the AI orchestrator and supervisor for the "${agent.name}" agent workspace within Orbia.
-You are NOT a passive reporter. You are an ACTIVE operator. You read the full terminal history, understand what the CLI agent has been doing, and you ACT.
+You are an ACTIVE operator who supervises Claude Code CLI and drives it to complete work.
 
-You have complete visibility into:
-- The full terminal session (every command, every output, every error)
-- The repository structure, uncommitted changes, and git history
-- The agent's current task and status
+## Architecture
+- Claude Code CLI is ALWAYS running in the agent's terminal in interactive mode.
+- You have your OWN separate shell for prep work (reading files, checking git status, etc.) — this is invisible to the user.
+- You communicate with Claude Code through a PROMPT QUEUE — you queue prompts, and they get sent to Claude Code automatically when it's ready.
+
+## Your Capabilities
+1. **[CLAUDE_PROMPT]** — Queue a natural language prompt for Claude Code. It will be sent when Claude Code is idle.
+   [CLAUDE_PROMPT]Read the plan in docs/Plans/ and implement the full redesign[/CLAUDE_PROMPT]
+
+2. **[SHELL_CMD]** — Run a command in your own private shell (for prep/inspection). The output is returned to you but NOT shown in the user's terminal.
+   [SHELL_CMD]cat docs/Plans/spec.md | head -50[/SHELL_CMD]
+
+## Current State
+- Claude Code: ${claudeIdle ? "IDLE — ready for prompts" : "BUSY — prompts will be QUEUED and sent when idle"}
+- Prompt queue: ${queueStatus.size} pending
+- Session: ${hasActiveSession(agent.id) ? "active" : "no session"}
 
 ${repoContext}
 ${taskContext}
-${cleanTerminal ? `## Full Terminal Session\n\`\`\`\n${cleanTerminal}\n\`\`\`\n` : ""}
+${cleanTerminal ? `## Terminal Session (Claude Code)\n\`\`\`\n${cleanTerminal}\n\`\`\`\n` : ""}
 
-${commandSection}
-
-## Execution Mindset
-- When an action requires execution, DO IT IMMEDIATELY. Don't explain first — EXECUTE.
-- For multi-step requests, start with the FIRST step now. The user will trigger subsequent steps.
-- You already have the repo structure, git status, and diff above. Use that context to craft precise instructions.
+## Rules
+- Claude Code prompts should be NATURAL LANGUAGE instructions. Claude Code is an AI — talk to it like you'd talk to a developer.
+- For complex tasks, craft ONE detailed prompt that covers everything Claude Code needs to do.
+- When the user asks to build/fix/change something, send a [CLAUDE_PROMPT] immediately.
+- For review/test/push actions, also send a [CLAUDE_PROMPT] telling Claude Code what to do.
+- You can include BOTH [SHELL_CMD] and [CLAUDE_PROMPT] in one response — shell commands run first for context, then the prompt is queued.
+- ALWAYS include a [CLAUDE_PROMPT] block when action is needed. Never skip it. Never just describe what you would do — DO IT.
 
 ## Style
 - Be concise, direct, actionable. Senior architect voice.
-- Use markdown. Be specific about file paths.
-- When reviewing, give line-level feedback with ratings.
-- When pushing, report the exact commit hash and branch.`;
+- Use markdown. Be specific about file paths.`;
 
     let userMessage = "";
     if (action === "review") {
-      userMessage = `You are reviewing the work this agent has done. Read the full terminal history to understand WHAT the agent was asked to do and WHAT it produced.
+      userMessage = `Review the work this agent has done. Look at the terminal history to understand what was built.
 
-Then review the code changes:
-
-1. **What Was Done** — Summarize what the agent built/changed based on the terminal conversation
-2. **Changes Breakdown** — For each modified file:
-   - What changed and why
-   - Rate: ✅ Good | ⚠️ Concern | 🔴 Problem
-3. **Code Quality** — Architecture, patterns, edge cases, security
-4. **Verdict** — Is this ready to push? Yes/No with specific reasons
-
-If there are issues, be specific about what needs fixing. If it looks good, say so clearly.
-${terminalMode === "claude_code" ? "\nTo review code, send Claude Code a prompt asking it to run git diff and summarize changes." : ""}`;
+Send a [CLAUDE_PROMPT] telling Claude Code to: run git diff, summarize all changes, rate code quality, and give a verdict on whether it's ready to push.`;
     } else if (action === "test") {
-      if (terminalMode === "claude_code") {
-        userMessage = `Run the test suite for this project. Send a prompt to Claude Code telling it to find and run the tests.
-
-Send a [TERMINAL_CMD] with a natural language prompt like: "Find the test configuration in this project and run the full test suite. Report results with pass/fail counts and any failure details."`;
-      } else {
-        userMessage = `Run the test suite for this project. Look at the repo structure to determine the right test command (npm test, pytest, cargo test, etc.).
-
-If no test script exists, tell the user and suggest what testing approach would be appropriate for this codebase.
-
-Execute the test command now via [TERMINAL_CMD] and explain what you're running.`;
-      }
+      userMessage = `Run the test suite. Send a [CLAUDE_PROMPT] telling Claude Code to find and run the project's tests (npm test, pytest, cargo test, etc.) and report results.`;
     } else if (action === "push_merge") {
-      if (terminalMode === "claude_code") {
-        userMessage = `Push all changes and merge to the main branch. Send Claude Code a prompt to do this.
-
-Send a [TERMINAL_CMD] with a prompt like: "Check git status. If there are uncommitted changes, stage everything and commit with a descriptive message based on what was changed. Then push to origin. If we're not on main/master, merge into main and push that too. Report the commit hash, branch, and files changed."`;
-      } else {
-        userMessage = `Push all changes and merge to the main branch. Follow this sequence:
-
-1. Check for uncommitted changes (git status)
-2. If there are uncommitted changes, stage and commit them with a descriptive commit message based on what the terminal history shows was done
-3. Push to origin on the current branch
-4. If the current branch is NOT main/master, attempt to merge into main:
-   a. git checkout main && git merge <branch> && git push origin main
-   b. If merge conflicts arise, report them clearly and stop
-5. Report: commit hash, branch name, files changed, merge status, success/failure
-
-Execute this now. Use chained commands via [TERMINAL_CMD].
-If there's nothing to push, say so. If already on main, just push.`;
-      }
+      userMessage = `Push all changes and merge to main. Send a [CLAUDE_PROMPT] telling Claude Code to: check git status, stage and commit any uncommitted changes with a descriptive message, push to origin, and if not on main/master, merge into main and push. Report commit hash, branch, and files changed.`;
     } else if (action === "chat" && safeMessage) {
       userMessage = safeMessage;
     } else {
@@ -1113,25 +1032,44 @@ If there's nothing to push, say so. If already on main, just push.`;
 
       messages.push({ role: "user", content: userMessage });
 
-      let commandExecuted = false;
-      const canExecute = hasActiveSession(agent.id) && terminalIdle;
-      console.log(`[orbit] "${agent.name}" — mode=${terminalMode}, idle=${terminalIdle}, hasSession=${hasActiveSession(agent.id)}, canExecute=${canExecute}, action=${action}`);
+      console.log(`[orbit] "${agent.name}" — claudeIdle=${claudeIdle}, queue=${queueStatus.size}, hasSession=${hasActiveSession(agent.id)}, action=${action}`);
 
       const fullAIText = await aiStream(messages, res, { model: MODEL_FAST, maxTokens: 4096 });
 
-      const cmdMatch = fullAIText.match(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/);
-      if (cmdMatch) {
-        const cmd = cmdMatch[1].trim();
-        if (canExecute && cmd && cmd.length < 8000) {
-          commandExecuted = true;
-          const injected = injectCommand(agent.id, cmd);
-          console.log(`[orbit] Injected ${terminalMode === "claude_code" ? "prompt" : "command"} for "${agent.name}" (injected=${injected}): ${cmd.slice(0, 200)}`);
-        } else {
-          console.log(`[orbit] Command found but BLOCKED for "${agent.name}" (canExecute=${canExecute}, cmdLen=${cmd.length}): ${cmd.slice(0, 100)}`);
+      const shellMatches = [...fullAIText.matchAll(/\[SHELL_CMD\]([\s\S]*?)\[\/SHELL_CMD\]/g)];
+      for (const sm of shellMatches) {
+        const shellCmd = sm[1].trim();
+        if (shellCmd) {
+          console.log(`[orbit] Running shell cmd for "${agent.name}": ${shellCmd.slice(0, 100)}`);
+          const output = await execInOrbitShell(agent.id, shellCmd);
+          console.log(`[orbit] Shell output (${output.length} chars): ${output.slice(0, 200)}`);
         }
-      } else {
-        console.log(`[orbit] No [TERMINAL_CMD] found in AI response for "${agent.name}" (${fullAIText.length} chars)`);
       }
+
+      const promptMatch = fullAIText.match(/\[CLAUDE_PROMPT\]([\s\S]*?)\[\/CLAUDE_PROMPT\]/);
+      if (promptMatch) {
+        const prompt = promptMatch[1].trim();
+        if (prompt && hasActiveSession(agent.id)) {
+          queuePromptForClaude(agent.id, prompt, "orbit");
+          console.log(`[orbit] Queued Claude prompt for "${agent.name}": ${prompt.slice(0, 200)}`);
+        } else {
+          console.log(`[orbit] Claude prompt found but no active session for "${agent.name}"`);
+        }
+      }
+
+      const legacyCmdMatch = fullAIText.match(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/);
+      if (legacyCmdMatch && !promptMatch) {
+        const cmd = legacyCmdMatch[1].trim();
+        if (cmd && hasActiveSession(agent.id)) {
+          queuePromptForClaude(agent.id, cmd, "orbit-legacy");
+          console.log(`[orbit] Legacy TERMINAL_CMD converted to queue for "${agent.name}": ${cmd.slice(0, 200)}`);
+        }
+      }
+
+      if (!promptMatch && !legacyCmdMatch && shellMatches.length === 0) {
+        console.log(`[orbit] No actionable tags found in AI response for "${agent.name}" (${fullAIText.length} chars)`);
+      }
+
       res.write("data: [DONE]\n\n");
       res.end();
     } catch (err: any) {

@@ -35,9 +35,28 @@ interface BootstrapState {
   accumulated: string;
 }
 
+interface OrbitShell {
+  process: ChildProcess;
+  agentId: string;
+  repoDir: string;
+  alive: boolean;
+  outputBuffer: string;
+  pendingResolve: ((output: string) => void) | null;
+  pendingTimeout: ReturnType<typeof setTimeout> | null;
+}
+
+interface QueuedPrompt {
+  prompt: string;
+  source: string;
+  queuedAt: number;
+}
+
 const MAX_BUFFER_LINES = 2000;
 const shells = new Map<string, ShellSession>();
 const bootstrapStates = new Map<string, BootstrapState>();
+const orbitShells = new Map<string, OrbitShell>();
+const promptQueues = new Map<string, QueuedPrompt[]>();
+const ANSI_STRIP = /\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07/g;
 
 function getClaudeConfigDir(userId?: string): string {
   if (userId) {
@@ -1004,6 +1023,8 @@ export function killSession(agentId: string): boolean {
   const session = shells.get(agentId);
   if (!session) return false;
   stopPermissionWatcher(agentId);
+  killOrbitShell(agentId);
+  clearPromptQueue(agentId);
   try {
     session.process.kill("SIGTERM");
     setTimeout(() => {
@@ -1051,4 +1072,202 @@ export function getShellInfo(): { agentId: string; agentName: string; alive: boo
     alive: s.alive,
     clients: s.clients.size,
   }));
+}
+
+function ensureOrbitShell(agentId: string): OrbitShell | null {
+  const existing = orbitShells.get(agentId);
+  if (existing && existing.alive) return existing;
+
+  const mainSession = shells.get(agentId);
+  if (!mainSession) return null;
+
+  const repoDir = repoManager.getRepoDir(agentId);
+  if (!repoDir || !fs.existsSync(repoDir)) return null;
+
+  const envVars: Record<string, string> = {};
+  for (const [k, v] of Object.entries(process.env)) {
+    if (v !== undefined) envVars[k] = v;
+  }
+  envVars.TERM = "dumb";
+  envVars.PS1 = "ORBIT_READY$ ";
+
+  const proc = spawn("bash", ["--norc", "--noprofile"], {
+    cwd: repoDir,
+    env: envVars,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+
+  const orbit: OrbitShell = {
+    process: proc,
+    agentId,
+    repoDir,
+    alive: true,
+    outputBuffer: "",
+    pendingResolve: null,
+    pendingTimeout: null,
+  };
+
+  proc.stdout?.on("data", (data: Buffer) => {
+    orbit.outputBuffer += data.toString();
+    if (orbit.pendingResolve && orbit.outputBuffer.includes("ORBIT_READY$")) {
+      const output = orbit.outputBuffer
+        .replace(ANSI_STRIP, "")
+        .replace(/ORBIT_READY\$/g, "")
+        .trim();
+      const resolve = orbit.pendingResolve;
+      orbit.pendingResolve = null;
+      if (orbit.pendingTimeout) {
+        clearTimeout(orbit.pendingTimeout);
+        orbit.pendingTimeout = null;
+      }
+      orbit.outputBuffer = "";
+      resolve(output);
+    }
+  });
+
+  proc.stderr?.on("data", (data: Buffer) => {
+    orbit.outputBuffer += data.toString();
+  });
+
+  proc.on("close", () => {
+    orbit.alive = false;
+    orbitShells.delete(agentId);
+    console.log(`[orbit-shell] Shell closed for agent ${agentId}`);
+  });
+
+  proc.stdin?.write(`export PS1="ORBIT_READY\\$ "\n`);
+
+  orbitShells.set(agentId, orbit);
+  console.log(`[orbit-shell] Created shell for agent ${agentId} in ${repoDir}`);
+  return orbit;
+}
+
+export async function execInOrbitShell(agentId: string, command: string, timeoutMs = 10000): Promise<string> {
+  const orbit = ensureOrbitShell(agentId);
+  if (!orbit || !orbit.alive || !orbit.process.stdin) {
+    return `[error] No orbit shell available for agent ${agentId}`;
+  }
+
+  return new Promise<string>((resolve) => {
+    orbit.outputBuffer = "";
+    orbit.pendingResolve = resolve;
+    orbit.pendingTimeout = setTimeout(() => {
+      orbit.pendingResolve = null;
+      orbit.pendingTimeout = null;
+      const partial = orbit.outputBuffer.replace(ANSI_STRIP, "").replace(/ORBIT_READY\$/g, "").trim();
+      orbit.outputBuffer = "";
+      resolve(partial || "[timeout]");
+    }, timeoutMs);
+
+    orbit.process.stdin!.write(command + "\n");
+  });
+}
+
+export function isClaudeCodeIdle(agentId: string): boolean {
+  const session = shells.get(agentId);
+  if (!session || !session.alive) return false;
+
+  const raw = session.outputBuffer.join("");
+  const clean = raw.replace(ANSI_STRIP, "");
+  const tail = clean.slice(-500);
+
+  return /bypass permissions/i.test(tail)
+    || /Try "edit/i.test(tail)
+    || /\(shift\+tab to cycle\)/i.test(tail)
+    || /Voice mode is now available/i.test(tail)
+    || /Welcome back/i.test(tail)
+    || /Claude Code v\d/i.test(tail)
+    || /❯❯/.test(tail);
+}
+
+export function queuePromptForClaude(agentId: string, prompt: string, source: string = "orbit"): number {
+  if (!promptQueues.has(agentId)) {
+    promptQueues.set(agentId, []);
+  }
+  const queue = promptQueues.get(agentId)!;
+  queue.push({ prompt, source, queuedAt: Date.now() });
+  console.log(`[prompt-queue] Queued prompt for agent ${agentId} (queue size: ${queue.length}): ${prompt.slice(0, 100)}`);
+
+  if (isClaudeCodeIdle(agentId)) {
+    processPromptQueue(agentId);
+  } else {
+    startQueueWatcher(agentId);
+  }
+
+  return queue.length;
+}
+
+export function getQueueStatus(agentId: string): { size: number; idle: boolean } {
+  const queue = promptQueues.get(agentId) || [];
+  return { size: queue.length, idle: isClaudeCodeIdle(agentId) };
+}
+
+function processPromptQueue(agentId: string): boolean {
+  const queue = promptQueues.get(agentId);
+  if (!queue || queue.length === 0) return false;
+
+  const session = shells.get(agentId);
+  if (!session || !session.alive || !session.process.stdin) return false;
+
+  const next = queue.shift()!;
+  const waitMs = Date.now() - next.queuedAt;
+  console.log(`[prompt-queue] Sending to Claude Code for agent ${agentId} (waited ${waitMs}ms, ${queue.length} remaining): ${next.prompt.slice(0, 100)}`);
+
+  session.process.stdin.write(next.prompt + "\n");
+
+  for (const ws of session.clients) {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(`\r\n\x1b[1;35m[Orbit → Claude Code]\x1b[0m ${next.prompt.slice(0, 200)}${next.prompt.length > 200 ? "..." : ""}\r\n`);
+    }
+  }
+
+  return true;
+}
+
+const queueWatchers = new Map<string, ReturnType<typeof setInterval>>();
+
+function startQueueWatcher(agentId: string) {
+  if (queueWatchers.has(agentId)) return;
+
+  const interval = setInterval(() => {
+    const queue = promptQueues.get(agentId);
+    if (!queue || queue.length === 0) {
+      clearInterval(interval);
+      queueWatchers.delete(agentId);
+      return;
+    }
+
+    if (isClaudeCodeIdle(agentId)) {
+      processPromptQueue(agentId);
+      if (!queue.length) {
+        clearInterval(interval);
+        queueWatchers.delete(agentId);
+      }
+    }
+  }, 2000);
+
+  queueWatchers.set(agentId, interval);
+  console.log(`[prompt-queue] Started idle watcher for agent ${agentId}`);
+}
+
+export function clearPromptQueue(agentId: string): number {
+  const queue = promptQueues.get(agentId);
+  if (!queue) return 0;
+  const count = queue.length;
+  queue.length = 0;
+  const watcher = queueWatchers.get(agentId);
+  if (watcher) {
+    clearInterval(watcher);
+    queueWatchers.delete(agentId);
+  }
+  return count;
+}
+
+export function killOrbitShell(agentId: string) {
+  const orbit = orbitShells.get(agentId);
+  if (orbit) {
+    try { orbit.process.kill("SIGTERM"); } catch {}
+    orbit.alive = false;
+    orbitShells.delete(agentId);
+  }
 }
