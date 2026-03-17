@@ -856,6 +856,20 @@ export const insertAgentActivityLogSchema = createInsertSchema(agentActivityLog)
 export type AgentActivityLogEntry = typeof agentActivityLog.$inferSelect;
 export type InsertAgentActivityLog = z.infer<typeof insertAgentActivityLogSchema>;
 
+export const orbitEvents = pgTable("orbit_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  agentId: uuid("agent_id").notNull(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  detail: text("detail"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertOrbitEventSchema = createInsertSchema(orbitEvents).omit({ id: true, createdAt: true });
+export type OrbitEvent = typeof orbitEvents.$inferSelect;
+export type InsertOrbitEvent = z.infer<typeof insertOrbitEventSchema>;
+
 export const pushSubscriptions = pgTable("push_subscriptions", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: varchar("user_id").notNull(),

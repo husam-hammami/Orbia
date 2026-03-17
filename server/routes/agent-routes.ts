@@ -11,8 +11,8 @@ import crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";
 import { db } from "../db";
-import { agentProfiles, agentTasks, pushSubscriptions } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { agentProfiles, agentTasks, pushSubscriptions, orbitEvents } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
 
 const sseClients = new Map<string, Set<Response>>();
 
@@ -27,6 +27,15 @@ function broadcastToAgent(agentId: string, event: string, data: any) {
 
 function getUserId(req: Request): string {
   return req.session.userId!;
+}
+
+async function logOrbitEvent(agentId: string, type: string, title: string, detail?: string, metadata?: any) {
+  try {
+    await db.insert(orbitEvents).values({ agentId, type, title, detail: detail || null, metadata: metadata || null });
+    broadcastToAgent(agentId, "orbit_event", { type, title, detail, metadata, createdAt: new Date().toISOString() });
+  } catch (err) {
+    console.error("[orbit-event] Failed to log:", (err as Error).message);
+  }
 }
 
 agentProcessManager.on("agent:started", (data) => broadcastToAgent(data.agentId, "started", data));
@@ -912,22 +921,31 @@ export function registerAgentRoutes(app: Express) {
 
         if (currentStep === "review") {
           console.log(`[orbit-supervisor] Running review for "${agent.name}"`);
+          await logOrbitEvent(completedAgentId, "review_started", "Auto-review started", "Orbit is reviewing the code changes");
           const reviewResult = await runOrbitReview(completedAgentId, userId, agent);
           
+          await logOrbitEvent(completedAgentId, reviewResult.approved ? "review_approved" : "review_rejected",
+            reviewResult.approved ? "Review passed" : "Review: needs work",
+            reviewResult.summary, { approved: reviewResult.approved });
+
           if (reviewResult.approved && remainingSteps.length > 0) {
             console.log(`[orbit-supervisor] Review APPROVED for "${agent.name}", continuing chain`);
-            // If next step is push_if_approved, execute it
             const nextSteps = [...remainingSteps];
             if (nextSteps[0] === "push_if_approved") {
-              nextSteps[0] = "push"; // Convert conditional to unconditional since review passed
+              nextSteps[0] = "push";
             }
             setupFollowUpChain(completedAgentId, userId, nextSteps);
+          } else if (reviewResult.approved && remainingSteps.length === 0) {
+            broadcastToAgent(completedAgentId, "orbit_step", { step: "complete", message: "Review passed — workflow complete" });
+            await logOrbitEvent(completedAgentId, "chain_complete", "Workflow complete", "Review passed, no further steps");
           } else if (!reviewResult.approved) {
             console.log(`[orbit-supervisor] Review NEEDS_WORK for "${agent.name}", stopping chain`);
             broadcastToAgent(completedAgentId, "orbit_step", { step: "review_failed", message: reviewResult.summary });
+            await logOrbitEvent(completedAgentId, "chain_stopped", "Workflow stopped", `Review did not pass: ${reviewResult.summary}`);
           }
         } else if (currentStep === "push" || currentStep === "push_if_approved") {
           console.log(`[orbit-supervisor] Running push for "${agent.name}"`);
+          await logOrbitEvent(completedAgentId, "push_started", "Auto-push started", "Committing and pushing changes to remote");
           queuePromptForClaude(completedAgentId,
             "Check git status. Stage all changes, commit with a clear descriptive message summarizing what was implemented, then push to origin. Report the commit hash and branch when done.",
             "orbit-supervisor"
@@ -935,8 +953,8 @@ export function registerAgentRoutes(app: Express) {
           if (remainingSteps.length > 0) {
             setupFollowUpChain(completedAgentId, userId, remainingSteps);
           } else {
-            // Notify after push
             broadcastToAgent(completedAgentId, "orbit_step", { step: "complete", message: "Work pushed successfully" });
+            await logOrbitEvent(completedAgentId, "chain_complete", "Workflow complete", "All automated steps finished successfully");
             if (agent.notifyOnComplete) {
               try {
                 const { sendPushNotification } = await import("../lib/push-notify");
@@ -950,16 +968,21 @@ export function registerAgentRoutes(app: Express) {
           }
         } else if (currentStep === "test") {
           console.log(`[orbit-supervisor] Running tests for "${agent.name}"`);
+          await logOrbitEvent(completedAgentId, "test_started", "Running tests", "Executing project test suite");
           queuePromptForClaude(completedAgentId,
             "Find and run the project's test suite (npm test, pytest, cargo test, etc.). Report all results — which tests passed and which failed.",
             "orbit-supervisor"
           );
           if (remainingSteps.length > 0) {
             setupFollowUpChain(completedAgentId, userId, remainingSteps);
+          } else {
+            broadcastToAgent(completedAgentId, "orbit_step", { step: "complete", message: "Tests complete — workflow finished" });
+            await logOrbitEvent(completedAgentId, "chain_complete", "Workflow complete", "Test suite executed, no further steps");
           }
         } else if (currentStep === "notify") {
           console.log(`[orbit-supervisor] Sending notification for "${agent.name}"`);
           broadcastToAgent(completedAgentId, "orbit_step", { step: "complete", message: "All steps finished" });
+          await logOrbitEvent(completedAgentId, "chain_complete", "Workflow complete", "All automated steps finished");
           try {
             const { sendPushNotification } = await import("../lib/push-notify");
             await sendPushNotification(userId, {
@@ -1131,6 +1154,18 @@ Available steps:
 - "test" — Tell Claude Code to run the project's test suite
 - "notify" — Send a push notification that work is complete
 
+### [AUTO_SETTINGS] — Toggle automation settings based on user intent
+When the user's message implies they want automatic review, push, or notifications, set these toggles.
+[AUTO_SETTINGS]{"autoReview":true,"autoPush":true,"notifyOnComplete":true}[/AUTO_SETTINGS]
+
+Current settings: autoReview=${agent.autoReview ? "ON" : "OFF"}, autoPush=${agent.autoPush ? "ON" : "OFF"}, notify=${agent.notifyOnComplete ? "ON" : "OFF"}
+
+Examples of when to enable:
+- "implement and push when done" → autoReview:true, autoPush:true
+- "work on this, let me know when ready" → notifyOnComplete:true
+- "implement, review, and push if approved" → autoReview:true, autoPush:true
+- "just implement this" (no mention of push/review) → don't change settings
+
 ## Context
 ${repoContext}
 ${taskContext}
@@ -1183,6 +1218,28 @@ Send a [CLAUDE_PROMPT] telling Claude Code to: run git diff, summarize all chang
 
       const fullAIText = await aiStream(messages, res, { model: MODEL_FAST, maxTokens: 4096 });
 
+      // Parse [AUTO_SETTINGS] — Orbit AI can toggle settings from its response
+      const autoSettingsMatch = fullAIText.match(/\[AUTO_SETTINGS\]([\s\S]*?)\[\/AUTO_SETTINGS\]/);
+      if (autoSettingsMatch) {
+        try {
+          const settings = JSON.parse(autoSettingsMatch[1].trim());
+          const updates: any = {};
+          if (typeof settings.autoReview === "boolean") updates.autoReview = settings.autoReview ? 1 : 0;
+          if (typeof settings.autoPush === "boolean") updates.autoPush = settings.autoPush ? 1 : 0;
+          if (typeof settings.notifyOnComplete === "boolean") updates.notifyOnComplete = settings.notifyOnComplete ? 1 : 0;
+          if (Object.keys(updates).length > 0) {
+            await storage.updateAgentProfile(ctx.userId, agent.id, updates);
+            Object.assign(agent, updates);
+            broadcastToAgent(agent.id, "settings_updated", updates);
+            const labels = Object.entries(updates).map(([k, v]) => `${k}=${v ? "ON" : "OFF"}`).join(", ");
+            console.log(`[orbit] Auto-settings for "${agent.name}": ${labels}`);
+            await logOrbitEvent(agent.id, "settings_changed", "Settings auto-updated", labels);
+          }
+        } catch (e) {
+          console.log(`[orbit] Failed to parse [AUTO_SETTINGS]: ${(e as Error).message}`);
+        }
+      }
+
       const promptMatch = fullAIText.match(/\[CLAUDE_PROMPT\]([\s\S]*?)\[\/CLAUDE_PROMPT\]/)
         || fullAIText.match(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/);
       if (promptMatch) {
@@ -1190,6 +1247,7 @@ Send a [CLAUDE_PROMPT] telling Claude Code to: run git diff, summarize all chang
         if (prompt && hasActiveSession(agent.id)) {
           queuePromptForClaude(agent.id, prompt, "orbit");
           console.log(`[orbit] Sent prompt for "${agent.name}": ${prompt.slice(0, 200)}`);
+          await logOrbitEvent(agent.id, "prompt_sent", "Prompt sent to Claude Code", prompt.slice(0, 500), { action });
         } else {
           console.log(`[orbit] Prompt found but no active session for "${agent.name}"`);
         }
@@ -1208,6 +1266,7 @@ Send a [CLAUDE_PROMPT] telling Claude Code to: run git diff, summarize all chang
             console.log(`[orbit] Follow-up steps for "${agent.name}": ${steps.join(" → ")}`);
             setupFollowUpChain(agent.id, ctx.userId, steps);
             followUpHandled = true;
+            await logOrbitEvent(agent.id, "chain_started", "Workflow queued", steps.join(" → "), { steps });
           }
         } catch (e) {
           console.log(`[orbit] Failed to parse [FOLLOW_UP] JSON: ${(e as Error).message}`);
@@ -1223,6 +1282,7 @@ Send a [CLAUDE_PROMPT] telling Claude Code to: run git diff, summarize all chang
           console.log(`[orbit] Auto follow-up for "${agent.name}": ${autoSteps.join(" → ")}`);
           setupFollowUpChain(agent.id, ctx.userId, autoSteps);
           broadcastToAgent(agent.id, "orbit_step", { step: "auto_chain", steps: autoSteps });
+          await logOrbitEvent(agent.id, "chain_started", "Auto-workflow queued", autoSteps.join(" → "), { steps: autoSteps, auto: true });
         }
       }
 
@@ -1232,6 +1292,23 @@ Send a [CLAUDE_PROMPT] telling Claude Code to: run git diff, summarize all chang
       console.error("[orbit] AI error:", err.message);
       res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
       res.end();
+    }
+  });
+
+  app.get("/api/agents/:id/events", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const ctx = await requireAgentOwnership(req, res);
+      if (!ctx) return;
+      const parsed = parseInt(req.query.limit as string);
+      const limit = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 200) : 50;
+      const events = await db.select().from(orbitEvents)
+        .where(eq(orbitEvents.agentId, ctx.agentId))
+        .orderBy(desc(orbitEvents.createdAt))
+        .limit(limit);
+      res.json(events.reverse());
+    } catch (err: any) {
+      console.error("[orbit-events] Error fetching events:", err.message);
+      res.status(500).json({ error: "Failed to fetch events" });
     }
   });
 

@@ -47,6 +47,8 @@ interface Agent {
   linkedProjectId: string | null;
   systemPrompt: string | null;
   notifyOnComplete: number | null;
+  autoReview: number | null;
+  autoPush: number | null;
   permissionMode: string | null;
   isRunning: boolean;
   repoCloned: boolean;
@@ -1588,13 +1590,14 @@ function ProjectPane({ agent }: { agent: Agent }) {
   const [uploading, setUploading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
-  const { data: taskHistory } = useQuery({
-    queryKey: [`/api/agents/${agent.id}/tasks`],
+  const { data: orbitEventsData, refetch: refetchEvents } = useQuery({
+    queryKey: [`/api/agents/${agent.id}/events`],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}/tasks`, { credentials: "include" });
+      const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}/events`, { credentials: "include" });
       return res.json();
     },
     enabled: showHistory,
+    refetchInterval: showHistory ? 15000 : false,
   });
 
   const { data: uploadedFiles, refetch: refetchUploads } = useQuery({
@@ -1627,6 +1630,23 @@ function ProjectPane({ agent }: { agent: Agent }) {
     setAutoReview(!!(agent.autoReview));
     setAutoPush(!!(agent.autoPush));
   }, [agent.notifyOnComplete, agent.autoReview, agent.autoPush]);
+
+  useEffect(() => {
+    const es = new EventSource(`${API_BASE_URL}/api/agents/${agent.id}/stream`, { withCredentials: true });
+    es.addEventListener("settings_updated", (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.autoReview !== undefined) setAutoReview(!!data.autoReview);
+        if (data.autoPush !== undefined) setAutoPush(!!data.autoPush);
+        if (data.notifyOnComplete !== undefined) setNotifyOn(!!data.notifyOnComplete);
+        queryClient.invalidateQueries({ queryKey: ["agents"] });
+      } catch {}
+    });
+    es.addEventListener("orbit_event", () => {
+      if (showHistory) refetchEvents();
+    });
+    return () => es.close();
+  }, [agent.id, showHistory]);
 
   const updateAgentSetting = useCallback(async (settings: Record<string, boolean>) => {
     try {
@@ -1724,6 +1744,16 @@ function ProjectPane({ agent }: { agent: Agent }) {
         const display = formatFollowUpSteps(json);
         return display ? `\n> **Auto follow-up:** ${display}\n` : "";
       })
+      .replace(/\[AUTO_SETTINGS\]([\s\S]*?)\[\/AUTO_SETTINGS\]/g, (_m, json) => {
+        try {
+          const s = JSON.parse(json.trim());
+          const parts: string[] = [];
+          if (s.autoReview !== undefined) parts.push(`Auto-review: ${s.autoReview ? "ON" : "OFF"}`);
+          if (s.autoPush !== undefined) parts.push(`Auto-push: ${s.autoPush ? "ON" : "OFF"}`);
+          if (s.notifyOnComplete !== undefined) parts.push(`Notify: ${s.notifyOnComplete ? "ON" : "OFF"}`);
+          return parts.length ? `\n> **Settings updated:** ${parts.join(", ")}\n` : "";
+        } catch { return ""; }
+      })
       .replace(/\[SHELL_CMD\]([\s\S]*?)\[\/SHELL_CMD\]/g, "")
       .replace(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/g, (_m, cmd) => `\n> **Sent to Claude Code:** \`${cmd.trim()}\`\n`);
   }
@@ -1735,6 +1765,7 @@ function ProjectPane({ agent }: { agent: Agent }) {
         const display = formatFollowUpSteps(json);
         return display ? `[Follow-up: ${display}]` : "";
       })
+      .replace(/\[AUTO_SETTINGS\]([\s\S]*?)\[\/AUTO_SETTINGS\]/g, "")
       .replace(/\[SHELL_CMD\]([\s\S]*?)\[\/SHELL_CMD\]/g, "")
       .replace(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/g, (_m, cmd) => `[Sent to Claude: ${cmd.trim().slice(0, 100)}]`);
   }
@@ -2265,11 +2296,11 @@ function ProjectPane({ agent }: { agent: Agent }) {
 
               <div className="px-3 pb-3">
                 <button
-                  onClick={() => setShowHistory(!showHistory)}
+                  onClick={() => { setShowHistory(!showHistory); if (!showHistory) refetchEvents(); }}
                   className="flex items-center justify-between w-full text-[10px] uppercase tracking-widest text-gray-600 font-medium hover:text-gray-400 transition-colors"
                   data-testid="button-toggle-history"
                 >
-                  <span className="flex items-center gap-1.5"><History className="w-3 h-3" /> Task History</span>
+                  <span className="flex items-center gap-1.5"><History className="w-3 h-3" /> Activity Log</span>
                   <ChevronDown className={cn("w-3 h-3 transition-transform", showHistory && "rotate-180")} />
                 </button>
                 <AnimatePresence>
@@ -2280,24 +2311,41 @@ function ProjectPane({ agent }: { agent: Agent }) {
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden mt-1.5"
                     >
-                      <div className="space-y-1 max-h-[150px] overflow-y-auto custom-scrollbar">
-                        {taskHistory?.length ? taskHistory.map((task: any) => (
-                          <div key={task.id} className="flex items-start gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.02] text-[10px]">
-                            <div className={cn(
-                              "w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0",
-                              task.status === "completed" ? "bg-emerald-400" :
-                              task.status === "running" ? "bg-indigo-400 animate-pulse" :
-                              task.status === "failed" ? "bg-red-400" : "bg-gray-500"
-                            )} />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-gray-400 truncate">{task.description}</p>
-                              <p className="text-[9px] text-gray-600 font-mono">
-                                {task.startedAt ? new Date(task.startedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "Pending"}
-                              </p>
+                      <div className="space-y-1 max-h-[180px] overflow-y-auto custom-scrollbar">
+                        {orbitEventsData?.length ? orbitEventsData.map((evt: any) => {
+                          const typeIcons: Record<string, { color: string; label: string }> = {
+                            prompt_sent: { color: "bg-indigo-400", label: "Prompt" },
+                            review_started: { color: "bg-amber-400 animate-pulse", label: "Review" },
+                            review_approved: { color: "bg-emerald-400", label: "Approved" },
+                            review_rejected: { color: "bg-red-400", label: "Needs work" },
+                            push_started: { color: "bg-blue-400 animate-pulse", label: "Push" },
+                            test_started: { color: "bg-purple-400 animate-pulse", label: "Test" },
+                            chain_started: { color: "bg-indigo-400", label: "Workflow" },
+                            chain_complete: { color: "bg-emerald-400", label: "Done" },
+                            chain_stopped: { color: "bg-orange-400", label: "Stopped" },
+                            settings_changed: { color: "bg-cyan-400", label: "Settings" },
+                          };
+                          const info = typeIcons[evt.type] || { color: "bg-gray-500", label: evt.type };
+                          return (
+                            <div key={evt.id} className="flex items-start gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.02] text-[10px] group">
+                              <div className={cn("w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0", info.color)} />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[9px] text-gray-600 font-medium uppercase tracking-wider">{info.label}</span>
+                                  <span className="text-gray-500">·</span>
+                                  <span className="text-gray-400 truncate flex-1">{evt.title}</span>
+                                </div>
+                                {evt.detail && (
+                                  <p className="text-[9px] text-gray-600 truncate mt-0.5 group-hover:whitespace-normal group-hover:break-words">{evt.detail}</p>
+                                )}
+                                <p className="text-[9px] text-gray-700 font-mono mt-0.5">
+                                  {new Date(evt.createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        )) : (
-                          <p className="text-[10px] text-gray-600 text-center py-2">No history yet</p>
+                          );
+                        }) : (
+                          <p className="text-[10px] text-gray-600 text-center py-2">No activity yet</p>
                         )}
                       </div>
                     </motion.div>
