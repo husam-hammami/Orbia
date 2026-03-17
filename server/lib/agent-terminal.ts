@@ -1191,7 +1191,17 @@ export function queuePromptForClaude(agentId: string, prompt: string, source: st
 
   const singleLine = prompt.replace(/\r?\n/g, " ").replace(/\s+/g, " ").trim();
   console.log(`[prompt-queue] Writing prompt to Claude Code stdin for agent ${agentId} (${singleLine.length} chars): ${singleLine.slice(0, 200)}`);
-  session.process.stdin.write(singleLine + "\r");
+
+  // Write the prompt text first, then send Enter separately after a delay.
+  // Claude Code uses ink TUI — pasted text (received as a block) gets held in
+  // the input field. A separate Enter keystroke (\r) after a brief pause submits it.
+  session.process.stdin.write(singleLine);
+  setTimeout(() => {
+    if (session.alive && session.process.stdin) {
+      session.process.stdin.write("\r");
+      console.log(`[prompt-queue] Sent Enter to submit prompt for agent ${agentId}`);
+    }
+  }, 150);
 
   for (const ws of session.clients) {
     if (ws.readyState === WebSocket.OPEN) {
