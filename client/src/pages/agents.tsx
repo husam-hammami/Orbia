@@ -1744,18 +1744,41 @@ function ProjectPane({ agent }: { agent: Agent }) {
   const orbitAbortRef = React.useRef<AbortController | null>(null);
   const orbitRequestIdRef = React.useRef(0);
 
+  function formatFollowUpSteps(json: string): string {
+    try {
+      const data = JSON.parse(json.trim());
+      const steps = data.steps || [];
+      const labels: Record<string, string> = {
+        review: "Review work",
+        push_if_approved: "Push if approved",
+        push: "Push changes",
+        test: "Run tests",
+        notify: "Send notification",
+      };
+      return steps.map((s: string) => labels[s] || s).join(" → ");
+    } catch { return ""; }
+  }
+
   function formatOrbitDisplay(text: string): string {
     return text
-      .replace(/\[CLAUDE_PROMPT\]([\s\S]*?)\[\/CLAUDE_PROMPT\]/g, (_m, prompt) => `\n> **Sent to Claude Code:**\n> \`${prompt.trim()}\`\n`)
-      .replace(/\[SHELL_CMD\]([\s\S]*?)\[\/SHELL_CMD\]/g, (_m, cmd) => `\n> *Shell:* \`${cmd.trim()}\`\n`)
-      .replace(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/g, (_m, cmd) => `\n> **Sent to Claude Code:**\n> \`${cmd.trim()}\`\n`);
+      .replace(/\[CLAUDE_PROMPT\]([\s\S]*?)\[\/CLAUDE_PROMPT\]/g, (_m, prompt) => `\n> **Sent to Claude Code:** \`${prompt.trim().slice(0, 300)}${prompt.trim().length > 300 ? "..." : ""}\`\n`)
+      .replace(/\[FOLLOW_UP\]([\s\S]*?)\[\/FOLLOW_UP\]/g, (_m, json) => {
+        const display = formatFollowUpSteps(json);
+        return display ? `\n> **Auto follow-up:** ${display}\n` : "";
+      })
+      .replace(/\[SHELL_CMD\]([\s\S]*?)\[\/SHELL_CMD\]/g, "")
+      .replace(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/g, (_m, cmd) => `\n> **Sent to Claude Code:** \`${cmd.trim()}\`\n`);
   }
 
   function formatOrbitHistory(text: string): string {
     return text
-      .replace(/\[CLAUDE_PROMPT\]([\s\S]*?)\[\/CLAUDE_PROMPT\]/g, (_m, prompt) => `[Sent to Claude: ${prompt.trim()}]`)
-      .replace(/\[SHELL_CMD\]([\s\S]*?)\[\/SHELL_CMD\]/g, (_m, cmd) => `[Shell: ${cmd.trim()}]`)
-      .replace(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/g, (_m, cmd) => `[Sent to Claude: ${cmd.trim()}]`);
+      .replace(/\[CLAUDE_PROMPT\]([\s\S]*?)\[\/CLAUDE_PROMPT\]/g, (_m, prompt) => `[Sent to Claude: ${prompt.trim().slice(0, 100)}]`)
+      .replace(/\[FOLLOW_UP\]([\s\S]*?)\[\/FOLLOW_UP\]/g, (_m, json) => {
+        const display = formatFollowUpSteps(json);
+        return display ? `[Follow-up: ${display}]` : "";
+      })
+      .replace(/\[SHELL_CMD\]([\s\S]*?)\[\/SHELL_CMD\]/g, "")
+      .replace(/\[TERMINAL_CMD\]([\s\S]*?)\[\/TERMINAL_CMD\]/g, (_m, cmd) => `[Sent to Claude: ${cmd.trim().slice(0, 100)}]`);
   }
 
   async function orbitAction(action: string, message?: string) {

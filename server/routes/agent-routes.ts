@@ -1,9 +1,9 @@
 import { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { agentProcessManager } from "../lib/agent-process-manager";
-import { injectCommand, hasActiveSession, subscribeToOutput, killSession, getOutputBuffer, updatePermissionMode, getPermissionMode, broadcastBootstrapEventById, execInOrbitShell, queuePromptForClaude, isClaudeCodeIdle, getQueueStatus } from "../lib/agent-terminal";
+import { injectCommand, hasActiveSession, subscribeToOutput, killSession, getOutputBuffer, updatePermissionMode, getPermissionMode, broadcastBootstrapEventById, execInOrbitShell, queuePromptForClaude, isClaudeCodeIdle, getQueueStatus, watchForCompletion, cancelCompletionWatcher } from "../lib/agent-terminal";
 import { triggerFollowUp, hasPendingFollowUp } from "../lib/agent-orchestrator";
-import { aiStream, MODEL_FAST } from "../lib/ai-client";
+import { aiStream, aiComplete, MODEL_FAST } from "../lib/ai-client";
 import * as repoManager from "../lib/repo-manager";
 import * as githubOAuth from "../lib/github-oauth";
 import { requireAuth } from "../auth";
@@ -890,6 +890,147 @@ export function registerAgentRoutes(app: Express) {
     res.json({ ok: true });
   });
 
+  // Orbit supervisor: chains follow-up actions after Claude Code completes work
+  async function setupFollowUpChain(agentId: string, userId: string, steps: string[]) {
+    if (steps.length === 0) return;
+
+    const [currentStep, ...remainingSteps] = steps;
+    console.log(`[orbit-supervisor] Setting up step "${currentStep}" for agent ${agentId}, ${remainingSteps.length} remaining`);
+
+    watchForCompletion(agentId, async (completedAgentId) => {
+      try {
+        const agent = await storage.getAgentProfile(userId, completedAgentId);
+        if (!agent || !hasActiveSession(completedAgentId)) {
+          console.log(`[orbit-supervisor] Agent ${completedAgentId} no longer active, stopping chain`);
+          return;
+        }
+
+        // Broadcast status update to connected clients
+        broadcastToAgent(completedAgentId, "orbit_step", { step: currentStep, remaining: remainingSteps.length });
+
+        if (currentStep === "review") {
+          console.log(`[orbit-supervisor] Running review for "${agent.name}"`);
+          const reviewResult = await runOrbitReview(completedAgentId, userId, agent);
+          
+          if (reviewResult.approved && remainingSteps.length > 0) {
+            console.log(`[orbit-supervisor] Review APPROVED for "${agent.name}", continuing chain`);
+            // If next step is push_if_approved, execute it
+            const nextSteps = [...remainingSteps];
+            if (nextSteps[0] === "push_if_approved") {
+              nextSteps[0] = "push"; // Convert conditional to unconditional since review passed
+            }
+            setupFollowUpChain(completedAgentId, userId, nextSteps);
+          } else if (!reviewResult.approved) {
+            console.log(`[orbit-supervisor] Review NEEDS_WORK for "${agent.name}", stopping chain`);
+            broadcastToAgent(completedAgentId, "orbit_step", { step: "review_failed", message: reviewResult.summary });
+          }
+        } else if (currentStep === "push" || currentStep === "push_if_approved") {
+          console.log(`[orbit-supervisor] Running push for "${agent.name}"`);
+          queuePromptForClaude(completedAgentId,
+            "Check git status. Stage all changes, commit with a clear descriptive message summarizing what was implemented, then push to origin. Report the commit hash and branch when done.",
+            "orbit-supervisor"
+          );
+          if (remainingSteps.length > 0) {
+            setupFollowUpChain(completedAgentId, userId, remainingSteps);
+          } else {
+            // Notify after push
+            broadcastToAgent(completedAgentId, "orbit_step", { step: "complete", message: "Work pushed successfully" });
+            if (agent.notifyOnComplete) {
+              try {
+                const { sendPushNotification } = await import("../lib/push-notify");
+                await sendPushNotification(userId, {
+                  title: `${agent.name} — Work Complete`,
+                  body: "Implementation pushed to repository",
+                  data: { agentId: completedAgentId },
+                });
+              } catch {}
+            }
+          }
+        } else if (currentStep === "test") {
+          console.log(`[orbit-supervisor] Running tests for "${agent.name}"`);
+          queuePromptForClaude(completedAgentId,
+            "Find and run the project's test suite (npm test, pytest, cargo test, etc.). Report all results — which tests passed and which failed.",
+            "orbit-supervisor"
+          );
+          if (remainingSteps.length > 0) {
+            setupFollowUpChain(completedAgentId, userId, remainingSteps);
+          }
+        } else if (currentStep === "notify") {
+          console.log(`[orbit-supervisor] Sending notification for "${agent.name}"`);
+          broadcastToAgent(completedAgentId, "orbit_step", { step: "complete", message: "All steps finished" });
+          try {
+            const { sendPushNotification } = await import("../lib/push-notify");
+            await sendPushNotification(userId, {
+              title: `${agent.name} — All Done`,
+              body: "All workflow steps completed",
+              data: { agentId: completedAgentId },
+            });
+          } catch {}
+        }
+      } catch (err) {
+        console.error(`[orbit-supervisor] Error in step "${currentStep}":`, (err as Error).message);
+      }
+    });
+  }
+
+  async function runOrbitReview(agentId: string, userId: string, agent: any): Promise<{ approved: boolean; summary: string }> {
+    const ANSI_RE = /\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07/g;
+    const TOKEN_RE = /(?:ghp_[A-Za-z0-9_]{36,}|github_pat_[A-Za-z0-9_]{82,}|x-access-token:[^\s@]+)/g;
+    
+    let diffContext = "";
+    try {
+      const status = await repoManager.getStatus(agentId);
+      const changes = [...status.modified, ...status.created, ...status.deleted, ...status.staged];
+      diffContext += `Changed files: ${changes.join(", ")}\n`;
+      const diff = await repoManager.getDiff(agentId);
+      if (diff) diffContext += `Diff:\n${diff.slice(0, 15000)}`;
+    } catch {}
+
+    const terminalLines = getOutputBuffer(agentId);
+    const terminalClean = terminalLines.join("").replace(ANSI_RE, "").replace(TOKEN_RE, "[REDACTED]").slice(-8000);
+
+    const reviewPrompt = `You are reviewing Claude Code's work for the "${agent.name}" agent.
+
+## Terminal Output (last activity)
+\`\`\`
+${terminalClean}
+\`\`\`
+
+## Git Changes
+${diffContext || "No changes detected"}
+
+## Task
+Evaluate whether the work is complete and correct. Consider:
+1. Did Claude Code finish without errors?
+2. Are the changes consistent with what was requested?
+3. Are there any obvious issues in the diff?
+
+Respond with EXACTLY this format:
+VERDICT: APPROVED or VERDICT: NEEDS_WORK
+SUMMARY: One sentence explaining your assessment`;
+
+    try {
+      const reviewText = await aiComplete([
+        { role: "system", content: "You are a code reviewer. Be concise. Respond only with VERDICT and SUMMARY." },
+        { role: "user", content: reviewPrompt }
+      ], { model: MODEL_FAST, maxTokens: 500 });
+
+      const approved = /VERDICT:\s*APPROVED/i.test(reviewText);
+      const summaryMatch = reviewText.match(/SUMMARY:\s*(.*)/i);
+      const summary = summaryMatch ? summaryMatch[1].trim() : reviewText.slice(0, 200);
+
+      console.log(`[orbit-supervisor] Review result for "${agent.name}": ${approved ? "APPROVED" : "NEEDS_WORK"} — ${summary}`);
+
+      // Broadcast review result to frontend
+      broadcastToAgent(agentId, "orbit_review", { approved, summary });
+
+      return { approved, summary };
+    } catch (err) {
+      console.error(`[orbit-supervisor] Review AI error:`, (err as Error).message);
+      return { approved: false, summary: "Review failed due to an error" };
+    }
+  }
+
   app.post("/api/agents/:id/orbit", requireAuth, async (req: Request, res: Response) => {
     const ctx = await requireAgentOwnership(req, res);
     if (!ctx) return;
@@ -966,35 +1107,44 @@ export function registerAgentRoutes(app: Express) {
     const queueStatus = getQueueStatus(agent.id);
 
     const systemPrompt = `You are Orbit — the AI orchestrator and supervisor for the "${agent.name}" agent workspace within Orbia.
-You are an ACTIVE operator who supervises Claude Code CLI and drives it to complete work.
+You ACTIVELY drive Claude Code CLI to complete work, review results, and push when ready.
 
 ## Architecture
-- Claude Code CLI is ALWAYS running in the agent's terminal in interactive mode
-- You communicate with Claude Code through a PROMPT QUEUE — you write a prompt, it gets sent to Claude Code when it's ready
-- Claude Code: ${claudeIdle ? "IDLE — your prompt will be sent immediately" : "BUSY — your prompt will be QUEUED and sent when Claude Code finishes"}
-- Queue: ${queueStatus.size} pending prompts
+- Claude Code CLI is running in the agent's terminal in interactive mode
+- You write prompts to Claude Code via [CLAUDE_PROMPT] tags
+- Claude Code is currently: ${claudeIdle ? "IDLE — ready for a prompt" : "BUSY — working on something"}
 
-## How to Send Work to Claude Code
-Wrap your prompt in [CLAUDE_PROMPT] tags. This is a natural language instruction sent directly to Claude Code's input:
-[CLAUDE_PROMPT]your instruction to Claude Code here[/CLAUDE_PROMPT]
+## Tags You Can Use
 
-## What You Already Know
+### [CLAUDE_PROMPT] — Send work to Claude Code
+[CLAUDE_PROMPT]your natural language instruction here[/CLAUDE_PROMPT]
+
+### [FOLLOW_UP] — Queue automatic next steps after Claude Code finishes
+Use this to chain actions. After Claude Code completes the current prompt, the follow-up runs automatically.
+[FOLLOW_UP]{"steps":["review","push_if_approved"]}[/FOLLOW_UP]
+
+Available steps:
+- "review" — Orbit reads the diff/terminal output and evaluates the work quality
+- "push_if_approved" — If the review passes, Claude Code commits and pushes all changes
+- "test" — Tell Claude Code to run the project's test suite
+- "notify" — Send a push notification that work is complete
+
+## Context
 ${repoContext}
 ${taskContext}
-${cleanTerminal ? `## Terminal Session\n\`\`\`\n${cleanTerminal}\n\`\`\`\n` : ""}
+${cleanTerminal ? `## Terminal Output\n\`\`\`\n${cleanTerminal}\n\`\`\`\n` : ""}
 
-## Critical Rules
-1. ALWAYS include exactly ONE [CLAUDE_PROMPT] block when action is needed
-2. Claude Code is an AI — write prompts as natural language, not shell commands
-3. Be COMPREHENSIVE in your prompt — include all context Claude Code needs in a single prompt
-4. DO NOT analyze, plan, or describe what you would do — just SEND the prompt immediately
-5. Keep your own commentary brief (2-3 sentences max). The prompt is what matters.
-6. You already have the repo structure, git status, and file diffs above — use that context to write a precise prompt
-7. If the user asks to read a file or check something, tell Claude Code to do it — don't try to do it yourself
+## Rules
+1. ALWAYS include a [CLAUDE_PROMPT] block when action is needed
+2. Write prompts as natural language — Claude Code is an AI developer
+3. Be COMPREHENSIVE — give Claude Code everything it needs in ONE prompt
+4. When the user wants implementation + review + push, include [FOLLOW_UP] with the right steps
+5. Keep commentary to 1-2 sentences. The prompt matters, not analysis.
+6. When doing a review (action=review), read the terminal output carefully, evaluate the work, and give a clear APPROVED or NEEDS_WORK verdict
 
 ## Style
-- Be concise. Action over analysis.
-- Your response: brief explanation + [CLAUDE_PROMPT] block. That's it.`;
+- Concise. Action over analysis.
+- Your output: brief explanation + [CLAUDE_PROMPT] + optional [FOLLOW_UP]. That's it.`;
 
     let userMessage = "";
     if (action === "review") {
@@ -1037,12 +1187,27 @@ Send a [CLAUDE_PROMPT] telling Claude Code to: run git diff, summarize all chang
         const prompt = promptMatch[1].trim();
         if (prompt && hasActiveSession(agent.id)) {
           queuePromptForClaude(agent.id, prompt, "orbit");
-          console.log(`[orbit] Queued prompt for "${agent.name}": ${prompt.slice(0, 200)}`);
+          console.log(`[orbit] Sent prompt for "${agent.name}": ${prompt.slice(0, 200)}`);
         } else {
           console.log(`[orbit] Prompt found but no active session for "${agent.name}"`);
         }
       } else {
         console.log(`[orbit] No [CLAUDE_PROMPT] in AI response for "${agent.name}" (${fullAIText.length} chars)`);
+      }
+
+      // Parse follow-up steps and set up completion watcher
+      const followUpMatch = fullAIText.match(/\[FOLLOW_UP\]([\s\S]*?)\[\/FOLLOW_UP\]/);
+      if (followUpMatch && promptMatch && hasActiveSession(agent.id)) {
+        try {
+          const followUp = JSON.parse(followUpMatch[1].trim());
+          const steps: string[] = followUp.steps || [];
+          if (steps.length > 0) {
+            console.log(`[orbit] Follow-up steps for "${agent.name}": ${steps.join(" → ")}`);
+            setupFollowUpChain(agent.id, ctx.userId, steps);
+          }
+        } catch (e) {
+          console.log(`[orbit] Failed to parse [FOLLOW_UP] JSON: ${(e as Error).message}`);
+        }
       }
 
       res.write("data: [DONE]\n\n");

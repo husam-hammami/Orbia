@@ -1217,7 +1217,72 @@ export function getQueueStatus(agentId: string): { size: number; idle: boolean }
 }
 
 export function clearPromptQueue(agentId: string): number {
+  const watcher = completionWatchers.get(agentId);
+  if (watcher) {
+    clearInterval(watcher.interval);
+    completionWatchers.delete(agentId);
+  }
   return 0;
+}
+
+// Completion watcher: polls for Claude Code becoming idle after being busy
+type CompletionCallback = (agentId: string) => void;
+interface CompletionWatcher {
+  interval: ReturnType<typeof setInterval>;
+  callback: CompletionCallback;
+  wasBusy: boolean;
+  startedAt: number;
+}
+const completionWatchers = new Map<string, CompletionWatcher>();
+
+export function watchForCompletion(agentId: string, callback: CompletionCallback): void {
+  // Clear any existing watcher
+  const existing = completionWatchers.get(agentId);
+  if (existing) {
+    clearInterval(existing.interval);
+  }
+
+  const watcher: CompletionWatcher = {
+    interval: setInterval(() => {}, 0), // placeholder
+    callback,
+    wasBusy: false,
+    startedAt: Date.now(),
+  };
+
+  const interval = setInterval(() => {
+    const idle = isClaudeCodeIdle(agentId);
+    const elapsed = Math.round((Date.now() - watcher.startedAt) / 1000);
+
+    if (!idle) {
+      watcher.wasBusy = true;
+    }
+
+    // Fire callback when Claude Code returns to idle AFTER being busy
+    // Also timeout after 30 minutes
+    if (watcher.wasBusy && idle) {
+      console.log(`[completion-watcher] Claude Code finished for agent ${agentId} (took ${elapsed}s)`);
+      clearInterval(interval);
+      completionWatchers.delete(agentId);
+      callback(agentId);
+    } else if (elapsed > 1800) {
+      console.log(`[completion-watcher] Timeout for agent ${agentId} after ${elapsed}s`);
+      clearInterval(interval);
+      completionWatchers.delete(agentId);
+    }
+  }, 3000);
+
+  watcher.interval = interval;
+  completionWatchers.set(agentId, watcher);
+  console.log(`[completion-watcher] Watching for Claude Code completion on agent ${agentId}`);
+}
+
+export function cancelCompletionWatcher(agentId: string): void {
+  const watcher = completionWatchers.get(agentId);
+  if (watcher) {
+    clearInterval(watcher.interval);
+    completionWatchers.delete(agentId);
+    console.log(`[completion-watcher] Cancelled for agent ${agentId}`);
+  }
 }
 
 export function killOrbitShell(agentId: string) {
