@@ -1183,101 +1183,30 @@ export function isClaudeCodeIdle(agentId: string): boolean {
 }
 
 export function queuePromptForClaude(agentId: string, prompt: string, source: string = "orbit"): number {
-  if (!promptQueues.has(agentId)) {
-    promptQueues.set(agentId, []);
-  }
-  const queue = promptQueues.get(agentId)!;
-  queue.push({ prompt, source, queuedAt: Date.now() });
-  console.log(`[prompt-queue] Queued prompt for agent ${agentId} (queue size: ${queue.length}): ${prompt.slice(0, 100)}`);
-
-  if (isClaudeCodeIdle(agentId)) {
-    processPromptQueue(agentId);
-  } else {
-    startQueueWatcher(agentId);
-  }
-
-  return queue.length;
-}
-
-export function getQueueStatus(agentId: string): { size: number; idle: boolean } {
-  const queue = promptQueues.get(agentId) || [];
-  return { size: queue.length, idle: isClaudeCodeIdle(agentId) };
-}
-
-function processPromptQueue(agentId: string): boolean {
-  const queue = promptQueues.get(agentId);
-  if (!queue || queue.length === 0) return false;
-
   const session = shells.get(agentId);
-  if (!session || !session.alive || !session.process.stdin) return false;
+  if (!session || !session.alive || !session.process.stdin) {
+    console.log(`[prompt-queue] No active session for agent ${agentId}, cannot send prompt`);
+    return 0;
+  }
 
-  const next = queue.shift()!;
-  const waitMs = Date.now() - next.queuedAt;
-  console.log(`[prompt-queue] Sending to Claude Code for agent ${agentId} (waited ${waitMs}ms, ${queue.length} remaining): ${next.prompt.slice(0, 100)}`);
-
-  session.process.stdin.write(next.prompt + "\n");
+  console.log(`[prompt-queue] Writing prompt to Claude Code stdin for agent ${agentId}: ${prompt.slice(0, 200)}`);
+  session.process.stdin.write(prompt + "\n");
 
   for (const ws of session.clients) {
     if (ws.readyState === WebSocket.OPEN) {
-      ws.send(`\r\n\x1b[1;35m[Orbit → Claude Code]\x1b[0m ${next.prompt.slice(0, 200)}${next.prompt.length > 200 ? "..." : ""}\r\n`);
+      ws.send(`\r\n\x1b[1;35m[Orbit → Claude Code]\x1b[0m ${prompt.slice(0, 200)}${prompt.length > 200 ? "..." : ""}\r\n`);
     }
   }
 
-  return true;
+  return 1;
 }
 
-const queueWatchers = new Map<string, ReturnType<typeof setInterval>>();
-
-function startQueueWatcher(agentId: string) {
-  if (queueWatchers.has(agentId)) return;
-
-  let watcherTicks = 0;
-  const interval = setInterval(() => {
-    const queue = promptQueues.get(agentId);
-    if (!queue || queue.length === 0) {
-      clearInterval(interval);
-      queueWatchers.delete(agentId);
-      console.log(`[prompt-queue] Watcher stopped (queue empty) for agent ${agentId}`);
-      return;
-    }
-
-    watcherTicks++;
-    const session = shells.get(agentId);
-    const bufLen = session ? session.outputBuffer.join("").length : 0;
-    const idle = isClaudeCodeIdle(agentId);
-
-    if (watcherTicks <= 5 || watcherTicks % 10 === 0) {
-      const raw = session ? session.outputBuffer.join("") : "";
-      const clean = raw.replace(ANSI_STRIP, "");
-      const last200 = clean.slice(-200).replace(/\n/g, "\\n");
-      console.log(`[prompt-queue] Watcher tick ${watcherTicks}: idle=${idle}, bufLen=${bufLen}, alive=${session?.alive}, tail="${last200}"`);
-    }
-
-    if (idle) {
-      console.log(`[prompt-queue] Claude Code idle detected! Sending queued prompt...`);
-      processPromptQueue(agentId);
-      if (!queue.length) {
-        clearInterval(interval);
-        queueWatchers.delete(agentId);
-      }
-    }
-  }, 2000);
-
-  queueWatchers.set(agentId, interval);
-  console.log(`[prompt-queue] Started idle watcher for agent ${agentId}`);
+export function getQueueStatus(agentId: string): { size: number; idle: boolean } {
+  return { size: 0, idle: isClaudeCodeIdle(agentId) };
 }
 
 export function clearPromptQueue(agentId: string): number {
-  const queue = promptQueues.get(agentId);
-  if (!queue) return 0;
-  const count = queue.length;
-  queue.length = 0;
-  const watcher = queueWatchers.get(agentId);
-  if (watcher) {
-    clearInterval(watcher);
-    queueWatchers.delete(agentId);
-  }
-  return count;
+  return 0;
 }
 
 export function killOrbitShell(agentId: string) {
