@@ -483,11 +483,12 @@ function UploadZone() {
         queryClient.invalidateQueries({ queryKey: ["/api/medical/medications"] });
         queryClient.invalidateQueries({ queryKey: ["/api/medical/timeline-events"] });
         queryClient.invalidateQueries({ queryKey: ["/api/medical/priorities"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/medical/profile"] });
 
         setTimeout(() => {
           setUploadState("idle");
           setResult(null);
-        }, 12000);
+        }, 15000);
       } catch (err: any) {
         console.error("Upload error:", err);
         setUploadState("idle");
@@ -520,13 +521,18 @@ function UploadZone() {
           <span className="text-xs font-medium text-emerald-400" style={mono}>ANALYSIS COMPLETE</span>
         </div>
         <p className="text-xs text-foreground/70 mb-3 leading-relaxed">{result.analysis}</p>
-        {total > 0 && (
+        {total > 0 ? (
           <div className="flex flex-wrap gap-1.5">
             {ac.diagnoses > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-primary/20 bg-primary/5 text-primary" style={mono}>{ac.diagnoses} condition{ac.diagnoses > 1 ? "s" : ""}</span>}
             {ac.medications > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-blue-500/20 bg-blue-500/5 text-blue-400" style={mono}>{ac.medications} medication{ac.medications > 1 ? "s" : ""}</span>}
             {ac.timeline > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-primary/20 bg-primary/5 text-primary" style={mono}>{ac.timeline} event{ac.timeline > 1 ? "s" : ""}</span>}
             {ac.priorities > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-orange-500/20 bg-orange-500/5 text-orange-400" style={mono}>{ac.priorities} action{ac.priorities > 1 ? "s" : ""}</span>}
           </div>
+        ) : (
+          <p className="text-[10px] text-muted-foreground/50" style={mono}>Document saved — no new clinical data extracted</p>
+        )}
+        {result.warnings?.length > 0 && (
+          <p className="text-[10px] text-amber-400/70 mt-2" style={mono}>⚠ {result.warnings.length} item{result.warnings.length > 1 ? "s" : ""} had issues during save</p>
         )}
       </motion.div>
     );

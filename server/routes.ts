@@ -1523,7 +1523,12 @@ Format as JSON:
         { maxTokens: 2500 }
       );
       let insights: any = {};
-      try { insights = JSON.parse(responseText || "{}"); } catch { console.error("Failed to parse AI insights JSON"); }
+      try {
+        let cleanInsights = (responseText || "{}").trim();
+        const insFence = cleanInsights.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+        if (insFence) cleanInsights = insFence[1].trim();
+        insights = JSON.parse(cleanInsights);
+      } catch { console.error("Failed to parse AI insights JSON"); }
 
       res.json({
         ...insights,
@@ -4799,8 +4804,12 @@ Think like a doctor building a patient's problem list — not like a text parser
       ], { model: MODEL_PRIMARY, maxTokens: 8192 });
       let analysis: any;
       try {
-        analysis = JSON.parse(rawAnalysis);
-      } catch {
+        let jsonStr = rawAnalysis.trim();
+        const fenceMatch = jsonStr.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+        if (fenceMatch) jsonStr = fenceMatch[1].trim();
+        analysis = JSON.parse(jsonStr);
+      } catch (parseErr) {
+        console.error("[medical-upload] Failed to parse AI JSON response:", parseErr, "\nRaw response (first 500 chars):", rawAnalysis.slice(0, 500));
         analysis = { summary: "Document uploaded but could not be fully analyzed.", docType: "Unknown", suggestedName: fileName };
       }
 
