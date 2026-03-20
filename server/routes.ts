@@ -36,6 +36,7 @@ import { aiComplete, aiStream, MODEL_PRIMARY, MODEL_FAST, createRawStream, creat
 // Simple in-memory cache for AI responses (cost optimization)
 const aiCache = new Map<string, { data: string; timestamp: number }>();
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const AI_CACHE_MAX_SIZE = 500;
 
 function getCachedAI(key: string): string | null {
   const cached = aiCache.get(key);
@@ -47,8 +48,20 @@ function getCachedAI(key: string): string | null {
 }
 
 function setCachedAI(key: string, data: string): void {
+  if (aiCache.size >= AI_CACHE_MAX_SIZE) {
+    const firstKey = aiCache.keys().next().value;
+    if (firstKey) aiCache.delete(firstKey);
+  }
   aiCache.set(key, { data, timestamp: Date.now() });
 }
+
+// Periodic cache cleanup — evict expired entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of aiCache) {
+    if (now - v.timestamp > CACHE_TTL_MS) aiCache.delete(k);
+  }
+}, 5 * 60 * 1000);
 
 const toggleRoutineSchema = z.object({
   activityId: z.string().min(1),
@@ -1509,8 +1522,9 @@ Format as JSON:
         ],
         { maxTokens: 2500 }
       );
-      const insights = JSON.parse(responseText || "{}");
-      
+      let insights: any = {};
+      try { insights = JSON.parse(responseText || "{}"); } catch { console.error("Failed to parse AI insights JSON"); }
+
       res.json({
         ...insights,
         rawCorrelations: correlations,
@@ -2537,7 +2551,8 @@ Based on this vision and current project state, create a strategic roadmap and s
       let cleanRoadmap = (content || "{}").trim();
       const rmFence = cleanRoadmap.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
       if (rmFence) cleanRoadmap = rmFence[1].trim();
-      const parsed = JSON.parse(cleanRoadmap);
+      let parsed: any;
+      try { parsed = JSON.parse(cleanRoadmap); } catch { return res.status(500).json({ error: "AI returned malformed roadmap data. Please try again." }); }
 
       res.json({
         ...parsed,
@@ -2851,7 +2866,8 @@ Generate a fresh version of this phase with new, specific milestones that still 
       let cleanPhase = content.trim();
       const phFence = cleanPhase.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
       if (phFence) cleanPhase = phFence[1].trim();
-      const newPhase = JSON.parse(cleanPhase);
+      let newPhase: any;
+      try { newPhase = JSON.parse(cleanPhase); } catch { return res.status(500).json({ error: "AI returned malformed phase data. Please try again." }); }
       res.json({ newPhase });
     } catch (error) {
       console.error("Regenerate phase error:", error);
@@ -2914,7 +2930,12 @@ Generate a different, equally specific milestone that serves the same purpose bu
   app.patch("/api/finance-settings", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const settings = await storage.updateFinanceSettings(userId, req.body);
+      const allowed = ["monthlyBudget", "debtTotal", "debtPaid", "debtMonthlyPayment", "currency", "savingsGoal"];
+      const filtered: Record<string, any> = {};
+      for (const key of allowed) {
+        if (req.body[key] !== undefined) filtered[key] = req.body[key];
+      }
+      const settings = await storage.updateFinanceSettings(userId, filtered);
       res.json(settings);
     } catch (error) {
       res.status(500).json({ error: "Failed to update finance settings" });
@@ -3001,7 +3022,8 @@ Generate a different, equally specific milestone that serves the same purpose bu
   app.post("/api/transactions/bulk", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const validatedData = z.array(insertTransactionSchema).parse(req.body);
+      const itemsWithUser = (req.body || []).map((item: any) => ({ ...item, userId }));
+      const validatedData = z.array(insertTransactionSchema).parse(itemsWithUser);
       const txns = await storage.createManyTransactions(userId, validatedData);
       res.status(201).json(txns);
     } catch (error) {
@@ -3114,7 +3136,8 @@ MERCHANT FIELD:
       let cleanFinance = content.trim();
       const finFence = cleanFinance.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
       if (finFence) cleanFinance = finFence[1].trim();
-      const parsed = JSON.parse(cleanFinance);
+      let parsed: any;
+      try { parsed = JSON.parse(cleanFinance); } catch { return res.status(400).json({ error: "Failed to parse transactions from document. Please try a different format." }); }
       const extractedTransactions = parsed.transactions || parsed || [];
       
       const now = new Date();
@@ -4238,7 +4261,8 @@ ${JSON.stringify(context, null, 2)}`;
       }
       res.json(updated);
     } catch (error) {
-      res.status(500).json({ error: "Failed to update food option" });
+      const validationError = fromError(error);
+      res.status(400).json({ error: validationError.toString() });
     }
   });
 
@@ -4337,17 +4361,18 @@ ${JSON.stringify(context, null, 2)}`;
 
         let stability = 50;
         const recentFive = recentEntries.slice(0, 5);
-        const avgMood = recentFive.reduce((s, e) => s + e.mood, 0) / recentFive.length;
-        const moodVariance = recentFive.length > 1
-          ? recentFive.reduce((s, e) => s + Math.pow(e.mood - avgMood, 2), 0) / recentFive.length : 0;
-        const avgDissociation = recentFive.reduce((s, e) => s + e.dissociation, 0) / recentFive.length;
-        stability = Math.max(0, Math.min(100, Math.round(100 - avgDissociation - (moodVariance * 5))));
+        if (recentFive.length > 0) {
+          const avgMood = recentFive.reduce((s, e) => s + e.mood, 0) / recentFive.length;
+          const moodVariance = recentFive.length > 1
+            ? recentFive.reduce((s, e) => s + Math.pow(e.mood - avgMood, 2), 0) / recentFive.length : 0;
+          const avgStress = recentFive.reduce((s, e) => s + (e.stress ?? 0), 0) / recentFive.length;
+          stability = Math.max(0, Math.min(100, Math.round(100 - avgStress - (moodVariance * 5))));
+        }
 
         let riskFlag: string | null = null;
         const lowSleep = (mostRecent.sleepHours ?? 8) < 5;
         const highStress = mostRecent.stress > 70;
-        const highDissociation = mostRecent.dissociation > 60;
-        if (lowSleep && (highStress || highDissociation)) {
+        if (lowSleep && highStress) {
           riskFlag = "High risk of crash in next 12h";
         }
 
@@ -4541,9 +4566,9 @@ ${JSON.stringify(context, null, 2)}`;
     }
   });
 
-  app.get("/api/admin/users", async (req, res) => {
+  app.post("/api/admin/users/list", async (req, res) => {
     try {
-      const adminPassword = req.query.adminPassword as string;
+      const adminPassword = req.body.adminPassword as string;
       if (!adminPassword || adminPassword !== process.env.ADMIN_PASSWORD) {
         return res.status(403).json({ error: "Invalid admin password" });
       }
@@ -4614,7 +4639,9 @@ ${JSON.stringify(context, null, 2)}`;
     app.patch(`/api/medical/${r.path}/:id`, async (req, res) => {
       try {
         const userId = req.session.userId!;
-        const row = await (storage as any)[r.update](userId, parseInt(req.params.id), sanitizeMedBody(req.body));
+        const id = parseInt(req.params.id);
+        if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+        const row = await (storage as any)[r.update](userId, id, sanitizeMedBody(req.body));
         if (!row) return res.status(404).json({ error: "Not found" });
         res.json(row);
       } catch (e: any) { res.status(400).json({ error: "Invalid data" }); }
@@ -4622,7 +4649,9 @@ ${JSON.stringify(context, null, 2)}`;
     app.delete(`/api/medical/${r.path}/:id`, async (req, res) => {
       try {
         const userId = req.session.userId!;
-        const success = await (storage as any)[r.del](userId, parseInt(req.params.id));
+        const id = parseInt(req.params.id);
+        if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+        const success = await (storage as any)[r.del](userId, id);
         if (!success) return res.status(404).json({ error: "Not found" });
         res.status(204).send();
       } catch (e: any) { res.status(500).json({ error: "Internal server error" }); }
@@ -4634,7 +4663,7 @@ ${JSON.stringify(context, null, 2)}`;
       const userId = req.session.userId!;
       const profile = await storage.getMedicalProfile(userId);
       res.json(profile || {});
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error("[medical] Profile fetch error:", e.message); res.status(500).json({ error: "Failed to fetch medical profile" }); }
   });
 
   app.put("/api/medical/profile", async (req, res) => {
@@ -4652,7 +4681,7 @@ ${JSON.stringify(context, null, 2)}`;
       res.json({ success: true });
     } catch (error: any) {
       console.error("Medical reset error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Failed to reset medical data" });
     }
   });
 
@@ -4789,12 +4818,13 @@ Think like a doctor building a patient's problem list — not like a text parser
 
       const created: any = { document: vaultDoc, diagnoses: [], medications: [], timeline: [], priorities: [] };
 
+      const errors: string[] = [];
       if (analysis.newDiagnoses?.length) {
         for (const d of analysis.newDiagnoses) {
           try {
             const row = await storage.createMedDiagnosis(userId, { userId, label: d.label, description: d.description || "", severity: d.severity || "medium" });
             created.diagnoses.push(row);
-          } catch {}
+          } catch (e: any) { console.error("[medical-upload] Failed to create diagnosis:", d.label, e.message); errors.push(`Diagnosis "${d.label}": ${e.message}`); }
         }
       }
       if (analysis.newMedications?.length) {
@@ -4802,7 +4832,7 @@ Think like a doctor building a patient's problem list — not like a text parser
           try {
             const row = await storage.createMedMedication(userId, { userId, name: m.name, dosage: m.dosage || "", purpose: m.purpose || "" });
             created.medications.push(row);
-          } catch {}
+          } catch (e: any) { console.error("[medical-upload] Failed to create medication:", m.name, e.message); errors.push(`Medication "${m.name}": ${e.message}`); }
         }
       }
       if (analysis.timelineEvents?.length) {
@@ -4810,7 +4840,7 @@ Think like a doctor building a patient's problem list — not like a text parser
           try {
             const row = await storage.createMedTimelineEvent(userId, { userId, date: t.date || today, title: t.title, description: t.description || "", eventType: t.eventType || "appointment" });
             created.timeline.push(row);
-          } catch {}
+          } catch (e: any) { console.error("[medical-upload] Failed to create timeline event:", t.title, e.message); errors.push(`Timeline "${t.title}": ${e.message}`); }
         }
       }
       if (analysis.priorities?.length) {
@@ -4818,7 +4848,7 @@ Think like a doctor building a patient's problem list — not like a text parser
           try {
             const row = await storage.createMedPriority(userId, { userId, label: p.label, description: p.description || "", severity: p.severity || "medium" });
             created.priorities.push(row);
-          } catch {}
+          } catch (e: any) { console.error("[medical-upload] Failed to create priority:", p.label, e.message); errors.push(`Priority "${p.label}": ${e.message}`); }
         }
       }
 
@@ -4832,10 +4862,11 @@ Think like a doctor building a patient's problem list — not like a text parser
           timeline: created.timeline.length,
           priorities: created.priorities.length,
         },
+        ...(errors.length > 0 && { warnings: errors }),
       });
     } catch (error: any) {
       console.error("Medical upload error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Failed to process medical document" });
     }
   });
 
@@ -6497,12 +6528,34 @@ When the user asks you to do something, perform the action using these tags. Inc
         }
       }
 
+      let streamBuffer = "";
+      const zohoTagRegex = /\[ZOHO_(?:CREATE|UPDATE|COMPLETE)[^\]]*\]/g;
+
       for await (const event of stream) {
         if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
           const text = event.delta.text;
           fullResponse += text;
-          res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
+          streamBuffer += text;
+
+          // Check if buffer might contain a partial action tag
+          const lastBracket = streamBuffer.lastIndexOf("[");
+          if (lastBracket >= 0 && !streamBuffer.includes("]", lastBracket)) {
+            // Partial tag detected — send everything before it, hold the rest
+            const safe = streamBuffer.substring(0, lastBracket);
+            if (safe) res.write(`data: ${JSON.stringify({ content: safe })}\n\n`);
+            streamBuffer = streamBuffer.substring(lastBracket);
+          } else {
+            // No partial tag — strip complete action tags and send
+            const cleaned = streamBuffer.replace(zohoTagRegex, "").trim();
+            if (cleaned) res.write(`data: ${JSON.stringify({ content: cleaned })}\n\n`);
+            streamBuffer = "";
+          }
         }
+      }
+      // Flush remaining buffer (strip any action tags)
+      if (streamBuffer) {
+        const cleaned = streamBuffer.replace(zohoTagRegex, "").trim();
+        if (cleaned) res.write(`data: ${JSON.stringify({ content: cleaned })}\n\n`);
       }
 
       await executeZohoActions(fullResponse);

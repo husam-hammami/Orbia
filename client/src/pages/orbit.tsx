@@ -1372,6 +1372,14 @@ export default function OrbitPage() {
               workActionResults.push(`Email sent to ${data.to}`);
             } else if (data.action === "message_scheduled") {
               workActionResults.push(`Scheduled message to ${data.recipient} at ${data.time}`);
+            } else if (data.action === "zoho_task_created") {
+              workActionResults.push(`Created Zoho task: ${data.name || "task"}`);
+            } else if (data.action === "zoho_task_updated") {
+              workActionResults.push(`Updated Zoho task`);
+            } else if (data.action === "zoho_task_completed") {
+              workActionResults.push(`Completed Zoho task`);
+            } else if (data.action === "zoho_action_failed") {
+              workActionResults.push(`Zoho action failed: ${data.error || "unknown error"}`);
             } else if (data.action === "agent_review") {
               workActionResults.push(`Reviewed ${data.agentName}'s changes`);
             } else if (data.action === "agent_diff") {

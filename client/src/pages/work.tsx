@@ -911,6 +911,7 @@ function NexusChat({ connected }: { connected: boolean }) {
                   zoho_task_created: `\n\n✅ **Zoho task created**: ${data.name}`,
                   zoho_task_updated: `\n\n✅ **Zoho task updated** (${data.id})`,
                   zoho_task_completed: `\n\n✅ **Zoho task completed** (${data.id})`,
+                  zoho_action_failed: `\n\n❌ **Zoho action failed**: ${data.error || "Unknown error"}`,
                 };
                 const confirm = actionConfirms[data.action];
                 if (confirm) {

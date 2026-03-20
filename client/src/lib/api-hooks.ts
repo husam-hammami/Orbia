@@ -171,6 +171,7 @@ export function useAddHabitCompletion() {
       queryClient.invalidateQueries({ queryKey: ["habitCompletions", habitId] });
       queryClient.invalidateQueries({ queryKey: ["habits"] });
       queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] === "allCompletions" });
+      queryClient.invalidateQueries({ queryKey: ["allHabitCompletions"] });
     },
   });
 }
@@ -207,6 +208,7 @@ export function useRemoveHabitCompletion() {
       queryClient.invalidateQueries({ queryKey: ["habitCompletions", habitId] });
       queryClient.invalidateQueries({ queryKey: ["habits"] });
       queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] === "allCompletions" });
+      queryClient.invalidateQueries({ queryKey: ["allHabitCompletions"] });
     },
   });
 }
