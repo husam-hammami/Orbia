@@ -4,7 +4,7 @@ import {
   Pill, FileText,
   Trash2, Edit, ChevronDown,
   Send, User, Save,
-  Clock, PlusCircle, Upload, CheckCircle2, Loader2,
+  Clock, PlusCircle, Upload, CheckCircle2, Loader2, XCircle,
   Database, Users, ShieldAlert, ArrowLeft, CalendarCheck, RotateCcw
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -434,30 +434,64 @@ function MyHealthPanel() {
   );
 }
 
+interface FileUploadResult {
+  fileName: string;
+  status: "pending" | "uploading" | "analyzing" | "done" | "error";
+  data?: any;
+  error?: string;
+}
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(",")[1]);
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
+
 function UploadZone() {
   const queryClient = useQueryClient();
   const [isDragging, setIsDragging] = useState(false);
-  const [uploadState, setUploadState] = useState<"idle" | "uploading" | "analyzing" | "done">("idle");
-  const [result, setResult] = useState<any>(null);
-  const [uploadFileName, setUploadFileName] = useState("");
+  const [files, setFiles] = useState<FileUploadResult[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const processFile = useCallback(async (file: File) => {
+  const invalidateAll = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["/api/medical/vault-documents"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/medical/diagnoses"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/medical/medications"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/medical/timeline-events"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/medical/priorities"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/medical/profile"] });
+  }, [queryClient]);
+
+  const processFiles = useCallback(async (fileList: File[]) => {
     const maxSize = 15 * 1024 * 1024;
-    if (file.size > maxSize) {
-      alert("File too large. Maximum 15MB.");
+    const valid = fileList.filter(f => {
+      if (f.size > maxSize) return false;
+      return true;
+    });
+    if (valid.length === 0) {
+      alert("No valid files. Maximum size is 15MB per file.");
       return;
     }
+    if (valid.length < fileList.length) {
+      alert(`${fileList.length - valid.length} file(s) skipped (over 15MB limit).`);
+    }
 
-    setUploadState("uploading");
-    setUploadFileName(file.name);
+    const initial: FileUploadResult[] = valid.map(f => ({ fileName: f.name, status: "pending" }));
+    setFiles(initial);
+    setIsProcessing(true);
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64 = (reader.result as string).split(",")[1];
-      setUploadState("analyzing");
+    for (let i = 0; i < valid.length; i++) {
+      const file = valid[i];
+      setFiles(prev => prev.map((f, idx) => idx === i ? { ...f, status: "uploading" } : f));
 
       try {
+        const base64 = await readFileAsBase64(file);
+        setFiles(prev => prev.map((f, idx) => idx === i ? { ...f, status: "analyzing" } : f));
+
         const fullUrl = API_BASE_URL ? `${API_BASE_URL}/api/medical/upload` : "/api/medical/upload";
         const res = await fetch(fullUrl, {
           method: "POST",
@@ -475,88 +509,102 @@ function UploadZone() {
           throw new Error(errBody.error || "Upload failed");
         }
         const data = await res.json();
-        setResult(data);
-        setUploadState("done");
-
-        queryClient.invalidateQueries({ queryKey: ["/api/medical/vault-documents"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/medical/diagnoses"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/medical/medications"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/medical/timeline-events"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/medical/priorities"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/medical/profile"] });
-
-        setTimeout(() => {
-          setUploadState("idle");
-          setResult(null);
-        }, 15000);
+        setFiles(prev => prev.map((f, idx) => idx === i ? { ...f, status: "done", data } : f));
+        invalidateAll();
       } catch (err: any) {
-        console.error("Upload error:", err);
-        setUploadState("idle");
-        alert(err.message || "Upload failed. Please try again.");
+        console.error(`Upload error for ${file.name}:`, err);
+        setFiles(prev => prev.map((f, idx) => idx === i ? { ...f, status: "error", error: err.message || "Failed" } : f));
       }
-    };
-    reader.readAsDataURL(file);
-  }, [queryClient]);
+    }
+
+    setIsProcessing(false);
+    setTimeout(() => { setFiles([]); }, 15000);
+  }, [invalidateAll]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) processFile(file);
-  }, [processFile]);
+    const dropped = Array.from(e.dataTransfer.files);
+    if (dropped.length > 0) processFiles(dropped);
+  }, [processFiles]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) processFile(file);
+    const selected = Array.from(e.target.files || []);
+    if (selected.length > 0) processFiles(selected);
     if (fileInputRef.current) fileInputRef.current.value = "";
-  }, [processFile]);
+  }, [processFiles]);
 
-  if (uploadState === "done" && result) {
-    const ac = result.autoCreated || {};
-    const total = (ac.diagnoses || 0) + (ac.medications || 0) + (ac.timeline || 0) + (ac.priorities || 0);
+  if (files.length > 0) {
+    const allDone = !isProcessing;
+    const totalCreated = files.reduce((acc, f) => {
+      const ac = f.data?.autoCreated || {};
+      return {
+        diagnoses: acc.diagnoses + (ac.diagnoses || 0),
+        medications: acc.medications + (ac.medications || 0),
+        timeline: acc.timeline + (ac.timeline || 0),
+        priorities: acc.priorities + (ac.priorities || 0),
+      };
+    }, { diagnoses: 0, medications: 0, timeline: 0, priorities: 0 });
+    const totalItems = totalCreated.diagnoses + totalCreated.medications + totalCreated.timeline + totalCreated.priorities;
+    const successCount = files.filter(f => f.status === "done").length;
+    const errorCount = files.filter(f => f.status === "error").length;
+
     return (
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={cn(hudPanel, "p-4")}>
         <div className="flex items-center gap-2 mb-3">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span className="text-xs font-medium text-emerald-400" style={mono}>ANALYSIS COMPLETE</span>
+          {allDone ? (
+            <>
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-medium text-emerald-400" style={mono}>
+                {files.length === 1 ? "ANALYSIS COMPLETE" : `${successCount}/${files.length} DOCUMENTS ANALYZED`}
+              </span>
+            </>
+          ) : (
+            <>
+              <Loader2 className="w-4 h-4 text-primary animate-spin" />
+              <span className="text-xs font-medium text-primary" style={mono}>
+                ANALYZING {files.filter(f => f.status === "analyzing" || f.status === "uploading").length > 0 ? files.findIndex(f => f.status === "analyzing" || f.status === "uploading") + 1 : "..."} OF {files.length}
+              </span>
+            </>
+          )}
         </div>
-        <p className="text-xs text-foreground/70 mb-3 leading-relaxed">{result.analysis}</p>
-        {total > 0 ? (
+
+        <div className="space-y-1.5 mb-3 max-h-[140px] overflow-y-auto">
+          {files.map((f, i) => (
+            <div key={i} className="flex items-center gap-2 text-[10px]" style={mono}>
+              {f.status === "done" && <CheckCircle2 className="w-3 h-3 text-emerald-400 flex-shrink-0" />}
+              {f.status === "error" && <XCircle className="w-3 h-3 text-red-400 flex-shrink-0" />}
+              {(f.status === "uploading" || f.status === "analyzing") && <Loader2 className="w-3 h-3 text-primary animate-spin flex-shrink-0" />}
+              {f.status === "pending" && <div className="w-3 h-3 rounded-full border border-foreground/20 flex-shrink-0" />}
+              <span className={cn(
+                "truncate",
+                f.status === "done" && "text-foreground/70",
+                f.status === "error" && "text-red-400/70",
+                (f.status === "uploading" || f.status === "analyzing") && "text-primary",
+                f.status === "pending" && "text-foreground/30",
+              )}>{f.fileName}</span>
+              {f.status === "analyzing" && <span className="text-primary/50 flex-shrink-0">analyzing...</span>}
+              {f.status === "uploading" && <span className="text-primary/50 flex-shrink-0">reading...</span>}
+              {f.status === "error" && <span className="text-red-400/50 flex-shrink-0">{f.error}</span>}
+            </div>
+          ))}
+        </div>
+
+        {allDone && totalItems > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {ac.diagnoses > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-primary/20 bg-primary/5 text-primary" style={mono}>{ac.diagnoses} condition{ac.diagnoses > 1 ? "s" : ""}</span>}
-            {ac.medications > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-blue-500/20 bg-blue-500/5 text-blue-400" style={mono}>{ac.medications} medication{ac.medications > 1 ? "s" : ""}</span>}
-            {ac.timeline > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-primary/20 bg-primary/5 text-primary" style={mono}>{ac.timeline} event{ac.timeline > 1 ? "s" : ""}</span>}
-            {ac.priorities > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-orange-500/20 bg-orange-500/5 text-orange-400" style={mono}>{ac.priorities} action{ac.priorities > 1 ? "s" : ""}</span>}
+            {totalCreated.diagnoses > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-primary/20 bg-primary/5 text-primary" style={mono}>{totalCreated.diagnoses} condition{totalCreated.diagnoses > 1 ? "s" : ""}</span>}
+            {totalCreated.medications > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-blue-500/20 bg-blue-500/5 text-blue-400" style={mono}>{totalCreated.medications} medication{totalCreated.medications > 1 ? "s" : ""}</span>}
+            {totalCreated.timeline > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-primary/20 bg-primary/5 text-primary" style={mono}>{totalCreated.timeline} event{totalCreated.timeline > 1 ? "s" : ""}</span>}
+            {totalCreated.priorities > 0 && <span className="text-[9px] px-2 py-0.5 rounded border border-orange-500/20 bg-orange-500/5 text-orange-400" style={mono}>{totalCreated.priorities} action{totalCreated.priorities > 1 ? "s" : ""}</span>}
           </div>
-        ) : (
-          <p className="text-[10px] text-muted-foreground/50" style={mono}>Document saved — no new clinical data extracted</p>
         )}
-        {result.warnings?.length > 0 && (
-          <p className="text-[10px] text-amber-400/70 mt-2" style={mono}>⚠ {result.warnings.length} item{result.warnings.length > 1 ? "s" : ""} had issues during save</p>
+        {allDone && totalItems === 0 && successCount > 0 && (
+          <p className="text-[10px] text-muted-foreground/50" style={mono}>Documents saved — no new clinical data extracted</p>
+        )}
+        {allDone && errorCount > 0 && (
+          <p className="text-[10px] text-amber-400/70 mt-2" style={mono}>{errorCount} file{errorCount > 1 ? "s" : ""} failed to process</p>
         )}
       </motion.div>
-    );
-  }
-
-  if (uploadState === "uploading" || uploadState === "analyzing") {
-    return (
-      <div className={cn(hudPanel, "p-6 flex flex-col items-center justify-center gap-3")}>
-        <div className="relative">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          <div className="absolute inset-0 w-8 h-8 rounded-full bg-primary/5 animate-ping" />
-        </div>
-        <span className="text-xs text-primary/70" style={mono}>
-          {uploadState === "uploading" ? "UPLOADING..." : "AI ANALYZING..."}
-        </span>
-        {uploadFileName && (
-          <p className="text-xs text-foreground/50 text-center truncate max-w-full px-2">{uploadFileName}</p>
-        )}
-        <p className="text-xs text-muted-foreground/40 text-center leading-relaxed">
-          {uploadState === "analyzing"
-            ? "Reading document, extracting clinical data, and categorizing findings"
-            : "Preparing document for analysis"}
-        </p>
-      </div>
     );
   }
 
@@ -577,6 +625,7 @@ function UploadZone() {
         type="file"
         className="hidden"
         accept="image/*,.pdf,.txt,.csv,.doc,.docx"
+        multiple
         onChange={handleFileSelect}
       />
       <div className="flex flex-col items-center gap-2 py-2">
@@ -584,9 +633,9 @@ function UploadZone() {
           <Upload className="w-4 h-4 text-primary/50 group-hover:text-primary transition-colors" />
         </div>
         <div className="text-center">
-          <p className="text-xs font-medium text-foreground/70">Upload medical document</p>
+          <p className="text-xs font-medium text-foreground/70">Upload medical documents</p>
           <p className="text-xs text-muted-foreground/40 mt-0.5" style={mono}>
-            Drop file or click — AI auto-categorizes
+            Drop files or click — AI auto-categorizes
           </p>
         </div>
       </div>
