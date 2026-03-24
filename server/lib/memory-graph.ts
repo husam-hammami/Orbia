@@ -599,7 +599,10 @@ RULES:
       { maxTokens: 1024, temperature: 0.3 }
     );
 
-    const parsed = JSON.parse(responseText || "{}");
+    let cleanJ1 = (responseText || "{}").trim();
+    const f1 = cleanJ1.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+    if (f1) cleanJ1 = f1[1].trim();
+    const parsed = JSON.parse(cleanJ1);
     return {
       entities: (parsed.entities || []).map((e: any) => ({
         ...e,
@@ -715,7 +718,10 @@ RULES:
       { maxTokens: 512, temperature: 0.2, model: MODEL_FAST }
     );
 
-    const parsed = JSON.parse(responseText || "{}");
+    let cleanJson = (responseText || "{}").trim();
+    const memFence = cleanJson.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+    if (memFence) cleanJson = memFence[1].trim();
+    const parsed = JSON.parse(cleanJson);
     return {
       entities: (parsed.entities || []).map((e: any) => ({
         ...e,
@@ -992,7 +998,10 @@ IDENTITY NARRATIVES (important):
       { maxTokens: 2048, temperature: 0.4 }
     );
 
-    const parsed = JSON.parse(responseText || "{}");
+    let cleanN = (responseText || "{}").trim();
+    const fN = cleanN.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+    if (fN) cleanN = fN[1].trim();
+    const parsed = JSON.parse(cleanN);
     const narratives = parsed.narratives || [];
 
     // Upsert narratives
@@ -1634,7 +1643,10 @@ Please produce the clinical formulation.`,
       { maxTokens: 3000, temperature: 0.3 }
     );
 
-    const parsed = JSON.parse(responseText || "{}");
+    let cleanF = (responseText || "{}").trim();
+    const fF = cleanF.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+    if (fF) cleanF = fF[1].trim();
+    const parsed = JSON.parse(cleanF);
     const formulation = parsed.formulation || [];
 
     // Store each formulation element as a therapeutic narrative

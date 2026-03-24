@@ -3528,6 +3528,12 @@ ${JSON.stringify(context, null, 2)}`;
               break;
             }
             case "create_habit": {
+              const categoryColorMap: Record<string, string> = {
+                health: "hsl(142 40% 45%)", movement: "hsl(200 60% 60%)", mental: "hsl(260 50% 60%)",
+                work: "hsl(220 60% 55%)", recovery: "hsl(32 60% 60%)", mindfulness: "hsl(180 50% 50%)",
+                creativity: "hsl(280 50% 55%)", social: "hsl(340 50% 55%)", nutrition: "hsl(80 50% 45%)",
+              };
+              const habitColor = args.color || categoryColorMap[(args.category || "work").toLowerCase()] || "hsl(220 60% 55%)";
               await storage.createHabit(userId, {
                 userId,
                 title: args.title,
@@ -3535,6 +3541,7 @@ ${JSON.stringify(context, null, 2)}`;
                 description: args.description || null,
                 target: args.target || 1,
                 unit: args.unit || "times",
+                color: habitColor,
               } as any);
               actionResults.push({ name, title: args.title, success: true });
               break;
@@ -3627,9 +3634,76 @@ ${JSON.stringify(context, null, 2)}`;
               }
               break;
             }
+            case "create_routine_block": {
+              const blockColorMap: Record<string, string> = {
+                morning: "#f59e0b", work: "#3b82f6", afternoon: "#10b981",
+                evening: "#8b5cf6", "wind-down": "#6366f1", night: "#1e40af",
+              };
+              const blockIconMap: Record<string, string> = {
+                morning: "Sunrise", work: "Briefcase", afternoon: "Sun",
+                evening: "Sunset", "wind-down": "Moon", night: "Moon",
+              };
+              const blockEmojiMap: Record<string, string> = {
+                morning: "🌅", work: "💼", afternoon: "☀️",
+                evening: "🌇", "wind-down": "🌙", night: "🌙",
+              };
+              const existingBlocks = await storage.getRoutineBlocks(userId);
+              const blockName = args.name || "Block";
+              const blockKey = blockName.toLowerCase();
+              const existing = existingBlocks.find(b => b.name.toLowerCase() === blockKey);
+              if (existing) {
+                actionResults.push({ name, title: blockName, success: true, id: existing.id, note: "already exists" });
+              } else {
+                const newBlock = await storage.createRoutineBlock(userId, {
+                  userId,
+                  name: blockName,
+                  emoji: args.emoji || blockEmojiMap[blockKey] || "📋",
+                  icon: args.icon || blockIconMap[blockKey] || "Clock",
+                  startTime: args.start_time || "09:00",
+                  endTime: args.end_time || "10:00",
+                  purpose: args.purpose || "",
+                  order: args.order ?? existingBlocks.length,
+                  color: args.color || blockColorMap[blockKey] || "#6366f1",
+                });
+                actionResults.push({ name, title: blockName, success: true, id: newBlock.id });
+              }
+              break;
+            }
             case "create_routine_activity": {
+              let resolvedBlockId = args.block_id;
+              const existingBlocks = await storage.getRoutineBlocks(userId);
+              const matchedBlock = existingBlocks.find(b => b.id === args.block_id);
+              if (!matchedBlock) {
+                const byName = existingBlocks.find(b => b.name.toLowerCase() === (args.block_id || "").toLowerCase());
+                if (byName) {
+                  resolvedBlockId = byName.id;
+                } else {
+                  const blockColorMap: Record<string, string> = {
+                    morning: "#f59e0b", work: "#3b82f6", afternoon: "#10b981",
+                    evening: "#8b5cf6", "wind-down": "#6366f1", night: "#1e40af",
+                  };
+                  const blockEmojiMap: Record<string, string> = {
+                    morning: "🌅", work: "💼", afternoon: "☀️",
+                    evening: "🌇", "wind-down": "🌙", night: "🌙",
+                  };
+                  const blockName = args.block_id || "General";
+                  const blockKey = blockName.toLowerCase();
+                  const newBlock = await storage.createRoutineBlock(userId, {
+                    userId,
+                    name: blockName.charAt(0).toUpperCase() + blockName.slice(1),
+                    emoji: blockEmojiMap[blockKey] || "📋",
+                    icon: "Clock",
+                    startTime: "09:00",
+                    endTime: "10:00",
+                    purpose: "",
+                    order: existingBlocks.length,
+                    color: blockColorMap[blockKey] || "#6366f1",
+                  });
+                  resolvedBlockId = newBlock.id;
+                }
+              }
               await storage.createRoutineActivity(userId, {
-                blockId: args.block_id,
+                blockId: resolvedBlockId,
                 name: args.name,
                 time: args.time || null,
                 description: args.description || null,
@@ -6132,7 +6206,13 @@ ${rawText}`
                 break;
               }
               case "create_habit": {
-                await storage.createHabit(userId, { userId, title: args.title, category: args.category || "work", description: args.description || null, target: args.target || 1, unit: args.unit || "times" } as any);
+                const catColorMap: Record<string, string> = {
+                  health: "hsl(142 40% 45%)", movement: "hsl(200 60% 60%)", mental: "hsl(260 50% 60%)",
+                  work: "hsl(220 60% 55%)", recovery: "hsl(32 60% 60%)", mindfulness: "hsl(180 50% 50%)",
+                  creativity: "hsl(280 50% 55%)", social: "hsl(340 50% 55%)", nutrition: "hsl(80 50% 45%)",
+                };
+                const vHabitColor = args.color || catColorMap[(args.category || "work").toLowerCase()] || "hsl(220 60% 55%)";
+                await storage.createHabit(userId, { userId, title: args.title, category: args.category || "work", description: args.description || null, target: args.target || 1, unit: args.unit || "times", color: vHabitColor } as any);
                 voiceActionResults.push({ name, title: args.title, success: true });
                 break;
               }
