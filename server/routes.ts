@@ -3649,7 +3649,7 @@ ${JSON.stringify(context, null, 2)}`;
                 morning: "🌅", work: "💼", afternoon: "☀️",
                 evening: "🌇", "wind-down": "🌙", night: "🌙",
               };
-              const existingBlocks = await storage.getRoutineBlocks(userId);
+              const existingBlocks = await storage.getAllRoutineBlocks(userId);
               const blockName = args.name || "Block";
               const blockKey = blockName.toLowerCase();
               const existing = existingBlocks.find(b => b.name.toLowerCase() === blockKey);
@@ -3673,7 +3673,7 @@ ${JSON.stringify(context, null, 2)}`;
             }
             case "create_routine_activity": {
               let resolvedBlockId = args.block_id;
-              const existingBlocks = await storage.getRoutineBlocks(userId);
+              const existingBlocks = await storage.getAllRoutineBlocks(userId);
               const matchedBlock = existingBlocks.find(b => b.id === args.block_id);
               if (!matchedBlock) {
                 const byName = existingBlocks.find(b => b.name.toLowerCase() === (args.block_id || "").toLowerCase());
@@ -6269,7 +6269,7 @@ ${rawText}`
                   morning: "🌅", work: "💼", afternoon: "☀️",
                   evening: "🌇", "wind-down": "🌙", night: "🌙",
                 };
-                const vExistingBlocks = await storage.getRoutineBlocks(userId);
+                const vExistingBlocks = await storage.getAllRoutineBlocks(userId);
                 const vBlockName = args.name || "Block";
                 const vBlockKey = vBlockName.toLowerCase();
                 const vExisting = vExistingBlocks.find((b: any) => b.name.toLowerCase() === vBlockKey);
@@ -6290,7 +6290,7 @@ ${rawText}`
               }
               case "create_routine_activity": {
                 let vResolvedBlockId = args.block_id;
-                const vBlocks = await storage.getRoutineBlocks(userId);
+                const vBlocks = await storage.getAllRoutineBlocks(userId);
                 const vMatchedBlock = vBlocks.find((b: any) => b.id === args.block_id);
                 if (!vMatchedBlock) {
                   const vByName = vBlocks.find((b: any) => b.name.toLowerCase() === (args.block_id || "").toLowerCase());
