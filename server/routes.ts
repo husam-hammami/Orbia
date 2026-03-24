@@ -3260,10 +3260,12 @@ ${JSON.stringify(context, null, 2)}`;
         chatMessages.unshift({ role: "user", content: "(continuing)" });
       }
 
-      const ACTION_KEYWORDS = /\b(create|add|make|set up|build|deploy|delete|remove|update|change|edit|mark|complete|done|toggle|log|track|schedule|cancel)\b/i;
+      const ACTION_KEYWORDS = /\b(create|add|make|set up|build|deploy|delete|remove|update|change|edit|mark|complete|done|toggle|log|track|schedule|cancel|routine|habit)\b/i;
       const needsActions = ACTION_KEYWORDS.test(message);
+      const HEAVY_ACTION = /\b(routine|schedule|daily plan|full day|day plan|morning routine|evening routine|workout plan)\b/i;
+      const needsHeavyActions = HEAVY_ACTION.test(message);
       const orbitModel = therapyMode ? MODEL_PRIMARY : (needsActions ? MODEL_FAST : "claude-haiku-4-5");
-      const orbitMaxTokens = therapyMode ? 2000 : (needsActions ? 2000 : 1000);
+      const orbitMaxTokens = therapyMode ? 2000 : (needsHeavyActions ? 4000 : (needsActions ? 2000 : 1000));
       const stream = await createRawStream(systemContent, chatMessages, { model: orbitModel, maxTokens: orbitMaxTokens });
 
       let fullResponse = "";
@@ -6251,6 +6253,63 @@ ${rawText}`
               }
               case "add_transaction": {
                 await storage.createFinanceTransaction(userId, { userId, type: args.type, name: args.name, amount: String(args.amount), category: args.category || "other", notes: args.notes || null, date: new Date() } as any);
+                voiceActionResults.push({ name, title: args.name, success: true });
+                break;
+              }
+              case "create_routine_block": {
+                const vBlockColorMap: Record<string, string> = {
+                  morning: "#f59e0b", work: "#3b82f6", afternoon: "#10b981",
+                  evening: "#8b5cf6", "wind-down": "#6366f1", night: "#1e40af",
+                };
+                const vBlockIconMap: Record<string, string> = {
+                  morning: "Sunrise", work: "Briefcase", afternoon: "Sun",
+                  evening: "Sunset", "wind-down": "Moon", night: "Moon",
+                };
+                const vBlockEmojiMap: Record<string, string> = {
+                  morning: "🌅", work: "💼", afternoon: "☀️",
+                  evening: "🌇", "wind-down": "🌙", night: "🌙",
+                };
+                const vExistingBlocks = await storage.getRoutineBlocks(userId);
+                const vBlockName = args.name || "Block";
+                const vBlockKey = vBlockName.toLowerCase();
+                const vExisting = vExistingBlocks.find((b: any) => b.name.toLowerCase() === vBlockKey);
+                if (vExisting) {
+                  voiceActionResults.push({ name, title: vBlockName, success: true, id: vExisting.id, note: "already exists" });
+                } else {
+                  const vNewBlock = await storage.createRoutineBlock(userId, {
+                    userId, name: vBlockName,
+                    emoji: args.emoji || vBlockEmojiMap[vBlockKey] || "📋",
+                    icon: args.icon || vBlockIconMap[vBlockKey] || "Clock",
+                    startTime: args.start_time || "09:00", endTime: args.end_time || "10:00",
+                    purpose: args.purpose || "", order: args.order ?? vExistingBlocks.length,
+                    color: args.color || vBlockColorMap[vBlockKey] || "#6366f1",
+                  } as any);
+                  voiceActionResults.push({ name, title: vBlockName, success: true, id: vNewBlock.id });
+                }
+                break;
+              }
+              case "create_routine_activity": {
+                let vResolvedBlockId = args.block_id;
+                const vBlocks = await storage.getRoutineBlocks(userId);
+                const vMatchedBlock = vBlocks.find((b: any) => b.id === args.block_id);
+                if (!vMatchedBlock) {
+                  const vByName = vBlocks.find((b: any) => b.name.toLowerCase() === (args.block_id || "").toLowerCase());
+                  if (vByName) {
+                    vResolvedBlockId = vByName.id;
+                  } else {
+                    const vAutoBlock = await storage.createRoutineBlock(userId, {
+                      userId, name: args.block_id || "General",
+                      emoji: "📋", icon: "Clock", startTime: "09:00", endTime: "10:00",
+                      purpose: "", order: vBlocks.length, color: "#6366f1",
+                    } as any);
+                    vResolvedBlockId = vAutoBlock.id;
+                  }
+                }
+                await storage.createRoutineActivity(userId, {
+                  userId, blockId: vResolvedBlockId,
+                  name: args.name, time: args.time || "09:00",
+                  description: args.description || null, habitId: args.habit_id || null,
+                } as any);
                 voiceActionResults.push({ name, title: args.name, success: true });
                 break;
               }

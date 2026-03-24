@@ -815,11 +815,28 @@ TASKS:
 - update_task: {"task_id": "...", "title": "...", "priority": "..."}
 - delete_task: {"task_id": "..."}
 
-ROUTINE ACTIVITIES:
+ROUTINE BLOCKS:
+- create_routine_block: {"name": "Morning", "start_time": "HH:MM", "end_time": "HH:MM", "emoji": "🌅", "icon": "Sunrise", "color": "#hex", "purpose": "...", "order": 0}
+  Icons: Sunrise, Sun, Briefcase, Sunset, Moon, Coffee, Dumbbell, Book, Clock
+  Colors: morning=#f59e0b, work=#3b82f6, afternoon=#10b981, evening=#8b5cf6, night=#1e40af
+
+ROUTINE ACTIVITIES (go inside blocks):
 - mark_routine_activity: {"activity_id": "...", "date": "YYYY-MM-DD", "done": true/false, "habit_id": "..." or null}
-- create_routine_activity: {"block_id": "...", "name": "...", "time": "HH:MM", "description": "...", "habit_id": "..."}
+- create_routine_activity: {"block_id": "block name or ID", "name": "...", "time": "HH:MM", "description": "...", "habit_id": "..."}
+  block_id can be the block's name (e.g. "Morning") — it will be auto-resolved or auto-created
 - update_routine_activity: {"activity_id": "...", "name": "...", "time": "...", "description": "..."}
 - delete_routine_activity: {"activity_id": "..."}
+
+ROUTINE BUILDING RULES (CRITICAL — read before creating routines):
+- A routine has BLOCKS (time segments of the day) and ACTIVITIES (things inside blocks).
+- Blocks are broad periods: "Morning", "Work", "Afternoon", "Evening", "Wind-down" (typically 4-6 blocks, NOT 20+).
+- Activities are the individual tasks within those blocks.
+- NEVER create a separate block for every single activity. Group related activities into logical time blocks.
+- Example: "Morning" block (10:00-12:00) contains activities: Wake up, Breakfast, Meds. NOT 3 separate blocks.
+- When building a full routine, FIRST create the blocks, THEN create activities inside them.
+- Meals, snacks, and small tasks are ACTIVITIES inside blocks — not standalone blocks.
+- Keep block count to 4-7. Put 2-6 activities per block.
+- Times must flow chronologically. Double-check that start/end times make sense and don't overlap.
 
 CAREER PROJECTS:
 - create_career_project: {"title": "...", "description": "...", "status": "planning/in_progress/ongoing/completed", "deadline": "YYYY-MM-DD", "color": "bg-indigo-500/bg-rose-500/bg-emerald-500/etc"}
