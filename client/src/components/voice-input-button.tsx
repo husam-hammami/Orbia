@@ -427,6 +427,11 @@ export function VoiceInputButton({
   const userCanceledRef = useRef(false);
   const phaseRef = useRef<OverlayPhase | null>(null);
 
+  const propsRef = useRef({ chatHistory, therapyMode, aiMode, onConversationResponse, onActionsExecuted, onTranscript, conversationMode });
+  useEffect(() => {
+    propsRef.current = { chatHistory, therapyMode, aiMode, onConversationResponse, onActionsExecuted, onTranscript, conversationMode };
+  }, [chatHistory, therapyMode, aiMode, onConversationResponse, onActionsExecuted, onTranscript, conversationMode]);
+
   useEffect(() => {
     phaseRef.current = phase;
   }, [phase]);
@@ -562,7 +567,11 @@ export function VoiceInputButton({
     }
   }, []);
 
+  const doConversationRef = useRef<(text: string) => Promise<void>>();
+  const processRecordingRef = useRef<(chunks: Blob[], mime: string) => Promise<void>>();
+
   const doConversation = useCallback(async (transcribedText: string) => {
+    const p = propsRef.current;
     setPhase("thinking");
     setOrbiaResponse("");
 
@@ -576,9 +585,9 @@ export function VoiceInputButton({
         credentials: "include",
         body: JSON.stringify({
           message: transcribedText,
-          history: chatHistory?.slice(-6) || [],
-          therapyMode,
-          mode: aiMode,
+          history: p.chatHistory?.slice(-6) || [],
+          therapyMode: p.therapyMode,
+          mode: p.aiMode,
         }),
         signal: controller.signal,
       });
@@ -591,8 +600,8 @@ export function VoiceInputButton({
       const data = await res.json();
       const responseText = data.text || "";
 
-      if (data.actions?.length > 0 && onActionsExecuted && !userCanceledRef.current) {
-        onActionsExecuted(data.actions);
+      if (data.actions?.length > 0 && p.onActionsExecuted && !userCanceledRef.current) {
+        p.onActionsExecuted(data.actions);
       }
 
       if (data.audio) {
@@ -610,11 +619,11 @@ export function VoiceInputButton({
         await new Promise(resolve => setTimeout(resolve, readTimeMs));
       }
 
-      if (onConversationResponse && !userCanceledRef.current) {
-        onConversationResponse(transcribedText, responseText);
+      if (p.onConversationResponse && !userCanceledRef.current) {
+        p.onConversationResponse(transcribedText, responseText);
       }
 
-      if (conversationMode && !userCanceledRef.current) {
+      if (p.conversationMode && !userCanceledRef.current) {
         setOrbiaResponse("");
         setLiveTranscript("");
         setInterimText("");
@@ -637,9 +646,12 @@ export function VoiceInputButton({
       toast.error(message);
       cleanup();
     }
-  }, [chatHistory, therapyMode, aiMode, onConversationResponse, onActionsExecuted, playAudio, cleanup, conversationMode]);
+  }, [playAudio, cleanup]);
+
+  useEffect(() => { doConversationRef.current = doConversation; }, [doConversation]);
 
   const processRecording = useCallback(async (chunks: Blob[], mimeType: string) => {
+    const p = propsRef.current;
     const blob = new Blob(chunks, { type: mimeType });
 
     if (blob.size < 100) {
@@ -685,10 +697,10 @@ export function VoiceInputButton({
         return;
       }
 
-      if (conversationMode && onConversationResponse) {
-        await doConversation(text);
+      if (p.conversationMode && p.onConversationResponse) {
+        await doConversationRef.current?.(text);
       } else {
-        onTranscript(text);
+        p.onTranscript(text);
         cleanup();
       }
     } catch (err: unknown) {
@@ -698,7 +710,9 @@ export function VoiceInputButton({
       toast.error(message);
       cleanup();
     }
-  }, [onTranscript, conversationMode, onConversationResponse, doConversation, cleanup]);
+  }, [cleanup]);
+
+  useEffect(() => { processRecordingRef.current = processRecording; }, [processRecording]);
 
   const startRecording = useCallback(async () => {
     if (stoppingRef.current || phaseRef.current) return;
@@ -737,12 +751,12 @@ export function VoiceInputButton({
         }
         if (userCanceledRef.current) return;
         const browserTranscript = finalTranscriptRef.current.trim();
-        if (conversationMode && onConversationResponse && browserTranscript.length > 2) {
-          doConversation(browserTranscript);
+        if (propsRef.current.conversationMode && propsRef.current.onConversationResponse && browserTranscript.length > 2) {
+          doConversationRef.current?.(browserTranscript);
           return;
         }
         const chunks = [...chunksRef.current];
-        processRecording(chunks, mimeType);
+        processRecordingRef.current?.(chunks, mimeType);
       };
 
       mediaRecorder.onerror = (e: Event) => {
@@ -763,7 +777,7 @@ export function VoiceInputButton({
         toast.error("Could not access microphone");
       }
     }
-  }, [processRecording, startSpeechRecognition, cleanup]);
+  }, [startSpeechRecognition, cleanup]);
 
   useEffect(() => {
     startRecordingRef.current = startRecording;
