@@ -1,0 +1,152 @@
+2026-03-24 21:45:36.56
+8a30651a
+User
+[MemoryGraph] Conversation extraction failed: SyntaxError: Unexpected token '`', "```json
+2026-03-24 21:45:36.56
+8a30651a
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-03-24 21:45:36.56
+8a30651a
+User
+"... is not valid JSON
+2026-03-24 21:45:36.56
+8a30651a
+User
+{
+2026-03-24 21:45:36.56
+8a30651a
+User
+at yte (/home/runner/workspace/dist/index.cjs:256:57)
+2026-03-24 21:45:36.56
+8a30651a
+User
+at async /home/runner/workspace/dist/index.cjs:1477:307
+2026-03-24 21:46:52.35
+8a30651a
+User
+5:46:52 PM [express] POST /api/orbit/chat 200 in 4807ms
+2026-03-24 21:46:53.66
+8a30651a
+User
+at async /home/runner/workspace/dist/index.cjs:1477:307
+2026-03-24 21:46:53.66
+8a30651a
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-03-24 21:46:53.66
+8a30651a
+User
+{
+2026-03-24 21:46:53.66
+8a30651a
+User
+at yte (/home/runner/workspace/dist/index.cjs:256:57)
+2026-03-24 21:46:53.66
+8a30651a
+User
+"... is not valid JSON
+2026-03-24 21:46:53.66
+8a30651a
+User
+at JSON.parse ()
+2026-03-24 21:46:53.66
+8a30651a
+User
+[MemoryGraph] Conversation extraction failed: SyntaxError: Unexpected token '`', "```json
+2026-03-24 21:49:40.21
+8a30651a
+User
+5:49:40 PM [express] POST /api/orbit/chat 200 in 4881ms
+2026-03-24 21:49:49.79
+8a30651a
+User
+[MemoryGraph] Conversation extraction failed: SyntaxError: Unexpected token '`', "```json
+2026-03-24 21:49:49.79
+8a30651a
+User
+at yte (/home/runner/workspace/dist/index.cjs:256:57)
+2026-03-24 21:49:49.79
+8a30651a
+User
+"... is not valid JSON
+2026-03-24 21:49:49.79
+8a30651a
+User
+at JSON.parse ()
+2026-03-24 21:49:49.79
+8a30651a
+User
+at async /home/runner/workspace/dist/index.cjs:1477:307
+2026-03-24 21:49:49.79
+8a30651a
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-03-24 21:49:49.79
+8a30651a
+User
+{
+2026-03-24 21:51:01.26
+8a30651a
+User
+5:51:01 PM [express] POST /api/orbit/chat 200 in 9372ms
+2026-03-24 21:51:10.25
+8a30651a
+User
+{
+2026-03-24 21:51:10.25
+8a30651a
+User
+"... is not valid JSON
+2026-03-24 21:51:10.25
+8a30651a
+User
+at JSON.parse ()
+2026-03-24 21:51:10.25
+8a30651a
+User
+at async /home/runner/workspace/dist/index.cjs:1477:307
+2026-03-24 21:51:10.25
+8a30651a
+User
+at yte (/home/runner/workspace/dist/index.cjs:256:57)
+2026-03-24 21:51:10.25
+8a30651a
+User
+[MemoryGraph] Conversation extraction failed: SyntaxError: Unexpected token '`', "```json
+2026-03-24 21:51:10.25
+8a30651a
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-03-24 22:08:35.75
+8a30651a
+User
+6:08:35 PM [express] GET /api/habits 304 in 83ms :: [{"id":"723e77d5-6de8-4926-a23f-b914b0617109","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","title":"Eating Healthy","description":null,"category":"Health","frequency":"daily","streak":0,"color":"hsl(142 40% 45%)","target":1,"unit":"times","icon":null,"createdAt":"2026-03-16T13:11:18.455Z"},{"id":"c2769780-8f8a-4d6d-9c49-d7e6b769061b","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","title":"0 Sugar","description":null,"category":"Health","frequency":"daily","streak":0,"color":"hsl(0 40% 70%)","target":1,"unit":"times","icon":null,"createdAt":"2026-03-16T13:11:31.647Z"},{"id":"2287acf7-c735-4bc3-82fa-3c8afdccae0d","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","title":"Professional work","description":null,"category":"Work","frequency":"daily","streak":0,"color":"hsl(200 60% 60%)","target":1,"unit":"times","icon":null,"createdAt":"2026-03-16T13:11:56.717Z"},{"id":"1fbc9b03-35d5-4dc4-8891-ba518d74ada4","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","title":"Personal Projects","description":null,"category":"Creativity","frequency":"daily","streak":0,"color":"hsl(220 10% 40%)","target":1,"unit":"times","icon":null,"createdAt":"2026-03-16T13:12:23.885Z"},{"id":"8999ea74-15fa-4798-aee7-c59efdcb8a29","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","title":"Swimming","description":null,"category":"Recovery","frequency":"daily","streak":0,"color":"hsl(32 60% 60%)","target":1,"unit":"times","icon":null,"createdAt":"2026-03-16T14:24:21.225Z"},{"id":"a4cb22c0-c6f6-4f2c-b563-28629b729ee9","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","title":"Stretching/arms workout","description":null,"category":"Recovery","frequency":"daily","streak":0,"color":"hsl(142 40% 45%)","target":1,"unit":"times","icon":null,"createdAt":"2026-03-16T14:24:46.888Z"},{"id":"08c3d4d0-8f4b-45b3-8b2b-63e22fc93f32","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","title":"Shower","description":null,"category":"Mindfulness","frequency":"daily","streak":0,"color":"hsl(142 40% 45%)","target":1,"unit":"times","icon":null,"createdAt":"2026-03-16T14:27:56.493Z"}]
+2026-03-24 22:08:36.22
+8a30651a
+User
+6:08:36 PM [express] GET /api/habits/8999ea74-15fa-4798-aee7-c59efdcb8a29/completions 304 in 56ms :: []
+2026-03-24 22:08:36.26
+8a30651a
+User
+6:08:36 PM [express] GET /api/habits/723e77d5-6de8-4926-a23f-b914b0617109/completions 200 in 56ms :: [{"id":"3b66d726-907c-4bd7-af7e-b24a19440e13","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","habitId":"723e77d5-6de8-4926-a23f-b914b0617109","completedDate":"2026-03-16","createdAt":"2026-03-16T18:58:25.887Z"},{"id":"30586b58-ac98-44a2-a3bc-f2bf21bbff89","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","habitId":"723e77d5-6de8-4926-a23f-b914b0617109","completedDate":"2026-03-20","createdAt":"2026-03-20T15:16:16.201Z"},{"id":"6a636c1e-2108-483b-a0d1-f9abd6f2a233","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","habitId":"723e77d5-6de8-4926-a23f-b914b0617109","completedDate":"2026-03-22","createdAt":"2026-03-22T16:33:33.593Z"},{"id":"e9374647-fc60-40e3-a777-bce5ba9d81fb","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","habitId":"723e77d5-6de8-4926-a23f-b914b0617109","completedDate":"2026-03-24","createdAt":"2026-03-24T17:07:13.807Z"}]
+2026-03-24 22:08:36.40
+8a30651a
+User
+6:08:36 PM [express] GET /api/habits/2287acf7-c735-4bc3-82fa-3c8afdccae0d/completions 200 in 231ms :: [{"id":"5b0e9de9-1f43-4964-8b60-cc5f3d94cbc7","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","habitId":"2287acf7-c735-4bc3-82fa-3c8afdccae0d","completedDate":"2026-03-16","createdAt":"2026-03-16T13:43:17.774Z"},{"id":"1d0df4aa-20d2-4117-a899-83af8a236e69","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","habitId":"2287acf7-c735-4bc3-82fa-3c8afdccae0d","completedDate":"2026-03-24","createdAt":"2026-03-24T17:07:17.849Z"}]
+2026-03-24 22:08:36.41
+8a30651a
+User
+6:08:36 PM [express] GET /api/habits/c2769780-8f8a-4d6d-9c49-d7e6b769061b/completions 200 in 227ms :: [{"id":"8dac51c6-8f02-4392-be16-cd89662efdc2","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","habitId":"c2769780-8f8a-4d6d-9c49-d7e6b769061b","completedDate":"2026-03-16","createdAt":"2026-03-16T16:28:15.251Z"},{"id":"87d2eb52-e512-4c47-a1da-caab653d5c3e","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","habitId":"c2769780-8f8a-4d6d-9c49-d7e6b769061b","completedDate":"2026-03-19","createdAt":"2026-03-19T12:42:09.665Z"},{"id":"faf56a45-504f-47ca-b344-a2ca007747b8","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","habitId":"c2769780-8f8a-4d6d-9c49-d7e6b769061b","completedDate":"2026-03-24","createdAt":"2026-03-24T17:07:15.065Z"}]
+2026-03-24 22:08:36.43
+8a30651a
+User
+6:08:36 PM [express] GET /api/habits/1fbc9b03-35d5-4dc4-8891-ba518d74ada4/completions 200 in 231ms :: [{"id":"f123748b-fbc1-492d-8119-902bf77d5fdb","userId":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","habitId":"1fbc9b03-35d5-4dc4-8891-ba518d74ada4","completedDate":"2026-03-24","createdAt":"2026-03-24T17:07:19.636Z"}]
+2026-03-24 22:08:36.44
+8a30651a
+User
+6:08:36 PM [express] GET /api/habits/08c3d4d0-8f4b-45b3-8b2b-63e22fc93f32/completions 304 in 56ms :: []
+2026-03-24 22:08:36.44
+8a30651a
+User
+6:08:36 PM [express] GET /api/habits/a4cb22c0-c6f6-4f2c-b563-28629b729ee9/completions 200 in 57ms :
