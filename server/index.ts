@@ -186,7 +186,7 @@ async function startMessageScheduler() {
 }
 
 (async () => {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production" && process.env.AUTO_DB_PUSH === "true") {
     try {
       const { execSync } = await import("child_process");
       console.log("[startup] Running schema push...");
