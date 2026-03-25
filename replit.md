@@ -169,9 +169,26 @@ const parsed = JSON.parse(clean);
 - **Colors**: Matches Orbia DNA — `#0f0f1a` background, `#e879f9` glow, `#818cf8` indigo, `#a78bfa` violet.
 - **Files**: `android/wear/`.
 
+## Deployment
+
+### Railway (Primary — Production)
+- **Auto-deploy**: Connected to GitHub `main` branch — every push triggers a build and deploy
+- **Domain**: `myorbia.com` (CNAME → `ctcd7npt.up.railway.app`), DNS managed at Spaceship
+- **Database**: Neon PostgreSQL (`ep-frosty-wave-ahxls62k`) via `DATABASE_URL`
+- **Auto Schema Push**: On server startup, if `AUTO_DB_PUSH=true` env var is set, runs `drizzle-kit push --force` before starting the app. Set this when you've changed the schema, then remove it after deploy to avoid accidental data loss from column/table removals.
+- **Claude CLI**: `@anthropic-ai/claude-code` npm dependency enables Neural Agents on Railway. `getClaudePath()` in `agent-terminal.ts` checks Replit's global bin first, falls back to `node_modules/.bin/`.
+- **Required env vars**: `DATABASE_URL`, `SESSION_SECRET`, `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `GITHUB_PAT`, `MICROSOFT_REDIRECT_URI`, `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, `PORT=5000`, `NODE_ENV=production`
+- **Deploy workflow**: Code change → push to GitHub → Railway auto-builds (`npm run build`) → starts (`npm run start`) → schema syncs if enabled → app live
+
+### Replit (Development)
+- Uses `DATABASE_FALLBACK_URL` to connect to same Neon DB
+- AI keys via Replit AI Integrations (`AI_INTEGRATIONS_ANTHROPIC_API_KEY` fallback to `ANTHROPIC_API_KEY`)
+- Push to GitHub pattern: `git remote set-url origin "https://x-access-token:${GITHUB_PAT}@github.com/husam-hammami/Orbia.git" && git push && git remote set-url origin "https://github.com/husam-hammami/Orbia.git"`
+- Manual schema push: `DATABASE_URL="$DATABASE_FALLBACK_URL" npm run db:push`
+
 ## External Dependencies
 
-- **Database**: PostgreSQL (via `DATABASE_URL`), `connect-pg-simple` for session storage.
+- **Database**: PostgreSQL (Neon, via `DATABASE_URL` / `DATABASE_FALLBACK_URL`), `connect-pg-simple` for session storage.
 - **UI Libraries**: Radix UI, Lucide React, Embla Carousel, cmdk, Vaul, Sonner.
 - **Development Tools**: Replit-specific plugins, custom Vite plugin for OpenGraph.
 - **Fonts**: Inter, Space Grotesk, JetBrains Mono.

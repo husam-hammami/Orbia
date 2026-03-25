@@ -16,7 +16,7 @@ npm run db:push        # Alias for drizzle push
 
 ## Architecture
 
-**Orbia** (formerly NeuroZen) is a full-stack personal wellness/productivity app with AI integration, deployed on Replit at `https://myorbia.com`.
+**Orbia** (formerly NeuroZen) is a full-stack personal wellness/productivity app with AI integration, deployed on Railway at `https://myorbia.com`. Development environment on Replit.
 
 ### Stack
 - **Frontend:** React 19 + TypeScript, Vite 7, Wouter (routing), TanStack React Query (server state), Tailwind CSS v4 + shadcn/ui (New York style), Framer Motion, Recharts
@@ -463,13 +463,24 @@ Two-stage process:
 1. **Client:** Vite builds to `dist/public/`
 2. **Server:** esbuild bundles to `dist/index.cjs` (CommonJS). Uses **selective dependency bundling** — only 33 packages are bundled (listed in allowlist) to reduce `openat(2)` syscalls for faster cold starts. Everything else stays external.
 
-### Replit Deployment
-- Target: autoscale
-- Build: `npm run build`
-- Run: `npm run start`
+### Railway Deployment (Primary — Production)
+- **Platform**: Railway, auto-deploys from GitHub `main` branch
+- **Domain**: `myorbia.com` (CNAME → `ctcd7npt.up.railway.app`)
+- **Build**: Railway runs `npm run build` automatically on push
+- **Start**: `npm run start` → runs `drizzle-kit push --force` (if `AUTO_DB_PUSH=true`) then `node dist/index.cjs`
+- **Database**: Neon PostgreSQL (`ep-frosty-wave-ahxls62k`) via `DATABASE_URL`
+- **Auto Schema Push**: Set `AUTO_DB_PUSH=true` in Railway env vars to auto-sync schema on deploy. Remove/set to `false` after deploy to prevent accidental drops.
+- **Claude CLI**: `@anthropic-ai/claude-code` installed as npm dependency for Neural Agents. Path detection: checks Replit global bin first, falls back to `node_modules/.bin/`.
+- **Required Railway Env Vars**: `DATABASE_URL`, `SESSION_SECRET`, `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `GITHUB_PAT`, `MICROSOFT_REDIRECT_URI`, `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, `PORT=5000`, `NODE_ENV=production`
+- **Deploy workflow**: Push to GitHub → Railway auto-builds → schema pushes (if enabled) → app starts
+
+### Replit Environment (Development)
 - Modules: nodejs-20, web, postgresql-16
 - Nix packages: zip, jdk17, unzip, jdk21, imagemagick
+- Database fallback: `DATABASE_FALLBACK_URL` (same Neon DB)
+- AI keys: via Replit AI Integrations (`AI_INTEGRATIONS_ANTHROPIC_API_KEY`, etc.)
 - Post-merge hook: `scripts/post-merge.sh` (npm install + db:push, 120s timeout)
+- Push to GitHub: `git remote set-url origin "https://x-access-token:${GITHUB_PAT}@github.com/husam-hammami/Orbia.git" && git push && git remote set-url origin "https://github.com/husam-hammami/Orbia.git"`
 
 ### Server Startup (`server/index.ts`)
 1. Middleware: CORS (origin=true, credentials=true) → body parser (20MB limit) → URL encoded → session (30-day PostgreSQL store) → routes
