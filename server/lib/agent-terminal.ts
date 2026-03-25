@@ -638,7 +638,12 @@ export function getPermissionMode(agentId: string): { mode: string; notifyOnComp
 }
 
 function getClaudePath(): string {
-  return path.join(process.cwd(), ".config/npm/node_global/bin");
+  const replitPath = path.join(process.cwd(), ".config/npm/node_global/bin");
+  const nodeModulesPath = path.join(process.cwd(), "node_modules", ".bin");
+  if (fs.existsSync(path.join(replitPath, "claude"))) {
+    return replitPath;
+  }
+  return nodeModulesPath;
 }
 
 const shellCreationLocks = new Map<string, Promise<ShellSession>>();
