@@ -186,6 +186,17 @@ async function startMessageScheduler() {
 }
 
 (async () => {
+  if (process.env.NODE_ENV === "production") {
+    try {
+      const { execSync } = await import("child_process");
+      console.log("[startup] Running schema push...");
+      execSync("npx drizzle-kit push --force", { stdio: "inherit" });
+      console.log("[startup] Schema push complete");
+    } catch (err: any) {
+      console.error("[startup] Schema push failed (non-fatal):", err.message);
+    }
+  }
+
   await ensureDefaultUsers();
   await registerRoutes(httpServer, app);
   setupAgentTerminalWS(httpServer);
