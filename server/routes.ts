@@ -2371,7 +2371,7 @@ Provide supportive analysis. Be specific about patterns you observe in the data.
 
       // AI relevance filter — batch-check all articles in one call
       let relevantArticles = fetchedArticles;
-      if (fetchedArticles.length > 0 && process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY) {
+      if (fetchedArticles.length > 0 && (process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY)) {
         try {
           const articleList = fetchedArticles.map((a, i) =>
             `${i}. [${a.category}] "${a.title}" — ${a.description?.slice(0, 80) || "no description"}`
@@ -2433,7 +2433,7 @@ Return ONLY a JSON array of the index numbers of relevant articles, e.g. [0,1,3,
 
       // Generate AI summary if available
       let aiSummary = null;
-      if (articlesWithSaveStatus.length > 0 && process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY) {
+      if (articlesWithSaveStatus.length > 0 && (process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY)) {
         try {
           const vision = await storage.getVision(userId);
           const visionSummary = vision.map(v => v.title).join(", ");
@@ -2476,7 +2476,7 @@ Return ONLY a JSON array of the index numbers of relevant articles, e.g. [0,1,3,
   app.get("/api/career/ai-roadmap", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      if (!process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY) {
+      if (!(process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY)) {
         return res.json({
           roadmap: [],
           suggestedActions: [],
@@ -2589,7 +2589,7 @@ Based on this vision and current project state, create a strategic roadmap and s
   app.post("/api/career/coach", async (req, res) => {
     try {
       const userId = req.session.userId!;
-      if (!process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY) {
+      if (!(process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY)) {
         return res.json({
           error: "missing_credentials",
           message: "AI features are not configured. Please set up AI integrations to use this feature."
@@ -6001,8 +6001,8 @@ ${unifiedContext}`;
 
       const OpenAI = (await import("openai")).default;
       const openai = new OpenAI({
-        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+        apiKey: (process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY),
+        baseURL: (process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || process.env.OPENAI_BASE_URL),
       });
 
       const ext = mimeType?.includes("webm") ? "webm" : mimeType?.includes("mp4") ? "mp4" : mimeType?.includes("ogg") ? "ogg" : "webm";
@@ -6450,8 +6450,8 @@ ${rawText}`
         try {
           const OpenAI = (await import("openai")).default;
           const openai = new OpenAI({
-            apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-            baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+            apiKey: (process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY),
+            baseURL: (process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || process.env.OPENAI_BASE_URL),
           });
 
           const ttsResponse = await openai.chat.completions.create({
