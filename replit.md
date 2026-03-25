@@ -172,18 +172,28 @@ const parsed = JSON.parse(clean);
 ## Deployment
 
 ### Railway (Primary — Production)
-- **Auto-deploy**: Connected to GitHub `main` branch — every push triggers a build and deploy
+- **Auto-deploy**: Connected to GitHub `main` branch — every push triggers build and deploy
+- **GitHub Repo**: `husam-hammami/Orbia` (private)
 - **Domain**: `myorbia.com` (CNAME → `ctcd7npt.up.railway.app`), DNS managed at Spaceship
+- **Build**: Railway Nixpacks auto-detects Node.js → `npm ci` → `npm run build`
 - **Database**: Neon PostgreSQL (`ep-frosty-wave-ahxls62k`) via `DATABASE_URL`
-- **Auto Schema Push**: On server startup, if `AUTO_DB_PUSH=true` env var is set, runs `drizzle-kit push --force` before starting the app. Set this when you've changed the schema, then remove it after deploy to avoid accidental data loss from column/table removals.
-- **Claude CLI**: `@anthropic-ai/claude-code` npm dependency enables Neural Agents on Railway. `getClaudePath()` in `agent-terminal.ts` checks Replit's global bin first, falls back to `node_modules/.bin/`.
-- **Required env vars**: `DATABASE_URL`, `SESSION_SECRET`, `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `GITHUB_PAT`, `MICROSOFT_REDIRECT_URI`, `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, `PORT=5000`, `NODE_ENV=production`
-- **Deploy workflow**: Code change → push to GitHub → Railway auto-builds (`npm run build`) → starts (`npm run start`) → schema syncs if enabled → app live
+- **Auto Schema Push**: Set `AUTO_DB_PUSH=true` env var → on startup runs `drizzle-kit push --force`. Remove after deploy to prevent accidental column/table drops.
+- **Manual Schema Push**: Railway shell tab → `npm run db:push`, or locally: `DATABASE_URL="<neon-url>" npx drizzle-kit push`
+- **Claude CLI**: `@anthropic-ai/claude-code` npm dependency enables Neural Agents. Path auto-detected via `getClaudePath()`.
+- **Required env vars**: `DATABASE_URL`, `SESSION_SECRET`, `ANTHROPIC_API_KEY` (starts with `sk-ant-api03-`), `ANTHROPIC_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `GITHUB_PAT`, `MICROSOFT_REDIRECT_URI` (`https://myorbia.com/api/work/microsoft/callback`), `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, `PORT=5000`, `NODE_ENV=production`
+- **Logs**: Railway dashboard → Deployments → click deploy → view logs
+- **Shell**: Railway dashboard → service → Shell tab
+
+### Local Development (Without Replit)
+- Clone repo, `npm install`, create `.env` with required vars, `npm run dev`
+- Schema push: `npx drizzle-kit push`
+- Production build: `npm run build && npm run start`
+- Requires Node.js 20+
 
 ### Replit (Development)
-- Uses `DATABASE_FALLBACK_URL` to connect to same Neon DB
+- Uses `DATABASE_FALLBACK_URL` to connect to same Neon DB (takes priority over `DATABASE_URL` in `server/db.ts`)
 - AI keys via Replit AI Integrations (`AI_INTEGRATIONS_ANTHROPIC_API_KEY` fallback to `ANTHROPIC_API_KEY`)
-- Push to GitHub pattern: `git remote set-url origin "https://x-access-token:${GITHUB_PAT}@github.com/husam-hammami/Orbia.git" && git push && git remote set-url origin "https://github.com/husam-hammami/Orbia.git"`
+- Push to GitHub: `git remote set-url origin "https://x-access-token:${GITHUB_PAT}@github.com/husam-hammami/Orbia.git" && git push && git remote set-url origin "https://github.com/husam-hammami/Orbia.git"`
 - Manual schema push: `DATABASE_URL="$DATABASE_FALLBACK_URL" npm run db:push`
 
 ## External Dependencies

@@ -465,20 +465,53 @@ Two-stage process:
 
 ### Railway Deployment (Primary — Production)
 - **Platform**: Railway, auto-deploys from GitHub `main` branch
-- **Domain**: `myorbia.com` (CNAME → `ctcd7npt.up.railway.app`)
-- **Build**: Railway runs `npm run build` automatically on push
-- **Start**: `npm run start` → runs `drizzle-kit push --force` (if `AUTO_DB_PUSH=true`) then `node dist/index.cjs`
+- **GitHub Repo**: `husam-hammami/Orbia` (private)
+- **Domain**: `myorbia.com` (CNAME → `ctcd7npt.up.railway.app`), DNS at Spaceship
+- **Build system**: Railway Nixpacks (auto-detects Node.js, runs `npm ci` then `npm run build`)
+- **Build command**: `npm run build` (Vite → `dist/public/`, esbuild → `dist/index.cjs`)
+- **Start command**: `npm run start` → auto schema push (if `AUTO_DB_PUSH=true`) → `node dist/index.cjs`
 - **Database**: Neon PostgreSQL (`ep-frosty-wave-ahxls62k`) via `DATABASE_URL`
-- **Auto Schema Push**: Set `AUTO_DB_PUSH=true` in Railway env vars to auto-sync schema on deploy. Remove/set to `false` after deploy to prevent accidental drops.
-- **Claude CLI**: `@anthropic-ai/claude-code` installed as npm dependency for Neural Agents. Path detection: checks Replit global bin first, falls back to `node_modules/.bin/`.
-- **Required Railway Env Vars**: `DATABASE_URL`, `SESSION_SECRET`, `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `GITHUB_PAT`, `MICROSOFT_REDIRECT_URI`, `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, `PORT=5000`, `NODE_ENV=production`
+- **Auto Schema Push**: Set `AUTO_DB_PUSH=true` in Railway env vars to auto-sync schema on deploy. Remove/set to `false` after deploy to prevent accidental column/table drops.
+- **Manual Schema Push**: Open Railway shell tab → `npm run db:push` (or locally: `DATABASE_URL="<neon-url>" npx drizzle-kit push`)
+- **Claude CLI**: `@anthropic-ai/claude-code` installed as npm dependency for Neural Agents. `getClaudePath()` in `agent-terminal.ts` checks Replit global bin first, falls back to `node_modules/.bin/`.
+- **Railway env vars**:
+  | Variable | Value/Notes |
+  |----------|-------------|
+  | `DATABASE_URL` | Neon connection string (with `?sslmode=require`) |
+  | `SESSION_SECRET` | Random string for express-session |
+  | `ANTHROPIC_API_KEY` | Must start with `sk-ant-api03-` |
+  | `ANTHROPIC_BASE_URL` | `https://api.anthropic.com` |
+  | `OPENAI_API_KEY` | For image generation + TTS |
+  | `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
+  | `GITHUB_PAT` | For agent git push operations |
+  | `MICROSOFT_REDIRECT_URI` | `https://myorbia.com/api/work/microsoft/callback` |
+  | `ZOHO_CLIENT_ID` | Zoho OAuth client ID |
+  | `ZOHO_CLIENT_SECRET` | Zoho OAuth client secret |
+  | `ZOHO_REFRESH_TOKEN` | Long-lived Zoho refresh token |
+  | `PORT` | `5000` |
+  | `NODE_ENV` | `production` |
+  | `AUTO_DB_PUSH` | `true` only when schema changed (optional) |
 - **Deploy workflow**: Push to GitHub → Railway auto-builds → schema pushes (if enabled) → app starts
+- **Logs**: Railway dashboard → Deployments → click deploy → view build & runtime logs
+- **Shell access**: Railway dashboard → service → Shell tab (full terminal in running container)
+
+### Local Development (Without Replit)
+```bash
+git clone https://github.com/husam-hammami/Orbia.git
+cd Orbia
+npm install
+# Create .env with DATABASE_URL, SESSION_SECRET, ANTHROPIC_API_KEY, etc.
+npm run dev  # Starts dev server on port 5000
+```
+- Schema push: `npx drizzle-kit push`
+- Production build: `npm run build && npm run start`
+- Requires: Node.js 20+, PostgreSQL (or Neon connection string)
 
 ### Replit Environment (Development)
 - Modules: nodejs-20, web, postgresql-16
 - Nix packages: zip, jdk17, unzip, jdk21, imagemagick
-- Database fallback: `DATABASE_FALLBACK_URL` (same Neon DB)
-- AI keys: via Replit AI Integrations (`AI_INTEGRATIONS_ANTHROPIC_API_KEY`, etc.)
+- Database fallback: `DATABASE_FALLBACK_URL` (same Neon DB, takes priority over `DATABASE_URL` in `server/db.ts`)
+- AI keys: via Replit AI Integrations (`AI_INTEGRATIONS_ANTHROPIC_API_KEY` → falls back to `ANTHROPIC_API_KEY`)
 - Post-merge hook: `scripts/post-merge.sh` (npm install + db:push, 120s timeout)
 - Push to GitHub: `git remote set-url origin "https://x-access-token:${GITHUB_PAT}@github.com/husam-hammami/Orbia.git" && git push && git remote set-url origin "https://github.com/husam-hammami/Orbia.git"`
 
