@@ -3186,8 +3186,12 @@ MERCHANT FIELD:
     try {
       const userId = req.session.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
-      const { buildUnifiedContextWithMemory } = await import("./lib/unified-context");
-      await buildUnifiedContextWithMemory(userId, "orbit");
+      const { buildUnifiedContextWithMemory, buildSituationAssessment } = await import("./lib/unified-context");
+      // Pre-compute context AND situation assessment in parallel (invisible latency)
+      await Promise.all([
+        buildUnifiedContextWithMemory(userId, "orbit"),
+        buildSituationAssessment(userId),
+      ]);
       res.json({ ok: true });
     } catch {
       res.json({ ok: false });
@@ -3203,12 +3207,38 @@ MERCHANT FIELD:
         return res.status(400).json({ error: "Message is required" });
       }
 
-      const { buildUnifiedContextWithMemory, buildUnifiedSystemPrompt, buildTherapeuticPrompt } = await import("./lib/unified-context");
-      const { context: unifiedContext, msToken } = await buildUnifiedContextWithMemory(userId, "orbit", message);
+      const { buildUnifiedContextWithMemory, buildOrbitPrompt, buildTherapeuticPrompt, getSituationAssessment, buildSituationAssessment } = await import("./lib/unified-context");
 
+      // Fetch context + situation assessment in parallel (both cached)
+      const [contextResult] = await Promise.all([
+        buildUnifiedContextWithMemory(userId, "orbit", message),
+        // Ensure situation assessment exists (fire-and-forget if not cached yet)
+        buildSituationAssessment(userId).catch(() => ""),
+      ]);
+      const { context: unifiedContext, msToken } = contextResult;
+      const situationBrief = getSituationAssessment(userId);
+
+      // --- Intent classification: Opus for depth, Sonnet for actions ---
+      const trimmedMsg = message.trim();
+      const CONVERSATIONAL = /^(how|why|what do you|what's|what is|tell me|i feel|i'm |i am |today was|do you think|am i|should i|can you explain|help me understand|what happened|reflect|think about)/i;
+      const isConversational = CONVERSATIONAL.test(trimmedMsg);
+
+      const ACTION_VERBS = /\b(create|add|make|delete|remove|mark|complete|toggle|log|track|schedule|cancel|set up|update|edit|change)\b/i;
+      const ACTION_NOUNS = /\b(habit|task|todo|routine|project|expense|transaction|loan|journal|meal|event|email|teams|agent|vision|medication|diagnosis|priority|timeline|contact|income|stream|article|topic)\b/i;
+      const isActionIntent = !isConversational && ACTION_VERBS.test(message) && ACTION_NOUNS.test(message);
+
+      const HEAVY_ACTION = /\b(routine|schedule|daily plan|full day|day plan|morning routine|evening routine|workout plan)\b/i;
+      const isHeavyAction = isActionIntent && HEAVY_ACTION.test(message);
+
+      // Model routing: Opus for intelligence, Sonnet for actions, no more Haiku
+      const orbitModel = therapyMode ? MODEL_PRIMARY : (isActionIntent ? MODEL_FAST : MODEL_PRIMARY);
+      const orbitMaxTokens = therapyMode ? 3000 : (isHeavyAction ? 4000 : (isActionIntent ? 4000 : 3500));
+
+      console.log(`[OrbitChat] Intent: ${therapyMode ? 'therapy' : (isActionIntent ? 'action' : 'conversational')}, Model: ${orbitModel === MODEL_PRIMARY ? 'Opus' : 'Sonnet'}, MaxTokens: ${orbitMaxTokens}`);
+
+      // --- Build system prompt ---
       let orbitSystemPrompt: string;
       if (therapyMode) {
-        // Load clinical formulation for therapy mode
         let clinicalContext = "";
         try {
           const therapeuticNarratives = await storage.getMemoryNarratives(userId);
@@ -3220,29 +3250,31 @@ MERCHANT FIELD:
           console.error("[TherapyMode] Failed to load clinical formulation:", err);
         }
         const therapeuticPrompt = buildTherapeuticPrompt(clinicalContext || undefined);
-        orbitSystemPrompt = `${therapeuticPrompt}
-
-## CONTEXT DATA (use silently)
-${unifiedContext}`;
+        orbitSystemPrompt = `${therapeuticPrompt}\n\n## CONTEXT DATA (use silently)\n${unifiedContext}`;
       } else {
-        const systemPrompt = buildUnifiedSystemPrompt("orbit");
-        orbitSystemPrompt = `${systemPrompt}
+        const systemPrompt = buildOrbitPrompt({
+          includeActions: isActionIntent,
+          includeWorkActions: isActionIntent && !!msToken,
+          situationBrief: situationBrief || undefined,
+        });
 
-## CONTEXT DATA (use silently)
-${unifiedContext}
-
-ADDITIONAL OPERATIONAL CONTEXT:
-${JSON.stringify(context, null, 2)}`;
+        if (isActionIntent) {
+          // Action queries get full context + client operational data (has entity IDs)
+          orbitSystemPrompt = `${systemPrompt}\n\n## CONTEXT DATA (use silently)\n${unifiedContext}\n\nOPERATIONAL CONTEXT:\n${JSON.stringify(context, null, 2)}`;
+        } else {
+          // Conversational queries get slim prompt + context only (no duplicate client data)
+          orbitSystemPrompt = `${systemPrompt}\n\n## CONTEXT DATA (use silently)\n${unifiedContext}`;
+        }
       }
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
-      
+
       const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
         { role: "system", content: orbitSystemPrompt }
       ];
-      
+
       if (history && Array.isArray(history)) {
         for (const h of history.slice(-40)) {
           if (h.role === "user" || h.role === "assistant") {
@@ -3250,7 +3282,7 @@ ${JSON.stringify(context, null, 2)}`;
           }
         }
       }
-      
+
       messages.push({ role: "user", content: message });
 
       // Separate system message from chat messages
@@ -3260,12 +3292,6 @@ ${JSON.stringify(context, null, 2)}`;
         chatMessages.unshift({ role: "user", content: "(continuing)" });
       }
 
-      const ACTION_KEYWORDS = /\b(create|add|make|set up|build|deploy|delete|remove|update|change|edit|mark|complete|done|toggle|log|track|schedule|cancel|routine|habit)\b/i;
-      const needsActions = ACTION_KEYWORDS.test(message);
-      const HEAVY_ACTION = /\b(routine|schedule|daily plan|full day|day plan|morning routine|evening routine|workout plan)\b/i;
-      const needsHeavyActions = HEAVY_ACTION.test(message);
-      const orbitModel = therapyMode ? MODEL_PRIMARY : (needsActions ? MODEL_FAST : "claude-haiku-4-5");
-      const orbitMaxTokens = therapyMode ? 2000 : (needsHeavyActions ? 4000 : (needsActions ? 2000 : 1000));
       const stream = await createRawStream(systemContent, chatMessages, { model: orbitModel, maxTokens: orbitMaxTokens });
 
       let fullResponse = "";

@@ -715,7 +715,7 @@ RULES:
           content: `CONVERSATION:\n\n${conversationText}`,
         },
       ],
-      { maxTokens: 512, temperature: 0.2, model: MODEL_FAST }
+      { maxTokens: 1024, temperature: 0.2, model: MODEL_PRIMARY }
     );
 
     let cleanJson = (responseText || "{}").trim();

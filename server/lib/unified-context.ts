@@ -4,11 +4,31 @@ import { buildMemoryContext } from "./memory-graph";
 const githubRepoCache: { repos: any[]; fetchedAt: number; userId: string } = { repos: [], fetchedAt: 0, userId: "" };
 const GITHUB_CACHE_TTL = 5 * 60 * 1000;
 
-const contextCache: Map<string, { context: string; msToken: string | null; fetchedAt: number }> = new Map();
-const CONTEXT_CACHE_TTL = 30_000;
+// Two-layer cache: base context (DB + Graph) is slow to change, memory context is topic-sensitive
+const baseContextCache: Map<string, { context: string; msToken: string | null; fetchedAt: number }> = new Map();
+const memoryContextCache: Map<string, { memory: string; fetchedAt: number }> = new Map();
+const BASE_CONTEXT_CACHE_TTL = 5 * 60 * 1000;   // 5 minutes — DB data changes slowly
+const MEMORY_CONTEXT_CACHE_TTL = 5 * 60 * 1000;  // 5 minutes — memory narratives are stable
 
 export function invalidateContextCache(userId: string) {
-  contextCache.delete(userId);
+  for (const key of baseContextCache.keys()) {
+    if (key.startsWith(userId)) baseContextCache.delete(key);
+  }
+  for (const key of memoryContextCache.keys()) {
+    if (key.startsWith(userId)) memoryContextCache.delete(key);
+  }
+}
+
+/** Map a conversation hint to a coarse topic bucket for memory cache keying */
+function getTopicBucket(hint: string): string {
+  const h = hint.toLowerCase();
+  if (/mood|energy|sleep|stress|tired|feeling|pain|anxious/.test(h)) return "wellness";
+  if (/work|meeting|email|teams|project|deadline|boss|colleague|zoho/.test(h)) return "work";
+  if (/doctor|medication|diagnosis|pain|symptom|medical|hospital/.test(h)) return "medical";
+  if (/money|budget|spend|loan|salary|expense|debt|payment/.test(h)) return "finance";
+  if (/career|job|goal|vision|skill|interview|promotion/.test(h)) return "career";
+  if (/friend|family|wife|husband|mother|father|relationship/.test(h)) return "social";
+  return "general";
 }
 
 export async function buildUnifiedContext(userId: string): Promise<{
@@ -575,6 +595,78 @@ ${visionItems.map((v: any) => `- ${v.title} (${v.timeframe}): ${v.description ||
   };
 }
 
+// ============================================================
+// SITUATION ASSESSMENT — Pre-computed intelligence for Opus
+// ============================================================
+
+const situationCache: Map<string, { brief: string; computedAt: number }> = new Map();
+const SITUATION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Build a pre-digested situation assessment using Sonnet.
+ * Runs on warmup (invisible latency) and cached for 5 minutes.
+ * Gives Opus a synthesized understanding instead of raw data interpretation.
+ */
+export async function buildSituationAssessment(userId: string): Promise<string> {
+  const cached = situationCache.get(userId);
+  if (cached && Date.now() - cached.computedAt < SITUATION_CACHE_TTL) {
+    return cached.brief;
+  }
+
+  try {
+    const { aiComplete, MODEL_FAST } = await import("./ai-client");
+
+    // Reuse cached base context + memory — no extra DB calls
+    const [baseResult, memoryContext] = await Promise.all([
+      buildUnifiedContext(userId),
+      buildMemoryContext(userId, "orbit"),
+    ]);
+
+    const dataSnapshot = memoryContext
+      ? memoryContext + "\n\n" + baseResult.context
+      : baseResult.context;
+
+    const brief = await aiComplete(
+      [
+        {
+          role: "system",
+          content: `You are a personal intelligence engine. Given a person's data snapshot and accumulated knowledge, produce a situation brief in 150-250 words. Write as internalized understanding, not a report. No headers, no bullets, plain flowing prose. No second person — write in third person like clinical notes.
+
+Cover:
+- Current state: How they're doing right now based on recent mood/energy/sleep/stress trajectory
+- Today's landscape: What's ahead today and tomorrow that matters (meetings, deadlines, events)
+- Active threads: 2-3 things that seem to be on their mind based on recent journals, conversations, and patterns
+- Watch for: 1-2 things to be sensitive about (pain patterns, stress triggers, upcoming challenges, financial pressure)
+
+Be specific, not generic. Use actual numbers and dates from the data. If the data is sparse in some areas, skip those areas rather than guessing.`,
+        },
+        {
+          role: "user",
+          content: dataSnapshot.slice(0, 12000), // Cap to avoid token overflow
+        },
+      ],
+      { maxTokens: 500, temperature: 0.2, model: MODEL_FAST }
+    );
+
+    const result = brief || "";
+    situationCache.set(userId, { brief: result, computedAt: Date.now() });
+    console.log(`[SituationAssessment] Built for user ${userId} (${result.length} chars)`);
+    return result;
+  } catch (err) {
+    console.error("[SituationAssessment] Failed:", err);
+    return "";
+  }
+}
+
+/** Get cached situation assessment (non-blocking, returns "" if not cached) */
+export function getSituationAssessment(userId: string): string {
+  const cached = situationCache.get(userId);
+  if (cached && Date.now() - cached.computedAt < SITUATION_CACHE_TTL) {
+    return cached.brief;
+  }
+  return "";
+}
+
 /**
  * Build the full context including memory graph.
  * The memory graph provides deep understanding that raw data cannot:
@@ -591,25 +683,34 @@ export async function buildUnifiedContextWithMemory(
   context: string;
   msToken: string | null;
 }> {
-  // When there's a conversation hint, skip cache to get topic-relevant memory
-  const cacheKey = `${userId}:${mode}`;
-  if (!conversationHint) {
-    const cached = contextCache.get(cacheKey);
-    if (cached && Date.now() - cached.fetchedAt < CONTEXT_CACHE_TTL) {
-      return { context: cached.context, msToken: cached.msToken };
-    }
+  // Two-layer cache: reuse base context (DB+Graph) aggressively, rebuild memory only when topic changes
+  const baseCacheKey = `${userId}:${mode}`;
+  const topicBucket = conversationHint ? getTopicBucket(conversationHint) : "general";
+  const memoryCacheKey = `${userId}:${mode}:${topicBucket}`;
+
+  // Layer 1: Base context (23 DB queries + Microsoft Graph) — cached for 5 minutes
+  let baseResult: { context: string; msToken: string | null };
+  const cachedBase = baseContextCache.get(baseCacheKey);
+  if (cachedBase && Date.now() - cachedBase.fetchedAt < BASE_CONTEXT_CACHE_TTL) {
+    baseResult = { context: cachedBase.context, msToken: cachedBase.msToken };
+  } else {
+    baseResult = await buildUnifiedContext(userId);
+    baseContextCache.set(baseCacheKey, { context: baseResult.context, msToken: baseResult.msToken, fetchedAt: Date.now() });
   }
 
-  const [baseResult, memoryContext] = await Promise.all([
-    buildUnifiedContext(userId),
-    buildMemoryContext(userId, mode, conversationHint),
-  ]);
+  // Layer 2: Memory context (topic-aware) — cached per topic bucket for 5 minutes
+  let memoryContext: string;
+  const cachedMemory = memoryContextCache.get(memoryCacheKey);
+  if (cachedMemory && Date.now() - cachedMemory.fetchedAt < MEMORY_CONTEXT_CACHE_TTL) {
+    memoryContext = cachedMemory.memory;
+  } else {
+    memoryContext = await buildMemoryContext(userId, mode, conversationHint);
+    memoryContextCache.set(memoryCacheKey, { memory: memoryContext, fetchedAt: Date.now() });
+  }
 
   const fullContext = memoryContext
     ? memoryContext + "\n\n" + baseResult.context
     : baseResult.context;
-
-  contextCache.set(cacheKey, { context: fullContext, msToken: baseResult.msToken, fetchedAt: Date.now() });
 
   return {
     context: fullContext,
@@ -869,6 +970,63 @@ ACTION OUTPUT RULES:
 Keep responses focused, structured, and actionable. For assessments:
 - The Clinical Picture: A high-density synthesis
 - Medical-Grade Action Items: Pragmatic next steps`;
+  }
+
+  return prompt;
+}
+
+/**
+ * Build a composable Orbit system prompt optimized for the query type.
+ * Slim prompt for conversational queries (~500 tokens), full prompt for actions (~4000 tokens).
+ * The situation brief provides pre-digested intelligence so Opus doesn't need to synthesize raw data.
+ */
+export interface OrbitPromptOptions {
+  includeActions: boolean;
+  includeWorkActions: boolean;
+  situationBrief?: string;
+}
+
+export function buildOrbitPrompt(options: OrbitPromptOptions): string {
+  const baseIdentity = `You are Orbia — their person. You know everything about their life because you live in it with them. You're sharp, warm, occasionally funny, and always real. You talk like someone who genuinely knows them — because you do.
+
+Talk like a real person. Plain text, no markdown, no bullet points, no headers, no bold/italic. Write like you'd text someone you care about. Short when short works, longer when it matters. Never perform empathy — just be specific about what you actually know about them. One good observation beats five generic suggestions.`;
+
+  const silentProtocol = `
+You have the user's complete data below. Use it silently — never recite it back. Synthesize, don't itemize. Connect dots across domains implicitly.
+
+Calendar events have time tags like [IN 45 MIN], [HAPPENING NOW]. Use these for timing — don't guess.
+
+Your MEMORY_GRAPH is accumulated knowledge about this person. This knowledge is YOURS — you know these things the way a close friend does. Never reference it as a source. Never say "I've noticed a pattern" or "based on your history." You just know. Let it make you smarter and more precise, not chattier. Surface personal details sparingly and only when naturally relevant.`;
+
+  const orbitTone = `
+You're their brilliant friend who happens to remember everything and see across every part of their life. Read their energy and match it. If they're venting, just listen. If they need action, just do it. Be direct, be real, don't lecture.`;
+
+  const deepIntelligence = `
+INTELLIGENCE PROTOCOL — how to think before responding:
+Before you write a single word, silently ask yourself:
+- What's actually going on with this person right now? Not just what they said — what's underneath it.
+- What do I know about their patterns that's relevant here? Connect their sleep, mood, work, pain, relationships — find the thread.
+- Is there something in their data that contradicts or adds depth to what they're saying? If so, gently surface it.
+- What's the ONE thing I can say that would make them feel genuinely understood?
+
+Lead with insight, not information. If you can connect two things they haven't connected themselves, do it. If their mood dipped after 3 nights of bad sleep and they're asking why they feel off — don't list possibilities, tell them what you actually see.
+
+Never give 5 suggestions when 1 precise observation is better. Never repeat back what they already know. Never be generic when you have specific data. Be the friend who says the thing nobody else would notice.`;
+
+  let prompt = baseIdentity + "\n" + silentProtocol + "\n" + orbitTone + "\n" + deepIntelligence;
+
+  if (options.situationBrief) {
+    prompt += `\n\n<SITUATION_INTELLIGENCE>\n${options.situationBrief}\n</SITUATION_INTELLIGENCE>`;
+  }
+
+  if (options.includeActions) {
+    // Pull in the full action catalogs from the existing buildUnifiedSystemPrompt
+    const fullPrompt = buildUnifiedSystemPrompt("orbit");
+    // Extract everything after the tone guidance (action schemas + rules)
+    const actionsStart = fullPrompt.indexOf("## APP ACTIONS");
+    if (actionsStart !== -1) {
+      prompt += "\n\n" + fullPrompt.substring(actionsStart);
+    }
   }
 
   return prompt;
