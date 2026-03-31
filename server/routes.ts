@@ -6823,5 +6823,63 @@ When the user asks you to do something, perform the action using these tags. Inc
     }
   });
 
+  // ── Aegis Routes ──
+  // Status route is always available (returns available:false on non-Windows/production)
+  const aegisLocal = (process.platform === "win32")
+    ? await import("./lib/aegis-local")
+    : null;
+
+  app.get("/api/aegis/status", async (_req, res) => {
+    try {
+      if (!aegisLocal || !aegisLocal.isAegisEnvironment()) {
+        return res.json({ available: false });
+      }
+      const status = await aegisLocal.getAegisStatus();
+      res.json(status);
+    } catch (error: any) {
+      res.json({ available: false });
+    }
+  });
+
+  // Config/logs routes only on local Windows
+  if (aegisLocal && process.env.NODE_ENV !== "production") {
+    app.get("/api/aegis/config", async (_req, res) => {
+      try {
+        if (!(await aegisLocal.isAegisAvailable())) {
+          return res.status(404).json({ error: "Aegis not installed" });
+        }
+        const config = await aegisLocal.readAegisConfig();
+        res.json(config);
+      } catch (error: any) {
+        res.status(500).json({ error: "Failed to read Aegis config" });
+      }
+    });
+
+    app.put("/api/aegis/config", async (req, res) => {
+      try {
+        if (!(await aegisLocal.isAegisAvailable())) {
+          return res.status(404).json({ error: "Aegis not installed" });
+        }
+        await aegisLocal.writeAegisConfig(req.body);
+        res.json({ success: true });
+      } catch (error: any) {
+        if (error.name === "ZodError") {
+          return res.status(400).json({ error: "Invalid config", details: error.errors });
+        }
+        res.status(500).json({ error: "Failed to write Aegis config" });
+      }
+    });
+
+    app.get("/api/aegis/logs", async (req, res) => {
+      try {
+        const count = parseInt(req.query.count as string) || 30;
+        const lines = await aegisLocal.readAegisLogs(Math.min(count, 100));
+        res.json({ lines });
+      } catch (error: any) {
+        res.status(500).json({ error: "Failed to read Aegis logs" });
+      }
+    });
+  }
+
   return httpServer;
 }

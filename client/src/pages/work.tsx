@@ -6,10 +6,11 @@ import {
   MapPin, Users, Sparkles, ArrowRight, Zap,
   RefreshCw, ExternalLink, BarChart3, Coffee,
   ChevronDown, AlertCircle, Mail, MailOpen,
-  Reply, ArrowLeft, Paperclip, Rocket, FolderKanban
+  Reply, ArrowLeft, Paperclip, Rocket, FolderKanban, Shield
 } from "lucide-react";
 import ProjectsTab from "@/components/projects-tab";
 import ZohoPanel from "@/components/zoho-panel";
+import AegisPanel from "@/components/aegis-panel";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1099,8 +1100,8 @@ function SetupScreen({ onConnect, isConnecting }: { onConnect: () => void; isCon
   );
 }
 
-type MobileTab = "today" | "nexus" | "comms" | "zoho" | "projects";
-type WorkView = "office" | "zoho" | "projects";
+type MobileTab = "today" | "nexus" | "comms" | "zoho" | "projects" | "aegis";
+type WorkView = "office" | "zoho" | "projects" | "aegis";
 
 export default function WorkPage() {
   const queryClient = useQueryClient();
@@ -1137,6 +1138,14 @@ export default function WorkPage() {
     queryFn: () => workApi(`/api/work/teams/chats/${selectedChatId}/messages`),
     enabled: !!selectedChatId,
   });
+
+  const { data: aegisStatus } = useQuery({
+    queryKey: ["/api/aegis/status"],
+    queryFn: () => workApi("/api/aegis/status"),
+    retry: false,
+    staleTime: 60000,
+  });
+  const aegisAvailable = aegisStatus?.available === true;
 
   const disconnectMutation = useMutation({
     mutationFn: () => workApi("/api/work/microsoft/disconnect", { method: "POST" }),
@@ -1235,6 +1244,7 @@ export default function WorkPage() {
     { key: "comms", label: "Comms", icon: MessageSquare },
     { key: "zoho", label: "Zoho", icon: FolderKanban },
     { key: "projects", label: "Projects", icon: Rocket },
+    ...(aegisAvailable ? [{ key: "aegis" as MobileTab, label: "Aegis", icon: Shield }] : []),
   ];
 
   return (
@@ -1289,6 +1299,7 @@ export default function WorkPage() {
               { key: "office" as WorkView, label: "Office", icon: Monitor },
               { key: "zoho" as WorkView, label: "Zoho", icon: FolderKanban },
               { key: "projects" as WorkView, label: "Projects", icon: Rocket },
+              ...(aegisAvailable ? [{ key: "aegis" as WorkView, label: "Aegis", icon: Shield }] : []),
             ]).map((tab) => (
               <button
                 key={tab.key}
@@ -1400,6 +1411,13 @@ export default function WorkPage() {
             </div>
           )}
 
+          {/* === AEGIS VIEW (Desktop) === */}
+          {workView === "aegis" && aegisAvailable && (
+            <div className="hidden lg:block max-w-2xl" style={{ minHeight: "calc(100vh - 220px)" }}>
+              <AegisPanel />
+            </div>
+          )}
+
           {/* === MOBILE CONTENT === */}
           <div className="lg:hidden">
             <AnimatePresence mode="wait">
@@ -1489,6 +1507,17 @@ export default function WorkPage() {
                   exit={{ opacity: 0, x: 20 }}
                 >
                   <ProjectsTab />
+                </motion.div>
+              )}
+
+              {mobileTab === "aegis" && aegisAvailable && (
+                <motion.div
+                  key="aegis"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                >
+                  <AegisPanel />
                 </motion.div>
               )}
             </AnimatePresence>

@@ -882,3 +882,31 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({ id: true, createdAt: true });
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+
+// ── Aegis (local-only, not a DB table) ──
+
+export const aegisLocationSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+});
+
+export const aegisDayScheduleSchema = z.object({
+  enabled: z.boolean(),
+  loc: z.string(),
+});
+
+export const aegisScheduleBlockSchema = z.object({
+  start: z.string().regex(/^\d{2}:\d{2}$/),
+  end: z.string().regex(/^\d{2}:\d{2}$/),
+  schedule: z.record(z.string(), aegisDayScheduleSchema),
+});
+
+export const aegisConfigSchema = z.object({
+  zoho_url: z.string().optional().default(""),
+  master_on: z.boolean(),
+  locations: z.record(z.string(), aegisLocationSchema),
+  check_in: aegisScheduleBlockSchema,
+  check_out: aegisScheduleBlockSchema,
+});
+
+export type AegisConfig = z.infer<typeof aegisConfigSchema>;
